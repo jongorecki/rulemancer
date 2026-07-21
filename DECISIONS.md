@@ -537,3 +537,42 @@ cold, he can still pre-commit an answer to stay strict.
 
 **Impact:** Jon's remaining input drops to just the ANTHROPIC_API_KEY --
 no reference-writing. Reference answers become optional, per-question.
+
+---
+
+## 2026-07-21 — Answer accuracy: 93.5%, zero hallucinations
+
+**What:** Jon graded all 31 generated answers against their cited rule text
+(faithfulness). Result: 29 correct, 1 partial, 1 wrong = 93.5% (95.2% with
+partial credit). Verdicts + notes persisted in evals/answer_verdicts.json.
+
+**The key finding -- safe failure mode:** across 31 questions the bot never
+confidently stated a false rule. Both non-correct answers were SAFE failures:
+q016 was an honest decline (answered=false), q014 was incompleteness. The
+groundedness guard (the `answered` flag) worked -- no hallucinated wrong
+answers.
+
+**Root-cause of the two misses -- retrieval, not generation:**
+- q016 ("respond to a cost being paid?"): the generator's top-10 was
+  entirely cost-mechanics rules (118.x). NEITHER answering rule (117.3c
+  priority, 601.2h casting-is-atomic) made the top-10, so it declined for
+  lack of the answer. This is the SAME q016 that was a miss in the retrieval
+  eval -- a clean causal chain: retrieval miss -> wrong rules fed to
+  generator -> honest decline -> graded wrong. The two evals measure the
+  same failure from opposite ends.
+- q014 (defending player): retrieval got 506.1 + multiplayer 802.5 into the
+  pool, but the answer only covered two-player. Generation/completeness.
+
+**Actionable from Jon's notes (deferred, not done):**
+- Prompt-tune: define key terms (q001 phasing) and name the zones involved
+  (q020 command zone vs exile) -- correct answers that could be clearer.
+- q014: cover multiplayer defending players; ensure 802.x ranks in.
+- q016: the low-confidence guard is double-edged -- it prevents hallucination
+  but declines answerable questions when retrieval misses the key rule. Fix
+  is retrieval (get 117.3c/601.2h to rank), not loosening the guard.
+- q029: consider adding 714.3b (read-ahead Saga variant) to gold -- optional.
+
+**LLM-judge status:** Jon graded manually (recognition was feasible for all
+but layers, checked against rule text). The planned LLM-judge is now a
+regression tool -- re-grade after changes without Jon re-reading everything
+-- not needed for this pass.

@@ -130,3 +130,13 @@ capture" section for the trigger rules.
 - Rerank: rerank-2.5 best recall@5 (68%) but HURTS @1 (26) and @10 (71 vs 81).
   Not a free win. If we feed the generator ~10 chunks, pure vector (81% @10)
   beats reranked. Embeddings were the real lever (32 -> 65); rerank is polish.
+
+## 2026-07-21 — answer accuracy 93.5%, zero hallucinations
+
+- Jon graded 31 answers vs cited rules: 29 correct, 1 partial, 1 wrong = 93.5%.
+- Best part: NO hallucinations. The one "wrong" (q016) was an honest DECLINE,
+  not a fabrication. Checked why: its top-10 was all cost-mechanics rules;
+  neither answering rule (117.3c/601.2h) was retrieved, so it declined for
+  lack of the answer. Same q016 that missed in the RETRIEVAL eval -- the two
+  evals caught the same failure from both ends. Retrieval fix -> answer fix.
+- q014 partial: had 506.1 + multiplayer 802.5 but answered two-player only.

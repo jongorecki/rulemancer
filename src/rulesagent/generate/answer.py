@@ -49,11 +49,22 @@ class RulesAgent:
         retrieved = self.store.search(question, self.k)
         context = _format_context(retrieved)
         user = f"Rules context:\n{context}\n\nQuestion: {question}"
+        # 4096: claude-sonnet-5 runs adaptive thinking by default, and thinking
+        # tokens draw from max_tokens -- too small a budget gets eaten by
+        # thinking and truncates the structured answer to nothing.
         response = self.client.messages.parse(
             model=self.model,
-            max_tokens=1024,
+            max_tokens=4096,
             system=SYSTEM,
             messages=[{"role": "user", "content": user}],
             output_format=Answer,
         )
-        return response.parsed_output
+        parsed = response.parsed_output
+        if parsed is None:
+            # incomplete/blocked output -- treat as an honest non-answer
+            return Answer(
+                text=f"(no structured answer; stop_reason={response.stop_reason})",
+                citations=[],
+                answered=False,
+            )
+        return parsed
