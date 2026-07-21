@@ -109,3 +109,14 @@ capture" section for the trigger rules.
   handed to me by the data instead of theory.
 - The 152ms/query is the Voyage query-embed API call, NOT the search. Brute-
   force cosine over 3,617 vectors is sub-ms. "No vector DB" holds.
+
+## 2026-07-21 — Phase C: hybrid didn't help (the useful surprise)
+
+- Expected hybrid to beat vector. It didn't: recall@5 BM25 32%, vector 65%,
+  hybrid-RRF 48%, hybrid-wt0.5 55%. Fusion DILUTED the strong vector signal
+  because BM25 is too weak here. Alpha sweep: more vector weight = better,
+  converging to pure vector.
+- Pool nuance: at k=20 hybrid-wt (87%) > vector (81%), but at k=50 vector
+  (90%) wins. So pure vector, pool 50, is the best first stage for reranking.
+- Good story: measurement rejecting complexity I added. Knowing when NOT to
+  ship a component.

@@ -393,3 +393,37 @@ latency is network, removable by caching query embeddings.
 **What would change my mind:** If hybrid + rerank close the gap and a cheaper/
 smaller model matches voyage-4-large on our questions, downgrade for latency/
 cost. Not now.
+
+---
+
+## 2026-07-21 — Phase C: hybrid does NOT help; keep pure vector
+
+**What:** Built hybrid retrieval (RRF and weighted-score fusion) over BM25 +
+voyage-4-large and A/B'd both. Result: neither beats pure vector at recall@5,
+so hybrid is NOT adopted. Pure voyage-4-large stays the retriever, and feeds
+Phase D reranking as a depth-50 candidate pool.
+
+**Measured (recall@5 / @20 / @50):**
+- BM25: 32 / 61 / 71
+- voyage-4-large: 65 / 81 / 90
+- hybrid-RRF: 48 / 74 / 87
+- hybrid-weighted@0.5: 55 / 87 / 87
+- weighted alpha sweep @5: a=0.3 -> 48%, 0.5 -> 55%, 0.7 -> 65% (converges to
+  pure vector as vector weight rises).
+
+**Why hybrid loses here:** BM25 (32%) is far weaker than vector (65%) on this
+corpus, so equal-footing fusion demotes vector's reliable hits below k=5. RRF
+suffers most -- it uses rank only, treating a rank-1 vector hit (reliable) the
+same as a rank-1 BM25 hit (often noise). The alpha sweep confirms it: the more
+you weight vector, the better, converging on pure vector. Hybrid-weighted does
+edge vector at the k=20 POOL (87 vs 81) by rescuing a few BM25-only chunks
+(e.g. q001 phasing), but at k=50 pure vector's pool is best (90 vs 87), so it's
+the better first stage for reranking anyway.
+
+**Why keep the code:** the finding ("adding a component made it worse, here's
+why, measured") is the point -- and hybrid may matter on a future corpus where
+keyword and vector are more evenly matched.
+
+**What would change my mind:** A corpus/domain where BM25 and vector are closer
+in strength (hybrid's win case), or a smarter fusion that only lets the weaker
+retriever rescue when the stronger one fails.
