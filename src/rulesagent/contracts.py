@@ -167,3 +167,22 @@ class EvalQuestion(BaseModel):
     kind: Literal["rule", "glossary", "interaction", "other"] = "rule"
     # Coarse question type, for breaking down recall by category later.
     # "interaction" = questions that hinge on how two rules combine.
+
+
+class Answer(BaseModel):
+    """The generator's output: a cited answer, or an honest 'not found.'
+    Structured so the answer-accuracy eval can check citations and the
+    low-confidence path separately from the prose."""
+
+    text: str
+    # The answer in plain language. When answered is False, this explains
+    # what the provided rules were missing rather than guessing.
+
+    citations: list[str]
+    # The rule numbers / glossary terms the answer actually relied on --
+    # must come from the chunks provided in context, not outside knowledge.
+
+    answered: bool
+    # True if the provided rules were sufficient to answer. False triggers
+    # the low-confidence path: the bot says it can't answer from the rules
+    # it was given rather than hallucinating. This is the groundedness guard.

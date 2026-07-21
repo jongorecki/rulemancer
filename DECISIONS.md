@@ -475,3 +475,65 @@ the context to a handful of chunks.
 **What would change my mind:** If generation quality proves sensitive to the
 top-1/top-3 ordering (not just presence in top-10), reranking's precision at
 the very top may matter more than the recall@10 it costs.
+
+---
+
+## 2026-07-21 — Generation (Days 6-9): design
+
+**What:** Built the cited-answer generator. Retrieves pure-vector top-10
+(Phase C decision), hands the chunks to Claude, returns a structured Answer
+{text, citations, answered}. Model pinned to claude-sonnet-5.
+
+**Key choices:**
+- Model = claude-sonnet-5, pinned (reproducible answer evals; the guidance
+  defaults to Opus 4.8, but Sonnet is the better cost/quality fit for
+  repeated eval runs, and it's a one-line swap to A/B). Jon's "stick to
+  Claude" call.
+- Structured output (Answer): citations and the answered flag are separate
+  fields so the answer-accuracy eval can check grounding and the
+  low-confidence path independently of the prose.
+- Low-confidence path = the `answered` flag: the system prompt tells the
+  model to set answered=false and say what's missing rather than filling
+  gaps with outside knowledge. That's the groundedness guard.
+- Retriever = pure vector top-10, not rerank (Phase D: rerank helps @5 but
+  hurts @10; feeding ~10 chunks, pure vector's 81% recall wins).
+
+**Grading (Jon's call):** reference answers + LLM-judge. Jon writes short
+reference answers for the 31 questions; an LLM-judge scores generated-vs-
+reference; Jon spot-checks. Not built yet -- needs the references + key.
+
+**Scryfall:** the narrow card-lookup tool (name -> oracle text) is in scope
+for this phase AFTER the core rules loop works -- it introduces LLM
+tool-routing (card question vs rules question). The bulk-data corpus stays
+deferred (docs/scryfall-notes.md).
+
+**What would change my mind:** If answer accuracy is poor, revisit feeding
+reranked top-5 instead of vector top-10, or raise k.
+
+**Status:** answer.py built but UNTESTED -- needs ANTHROPIC_API_KEY to run.
+
+---
+
+## 2026-07-21 — Grading method: judge outputs against rule text, not references
+
+**What:** Changed the answer-accuracy grading from "Jon writes reference
+answers, LLM-judge compares" to "generate answers, Jon judges each against
+the retrieved rule TEXT." Correctness criterion = faithfulness: does the
+answer accurately represent the cited rules, and cite the right ones?
+
+**Why:** Jon can't explain some topics (e.g. layers) from memory, so writing
+reference answers for those isn't feasible. But judging is recognition, not
+generation -- and judging *against the rule text we already have* (613.1a-g
+for layers) needs reading, not MTG expertise. So every question becomes
+gradeable by Jon, and we grade the property that actually matters for RAG:
+groundedness / faithfulness (core AI-103 material). Jon still owns "what
+counts as correct" -- he judges, an LLM-judge only pre-scores to save time.
+
+**Tradeoff accepted:** judging outputs (vs pre-committed references) loses
+the anti-anchoring guard of committing to ground truth before seeing the
+model's answer. Mitigated by the check-against-rule-text step: a
+confident-wrong answer won't match its cited rules. For questions Jon knows
+cold, he can still pre-commit an answer to stay strict.
+
+**Impact:** Jon's remaining input drops to just the ANTHROPIC_API_KEY --
+no reference-writing. Reference answers become optional, per-question.
