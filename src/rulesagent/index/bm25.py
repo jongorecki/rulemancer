@@ -22,7 +22,10 @@ def tokenize(text: str) -> list[str]:
 class BM25Index:
     def __init__(self, chunks: list[Chunk]):
         self.chunks = chunks
-        self._bm25 = BM25Okapi([tokenize(c.text) for c in chunks])
+        # Index embed_text, not text: both retrieval indexes (vector + BM25)
+        # search the distinctive form, while the generator/citation reads
+        # c.text. See DECISIONS.md "split embedded text from context text".
+        self._bm25 = BM25Okapi([tokenize(c.embed_text) for c in chunks])
 
     def search(self, query: str, k: int = 10) -> list[Retrieved]:
         scores = self._bm25.get_scores(tokenize(query))

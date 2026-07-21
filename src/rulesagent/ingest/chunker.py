@@ -40,39 +40,56 @@ def _is_label_like(rule: Rule, numbers_with_children: set[str]) -> bool:
     return True
 
 
-def _immediate_parent_text(rule: Rule, rules_by_number: dict[str, Rule]) -> str | None:
-    """The text of the nearest ancestor in `rule.parent_chain` that exists
-    as an actual Rule. `parent_chain` is ordered outermost-first, so the
-    nearest ancestor is the last entry; group headers like "205" never show
-    up as a Rule, so we keep walking outward until we find one that does
-    (or run out, meaning no prepend)."""
+def _immediate_parent(rule: Rule, rules_by_number: dict[str, Rule]) -> Rule | None:
+    """The nearest ancestor in `rule.parent_chain` that exists as an actual
+    Rule. `parent_chain` is ordered outermost-first, so the nearest ancestor
+    is the last entry; group headers like "205" never show up as a Rule, so
+    we keep walking outward until we find one that does (or run out)."""
     for ancestor_number in reversed(rule.parent_chain):
         ancestor = rules_by_number.get(ancestor_number)
         if ancestor is not None:
-            return ancestor.text
+            return ancestor
     return None
 
 
-def _chunk_for_rule(rule: Rule, rules_by_number: dict[str, Rule]) -> Chunk:
-    parent_text = _immediate_parent_text(rule, rules_by_number)
-    parts = [parent_text] if parent_text is not None else []
-    parts.append(rule.text)
-    parts.extend(rule.examples)
+def _chunk_for_rule(
+    rule: Rule, rules_by_number: dict[str, Rule], numbers_with_children: set[str]
+) -> Chunk:
+    parent = _immediate_parent(rule, rules_by_number)
+    own = [rule.text, *rule.examples]
+
+    # text (generator/citation): always prepend the immediate parent's text --
+    # completeness. Unchanged from before the embed_text/text split.
+    text_parts = ([parent.text] if parent is not None else []) + own
+
+    # embed_text (retrieval): prepend the parent's text ONLY when that parent
+    # is folded (label-like -> no chunk of its own), so a label like "Cast"
+    # still reaches the index via its children. When the parent has its own
+    # chunk, its text is already indexed and prepending it just dilutes this
+    # chunk's vector toward its siblings (the 601.2-family problem). See
+    # DECISIONS.md "split embedded text from context text".
+    parent_is_folded = parent is not None and _is_label_like(parent, numbers_with_children)
+    embed_parts = ([parent.text] if parent_is_folded else []) + own
+
     return Chunk(
         source_id=rule.number,
         kind="rule",
         section=rule.section,
-        text=" ".join(parts),
+        text=" ".join(text_parts),
+        embed_text=" ".join(embed_parts),
     )
 
 
 def _chunk_for_glossary(entry: GlossaryEntry) -> Chunk:
     text = entry.term + ". " + " ".join(entry.definitions)
+    # Glossary entries have no parent, so there's nothing to strip: the
+    # distinctive form and the human-facing form are identical.
     return Chunk(
         source_id=entry.term,
         kind="glossary",
         section="Glossary",
         text=text,
+        embed_text=text,
     )
 
 
@@ -84,7 +101,7 @@ def chunk_rules(rules: list[Rule], glossary: list[GlossaryEntry]) -> list[Chunk]
     for rule in rules:
         if _is_label_like(rule, numbers_with_children):
             continue
-        chunks.append(_chunk_for_rule(rule, rules_by_number))
+        chunks.append(_chunk_for_rule(rule, rules_by_number, numbers_with_children))
 
     for entry in glossary:
         chunks.append(_chunk_for_glossary(entry))

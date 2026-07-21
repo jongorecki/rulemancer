@@ -137,7 +137,24 @@ def test_keyword_label_701_5_cast_has_no_chunk(parsed):
 def test_keyword_child_701_5a_prepends_cast_label(parsed):
     chunk = parsed["chunks"]["701.5a"]
     assert chunk.kind == "rule"
-    # own text starts "To cast a spell..."; with the "Cast" label prepended
-    # the chunk text leads with the label. (Stops before the first
-    # apostrophe to keep the assertion free of unicode punctuation.)
-    assert chunk.text.startswith("Cast To cast a spell is to take it from the zone it")
+    # 701.5 ("Cast") is folded -- its text exists nowhere else in the index --
+    # so BOTH the human-facing text AND the embedded form must carry the label,
+    # or the word "Cast" leaves retrieval entirely. The label mechanic now
+    # lives in embed_text (the field retrieval indexes); text still has it too.
+    # (Stops before the first apostrophe to avoid unicode punctuation.)
+    lead = "Cast To cast a spell is to take it from the zone it"
+    assert chunk.text.startswith(lead)
+    assert chunk.embed_text.startswith(lead)
+
+
+def test_nonfolded_parent_not_prepended_to_embed_text(parsed):
+    # 601.2g's immediate parent is 601.2, which has its own chunk (it's a long
+    # rule, not a folded label). The embed_text/text split means:
+    #   - text (generator) still leads with 601.2's "To cast a spell..." preamble
+    #   - embed_text (retrieval) must NOT -- it leads with 601.2g's OWN text,
+    #     so the chunk embeds distinctively instead of blurring into its siblings.
+    chunk = parsed["chunks"]["601.2g"]
+    preamble = "To cast a spell is to take it"
+    assert chunk.text.startswith(preamble)          # generator sees full context
+    assert not chunk.embed_text.startswith(preamble)  # retrieval sees distinctive text
+    assert "601.2" in parsed["chunk_ids"]           # parent is independently retrievable

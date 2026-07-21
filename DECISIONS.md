@@ -767,3 +767,58 @@ whose shared-preamble dilution that change addresses).
 **What would change my mind:** if the chunking split or a later multi-hop step
 shows a second rule is genuinely required to answer completely, promote back to
 match=all -- but on current reading 601.2i alone answers it.
+
+---
+
+## 2026-07-21 — Chunking: split embed_text from text (KEPT, a measured tradeoff)
+
+**What:** Chunk now carries two fields. `text` (generator + citations) is
+unchanged. `embed_text` (what vector + BM25 index) = own text + examples,
+prepending the immediate parent ONLY when that parent is folded (label-like, no
+chunk of its own). Plan + reasoning in docs/plan-chunk-context-split.md.
+
+**Why:** `text` was doing two jobs with opposite needs -- the generator wants
+completeness, retrieval wants distinctiveness. Prepending a long shared parent
+preamble onto every sibling made whole rule-families embed to nearly one vector
+(601.2 family sat at 0.83-0.99 cosine), so which sibling ranked first for a
+family-level query was near-arbitrary. The rule is structural, not a tuned
+threshold: prepend a parent only when folding it away would delete its words
+from the index entirely (median folded-parent text is 7 chars, e.g. "Cast");
+when the parent has its own chunk it's already retrievable and duplicating it is
+pure noise (median 204 chars of redundant preamble removed).
+
+**Measured:**
+- Family separation: 601.2 mean pairwise cosine 0.90 -> 0.63, max 0.994 -> 0.83.
+- Whole-corpus audit: 2,882 rule chunks -> 1,138 changed (redundant parent
+  dropped), 1,744 identical (900 no-parent + 844 folded-parent-kept, 0
+  accidental). Clean two-way partition; 0 empty embed_text.
+- Retrieval recall@5/@10/@20/@50: pure vector 65/81/81/90 -> 68/84/87/90;
+  rw1-haiku 68/81/87/90 -> 68/87/90/94. Deterministic base up across the board;
+  rw1-haiku up at every depth >=10. 7 of 9 match=all interactions now land ALL
+  gold within k=15 (the generator's window).
+
+**The tradeoff (do-not-delegate: reading the failure):** q016 REGRESSED.
+Isolated cleanly -- same rewrite string, old text-index vs new embed_text-index:
+601.2i rank 16 -> 84 (raw question 271 -> 869). The stripped preamble was a
+topical anchor: q016's query ("respond to a cost being paid") matches the
+casting-process THEME in the 601.2 preamble, not 601.2i's specific "once the
+steps are completed" wording. We split the 601.2 family to help q016, and the
+separation is exactly what pushed q016 out of reach.
+
+**Why KEEP anyway (Jon's call):** q016 was rank 16 BEFORE the split -- already a
+miss at both recall@5 and the generator's k=15 window. The split moved a
+near-miss to a far-miss; it did NOT turn a pass into a fail, because there was
+no q016 pass to lose. And 84 is the more honest number: at rank 16 q016 looked
+like a retrieval near-win (tempting a k-tune to one question); at 84 it is
+unambiguously a MULTI-HOP problem -- a thematic query whose answer is a specific
+rule, reachable only by retrieving the casting-process rule and following its
+reference to the priority consequence. The broad deterministic gains outweigh
+one already-failing edge case.
+
+**Rejected:** a partial-preamble heuristic that keeps some family context to
+rescue q016 -- a knob fitted to one question, the exact overfitting avoided
+everywhere else in this project. The clean structural rule stands; q016's fix is
+multi-hop, deferred.
+
+**What would change my mind:** if multi-hop lands and STILL can't reach 601.2i,
+revisit whether 601.2i genuinely needs family context in its embed_text.

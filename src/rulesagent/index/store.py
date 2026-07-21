@@ -27,7 +27,7 @@ class VectorStore:
 
     @classmethod
     def build(cls, chunks: list[Chunk], model: str) -> "VectorStore":
-        embeddings = embed_documents([c.text for c in chunks], model)
+        embeddings = embed_documents([c.embed_text for c in chunks], model)
         return cls(model, chunks, embeddings)
 
     def save(self, path: str | Path) -> None:

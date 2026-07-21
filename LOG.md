@@ -194,3 +194,20 @@ capture" section for the trigger rules.
   v1-vs-v2 prompt, the regressions I kept fixing -- was inside the noise. I was
   tuning against dice and reading the flips as signal. Parking the prompt
   micro-tuning; the honest #3a number is ~70%, not 77%.
+
+## 2026-07-21 — split the 601.2 family to help q016, split HURT q016
+
+- The embed_text/text split was aimed at the 601.2 family blurring together
+  (0.90 cosine, near-duplicate vectors). It worked: 0.90 -> 0.63. And the whole
+  base recall went up (pure vector @20 81 -> 87, rw1-haiku @10 81 -> 87).
+- Then I checked q016 -- the exact question I did this FOR. 601.2i went 16 -> 84.
+  WORSE. Isolated it clean (same rewrite, old index vs new index): 16 vs 84, so
+  it's the chunking, not rewrite noise.
+- The preamble I stripped was HELPING q016. The query is about the casting
+  process in general, and the preamble is full of casting-process words.
+  Stripping it separated the siblings but killed the topical match. I removed
+  the thing that was making it work.
+- Saving grace: rank 16 was already a miss (k=15 window), so I didn't break a
+  pass, just moved a miss farther out. And 84 is honestly clearer -- q016 is a
+  multi-hop problem, not a chunking one. Kept the split; the base gains are real
+  and q016 was never passing.

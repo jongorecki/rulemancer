@@ -115,12 +115,25 @@ class Chunk(BaseModel):
     # "Game Concepts" etc. for rules; "Glossary" for glossary entries.
 
     text: str
-    # The text that actually gets embedded and BM25-indexed. For a rule:
-    # immediate-parent context prepended + the rule's own text + any
-    # examples appended. For a glossary entry: the term plus its
-    # definition(s). Label-like rules never produce a Chunk of their own --
-    # their text reaches the index only as the prepended parent-context of
-    # their children.
+    # What the GENERATOR reads and what a citation displays -- the complete,
+    # human-facing form. For a rule: immediate-parent context prepended + the
+    # rule's own text + any examples appended. For a glossary entry: the term
+    # plus its definition(s). Label-like rules never produce a Chunk of their
+    # own -- their text reaches the index only via their children.
+
+    embed_text: str
+    # What the RETRIEVAL indexes (vector + BM25) actually embed/tokenize --
+    # the maximally-DISTINCTIVE form. DECISION (see DECISIONS.md "split
+    # embedded text from context text"): `text` was doing two jobs with
+    # opposite needs -- the generator wants completeness, retrieval wants
+    # distinctiveness -- and prepending a long shared parent preamble onto
+    # every sibling made a whole rule-family embed to nearly the same vector
+    # (the 601.2 family sat at 0.83-0.99 cosine). So embed_text is own text +
+    # examples, and prepends the immediate parent's text ONLY when that parent
+    # is folded (label-like, has no chunk of its own) -- because then the
+    # parent's words exist nowhere else in the index and the child must carry
+    # them. When the parent has its own chunk, its text is already retrievable
+    # and duplicating it is pure noise. For glossary entries embed_text == text.
 
 
 class Retrieved(BaseModel):
