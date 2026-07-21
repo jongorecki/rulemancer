@@ -220,3 +220,91 @@ exercises it hardest.
 **What would change my mind:** A future CR revision adding a keyword name
 longer than 6 words would slip past the bound; caught then off an eval
 failure, not hardened for speculatively now.
+
+---
+
+## 2026-07-21 — Eval sets stay separate per corpus
+
+**What:** Eval questions are scoped to the retrieval system they measure.
+The current set is Comprehensive-Rules-only: gold answers are rule/glossary
+chunk ids, recall@k measures rules retrieval. Card- and ruling-based
+questions (answerable only from Scryfall data) get their OWN separate eval
+set later, with gold ids pointing at cards/rulings.
+
+**Alternatives considered:** One combined question file spanning rules +
+cards + rulings.
+
+**Why:** A card question has no gold RULE chunk, so putting it in the rules
+eval set makes it an automatic miss that drags recall@k down for a reason
+unrelated to rules retrieval — it corrupts the metric. Aligning each eval
+set to its own corpus/index keeps every number honest and attributable.
+
+**What would change my mind:** If we ever build a single unified index over
+rules + cards + rulings, the eval set would merge with it — but that's not
+the current architecture and isn't planned for days 1-9.
+
+---
+
+## 2026-07-21 — Embedding provider: Voyage AI (Phase B)
+
+**What:** When we add vector retrieval (Phase B), use Voyage AI —
+`voyage-4` (or voyage-4-large) for embeddings, `rerank-2.5` for the later
+rerank phase. Not actioned yet; requires a Voyage API key at Phase B.
+
+**Alternatives considered:** OpenAI (text-embedding-3-large), Cohere
+(embed-v4 + Rerank), Google Gemini, Jina, self-hosted Nomic/Qwen3. Full
+comparison with sources in docs/embedding-providers.md.
+
+**Why:** Only option pairing top-tier domain/jargon retrieval quality with
+a bundled reranker under one account/SDK; 200M-token free tier makes our
+~3,600-chunk corpus effectively free, so we optimize purely for quality
+without onboarding a second vendor for reranking. Cohere is the fallback if
+reranking outweighs embedding quality.
+
+**What would change my mind:** If Voyage quality disappoints on our actual
+retrieval failures, or if self-hosting an open-weight model (Qwen3-Embedding
+now tops MTEB) becomes worthwhile. Gotcha: target voyage-4, NOT voyage-3
+(v3 lost the free tier Jan 2026).
+
+---
+
+## 2026-07-21 — Eval harness (Phase A): match field + curated 32-question set
+
+**What:** Built the eval harness measuring retrieval recall@k over BM25.
+Added a `match` field to EvalQuestion distinguishing two kinds of multi-rule
+question:
+- `match="any"` (default): gold ids are ALTERNATIVES — any one in top k is a
+  hit (restatements, or either rule independently answers).
+- `match="all"`: gold ids are ALL REQUIRED — a true interaction, hit only if
+  every gold id is in top k (the honest bar for "generator has everything").
+Seven questions tagged `all`: q002, q003, q004, q014, q016, q020, q021.
+
+**Gold audit (Jon's call — do-not-delegate grading criteria):** every
+`any`-tagged multi-gold question was checked so each surfaced rule truly
+answers it alone. Fixes: q006 dropped 506.4 (lists general removal triggers,
+never mentions end-of-combat timing); q009 dropped 613.1f (only 702.1
+answers — a keyword IS an ability); q020 and q021 promoted to `all` (both
+genuinely need every piece). q029 kept `any` (each of two times a lore
+counter is added is independently a valid "when").
+
+**Why:** at-least-one recall overstates success on true interactions —
+finding half of trample+deathtouch isn't answering it. Distinguishing
+alternative-answer from conjunctive-answer questions makes every number
+honest, and interactions are exactly where vector/hybrid should later show
+the biggest gains.
+
+**Measured — BM25 baseline (THE number we move from):** recall@1=22%,
+recall@5=38%, recall@10=50%, over 3,617 chunks / 32 questions. Failures
+cluster into named patterns (lexical gap, glossary distractor, short-primary-
+def-beaten-by-children, priority-term-saturation) — see LOG.md.
+
+**What would change my mind:** As real usage surfaces question types the set
+underweights, expand it. The 32 are a starting set, not final.
+
+---
+
+## 2026-07-21 — Voyage account created (Phase B ready)
+
+**What:** Jon set up a Voyage AI account (2026-07-21), so the embedding key
+is ready when Phase B (vector retrieval) begins. No code change yet — Phase A
+is BM25-only. Provider rationale in docs/embedding-providers.md.

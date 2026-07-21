@@ -42,3 +42,41 @@ capture" section for the trigger rules.
   wrongly adopts X.10+ as children of X.1. Doesn't change the label count
   (269) because none of the 52 are short labels, but the claim was false
   and got corrected in DECISIONS.md.
+
+## 2026-07-21 — eval harness works, first BM25 numbers
+
+- Harness runs end-to-end. BM25 over 3,617 chunks, 5 SEED questions only
+  (not a real eval yet): recall@1=40%, recall@5=80%, recall@10=100%.
+- Real miss already: "What does trample do?" -> gold 702.19a (the actual
+  one-line definition) lands rank 6-10, NOT top 5. BM25 ranks longer
+  sibling chunks (702.19b-g, "Trample Over Planeswalkers") higher because
+  "trample" saturates across ~10 sibling chunks and the short primary
+  definition gets no credit for being primary. Classic BM25 weakness on
+  short definitional queries -- the thing vector/hybrid is meant to fix.
+  Good to have it on record as a real example, not a hypothetical.
+
+## 2026-07-21 — first REAL eval: 32 questions, BM25 baseline
+
+- Jon wrote 32 real questions (rules-only). BM25 baseline:
+  recall@1=31%, recall@5=44%, recall@10=53%. This is THE number we move from.
+- 18 misses, and they cluster into named patterns:
+  1. Lexical gap: "Do you cast lands?" -> answer 305.1 says lands are
+     "played," not "cast," so the query word never matches. Textbook
+     embeddings-fix.
+  2. Glossary distractor: short keyword-dense glossary chunks ("Untap Step,"
+     "Respond," "Cleanup Step") outrank the actual rule.
+  3. Short primary def beaten by its own children: "delayed triggered
+     ability" retrieves 603.7d-h (the longer children) but not 603.7 or the
+     glossary term. Same failure as the trample seed.
+  4. Term saturation: all 3 priority questions target 117.3c and miss --
+     "priority" appears everywhere, BM25 can't pin the one rule.
+- Some "misses" are arguably gold-answer calibration, not retrieval bugs
+  (e.g. is retrieving 603.7d an acceptable answer for "what is a delayed
+  triggered ability?"). Flagged for Jon's ruling.
+
+## 2026-07-21 — final curated baseline
+
+- After the gold audit (dropped non-answering ids, tagged true interactions
+  match=all), the honest BM25 baseline settled at recall@1=22%, recall@5=38%,
+  recall@10=50%. Lower than the first pass (44%) on purpose -- the drop is
+  cleaner gold, not worse retrieval. This 38% is the real "move from" number.

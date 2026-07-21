@@ -121,3 +121,49 @@ class Chunk(BaseModel):
     # definition(s). Label-like rules never produce a Chunk of their own --
     # their text reaches the index only as the prepended parent-context of
     # their children.
+
+
+class Retrieved(BaseModel):
+    """One search hit: a Chunk plus the score the retriever gave it. Kept as
+    its own type (rather than a bare tuple) so every retriever -- BM25,
+    vector, hybrid -- returns the same shape and the eval harness doesn't
+    care which one produced it."""
+
+    chunk: Chunk
+    score: float
+
+
+class EvalQuestion(BaseModel):
+    """One labeled eval question. `gold` is the list of chunk source_ids that
+    a correct retrieval must surface -- this is the human-authored judgment
+    the whole eval rests on (see DESIGN.md "Do not delegate": the question
+    set and what counts as correct are Jon's, not a model's).
+
+    Loaded from evals/questions.jsonl, one JSON object per line.
+    """
+
+    id: str
+    question: str
+    gold: list[str]
+    # Chunk source_ids (rule numbers like "104.3a", or glossary terms) that
+    # count as a correct hit. NOTE: a gold id must be a source_id that
+    # actually EXISTS as a chunk -- citing a folded label (e.g. "701.5"
+    # "Cast", which has no chunk of its own) can never be retrieved. The
+    # harness validates this and warns.
+
+    match: Literal["any", "all"] = "any"
+    # How the gold ids are scored -- the difference between two kinds of
+    # multi-rule question:
+    #   "any" (default): the gold ids are ALTERNATIVES -- finding any one in
+    #     the top k is a correct hit. Right when the same answer is restated
+    #     in two places (e.g. an SBA and its cross-reference), or when either
+    #     rule independently answers the question.
+    #   "all": the gold ids are ALL REQUIRED -- a true interaction where the
+    #     answer isn't complete without every piece (e.g. trample + deathtouch
+    #     needs both keyword definitions). Counts as a hit at k only if EVERY
+    #     gold id lands within the top k. This is the honest bar for whether
+    #     the generator would have everything it needs.
+
+    kind: Literal["rule", "glossary", "interaction", "other"] = "rule"
+    # Coarse question type, for breaking down recall by category later.
+    # "interaction" = questions that hinge on how two rules combine.
