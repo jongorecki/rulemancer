@@ -1,0 +1,26 @@
+[project]
+name = "rulesagent"
+version = "0.1.0"
+description = "RAG agent over the Magic: The Gathering Comprehensive Rules"
+requires-python = ">=3.12"
+dependencies = [
+    "pydantic>=2",
+    "numpy",
+    "rank-bm25",
+    "fastapi",
+    "uvicorn",
+    "httpx",
+    "python-dotenv",
+]
+
+[dependency-groups]
+dev = [
+    "pytest",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/rulesagent"]
