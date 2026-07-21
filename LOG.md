@@ -151,3 +151,46 @@ capture" section for the trigger rules.
 - Captured Jon's Scryfall reqs in docs/scryfall-notes.md: @-triggered
   autocomplete, nicknames (Gary/Steve/Tim), per-card rulings via rulings_uri,
   and reference-by-oracle_id / display-by-name for the friend's app.
+
+## 2026-07-21 — #3a spike: half my plan died in two API calls
+
+- Spiked q016 before building the rewriting layer. 601.2h went 108 -> 2. But
+  117.3c went 198 -> 69 at best, and most rewrites made it WORSE (300, 291).
+  Read the chunk: 117.3c is about who RETAINS priority, never mentions costs
+  or responding. It answers q016 only by deduction (pair it with "casting is
+  atomic"). Embeddings match meaning, not inference -- no rewrite reaches it.
+- Second thing I got wrong: I'd argued fusing the raw question in alongside
+  its rewrites was a free safety net. It LOST in every arm -- RRF was worse
+  than the best single rewrite every time (601.2h: 2 alone -> 10 fused). The
+  original is a weak query; fusing it dilutes. That is the Phase C hybrid
+  finding restated, and I walked into it AFTER writing that entry myself.
+- Jon's call: build the layer on the 601.2h result, re-audit q016's gold
+  separately, don't let one questionable label veto a working layer.
+
+- (Jon) why re-audit the gold instead of leaving it frozen:
+  i want to see what different rules are pulled now that we are rewriting the
+  query. changing the wording could change the rules called significantly.
+- (Jon) on spiking before building:
+  i bet this saved me a lot of time and money. we love to see it. test your
+  ideas before you implement them to see if they'll actually help or not.
+
+## 2026-07-21 — my reproducibility fix wasn't reproducible
+
+- Same prompt, same model, same 31 questions: rw1-haiku recall@5 came back
+  68%, then 71%, then 77% across clean re-runs. The FAILING questions changed
+  too (q025 one run, q003+q030 another). I'd been quoting 77% as a fact and
+  building a story on it. It was one lucky draw.
+- Cause: I "froze query embeddings for reproducibility" back in Phase B and
+  thought retrieval was deterministic. But rewriting makes the query STRING
+  itself LLM output -- a random draw. Freezing the embedding of a string that
+  changes every run does nothing. I froze the wrong layer and didn't notice
+  because the cache made each single run look stable.
+- Confirmed by just calling Haiku 3x on one question: three totally different
+  rewrites. Obvious in hindsight.
+- temperature=0 (Haiku allows it; Sonnet-5 would 400) cut the swing from ~9pts
+  to ~1 question. 5-draw noise floor: mean 69.7%, stdev 1.6%, range 67.7-71.0.
+  21 questions always hit, 9 always miss, 1 flaky.
+- Real lesson: every "improvement" I chased under 2 questions this session --
+  v1-vs-v2 prompt, the regressions I kept fixing -- was inside the noise. I was
+  tuning against dice and reading the flips as signal. Parking the prompt
+  micro-tuning; the honest #3a number is ~70%, not 77%.

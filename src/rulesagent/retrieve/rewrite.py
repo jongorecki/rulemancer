@@ -26,7 +26,19 @@ from rulesagent.contracts import RewrittenQuery
 
 load_dotenv()
 
+# Models that accept the temperature sampling parameter. claude-sonnet-5,
+# Opus 4.7+, and Fable reject it with a 400; Haiku 4.5 (an older tier) accepts
+# it. Used to pin temperature=0 on the shipped Haiku rewriter for stability
+# without breaking the eval's Sonnet comparison arms.
+TEMPERATURE_OK = {"claude-haiku-4-5"}
+
 PROMPT_VERSION = "v1"
+# v2 (scope-preservation + keep-defined-term bullets) was A/B'd and REVERTED
+# for the shipped rw1-haiku config: it lifted the sonnet arms but cost the
+# haiku-n=1 arm 9 pts of recall@5 (77% -> 68%). It fixed q025's glossary miss
+# but reintroduced a q010 miss and zeroed out clarification-field population.
+# Net negative for the cell we ship. Kept documented in DECISIONS.md as a
+# measured finding, not carried in the code.
 # Part of the disk-cache key below (see rewrite_query) -- editing SYSTEM
 # changes what a cached entry actually means, so bumping/changing this
 # busts the cache automatically instead of silently serving rewrites made
@@ -118,6 +130,14 @@ def rewrite_query(
 
     client = client or anthropic.Anthropic()
     parsed = None
+    # temperature=0 cuts (does not eliminate) the run-to-run variance in the
+    # rewrites -- measured: without it, rw1-haiku recall@5 swung 68-77% across
+    # clean re-runs because each run drew different rewrites. But sampling
+    # params are REJECTED (400) on claude-sonnet-5 / Opus 4.7+ / Fable, and
+    # ACCEPTED on Haiku 4.5 (an older tier). We ship Haiku, so this stabilizes
+    # the shipped path; the eval's sonnet arms stay at default sampling and are
+    # only used for comparison. Gate by model rather than pass it blindly.
+    extra = {"temperature": 0} if model in TEMPERATURE_OK else {}
     try:
         # 2048: smaller than answer.py's 4096 since there's no retrieved-rules
         # context to read here, just the bare question -- but still enough
@@ -129,6 +149,7 @@ def rewrite_query(
             max_tokens=2048,
             system=SYSTEM.format(n=n),
             messages=[{"role": "user", "content": question}],
+            **extra,
             output_format=_Rewrites,
         )
         parsed = response.parsed_output
@@ -140,12 +161,19 @@ def rewrite_query(
         parsed = None
 
     if parsed is None or not parsed.queries:
-        result = RewrittenQuery(original=question, queries=[question], clarification=None)
-    else:
-        result = RewrittenQuery(
-            original=question, queries=parsed.queries, clarification=parsed.clarification
-        )
+        # NOT cached, deliberately. Caching a fallback would freeze a transient
+        # failure (network blip, refusal, truncation) into the eval forever:
+        # that question would silently never be rewritten again, and because
+        # the cache makes it reproducible, the degradation would look
+        # deterministic and correct. Leaving it uncached means the next run
+        # retries. The cost of that choice is that a persistently failing
+        # question re-hits the API every run -- which is the loud failure
+        # mode, and the one we want.
+        return RewrittenQuery(original=question, queries=[question], clarification=None)
 
+    result = RewrittenQuery(
+        original=question, queries=parsed.queries, clarification=parsed.clarification
+    )
     cache[key] = (result.queries, result.clarification)
     _save_cache()
     return result

@@ -601,3 +601,129 @@ changed" diff isn't possible. Re-grade pending -- prior verdicts pre-load,
 substance unchanged except the improved flagged ones; watch for regressions.
 
 **714.3b:** to add to q029 gold (Jon's call) -- pending.
+
+---
+
+## 2026-07-21 — #3a spike: rewriting fixes one of q016's two rules, not both
+
+**What:** Before building the query-rewriting layer, ran a two-API-call spike
+to falsify it: rewrite q016 ("can I respond to a cost being paid?"), embed the
+rewrites, and check where its two gold rules land. Split verdict.
+
+**Measured (rank out of 3,617 chunks):**
+- 601.2h: 108 -> **2** (sonnet-5, 3-rewrite set). Fixed decisively.
+- 117.3c: 198 -> 69 at best (haiku-4-5); most rewrites made it WORSE (300,
+  291, 219). Not fixed, and not fixable this way.
+
+**Why 117.3c is unreachable by rewriting:** its chunk text is "Which player
+has priority is determined by the following rules: If a player has priority
+when they cast a spell, activate an ability, or take a special action, that
+player receives priority afterward." It never mentions costs, responding, or
+timing windows -- it's about who RETAINS priority. It answers q016 only via a
+deductive hop (combine with 601.2h's "casting is atomic" => there's no window
+during payment). Embeddings match meaning, not inference. Evidence the
+retriever is fine: 116.3 ("If a player takes a special action, that player
+receives priority afterward") -- near-identical wording -- ranks 9. And rank 1
+was 118.2 ("if a cost includes a mana payment, the player paying the cost has
+a chance to activate mana abilities"), which may answer the question better
+than either gold id does.
+
+**Decision (Jon):** build the layer on the 601.2h result; re-audit q016's gold
+separately. Deliberately separating "is rewriting good?" from "is this label
+right?" -- one questionable gold shouldn't veto a layer with a 50x measured
+rank improvement, and equally a working layer shouldn't be used to justify
+quietly relabelling gold. q016 is demoted from primary success criterion
+(a label under review can't referee anything); the primary bar is now
+aggregate recall@5 vs the 65% baseline with zero per-question regressions.
+
+**What would change my mind:** if the gold re-audit concludes 117.3c really is
+required for q016, then this class of question needs multi-hop / cross-
+reference following, not rewriting -- a different build, deferred.
+
+---
+
+## 2026-07-21 — Fusing the rewrites with the ORIGINAL query hurts (Phase C, again)
+
+**What:** The plan asserted that always fusing the raw question in alongside
+its rewrites was a free safety property: a bad rewrite would degrade rank
+gently because the original kept voting. Measured in the spike, it's the
+opposite -- RRF(original + rewrites) was worse than the best single rewrite in
+EVERY arm (601.2h: 2 alone -> 10 fused; 117.3c: 69 alone -> 145 fused).
+
+**Why:** the original is a weak query -- that is the entire premise of the
+slice. Fusing a weak input with strong ones dilutes the strong signal. This is
+the Phase C hybrid finding restated (RRF lost there because BM25 at 32% was
+forced onto equal footing with vector at 65%), and I walked into it again
+having already written that entry. I'd predicted RRF would do well here
+because every input is the same retriever at the same strength -- true between
+rewrites, false once the original is mixed in, since the original is precisely
+NOT an equal-strength input.
+
+**Consequence:** the original is no longer fused in by default. Whether to
+include it is now a measured arm (`+orig`) instead of an assumption.
+
+**What would change my mind:** if `+orig` wins across all 31 questions, keep
+it -- one question is not enough to settle it, which is why it stays an arm
+rather than being deleted outright.
+
+---
+
+## 2026-07-21 — The reproducibility fix wasn't reproducible: rewrites are a random draw
+
+**What:** The retrieval eval's headline recall@5 for rw1-haiku swung 68% / 71% /
+77% across three clean re-runs of the SAME prompt, model, and questions -- and
+the set of failing questions changed identity between runs (q025 one run,
+q003+q030 another). The earlier "freeze query embeddings for reproducibility"
+decision fixed Voyage's embedding wobble, but it only stabilizes retrieval GIVEN
+A FIXED QUERY STRING. Rewriting makes the query string itself LLM output, i.e. a
+random draw. The rewrite cache made any single draw reproducible, which quietly
+hid that we were reporting one sample of a noisy variable. Verified directly:
+Haiku produced three entirely different rewrites for the same question across
+three calls.
+
+**Fix:** `temperature=0` on the shipped Haiku rewriter. Sampling params are
+rejected (400) on claude-sonnet-5 / Opus 4.7+ / Fable but ACCEPTED on Haiku 4.5
+(older tier) -- and we ship Haiku, so the shipped path can be pinned. Gated by
+model (`TEMPERATURE_OK`) so the eval's Sonnet comparison arms don't 400.
+
+**Measured (noise floor, 5 fresh draws at temperature=0, cache bypassed):**
+recall@5 = 67.7 / 71.0 / 71.0 / 67.7 / 71.0, mean 69.7%, stdev 1.6%, spread
+3.2% (= one question). Per-question: 21 always hit, 9 always miss, 1 flaky
+(q031). temperature=0 cut the noise floor from ~9 pts (~3 questions) to ~1
+question. temperature=0 does NOT fully eliminate variance (the API docs are
+explicit it never guaranteed determinism), but it localizes it to a single
+flickering question.
+
+**Consequences, stated honestly:**
+- The real rw1-haiku recall@5 is ~70% (mean), NOT the 77% earlier reported.
+  77% was a lucky high draw and a narrative was built on it. Honest #3a
+  headline: pure vector 65% -> rewriting ~70%, a reliable +1-2 questions at k=5,
+  with larger gains at deeper k and on specific buried questions (q016's 601.2i
+  went rank 275 -> 16).
+- Every prior cell-to-cell and prompt-to-prompt call made on a <2-question
+  difference (the v1/v2 "9-point" gap, the q025/q010/q003 regressions) was
+  inside the noise band -- dice, not signal. Prompt micro-tuning (v3, few-shot
+  examples) is parked: it can't be validated below the noise floor, and the
+  remaining 9 misses are dominated by match=all interactions that phrasing
+  can't fix. The higher-ROI lever is the deterministic chunking split.
+
+**What would change my mind:** if a future change needs sub-question resolution,
+switch from a single frozen draw to reporting a k-draw mean +/- stdev as the
+metric. For now temperature=0 + the committed rewrite-cache fixture is enough.
+
+---
+
+## 2026-07-21 — Cache no longer stores fallback results (would freeze a transient failure)
+
+**What:** rewrite_query previously cached its fallback result (queries=[question])
+on any failure. Fixed: the fallback path now returns WITHOUT writing the cache.
+
+**Why:** caching a fallback freezes a transient failure (network blip, refusal,
+truncation) permanently -- that question would silently never be rewritten
+again, and because the cache makes it reproducible, the degradation would look
+deterministic and correct. Not caching means the next run retries. Cost: a
+persistently failing question re-hits the API every run, which is the loud
+failure mode and the one we want.
+
+**What would change my mind:** nothing foreseeable -- caching a known-bad result
+is never what we want.
