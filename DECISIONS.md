@@ -727,3 +727,43 @@ failure mode and the one we want.
 
 **What would change my mind:** nothing foreseeable -- caching a known-bad result
 is never what we want.
+
+---
+
+## 2026-07-21 — q016 gold re-audited to a single rule: 601.2i
+
+**What:** q016 ("can I respond to a cost being paid?") gold changed from
+["117.3c", "601.2h"] (match=all) to ["601.2i"] (single rule). This is the
+re-audit promised when the rewriting spike proved 117.3c unreachable.
+
+**Jon's reasoning (do-not-delegate: what counts as a correct answer):**
+"respond to" presupposes you do NOT currently have priority -- responding means
+acting in a window someone else's action opened. 601.2i is the rule that speaks
+to exactly that: once the steps of casting (which include paying costs, 601.2f-h)
+are completed, the spell becomes cast, and only THEN does its controller get
+priority. So there is no window for anyone else to respond DURING payment --
+paying a cost is part of casting, not a point where priority is passed.
+- 117.3c ("if a player has priority when they cast... they receive priority
+  afterward") is about who RETAINS priority, not about responding -- it never
+  answered the question, and the spike proved it unreachable by any rewrite
+  (rank stuck ~189).
+- 601.2g / 118.2 (mana abilities may be activated during payment) describe what
+  the PAYING player may do -- that's still part of casting, not responding to
+  someone else. Including them would confuse "things you do while paying" with
+  "responding to a payment," which is the exact ambiguity that made the original
+  question a good but confusing test.
+
+**Why this matters beyond q016:** the original question was underspecified in a
+revealing way -- "respond to a cost being paid" conflates two situations (you
+paying vs. reacting to someone else paying). The rewrite/clarification layer is
+the right place to surface that ambiguity to a user later (deferred to #4).
+
+**Measured note:** with rw1-haiku, 601.2i sits at rank ~16 -- just outside the
+generator's k=15 window and outside recall@5. So this gold change does not flip
+q016 to a hit at k=5; it makes the LABEL honest. Whether 601.2i climbs into
+range is a target for the chunking split (601.2i is in the exact 601.2 family
+whose shared-preamble dilution that change addresses).
+
+**What would change my mind:** if the chunking split or a later multi-hop step
+shows a second rule is genuinely required to answer completely, promote back to
+match=all -- but on current reading 601.2i alone answers it.
