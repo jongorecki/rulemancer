@@ -576,3 +576,28 @@ answers.
 but layers, checked against rule text). The planned LLM-judge is now a
 regression tool -- re-grade after changes without Jon re-reading everything
 -- not needed for this pass.
+
+---
+
+## 2026-07-21 — Finding fixes (#2): prompt + k, q016 deferred to #3
+
+**What:** Addressed the answer-eval findings with GENERAL improvements (not
+question-specific tuning): system prompt now asks to define key terms, name
+the specific zones/steps/objects, and cover multiplayer/Commander cases;
+generator k raised 10 -> 15 (a near-miss multiplayer rule sat at rank 13).
+
+**Landed:** q001 now defines phasing; q014 now covers multiplayer defending
+players; q020 now distinguishes command zone from exile. All three match
+Jon's grading notes.
+
+**q016 deferred to #3 (query rewriting), with evidence:** the two answering
+rules rank 109 (601.2h) and 189 (117.3c) for that query -- no reasonable k
+reaches them. The reworded answer now self-diagnoses ("I'd need rule 117 and
+601/602"), confirming the gap is retrieval, fixable only by rewriting the
+query into proper rules terms before retrieval. Not overfit-patched.
+
+**Caveat:** the prompt change reworded ALL 31 answers, so a clean "only N
+changed" diff isn't possible. Re-grade pending -- prior verdicts pre-load,
+substance unchanged except the improved flagged ones; watch for regressions.
+
+**714.3b:** to add to q029 gold (Jon's call) -- pending.

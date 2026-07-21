@@ -18,7 +18,8 @@ from rulesagent.index.store import VectorStore
 load_dotenv()
 
 GEN_MODEL = "claude-sonnet-5"  # pinned; one-line swap to A/B other models
-TOP_K = 10  # pure-vector top-10 feeds the generator (Phase C: 81% recall@10)
+TOP_K = 15  # pure-vector top-15 (raised from 10: near-miss rules like a
+# multiplayer clause at rank ~13 were just outside the old window)
 
 SYSTEM = (
     "You are a Magic: The Gathering rules expert. Answer the user's question "
@@ -28,6 +29,13 @@ SYSTEM = (
     "- If the provided rules don't contain enough to answer, set answered to "
     "false and say what's missing -- do NOT fill the gap with outside "
     "knowledge or guesses.\n"
+    "- Define any key term the question hinges on (e.g. what 'phasing' means) "
+    "so the answer stands on its own.\n"
+    "- Name the specific zones, steps, or objects involved rather than "
+    "referring to them vaguely (e.g. the command zone and exile are separate "
+    "zones).\n"
+    "- If the provided rules cover multiplayer or Commander cases, address "
+    "them too, not just the two-player case.\n"
     "- Keep the answer accurate and to the point; a player should be able to "
     "act on it."
 )
