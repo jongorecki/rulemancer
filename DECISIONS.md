@@ -312,3 +312,50 @@ underweights, expand it. The 32 are a starting set, not final.
 **What:** Jon set up a Voyage AI account (2026-07-21), so the embedding key
 is ready when Phase B (vector retrieval) begins. No code change yet — Phase A
 is BM25-only. Provider rationale in docs/embedding-providers.md.
+
+---
+
+## 2026-07-21 — Full audit of every "any" question (strict completeness bar)
+
+**What:** Applied the standard "each surfaced rule must COMPLETELY answer the
+question alone, no extra info" to all 24 `any`-tagged questions. 17 passed
+unchanged. Six were revised:
+- q010: dropped 514.1 (only describes the cleanup discard; doesn't state you
+  may draw past max). Gold now just 402.2.
+- q012: dropped the "Dies" glossary entry, which restricts dying to
+  creatures/planeswalkers and CONTRADICTS rule 700.4 ("dies means is put into
+  a graveyard from the battlefield," no type restriction). Jon's call: trust
+  the rule over the glossary (rules are more current). Answer: yes, a
+  non-creature artifact dies. Gold now 700.4.
+- q015: promoted to `all`. 605.3b and 605.4a each cover ONE mana-ability
+  subtype (activated / triggered) explicitly; neither states the general case,
+  so both are required to fully answer "can I respond to a mana ability?"
+- q008: reworded to correct terminology ("can I sacrifice an evoked creature
+  before that creature's evoke triggered ability resolves?") and promoted to
+  `all` with gold [702.74a, 603.3]. 702.74a establishes the evoke sacrifice is
+  a triggered ability; 603.3 establishes triggered abilities go on the stack
+  and you get priority to respond. The reword is correctness, NOT writing-to-
+  pass (gold stays honest, and it will likely still fail BM25 -- legit
+  interaction headroom).
+- q023 ("are subgames legal?"): CUT. Ambiguous ("legal" = rules-construct vs
+  tournament-legal, and Shahrazad is actually banned), neither chunk cleanly
+  answers, and subgames essentially never come up. 32 -> 31 questions.
+- q019: kept `any` unchanged -- "destroyed as a state-based action" is a
+  complete answer; surfacing the related timing rule (704.3) is a later
+  concern, not retrieval recall.
+
+**Why:** the q029 override exposed that `any` was being applied too loosely.
+This pass makes every gold set honest: `any` means each id truly stands alone,
+`all` means each id is genuinely required.
+
+**Forward notes captured for the generation/agent phase (days 6-9):**
+- Query-rewriting/clarification layer: rewrite messy user phrasings into proper
+  rules terminology (and optionally clarify with the user) BEFORE retrieval --
+  e.g. "sacrificed to the evoke trigger" -> "before the evoke triggered ability
+  resolves." Standard RAG pattern; the right home for that translation.
+- Multi-hop / cross-reference retrieval: for answers like q019 that say "see
+  rule 704," have the agent optionally pull the referenced rule for a richer
+  answer. A generation-phase enhancement, not a retrieval-recall metric.
+
+**Measured — curated BM25 baseline:** recall@1=16%, recall@5=32%,
+recall@10=45% over 31 questions. 10 questions now `all`-tagged.

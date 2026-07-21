@@ -89,3 +89,12 @@ capture" section for the trigger rules.
   and needs both, as both of those are times that counters get put on it."
   Right -- it's an enumeration ("give me all the times"), not "name a time."
   Retagged all. My "each is a valid when" frame was the wrong lens.
+
+## 2026-07-21 — rigorous any-audit, curated baseline
+
+- Audited all 24 any-questions against "one rule must completely answer."
+  Revised 6 (q008 reword+all, q010 drop weak id, q012 rule-over-glossary,
+  q015 ->all, q023 cut, q019 keep). Baseline now recall@5=32% over 31 Qs.
+- q012 was a real surprise: the glossary ("a creature or planeswalker dies")
+  contradicts rule 700.4 ("dies means put into graveyard from battlefield,"
+  no type restriction). Trusting the rule -> non-creature artifacts DO die.
