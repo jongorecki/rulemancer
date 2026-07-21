@@ -185,3 +185,38 @@ computes it.
 
 **Measured (2026-07-21):** 3,151 rules + 735 glossary in -> 3,617 chunks
 out (2,882 rule + 735 glossary); 269 rules dropped as label-like.
+
+---
+
+## 2026-07-21 — Golden test coverage expanded to all 9 sections + 700s verified
+
+**What:** Added test_golden_sections.py: one structural test per section
+2-9 (section name, kind, parent_chain, example count), a test that all
+nine section names are present, and two exact-behavior tests for the
+section-7 label mechanic (keyword "Cast" 701.5 produces no chunk; its
+child 701.5a leads with "Cast" prepended). Suite: 25 -> 36 tests.
+
+**Alternatives considered:** Exact full-text assertions on all breadth
+cases (heavier, and the value there is "section is handled," which
+structure proves); leaving coverage clustered in section 1 (the original
+state — no evidence sections 2-9 were exercised at all).
+
+**Why:** Breadth via structural assertions is robust and cheap; exact-text
+is spent where subtle breakage actually bites (the label mechanic).
+Parse golden tests assert "matches what's literally in the file" —
+transcription, verifiable by re-reading the file — which is distinct from
+"what counts as a correct ANSWER" (the eval question set, still
+do-not-delegate, comes later).
+
+**Verified (section 7, the label detector's stress test):** 1,518 rules in
+section 7, 261 classified as labels (261 of the 269 total) — all clean
+keyword names, e.g. Activate/Attach/Behold/Cast. Checked both failure
+directions across the whole corpus: zero childless short keyword names
+leaking through as false non-labels, and zero missed labels in the 7-9
+word range (our <=6-word bound cuts off nothing real — longest actual
+labels are 5 words). The label detector is sound on the section that
+exercises it hardest.
+
+**What would change my mind:** A future CR revision adding a keyword name
+longer than 6 words would slip past the bound; caught then off an eval
+failure, not hardened for speculatively now.
