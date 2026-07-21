@@ -359,3 +359,37 @@ This pass makes every gold set honest: `any` means each id truly stands alone,
 
 **Measured — curated BM25 baseline:** recall@1=16%, recall@5=32%,
 recall@10=45% over 31 questions. 10 questions now `all`-tagged.
+
+---
+
+## 2026-07-21 — Phase B: vector retrieval, voyage-4-large wins the A/B
+
+**What:** Added Voyage embedding retrieval (asymmetric: input_type=document
+for corpus, query for queries), a NumPy+pickle brute-force vector store, and
+a side-by-side eval of BM25 vs voyage-4 vs voyage-4-large. Adopting
+**voyage-4-large** as the default embedding model.
+
+**Measured (31 questions, recall@5):** BM25 32% -> voyage-4 55% ->
+voyage-4-large 65%. voyage-4-large beats voyage-4 by ~10 pts at every k
+(recall@1 32 vs 23, recall@10 81 vs 74). Since the corpus is tiny and free-
+tier covers it, there's no cost reason to prefer the smaller model.
+
+**Reading the per-question deltas (the point of the eval):**
+- Lexical-gap questions flipped miss->hit exactly as predicted, e.g. q007
+  "Do you cast lands?" (rule says lands are "played," not "cast" -- BM25
+  blind, embeddings bridge it). Also q005, q013, q025, q030, q031, q020, q015.
+- q001 "phasing back in trigger ETB?" is the case FOR hybrid: BM25 hits, both
+  vector models miss. The rare word "phasing" is a strong lexical signal
+  embeddings smear away. Phase C combines the two rather than replacing.
+- Still hard: `all`-tagged interactions (q004, q008, q014, q016, q021),
+  priority term-saturation (q026/q027 -> 117.3c), and layers (q017). Targets
+  for hybrid (C) and rerank (D).
+
+**Latency note:** ~152 ms/query is almost entirely the Voyage API round-trip
+to embed the query. The brute-force cosine search over 3,617 vectors is
+sub-millisecond -- the "no vector DB" choice holds emphatically; the only
+latency is network, removable by caching query embeddings.
+
+**What would change my mind:** If hybrid + rerank close the gap and a cheaper/
+smaller model matches voyage-4-large on our questions, downgrade for latency/
+cost. Not now.

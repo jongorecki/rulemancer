@@ -1,90 +1,109 @@
-"""Eval harness: measures retrieval recall@k against the labeled question set.
+"""Eval harness: measures retrieval recall@k across retrievers.
 
-Phase A measures BM25 only. Vector / hybrid / rerank get added as more
-columns later, each run against this same question set so every number is
-comparable. Run with: `uv run python evals/run_eval.py`.
+Runs BM25 and any built vector stores (see build_vector_indexes.py) against
+the same question set, so every number is comparable. recall@5 is the
+headline. Vector columns only appear if their .pkl has been built.
 
-The metric is recall@k: for each question, did AT LEAST ONE gold source_id
-land in the top k retrieved chunks? We report @1, @5, @10. (recall@5 is the
-headline number the build plan tracks.)
+Metric = recall@k with per-question `match` semantics:
+  match="any": a hit at k if AT LEAST ONE gold id is in the top k.
+  match="all": a hit at k only if EVERY gold id is in the top k.
+
+Run: `uv run python evals/run_eval.py`
 """
 
-import json
+import time
 from pathlib import Path
 
 from rulesagent.contracts import EvalQuestion
 from rulesagent.ingest.parser import parse_comprehensive_rules
 from rulesagent.ingest.chunker import chunk_rules
 from rulesagent.index.bm25 import BM25Index
+from rulesagent.index.store import VectorStore
 
 REPO = Path(__file__).parent.parent
 CR_PATH = REPO / "data" / "raw" / "MagicCompRules 20260619.txt"
 QUESTIONS_PATH = REPO / "evals" / "questions.jsonl"
+PARSED_DIR = REPO / "data" / "parsed"
 KS = (1, 5, 10)
+VECTOR_MODELS = ["voyage-4", "voyage-4-large"]
 
 
 def load_questions(path: Path) -> list[EvalQuestion]:
-    out = []
-    for line in path.read_text(encoding="utf-8").splitlines():
-        line = line.strip()
-        if line:
-            out.append(EvalQuestion.model_validate_json(line))
-    return out
+    return [
+        EvalQuestion.model_validate_json(line)
+        for line in path.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+
+
+def hit_at(q: EvalQuestion, gold_ranks: dict[str, int], k: int) -> bool:
+    """gold_ranks maps each found gold id to its 1-based rank."""
+    if q.match == "all":
+        return len(gold_ranks) == len(q.gold) and all(r <= k for r in gold_ranks.values())
+    return any(r <= k for r in gold_ranks.values())
+
+
+def evaluate(search_fn, questions: list[EvalQuestion]) -> tuple[dict[int, int], dict[str, bool]]:
+    hits = {k: 0 for k in KS}
+    per_q_hit5: dict[str, bool] = {}
+    max_k = max(KS)
+    for q in questions:
+        results = search_fn(q.question, max_k)
+        ranked = [r.chunk.source_id for r in results]
+        gold_ranks = {g: ranked.index(g) + 1 for g in q.gold if g in ranked}
+        for k in KS:
+            if hit_at(q, gold_ranks, k):
+                hits[k] += 1
+        per_q_hit5[q.id] = hit_at(q, gold_ranks, 5)
+    return hits, per_q_hit5
 
 
 def main() -> None:
     rules, glossary = parse_comprehensive_rules(CR_PATH)
     chunks = chunk_rules(rules, glossary)
     chunk_ids = {c.source_id for c in chunks}
-    index = BM25Index(chunks)
     questions = load_questions(QUESTIONS_PATH)
 
-    # Validate gold ids exist as chunks -- a gold id that isn't a real chunk
-    # (e.g. a folded label like "701.5") can never be retrieved, so it would
-    # silently drag recall down. Warn loudly instead.
     for q in questions:
         missing = [g for g in q.gold if g not in chunk_ids]
         if missing:
             print(f"  [WARN] {q.id}: gold ids not found as chunks: {missing}")
 
-    print(f"\nBM25 retrieval over {len(chunks)} chunks | {len(questions)} questions\n")
-
-    hits = {k: 0 for k in KS}
-    max_k = max(KS)
-    misses = []
-    for q in questions:
-        results = index.search(q.question, k=max_k)
-        ranked_ids = [r.chunk.source_id for r in results]
-        # rank (1-based) of each gold id, if it appeared in the top max_k
-        gold_ranks = {g: ranked_ids.index(g) + 1 for g in q.gold if g in ranked_ids}
-
-        for k in KS:
-            if q.match == "all":
-                # hit only if EVERY gold id is present within the top k
-                hit = len(gold_ranks) == len(q.gold) and all(r <= k for r in gold_ranks.values())
-            else:  # "any": at least one gold id within the top k
-                hit = any(r <= k for r in gold_ranks.values())
-            if hit:
-                hits[k] += 1
-
-        # a miss (for the top-5 report) uses the same rule at k=5
-        if q.match == "all":
-            hit5 = len(gold_ranks) == len(q.gold) and all(r <= 5 for r in gold_ranks.values())
+    # assemble retrievers: BM25 always; each vector model if its index exists
+    retrievers: dict[str, object] = {"BM25": BM25Index(chunks).search}
+    for model in VECTOR_MODELS:
+        pkl = PARSED_DIR / f"vector_{model}.pkl"
+        if pkl.exists():
+            retrievers[model] = VectorStore.load(pkl).search
         else:
-            hit5 = any(r <= 5 for r in gold_ranks.values())
-        if not hit5:
-            misses.append((q, ranked_ids[:5]))
+            print(f"  [skip] {model}: no index at {pkl.name} (run build_vector_indexes.py)")
 
     n = len(questions)
-    print("Recall@k (headline = @5):")
-    for k in KS:
-        print(f"  recall@{k:<2} = {hits[k]}/{n} = {hits[k]/n:.0%}")
+    print(f"\n{len(chunks)} chunks | {n} questions | retrievers: {', '.join(retrievers)}\n")
 
-    if misses:
-        print("\nMisses (not a hit in top 5) -- this is where the learning is:")
-        for q, top5 in misses:
-            print(f"  {q.id} [match={q.match}]: {q.question}")
-            print(f"    gold={q.gold}  got top5={top5}")
+    results = {}
+    per_q = {}
+    for name, search_fn in retrievers.items():
+        start = time.time()
+        hits, per_q_hit5 = evaluate(search_fn, questions)
+        results[name] = (hits, (time.time() - start) / n)
+        per_q[name] = per_q_hit5
+
+    # comparison table
+    header = f"{'retriever':<16}" + "".join(f"recall@{k:<5}" for k in KS) + "ms/query"
+    print(header)
+    print("-" * len(header))
+    for name, (hits, secs) in results.items():
+        row = f"{name:<16}" + "".join(f"{hits[k]/n:>7.0%}   " for k in KS) + f"{secs*1000:>6.1f}"
+        print(row)
+
+    # per-question hit@5 matrix -- where the learning is
+    names = list(retrievers)
+    print("\nPer-question hit@5 (Y=hit, .=miss):")
+    print(f"{'qid':<6}{'match':<6}" + "".join(f"{name[:12]:<14}" for name in names) + "question")
+    for q in questions:
+        marks = "".join(f"{'Y' if per_q[name][q.id] else '.':<14}" for name in names)
+        print(f"{q.id:<6}{q.match:<6}{marks}{q.question[:50]}")
 
 
 if __name__ == "__main__":

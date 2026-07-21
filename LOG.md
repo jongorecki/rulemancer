@@ -98,3 +98,14 @@ capture" section for the trigger rules.
 - q012 was a real surprise: the glossary ("a creature or planeswalker dies")
   contradicts rule 700.4 ("dies means put into graveyard from battlefield,"
   no type restriction). Trusting the rule -> non-creature artifacts DO die.
+
+## 2026-07-21 — Phase B: embeddings nearly double recall@5
+
+- recall@5: BM25 32% -> voyage-4 55% -> voyage-4-large 65%. voyage-4-large
+  wins clean. q007 "do you cast lands?" flipped miss->hit exactly as I
+  predicted (rule says "played" not "cast").
+- Surprise: q001 "phasing back in trigger ETB?" -- BM25 HITS, both vector
+  models MISS. Keyword still wins sometimes. That's the argument for hybrid,
+  handed to me by the data instead of theory.
+- The 152ms/query is the Voyage query-embed API call, NOT the search. Brute-
+  force cosine over 3,617 vectors is sub-ms. "No vector DB" holds.
