@@ -62,6 +62,21 @@ def query_vectors(questions: list[EvalQuestion], model: str) -> dict[str, "objec
     return cache
 
 
+def cached_rerank(query, candidates, model, cache, chunk_map):
+    """Rerank with an on-disk cache. Key = (model, query, exact pool ids), so
+    a run with unchanged data hits the cache and makes zero API calls; if the
+    pool changes (re-chunk / re-embed), the key changes and it re-reranks.
+    Voyage's reranker is deterministic, so a cached result is identical to a
+    fresh one."""
+    pool_ids = tuple(c.chunk.source_id for c in candidates)
+    key = (model, query, pool_ids)
+    if key in cache:
+        return [Retrieved(chunk=chunk_map[sid], score=s) for sid, s in cache[key]]
+    result = rerank(query, candidates, model)
+    cache[key] = [(r.chunk.source_id, r.score) for r in result]
+    return result
+
+
 def hit_at(q: EvalQuestion, ranking: list[Retrieved], k: int) -> bool:
     ranked = [r.chunk.source_id for r in ranking]
     gold_ranks = {g: ranked.index(g) + 1 for g in q.gold if g in ranked}
@@ -88,6 +103,10 @@ def main() -> None:
         return
     vstore = VectorStore.load(pkl)
     qvecs = query_vectors(questions, VECTOR_MODEL)  # frozen -> reproducible
+    chunk_map = {c.source_id: c for c in chunks}
+    rerank_cache_path = PARSED_DIR / "rerank_cache.pkl"
+    rerank_cache = pickle.load(open(rerank_cache_path, "rb")) if rerank_cache_path.exists() else {}
+    rerank_cache_before = len(rerank_cache)
 
     method_names = (
         ["BM25", VECTOR_MODEL, "hybrid-RRF", f"hybrid-wt{MAIN_ALPHA}"]
@@ -110,9 +129,11 @@ def main() -> None:
             "hybrid-RRF": rrf_fuse([bm, vec]),
             f"hybrid-wt{MAIN_ALPHA}": weighted_fuse([bm, vec], [1 - MAIN_ALPHA, MAIN_ALPHA]),
         }
-        # rerank stage two: reorder the vector top-RERANK_POOL pool
+        # rerank stage two: reorder the vector top-RERANK_POOL pool (cached)
         for m in RERANK_MODELS:
-            rankings[f"rerank:{m}"] = rerank(q.question, vec[:RERANK_POOL], model=m)
+            rankings[f"rerank:{m}"] = cached_rerank(
+                q.question, vec[:RERANK_POOL], m, rerank_cache, chunk_map
+            )
         for name, ranking in rankings.items():
             for k in KS:
                 if hit_at(q, ranking, k):
@@ -121,6 +142,9 @@ def main() -> None:
         for a in ALPHA_SWEEP:
             if hit_at(q, weighted_fuse([bm, vec], [1 - a, a]), 5):
                 sweep5[a] += 1
+
+    if len(rerank_cache) != rerank_cache_before:
+        pickle.dump(rerank_cache, open(rerank_cache_path, "wb"))
 
     # comparison table
     header = f"{'retriever':<18}" + "".join(f"recall@{k:<5}" for k in KS)
