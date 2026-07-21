@@ -1,0 +1,151 @@
+"""Query rewriting -- translate a casual question into the Comprehensive
+Rules' own vocabulary before retrieval. Plan #3a
+(docs/plan-3a-query-rewriting.md).
+
+The problem this fixes (proven in the pre-build spike, see the plan): a
+question and the rule that answers it can share almost no vocabulary --
+"can I respond to a cost being paid?" never says "priority" or "casting a
+spell is a single action," so it barely embeds near the rule that actually
+answers it. Rewriting into the corpus's own words before embedding closes
+that gap; the spike measured a 50x rank improvement on one rule (108 -> 2).
+
+Rewriting is a small translation task, not the reasoning step -- the
+generator (RulesAgent) stays pinned to claude-sonnet-5 regardless of which
+model rewrites. See evals/run_eval.py for the model/rewrite-count comparison
+this module feeds, and generate/answer.py for the shipped config.
+"""
+
+import pickle
+from pathlib import Path
+
+import anthropic
+from dotenv import load_dotenv
+from pydantic import BaseModel
+
+from rulesagent.contracts import RewrittenQuery
+
+load_dotenv()
+
+PROMPT_VERSION = "v1"
+# Part of the disk-cache key below (see rewrite_query) -- editing SYSTEM
+# changes what a cached entry actually means, so bumping/changing this
+# busts the cache automatically instead of silently serving rewrites made
+# under a different prompt.
+
+CACHE_PATH = Path(__file__).parent.parent.parent.parent / "data" / "parsed" / "rewrite_cache.pkl"
+# src/rulesagent/retrieve/rewrite.py -> repo root is four ".parent"s up.
+
+# Copied verbatim from the pre-build spike (scratch script, never committed)
+# that validated this approach -- see the plan's "Step 0 -- the spike".
+# Deliberately general: no MTG examples, no rule numbers, no wording drawn
+# from evals/questions.jsonl, so this can't be overfit to the 31-question
+# eval set (see the plan's "Anti-overfit guards").
+SYSTEM = """You rewrite casual Magic: The Gathering rules questions into the \
+vocabulary the official Comprehensive Rules actually use, so that a semantic \
+search over the rules text finds the rules that answer them.
+
+The rules use precise technical language that players rarely say out loud. \
+Rewrite the question the way the rules themselves would phrase it, and name \
+the underlying game concepts likely at issue (for example: priority, the \
+stack, zones, steps and phases, timing, state-based actions, or the discrete \
+parts of casting a spell or activating an ability).
+
+Requirements:
+- Produce exactly {n} distinct rewrite(s). With more than one, each must \
+attack the question from a genuinely different angle rather than restating \
+the same phrasing.
+- Never include rule numbers. You do not know them, and a wrong number \
+poisons the search.
+- Each rewrite is a self-contained question or statement, not a keyword list.
+- Set clarification ONLY if the correct answer would materially differ \
+between readings (player count, which of two cards is meant, a named \
+format). Most questions need none -- leave it null."""
+
+
+class _Rewrites(BaseModel):
+    """Wire schema for the structured-output call -- just the two fields the
+    model actually produces. `original` isn't asked of it (the question is
+    already the user-turn content); rewrite_query() below fills that in when
+    it builds the public RewrittenQuery."""
+
+    queries: list[str]
+    clarification: str | None = None
+
+
+_cache: dict | None = None
+# Module-level, lazily loaded once per process rather than re-read from disk
+# on every call -- rewrite_query() gets called once per (question, model, n)
+# in the eval loops, and there's no reason to pay a pickle-load each time.
+
+
+def _get_cache() -> dict:
+    global _cache
+    if _cache is None:
+        _cache = pickle.load(open(CACHE_PATH, "rb")) if CACHE_PATH.exists() else {}
+    return _cache
+
+
+def _save_cache() -> None:
+    CACHE_PATH.parent.mkdir(parents=True, exist_ok=True)
+    pickle.dump(_cache, open(CACHE_PATH, "wb"))
+
+
+def rewrite_query(
+    question: str,
+    model: str,
+    n: int,
+    client: anthropic.Anthropic | None = None,
+) -> RewrittenQuery:
+    """Rewrite `question` into `n` Comprehensive-Rules-vocabulary rewrites.
+
+    Disk-cached by (model, PROMPT_VERSION, n, question) -- same discipline
+    as the query-embedding and rerank caches in evals/run_eval.py. A second
+    call with the same key makes zero API calls; the pickle is only written
+    when a new entry is actually added, so re-runs with unchanged inputs
+    touch disk but never rewrite it.
+
+    Never raises and never returns an empty `queries` list: a failed or
+    unparseable response (refusal, truncation, network error) falls back to
+    RewrittenQuery(original, [original], None) so retrieval always has
+    something to search for -- rewriting must never block or crash the
+    agent, only help it when it can.
+    """
+    cache = _get_cache()
+    key = (model, PROMPT_VERSION, n, question)
+    if key in cache:
+        queries, clarification = cache[key]
+        return RewrittenQuery(original=question, queries=queries, clarification=clarification)
+
+    client = client or anthropic.Anthropic()
+    parsed = None
+    try:
+        # 2048: smaller than answer.py's 4096 since there's no retrieved-rules
+        # context to read here, just the bare question -- but still enough
+        # headroom that claude-sonnet-5's default adaptive thinking doesn't
+        # eat the whole budget and truncate the structured output to nothing
+        # (the same failure mode answer.py's max_tokens comment documents).
+        response = client.messages.parse(
+            model=model,
+            max_tokens=2048,
+            system=SYSTEM.format(n=n),
+            messages=[{"role": "user", "content": question}],
+            output_format=_Rewrites,
+        )
+        parsed = response.parsed_output
+    except Exception:
+        # Broad on purpose: any failure here (API error, network error,
+        # refusal, malformed output) degrades to the fallback below rather
+        # than propagating -- a rewriter outage must never take retrieval
+        # down with it.
+        parsed = None
+
+    if parsed is None or not parsed.queries:
+        result = RewrittenQuery(original=question, queries=[question], clarification=None)
+    else:
+        result = RewrittenQuery(
+            original=question, queries=parsed.queries, clarification=parsed.clarification
+        )
+
+    cache[key] = (result.queries, result.clarification)
+    _save_cache()
+    return result
