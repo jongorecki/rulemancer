@@ -178,6 +178,13 @@ Building infrastructure right now is procrastination that feels like progress.
 
 ## Working rules
 
+0. **Plan before code, always.** No implementation — not by Jon, not by
+   Claude, not by a delegated subagent — begins until a written plan for
+   that slice exists and Jon has reviewed it. The plan states what's being
+   built, the interface/contract it works against, the edge cases, and how
+   it'll be verified. Documentation precedes code every time; a subagent is
+   only ever handed an already-approved spec, never asked to decide the
+   shape as it goes. (Jon's standing rule, 2026-07-21.)
 1. **Explain-back rule.** Don't merge anything you can't explain in three
    sentences. Tests passing is necessary, not sufficient.
 2. **Whoever writes doesn't review.** Rotate models on review. The author's
