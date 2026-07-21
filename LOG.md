@@ -230,3 +230,16 @@ capture" section for the trigger rules.
   answered=true means citations can't be empty). 3 -> 0, no new declines.
 - Built Jon a grading UI (build_grading_ui.py -> grading.html) so he can grade
   the 31 the way he did before.
+
+## 2026-07-21 — Scryfall #3b: reframed to enrichment, spiked reachability first
+
+- Jon's real use case isn't "card OR rules" -- it's BOTH at once: "@Dovin's Veto
+  to counter a spell while @Dovescape is out without Dovin's Veto getting
+  countered." An either/or router drops half of that. Reframed #3b from routing
+  to enrichment: always retrieve rules, ALSO pull @-card oracle text + rulings.
+- @ trigger (Jon's call) makes card detection deterministic -- no LLM guessing
+  card names, no Fog-the-card-vs-fog ambiguity. Kills the routing question.
+- Spiked Scryfall reachability BEFORE building (again -- the q016 lesson stuck).
+  Reachable, and it validated on Jon's exact example: @Dovin's Veto resolves,
+  its 1 ruling is exactly the countering nuance the CR can't give, @dove
+  autocompletes to Dovescape. Green light.
