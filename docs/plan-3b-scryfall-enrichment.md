@@ -36,27 +36,36 @@ on Jon's actual example cards:
 
 Green light to build.
 
-## `@` card references (Jon's call — deterministic, not LLM extraction)
+## Card references: `[brackets]` in the query, `@` is the typing UI (Jon, resolved)
 
-Users mark specific cards with `@`. That single choice does three things:
-1. **Deterministic detection** — parse `@`-tokens; no LLM guessing which words
-   are card names, no "Fog the card vs in a fog" ambiguity.
-2. **Autocomplete hook** — `@dove` completes to real card names (endpoint
-   confirmed working), so users type exact names easily.
-3. **Correct resolution** — the `@`-token is fuzzy-resolved against Scryfall, so
-   minor typos still land ("@dovins veto" → "Dovin's Veto").
+Two separate layers, don't conflate them:
 
-**Contract:** only `@`-referenced cards are looked up. "what does Llanowar Elves
-do?" (no `@`) is treated as plain text; "what does @Llanowar Elves do?" triggers
-the lookup. Explicit and predictable.
+- **`@` is a frontend input affordance, not the query format.** On a keyboard
+  (mobile especially — the likely primary surface), typing `@` opens
+  autocomplete against card names, the same gesture as tagging someone in social
+  apps or Outlook. It only fires on `@` so it never nags mid-sentence during
+  normal typing. Once a card is chosen, the UI **drops the `@` and wraps the name
+  in `[]`.** This whole layer needs a frontend → **DEFERRED** (the autocomplete
+  endpoint works today; the widget waits for a UI / the friend's app).
 
-**Open detail — the delimiter for multi-word names.** Card names have spaces
-("Dovin's Veto"), so bare `@Dovin's Veto to counter` is ambiguous about where the
-name ends. Proposal: **`@[Card Name]` brackets** in questions (and what a live
-autocomplete would insert on selection) — unambiguous to parse, and eval
-questions Jon hand-writes stay clean. Alternative is greedy longest-match against
-the card DB (no brackets, but genuinely ambiguous mid-sentence). Leaning
-brackets; Jon's call.
+- **`[Card Name]` is what the pipeline actually parses.** By the time a query
+  reaches the agent, cards are `[...]` tokens. Hand-written eval questions use
+  the same form: "can I use [Dovescape] to counter a spell while [Dovin's Veto]
+  is out?" Deterministic parse, no LLM name-guessing, no "Fog-the-card vs in a
+  fog" ambiguity, and brackets delimit multi-word names cleanly.
+
+**Contract:** only `[...]`-referenced cards are looked up. "what does Llanowar
+Elves do?" (no brackets) is plain text; "what does [Llanowar Elves] do?" triggers
+the lookup.
+
+**Name OR oracle_id, same brackets (Jon's add, verified).** A `[...]` token is
+either a card name or a Scryfall `oracle_id` (the stable cross-printing UUID).
+Detection is a UUID regex; resolution:
+- name → `GET /cards/named?fuzzy=<name>` (typo-tolerant).
+- oracle_id → `GET /cards/search?q=oracleid:<uuid>` → take the first printing.
+Both verified against Dovin's Veto (same oracle_text either way). This is the
+"reference by oracle_id, display by name" the friend's app wants — the data
+model carries the id, answers show the resolved name.
 
 ## 1. The tool — `src/rulesagent/tools/scryfall.py`
 
@@ -73,26 +82,42 @@ brackets; Jon's call.
   ~100ms min spacing between calls, "Card data from Scryfall" surfaced on answers
   that used it (Fan Content Policy — only matters if the friend's app goes
   commercial, per the master plan's "Still open").
-- **Reproducibility:** disk-cache lookups + rulings to
-  `data/parsed/scryfall_cache.json` (gitignored) keyed by resolved card name, so
-  the card eval makes zero network calls on re-run — the same frozen-fixture
-  property every other eval here has. Card oracle text/rulings for a printing are
-  stable, so no invalidation needed (tracking new sets is the deferred bulk use).
+- **Cache with a TTL (Jon's correction):** disk-cache lookups + rulings to
+  `data/parsed/scryfall_cache.json` (gitignored), each entry stamped with
+  `fetched_at`. **Rulings get ADDED over time** (WotC issues them after a set
+  ships), so a permanent cache would serve stale enrichment — entries older than
+  the TTL are re-fetched. Proposed TTL: **7 days** (rulings churn is slow;
+  configurable). Keyed by the resolved card name/oracle_id.
+- **The TTL-vs-reproducibility tension, and the fix:** a re-fetching cache breaks
+  the "eval re-runs are byte-identical" property every other eval here has. Fix:
+  the **card eval runs against a frozen fixture** — a committed snapshot of the
+  cache (or a `--no-refresh` mode that ignores the TTL) — so eval numbers are
+  reproducible, while the **live tool uses the TTL** for freshness. Two modes,
+  one cache format. (Confirm the TTL value + whether to commit the fixture vs.
+  flag-freeze.)
 
 ## 2. The pipeline
 
-Extending the agent (an `enrich`/`route` method above `RulesAgent`, name TBD):
+Extending the agent (an `enrich`/`route` method above `RulesAgent`, name TBD).
+**Order matters — Jon's call: the Scryfall data goes in AFTER the Haiku rewrite,
+not before.**
 
-1. **Parse** `@[...]` tokens from the question.
+1. **Parse** `[...]` tokens from the question.
 2. **Fetch** oracle text + all rulings for each (cached).
-3. **Retrieve rules** via the existing #3a path — rewrite the question into rules
-   vocabulary, then vector-retrieve top-15. (The rewriter can even use the card
-   oracle text to write a sharper rules query — e.g. "@Dovin's Veto can't be
-   countered" → a query about countering uncounterable spells. MVP: feed card
-   text to the rewriter as context; measure if it helps.)
-4. **Generate** with everything — retrieved rules + each card's oracle text +
-   rulings — into the structured `Answer`. Citations cover both rule numbers and
-   card names (same field; it's "what the answer relied on").
+3. **Rewrite + retrieve rules** via the existing #3a path, UNCHANGED. The
+   rewriter (Haiku) sees the question text only — **NOT** the card oracle text.
+   (My v1 draft floated feeding card text to the rewriter; Jon rejected it, and
+   he's right: it keeps the rewriter a pure question→rules-vocab translator,
+   identical to what #3a measured, instead of a new untested behavior. The rules
+   query comes from the question's *shape* — "counter a spell that can't be
+   countered" — which the rewriter already handles.)
+4. **Assemble the generator prompt in order:** retrieved rules first, THEN the
+   Scryfall card data (oracle text + all rulings per card), THEN the question.
+   The card data enriches the answer at generation time; it never touches
+   retrieval or rewriting.
+5. **Generate** into the structured `Answer`. Citations cover both rule numbers
+   and card names (same field; "what the answer relied on"). Answers that used
+   card data carry the Scryfall attribution.
 
 ## 3. Eval — small first, Jon authors later
 
@@ -108,19 +133,21 @@ Metrics when the set exists: card-resolution accuracy (did `@X` resolve to the
 right card), and answer faithfulness against oracle text + rulings + rules
 (Jon grades, same method as the rules answers).
 
-## Decisions for Jon
+## Decisions for Jon (one left)
 
-1. **`@[Card Name]` bracket delimiter** for multi-word names in questions (and
-   what autocomplete inserts) — yes, or prefer bare `@` with greedy matching?
-2. Everything else is settled by your four answers (deterministic `@`, all
-   rulings, pipeline-first, full enrichment). Nothing else blocks.
+1. **Cache TTL = 7 days, and eval reproducibility via a committed cache
+   fixture** (vs. a `--no-refresh` flag) — confirm, or set a different TTL. This
+   is the only open item; everything else is settled by your answers
+   (`[brackets]` query format, name-or-oracle_id lookup, all rulings, Scryfall
+   data added after the rewrite, pipeline-first, full enrichment).
 
 ## Out of scope (DEFERRED — docs/scryfall-notes.md)
 
-- **The autocomplete *dropdown* UX** — the endpoint works and the pipeline parses
-  `@`-tokens now, but a live as-you-type dropdown needs a frontend we don't have
-  yet (or the friend's app). Parsing + fuzzy resolution is in; the UI widget is
-  later.
-- Community nicknames (Gary/Steve/Tim), reference-by-`oracle_id` / display-by-
-  name for the friend's app, the bulk-data corpus, and relevance-filtering of
-  rulings (we include all for now — revisit only if context bloat shows up).
+- **The `@` autocomplete UI** — endpoint works and the pipeline parses
+  `[brackets]` now, but the `@`-triggered as-you-type dropdown needs a frontend
+  (or the friend's app). Parsing + fuzzy/oracle_id resolution is in; the widget
+  is later.
+- Community nicknames (Gary/Steve/Tim), the bulk-data corpus, and relevance-
+  filtering of rulings (all included for now — revisit only if context bloats).
+- (Note: oracle_id lookup and display-by-name, previously deferred, are now IN
+  scope per Jon's clarification.)
