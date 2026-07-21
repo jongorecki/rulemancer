@@ -427,3 +427,51 @@ keyword and vector are more evenly matched.
 **What would change my mind:** A corpus/domain where BM25 and vector are closer
 in strength (hybrid's win case), or a smarter fusion that only lets the weaker
 retriever rescue when the stronger one fails.
+
+---
+
+## 2026-07-21 — Eval reproducibility: freeze query embeddings
+
+**What:** Voyage returns slightly different query embeddings on repeated calls,
+so a question sitting at the rank-5/6 boundary flipped voyage-4-large recall@5
+between 65% and 61% across identical runs. Fix: embed each question once, cache
+to disk (data/parsed/query_emb_<model>.pkl, gitignored), and reuse. Added
+VectorStore.search_vec(qvec) so the eval passes cached vectors.
+
+**Why:** Eval reproducibility is the whole point of a pinned eval -- a metric
+that wobbles run-to-run can't attribute a regression. After the fix, two
+consecutive runs are byte-identical across every column, which ALSO confirmed
+Voyage's reranker is deterministic given a stable pool.
+
+**What would change my mind:** Nothing -- frozen query embeddings are strictly
+better (deterministic + faster + no per-run query cost). Rebuild the cache if
+the question set changes (new questions are embedded and appended automatically).
+
+---
+
+## 2026-07-21 — Phase D: reranking is a situational polish, not a free win
+
+**What:** A/B'd Voyage rerank-2.5 vs rerank-2.5-lite, reranking the pure-vector
+top-50 pool (Phase C decision). rerank-2.5 gives the best recall@5 but is NOT
+adopted as an unconditional stage -- whether to rerank depends on how many
+chunks the generator gets.
+
+**Measured (recall@1 / @5 / @10):**
+- voyage-4-large: 32 / 65 / 81
+- rerank-2.5: 26 / 68 / 71
+- rerank-2.5-lite: 23 / 65 / 77
+
+**Why not an unconditional yes:** rerank-2.5 improves recall@5 by only +3 (65
+-> 68) while HURTING recall@1 (-6) and recall@10 (-10) -- it reorders the pool
+and pushes some good chunks past rank 10. rerank-2.5-lite gives no @5 gain.
+So: if the generator is fed ~5 chunks, rerank-2.5 wins narrowly; if fed ~10
+(cheap and normal), pure vector's 81% recall@10 clearly beats reranked's 71%.
+The big lever was always embeddings (32 -> 65 recall@5); rerank is polish.
+
+**Decision for the generation phase:** default to pure voyage-4-large feeding
+the generator ~10 chunks (81% recall). Revisit rerank-2.5 only if we constrain
+the context to a handful of chunks.
+
+**What would change my mind:** If generation quality proves sensitive to the
+top-1/top-3 ordering (not just presence in top-10), reranking's precision at
+the very top may matter more than the recall@10 it costs.

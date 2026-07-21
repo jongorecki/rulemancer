@@ -120,3 +120,13 @@ capture" section for the trigger rules.
   (90%) wins. So pure vector, pool 50, is the best first stage for reranking.
 - Good story: measurement rejecting complexity I added. Knowing when NOT to
   ship a component.
+
+## 2026-07-21 — Phase D rerank + a reproducibility catch
+
+- Caught a real bug: voyage-4-large recall@5 read 65% then 61% on identical
+  runs. Voyage query embeddings aren't perfectly deterministic. Froze query
+  embeddings to disk -> two runs now byte-identical (rerank included). This is
+  exactly the eval-reproducibility thing AI-103 harps on, hit for real.
+- Rerank: rerank-2.5 best recall@5 (68%) but HURTS @1 (26) and @10 (71 vs 81).
+  Not a free win. If we feed the generator ~10 chunks, pure vector (81% @10)
+  beats reranked. Embeddings were the real lever (32 -> 65); rerank is polish.

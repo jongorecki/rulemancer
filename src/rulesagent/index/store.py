@@ -45,9 +45,15 @@ class VectorStore:
             data = pickle.load(f)
         return cls(data["model"], data["chunks"], data["embeddings"])
 
-    def search(self, query: str, k: int = 10) -> list[Retrieved]:
-        q = embed_query(query, self.model)  # (dim,), normalized
+    def search_vec(self, qvec: np.ndarray, k: int = 10) -> list[Retrieved]:
+        """Search with an already-embedded, normalized query vector. Splitting
+        this out lets the eval pass CACHED query vectors for reproducibility --
+        Voyage returns slightly different query embeddings on repeated calls,
+        which would otherwise wobble ranks at the top-k boundary."""
         # both sides are L2-normalized, so the dot product IS cosine similarity
-        scores = self.embeddings @ q  # (N,)
+        scores = self.embeddings @ qvec  # (N,)
         ranked = np.argsort(-scores)[:k]
         return [Retrieved(chunk=self.chunks[i], score=float(scores[i])) for i in ranked]
+
+    def search(self, query: str, k: int = 10) -> list[Retrieved]:
+        return self.search_vec(embed_query(query, self.model), k)
