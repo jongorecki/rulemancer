@@ -80,3 +80,12 @@ capture" section for the trigger rules.
   match=all), the honest BM25 baseline settled at recall@1=22%, recall@5=38%,
   recall@10=50%. Lower than the first pass (44%) on purpose -- the drop is
   cleaner gold, not worse retrieval. This 38% is the real "move from" number.
+
+## 2026-07-21 — Jon overrode q029 tagging
+
+- I kept q029 ("when are lore counters put on sagas?") as match=any,
+  reasoning each of the two times was independently a valid "when." Jon:
+  "q029 does NOT get fully answered by either of those rules individually,
+  and needs both, as both of those are times that counters get put on it."
+  Right -- it's an enumeration ("give me all the times"), not "name a time."
+  Retagged all. My "each is a valid when" frame was the wrong lens.

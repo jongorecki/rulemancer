@@ -277,15 +277,19 @@ question:
   hit (restatements, or either rule independently answers).
 - `match="all"`: gold ids are ALL REQUIRED — a true interaction, hit only if
   every gold id is in top k (the honest bar for "generator has everything").
-Seven questions tagged `all`: q002, q003, q004, q014, q016, q020, q021.
+Eight questions tagged `all`: q002, q003, q004, q014, q016, q020, q021, q029.
 
 **Gold audit (Jon's call — do-not-delegate grading criteria):** every
 `any`-tagged multi-gold question was checked so each surfaced rule truly
 answers it alone. Fixes: q006 dropped 506.4 (lists general removal triggers,
 never mentions end-of-combat timing); q009 dropped 613.1f (only 702.1
 answers — a keyword IS an ability); q020 and q021 promoted to `all` (both
-genuinely need every piece). q029 kept `any` (each of two times a lore
-counter is added is independently a valid "when").
+genuinely need every piece). q029 promoted to `all` too — Jon overrode the
+orchestrator here: "when are lore counters put on sagas?" asks for the
+complete set of times (on entry via 714.3a AND each precombat main via
+714.3c), so a partial answer naming one time is incomplete. The "each time
+is independently a valid 'when'" framing was wrong — it's an enumeration
+question, like q021.
 
 **Why:** at-least-one recall overstates success on true interactions —
 finding half of trample+deathtouch isn't answering it. Distinguishing
