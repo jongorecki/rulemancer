@@ -98,6 +98,7 @@ _TEMPLATE = r"""<!doctype html>
   .empty{color:var(--wrong);font-size:13px;font-style:italic}
   .clar{border-left:3px solid var(--partial);padding:6px 12px;margin-bottom:14px;
     color:var(--muted);font-size:13.5px}
+  .priornote{color:var(--muted);font-size:12.5px;margin-top:8px;font-style:italic}
   .verdict{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
   .vbtn{padding:8px 16px;font-weight:600;border-width:1.5px}
   .vbtn[data-v=correct].on{background:var(--ok);border-color:var(--ok);color:#04210b}
@@ -175,7 +176,8 @@ DATA.forEach(r=>{
       <button class="vbtn" data-v="wrong">Wrong</button>
       ${r.prior_verdict?`<span class="prior">prior: ${r.prior_verdict}</span>`:''}
     </div>
-    <textarea placeholder="note (optional)">${esc(r.prior_note||'')}</textarea>`;
+    ${r.prior_note?`<div class="priornote"><b>prior note:</b> ${esc(r.prior_note)}</div>`:''}
+    <textarea placeholder="fresh note (optional) — the prior note above is reference only"></textarea>`;
   list.appendChild(el);
 
   const btns = el.querySelectorAll('.vbtn');
