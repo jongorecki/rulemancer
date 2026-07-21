@@ -822,3 +822,63 @@ multi-hop, deferred.
 
 **What would change my mind:** if multi-hop lands and STILL can't reach 601.2i,
 revisit whether 601.2i genuinely needs family context in its embed_text.
+
+---
+
+## 2026-07-21 — q016 gold re-broadened; retrieval-miss != answer-wrong
+
+**What:** q016 gold changed AGAIN, from ["601.2i"] to ["601.2", "601.2g",
+"601.2h", "601.2i"] (match=any). This supersedes the earlier single-rule
+re-audit.
+
+**Why (Jon, do-not-delegate):** the answer eval revealed the ["601.2i"]-only
+gold was too narrow. Run on the shipped config, the generator answered q016
+CORRECTLY ("No -- no player receives priority in the middle of casting") while
+citing 601.2g + 601.2h, NOT the gold 601.2i. Jon's ruling: 601.2a-h are all
+steps of casting one spell (601.2 the parent says "a player follows the steps
+listed below, in order"); the caster is mid-process and by definition can't be
+responded to. You don't need one specific step -- "if you had enough of them you
+can infer the right answer." So any of the casting-process rules grounds it;
+match=any over 601.2 + the cited steps is the honest gold.
+
+**The meta-lesson (worth the README):** retrieval-recall and answer-correctness
+came apart here. The retrieval eval scored q016 a MISS (601.2i at rank 84,
+outside k=15) while the answer was CORRECT and grounded, because the question
+has multiple valid rule-paths and recall@k against one gold can't see that.
+This is the classic RAG-eval gap, hit for real: a single-gold recall metric
+undercounts multi-path questions. The fix isn't a better retriever, it's a
+gold set that admits the alternatives -- which also flips q016 to a legitimate
+retrieval hit (601.2g/h ARE in top-15).
+
+**What would change my mind:** if a grader finds the casting-step citations
+don't actually support the conclusion (reasoning beyond the rules), tighten
+back -- but on Jon's reading the steps genuinely establish "casting is an
+uninterruptible process."
+
+---
+
+## 2026-07-21 — Groundedness bug: confident answers with empty citations, fixed
+
+**What:** On the shipped config, 3 of 31 answers came back answered=true with
+citations=[] (q005, q020, q031) -- a regression from 0 in the original grading.
+Two sub-causes: q020/q031 put rule refs inline in the prose ("[903.8]...") but
+left the structured citations field empty; q005 answered a correct plain-English
+"No" grounded to nothing. Fixed by strengthening the system prompt: every rule
+number mentioned anywhere in the answer MUST appear in the citations field, and
+answered=true REQUIRES non-empty citations (decline instead of answering blank).
+
+**Why it matters:** the citations field is the entire groundedness signal --
+it's what the answer-accuracy eval reads and what makes an answer verifiable. A
+confident answer with no citations is exactly the failure the `answered` guard
+exists to prevent, leaking back in through the structured-output field rather
+than through hallucinated prose. Measured after the fix: empty citations 3 -> 0,
+confident-but-uncited 3 -> 0, with zero new spurious declines (the guard didn't
+over-correct into refusing answerable questions).
+
+**Caveat:** the prompt change reworded all 31 answers, so a clean "only N
+changed" diff isn't possible -- re-grade watches for regressions, same as the
+earlier prompt-tuning passes.
+
+**What would change my mind:** if forcing citations starts producing padded or
+wrong citations (citing rules the answer didn't really use), loosen to "cite
+what you relied on" and accept the occasional inline-only ref.

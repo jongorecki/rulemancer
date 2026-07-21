@@ -211,3 +211,22 @@ capture" section for the trigger rules.
   pass, just moved a miss farther out. And 84 is honestly clearer -- q016 is a
   multi-hop problem, not a chunking one. Kept the split; the base gains are real
   and q016 was never passing.
+
+## 2026-07-21 — answer eval: I predicted q016 would decline. it answered, correctly.
+
+- I was SURE q016 would decline now (its gold 601.2i sits at rank 84, way
+  outside the top 15 the generator sees). Ran the answer eval. It answered "No"
+  -- correctly -- citing 601.2g and 601.2h instead. Not the gold rule.
+- Jon's point: 601.2a-h are ALL the steps of casting one spell. You don't need
+  the exact rule I picked; several of the casting steps let you infer "you're
+  mid-cast, nobody can respond." My [601.2i]-only gold was too narrow. Broadened
+  it to the casting-process rules.
+- The real lesson: retrieval said MISS, the answer was RIGHT. recall@k against
+  one gold rule can't see a question that's answerable multiple ways. Textbook
+  RAG-eval gap and I walked right into it by trusting my own too-narrow gold.
+- Also caught: 3 answers (q005 q020 q031) were confident but had EMPTY citations
+  -- refs were in the prose, not the field, or missing entirely. That's the
+  groundedness signal leaking. Fixed the prompt (every ref must hit the field;
+  answered=true means citations can't be empty). 3 -> 0, no new declines.
+- Built Jon a grading UI (build_grading_ui.py -> grading.html) so he can grade
+  the 31 the way he did before.

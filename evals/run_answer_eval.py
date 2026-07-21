@@ -44,6 +44,13 @@ def parse_args() -> argparse.Namespace:
         default=True,
         help="rewrite the question before retrieving (default: on -- plan #3a's shipped config)",
     )
+    p.add_argument(
+        "--show-rewrite",
+        action=argparse.BooleanOptionalAction,
+        default=False,
+        help="show the generator the rewrite too, so it can flag intent drift "
+        "(EXPERIMENTAL, default off -- see RulesAgent.show_rewrite; may empty citations)",
+    )
     p.add_argument("--model", default=GEN_MODEL, help=f"generator model (default: {GEN_MODEL})")
     p.add_argument("--out", type=Path, default=DEFAULT_OUT, help=f"output path (default: {DEFAULT_OUT})")
     return p.parse_args()
@@ -61,10 +68,13 @@ def main() -> None:
         print(f"[ERROR] no vector index at {pkl.name}; run build_vector_indexes.py")
         return
     store = VectorStore.load(pkl)
-    agent = RulesAgent(store, model=args.model, rewrite=args.rewrite)
+    agent = RulesAgent(store, model=args.model, rewrite=args.rewrite, show_rewrite=args.show_rewrite)
 
     questions = load_questions(QUESTIONS_PATH)
-    print(f"Generating {len(questions)} answers | model={args.model} | rewrite={args.rewrite}\n")
+    print(
+        f"Generating {len(questions)} answers | model={args.model} "
+        f"| rewrite={args.rewrite} | show_rewrite={args.show_rewrite}\n"
+    )
 
     results = []
     start = time.time()
@@ -82,6 +92,7 @@ def main() -> None:
                 "question": q.question,
                 "match": q.match,
                 "kind": q.kind,
+                "show_rewrite": args.show_rewrite,
                 "answered": ans.answered,
                 "answer": ans.text,
                 "citations": ans.citations,
@@ -103,7 +114,16 @@ def main() -> None:
     with open(args.out, "w", encoding="utf-8") as f:
         json.dump(results, f, indent=2, ensure_ascii=False)
 
+    # Objective health checks so the show_rewrite A/B and the decline behavior
+    # don't need eyeballing all 31 answers to summarize.
+    declined = [r["id"] for r in results if not r["answered"]]
+    empty_cit = [r["id"] for r in results if not r["citations"]]
+    confident_uncited = [r["id"] for r in results if r["answered"] and not r["citations"]]
     print(f"\nWrote {len(results)} answers to {args.out} in {time.time() - start:.1f}s")
+    print(f"  declined (answered=false): {len(declined)} -> {declined}")
+    print(f"  empty citations:           {len(empty_cit)} -> {empty_cit}")
+    print(f"  CONFIDENT BUT UNCITED (answered=true, citations=[]): "
+          f"{len(confident_uncited)} -> {confident_uncited}")
 
 
 if __name__ == "__main__":

@@ -38,7 +38,13 @@ SYSTEM = (
     "You are a Magic: The Gathering rules expert. Answer the user's question "
     "using ONLY the numbered rules provided in the context below. Rules are "
     "labeled with their number in brackets, e.g. [104.3a].\n"
-    "- Cite the exact rule numbers you relied on in the citations field.\n"
+    "- Cite the exact rule numbers you relied on in the citations field. Every "
+    "rule number you reference anywhere in the answer text MUST also appear in "
+    "the citations field, and whenever answered is true the citations field MUST "
+    "be non-empty -- that field is what makes the answer verifiable, so an "
+    "answer that relies on rules can never leave it blank. If you genuinely "
+    "cannot ground the answer in any provided rule, set answered to false "
+    "instead of answering without citations.\n"
     "- If the provided rules don't contain enough to answer, set answered to "
     "false and say what's missing -- do NOT fill the gap with outside "
     "knowledge or guesses.\n"
@@ -61,18 +67,21 @@ def _format_context(retrieved: list[Retrieved]) -> str:
 class RulesAgent:
     def __init__(self, store: VectorStore, client: anthropic.Anthropic | None = None,
                  model: str = GEN_MODEL, k: int = TOP_K, rewrite: bool = True,
-                 show_rewrite: bool = True):
+                 show_rewrite: bool = False):
         self.store = store
         self.client = client or anthropic.Anthropic()
         self.model = model
         self.k = k
         self.rewrite = rewrite
         self.show_rewrite = show_rewrite
-        # show_rewrite: hand the generator the rewrite alongside the user's
-        # original wording (see answer() below). A flag rather than a
-        # hardcoded behavior so it can be A/B'd on the answer eval --
-        # --show-rewrite / --no-show-rewrite in evals/run_answer_eval.py --
-        # instead of being assumed to help. No effect when rewrite=False.
+        # show_rewrite (EXPERIMENTAL, default OFF): hand the generator the
+        # rewrite alongside the user's original wording (see answer() below) so
+        # it can flag when retrieval drifted from intent. Default off because
+        # an early spot-check showed the extra instruction can make the model
+        # cite rules in prose while leaving the structured `citations` field
+        # empty -- which breaks the exact field the groundedness eval reads. A
+        # flag, not hardcoded, so the answer eval can A/B it (--show-rewrite)
+        # and only adopt it if it earns its keep. No effect when rewrite=False.
         # rewrite=True is the shipped default (plan #3a, Jon's "Decided:
         # always-on"): rewriting measurably helps retrieval and the honest
         # cost -- one extra LLM call plus ~1-2s of latency per question -- is
