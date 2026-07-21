@@ -169,6 +169,39 @@ class EvalQuestion(BaseModel):
     # "interaction" = questions that hinge on how two rules combine.
 
 
+class RewrittenQuery(BaseModel):
+    """The rewriter's output: one or more search-friendly rephrasings of the
+    user's question, in the Comprehensive Rules' own vocabulary, plus an
+    optional side-channel question for the user. See plan #3a
+    (docs/plan-3a-query-rewriting.md, "Clarification: ask, but never wait")
+    for the full rationale -- the short version: retrieval must never block
+    on a human who isn't there, so `clarification` is an extra field, not a
+    gate.
+    """
+
+    original: str
+    # The user's question, verbatim, before any rewriting. Kept alongside
+    # the rewrites so a caller always has what was actually asked -- e.g. to
+    # log it, or to fuse it back into retrieval explicitly (the eval's
+    # `+orig` variant) -- without threading the original question through
+    # separately.
+
+    queries: list[str]
+    # One or more rewrites, in Comprehensive-Rules vocabulary. ALWAYS
+    # non-empty -- retrieval never blocks on the rewriter. On a failed or
+    # unparseable model response this falls back to [original] rather than
+    # raising, so a rewriter outage degrades to "search for what the user
+    # typed" instead of crashing the agent.
+
+    clarification: str | None = None
+    # An optional question worth asking the user back -- e.g. "did you mean
+    # two-player or Commander?" -- set only when the correct answer would
+    # materially differ between readings. Never gates retrieval: `queries`
+    # is already populated regardless of whether this is set. In the eval
+    # this is recorded and ignored; in the interactive demo (#4) it's shown
+    # alongside the answer so the user can refine without blocking on it.
+
+
 class Answer(BaseModel):
     """The generator's output: a cited answer, or an honest 'not found.'
     Structured so the answer-accuracy eval can check citations and the
