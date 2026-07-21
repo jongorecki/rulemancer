@@ -45,3 +45,40 @@ Scryfall publishes bulk data files (`/bulk-data` endpoint) with an
 - Include Scryfall attribution. Card data is under Wizards' Fan Content
   Policy — relevant if the friend's app ends up commercial (see the master
   plan's "Still open").
+
+## Card-lookup requirements (Jon, 2026-07-21) — for when we build Scryfall
+
+These are firm design requirements for the card-lookup feature, captured now,
+built later.
+
+### 1. Autocomplete card selection with a trigger character
+- Let users pull up specific cards by name via autocomplete against the card
+  database. Because very common words appear on huge numbers of cards, start
+  autocomplete from an explicit **trigger character** (Jon's idea: `@`), not
+  from every keystroke of free text. So typing `@gray...` begins completing
+  card names.
+- Scryfall has an autocomplete endpoint (`/cards/autocomplete?q=`), but for a
+  fast local experience we can index card names from the `oracle_cards` bulk
+  file and complete against that.
+
+### 2. Nicknames
+- Support calling the handful of cards that have well-known community
+  nicknames by that nickname. Known so far (Jon, the common ones):
+  - **Gary** = Gray Merchant of Asphodel
+  - **Steve** = Sakura-Tribe Elder
+  - **Tim** = Prodigal Sorcerer
+- Implement as a small, extensible nickname -> card map; resolve a nickname to
+  its real card before lookup.
+
+### 3. Per-card rulings
+- Pull individual card rulings from the `rulings_uri` on a card object (and/or
+  the `rulings` bulk-data file). This is a distinct data source from oracle
+  text and a strong candidate for its own retrievable corpus + eval set later.
+
+### 4. Reference by oracle_id, display by name (friend's app)
+- Internally identify a card by its Scryfall **`oracle_id`** (a stable UUID
+  that survives reprints), but **always show the card's NAME in the UI**. The
+  oracle_id is not human-readable and doesn't contain the name, so it's useless
+  as a user-facing label. Store/pass oracle_id; resolve to name for display.
+- This matters specifically for the friend's app integration -- keep the ID/
+  display separation in the data model from the start.

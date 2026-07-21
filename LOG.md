@@ -140,3 +140,14 @@ capture" section for the trigger rules.
   lack of the answer. Same q016 that missed in the RETRIEVAL eval -- the two
   evals caught the same failure from both ends. Retrieval fix -> answer fix.
 - q014 partial: had 506.1 + multiplayer 802.5 but answered two-player only.
+
+## 2026-07-21 — #2 re-grade: fixes held, no regressions
+
+- After the prompt+k fixes, re-graded: still 29 correct / 1 partial (q014) /
+  1 wrong (q016) = 93.5%. The reworded 27 all stayed correct -- NO regressions
+  from the general prompt change. q001/q020 clearer; q014 now covers
+  multiplayer (Jon keeps it partial for remaining nuance: defending player(s),
+  no-attacker case, declare-blockers priority). q016 still declines -> #3.
+- Captured Jon's Scryfall reqs in docs/scryfall-notes.md: @-triggered
+  autocomplete, nicknames (Gary/Steve/Tim), per-card rulings via rulings_uri,
+  and reference-by-oracle_id / display-by-name for the friend's app.
