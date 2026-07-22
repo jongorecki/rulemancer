@@ -1,0 +1,347 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Rulemancer API",
+    "description": "\nRulemancer answers Magic: The Gathering rules questions grounded in the\nComprehensive Rules, and enriches card questions with Scryfall oracle text and\nthe relevant rulings.\n\n**How it works:** a question is rewritten into rules vocabulary, the top rules\nare retrieved from the CR (pure-vector RAG), any `[Card Name]` / `[oracle-id]`\ntokens are resolved via Scryfall and their rulings relevance-filtered, and a\npinned model writes a cited answer that declines rather than guesses when the\nrules don't cover it (`answered=false`).\n\n**Card references:** put a card in square brackets, e.g. `[Fork]` or\n`[Grist, the Hunger Tide]`. Use `GET /cards/autocomplete` to power an @-picker.\n\nPrivate demo \u2014 no auth or rate limiting. A single worker + a lock serialize\n`/answer` so the on-disk caches stay consistent.\n",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "tags": [
+          "ops"
+        ],
+        "summary": "Liveness / readiness",
+        "description": "`ready` is true once the vector store has loaded at startup.",
+        "operationId": "health_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Health Health Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/answer": {
+      "post": {
+        "tags": [
+          "answers"
+        ],
+        "summary": "Answer a rules question",
+        "description": "Send a natural-language question (optionally with `[Card Name]` tokens). Returns the answer, an `answered` flag (false = the rules didn't cover it), citations with resolved rule/glossary text, the card data used with its relevance-selected rulings, and a debug panel.",
+        "operationId": "answer_answer_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AnswerRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnswerResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/cards/autocomplete": {
+      "get": {
+        "tags": [
+          "cards"
+        ],
+        "summary": "Card name autocomplete",
+        "description": "Proxy Scryfall's autocomplete for the frontend's @-picker. Scryfall wants\n>=2 chars; below that, return `{\"suggestions\": []}` rather than hammer it.",
+        "operationId": "autocomplete_cards_autocomplete_get",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Q"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Autocomplete Cards Autocomplete Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AnswerRequest": {
+        "properties": {
+          "question": {
+            "type": "string",
+            "title": "Question"
+          }
+        },
+        "type": "object",
+        "required": [
+          "question"
+        ],
+        "title": "AnswerRequest",
+        "example": {
+          "question": "If I copy a spell that had buyback paid with [Fork], how many cards return to my hand?"
+        }
+      },
+      "AnswerResponse": {
+        "properties": {
+          "answer": {
+            "type": "string",
+            "title": "Answer"
+          },
+          "answered": {
+            "type": "boolean",
+            "title": "Answered"
+          },
+          "citations": {
+            "items": {
+              "$ref": "#/components/schemas/Citation"
+            },
+            "type": "array",
+            "title": "Citations"
+          },
+          "cards": {
+            "items": {
+              "$ref": "#/components/schemas/CardOut"
+            },
+            "type": "array",
+            "title": "Cards"
+          },
+          "debug": {
+            "$ref": "#/components/schemas/Debug"
+          }
+        },
+        "type": "object",
+        "required": [
+          "answer",
+          "answered",
+          "citations",
+          "cards",
+          "debug"
+        ],
+        "title": "AnswerResponse"
+      },
+      "CardOut": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "oracle_id": {
+            "type": "string",
+            "title": "Oracle Id"
+          },
+          "mana_cost": {
+            "type": "string",
+            "title": "Mana Cost"
+          },
+          "type_line": {
+            "type": "string",
+            "title": "Type Line"
+          },
+          "oracle_text": {
+            "type": "string",
+            "title": "Oracle Text"
+          },
+          "rulings_used": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Rulings Used"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "oracle_id",
+          "mana_cost",
+          "type_line",
+          "oracle_text",
+          "rulings_used"
+        ],
+        "title": "CardOut"
+      },
+      "Citation": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "kind": {
+            "type": "string",
+            "title": "Kind"
+          },
+          "text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Text"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "kind",
+          "text"
+        ],
+        "title": "Citation"
+      },
+      "Debug": {
+        "properties": {
+          "rewrites": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Rewrites"
+          },
+          "retrieved_rules": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Retrieved Rules"
+          },
+          "selected_ruling_ids": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Selected Ruling Ids"
+          }
+        },
+        "type": "object",
+        "required": [
+          "rewrites",
+          "retrieved_rules",
+          "selected_ruling_ids"
+        ],
+        "title": "Debug"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "answers",
+      "description": "Ask a rules question, get a cited answer."
+    },
+    {
+      "name": "cards",
+      "description": "Scryfall-backed card name autocomplete for the @-picker."
+    },
+    {
+      "name": "ops",
+      "description": "Health / readiness."
+    }
+  ]
+}

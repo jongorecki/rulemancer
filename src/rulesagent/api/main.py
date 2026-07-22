@@ -48,7 +48,35 @@ async def lifespan(app: FastAPI):
     _state.clear()
 
 
-app = FastAPI(title="Rulemancer API", lifespan=lifespan)
+API_DESCRIPTION = """
+Rulemancer answers Magic: The Gathering rules questions grounded in the
+Comprehensive Rules, and enriches card questions with Scryfall oracle text and
+the relevant rulings.
+
+**How it works:** a question is rewritten into rules vocabulary, the top rules
+are retrieved from the CR (pure-vector RAG), any `[Card Name]` / `[oracle-id]`
+tokens are resolved via Scryfall and their rulings relevance-filtered, and a
+pinned model writes a cited answer that declines rather than guesses when the
+rules don't cover it (`answered=false`).
+
+**Card references:** put a card in square brackets, e.g. `[Fork]` or
+`[Grist, the Hunger Tide]`. Use `GET /cards/autocomplete` to power an @-picker.
+
+Private demo — no auth or rate limiting. A single worker + a lock serialize
+`/answer` so the on-disk caches stay consistent.
+"""
+
+app = FastAPI(
+    title="Rulemancer API",
+    version="1.0.0",
+    description=API_DESCRIPTION,
+    lifespan=lifespan,
+    openapi_tags=[
+        {"name": "answers", "description": "Ask a rules question, get a cited answer."},
+        {"name": "cards", "description": "Scryfall-backed card name autocomplete for the @-picker."},
+        {"name": "ops", "description": "Health / readiness."},
+    ],
+)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  # private demo; tighten to the frontend origin if it goes public
@@ -59,6 +87,14 @@ app.add_middleware(
 
 class AnswerRequest(BaseModel):
     question: str  # may contain [Card Name] / [oracle-id] tokens from the @-picker
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "question": "If I copy a spell that had buyback paid with [Fork], "
+                "how many cards return to my hand?"
+            }
+        }
+    }
 
 
 class Citation(BaseModel):
@@ -90,12 +126,22 @@ class AnswerResponse(BaseModel):
     debug: Debug
 
 
-@app.get("/health")
+@app.get("/health", tags=["ops"], summary="Liveness / readiness")
 def health() -> dict:
+    """`ready` is true once the vector store has loaded at startup."""
     return {"status": "ok", "ready": "agent" in _state}
 
 
-@app.post("/answer", response_model=AnswerResponse)
+@app.post(
+    "/answer",
+    response_model=AnswerResponse,
+    tags=["answers"],
+    summary="Answer a rules question",
+    description="Send a natural-language question (optionally with `[Card Name]` "
+    "tokens). Returns the answer, an `answered` flag (false = the rules didn't "
+    "cover it), citations with resolved rule/glossary text, the card data used "
+    "with its relevance-selected rulings, and a debug panel.",
+)
 def answer(req: AnswerRequest) -> AnswerResponse:
     if not req.question.strip():
         raise HTTPException(status_code=400, detail="empty question")
@@ -135,10 +181,10 @@ def answer(req: AnswerRequest) -> AnswerResponse:
     )
 
 
-@app.get("/cards/autocomplete")
+@app.get("/cards/autocomplete", tags=["cards"], summary="Card name autocomplete")
 def autocomplete(q: str) -> dict:
     """Proxy Scryfall's autocomplete for the frontend's @-picker. Scryfall wants
-    >=2 chars; below that, return nothing rather than hammer it."""
+    >=2 chars; below that, return `{"suggestions": []}` rather than hammer it."""
     if len(q.strip()) < 2:
         return {"suggestions": []}
     try:
