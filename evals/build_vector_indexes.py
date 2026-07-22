@@ -15,8 +15,10 @@ REPO = Path(__file__).parent.parent
 CR_PATH = REPO / "data" / "raw" / "MagicCompRules 20260619.txt"
 OUT_DIR = REPO / "data" / "parsed"
 
-# The A/B models. Add or swap freely -- each becomes a column in the eval.
-MODELS = ["voyage-4", "voyage-4-large"]
+# Default = the shipped model only, so a fresh clone doesn't pay to embed a
+# model the app never loads. Pass --models to build others (e.g. the
+# voyage-4 A/B column from the Phase B eval).
+DEFAULT_MODELS = ["voyage-4-large"]
 
 
 def store_path(model: str) -> Path:
@@ -24,10 +26,16 @@ def store_path(model: str) -> Path:
 
 
 def main() -> None:
+    import argparse
+    ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument("--models", nargs="+", default=DEFAULT_MODELS,
+                    help="embedding models to build indexes for "
+                         f"(default: {' '.join(DEFAULT_MODELS)})")
+    models = ap.parse_args().models
     rules, glossary = parse_comprehensive_rules(CR_PATH)
     chunks = chunk_rules(rules, glossary)
     print(f"{len(chunks)} chunks to embed\n")
-    for model in MODELS:
+    for model in models:
         start = time.time()
         store = VectorStore.build(chunks, model)
         store.save(store_path(model))
