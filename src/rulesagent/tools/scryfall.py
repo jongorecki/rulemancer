@@ -21,11 +21,18 @@ from pathlib import Path
 
 import httpx
 
-from rulesagent.contracts import Card
+from rulesagent.contracts import Card, CardFace
 
 HEADERS = {"User-Agent": "mtg-rules-bot/0.1 (learning project)", "Accept": "application/json"}
 ATTRIBUTION = "Card data from Scryfall (scryfall.com)."
 TTL_DAYS = 7
+
+CARD_CACHE_SCHEMA = 2
+# Bumped when the Card shape changes (schema 2 added layout + per-face `faces` +
+# mana_value + color_identity, per docs/plan-card-enrichment-fields.md). A cache
+# entry whose schema doesn't match is treated as a miss and refetched, so
+# old-schema entries (which lack `faces`) auto-upgrade instead of silently
+# feeding the generator a card with no per-face data.
 # Rulings get ADDED over time (WotC issues them after a set ships), so a
 # permanent cache would serve stale enrichment forever. 7 days: rulings churn
 # is slow, so this is generous on freshness while still being an actual TTL
@@ -119,6 +126,23 @@ def _live_get(url: str, params: dict | None = None) -> dict | None:
     return result
 
 
+def _face_from_json(f: dict) -> CardFace:
+    """One CardFace from a Scryfall face object (or the top-level card object
+    for a single-faced card -- same field names either way)."""
+    return CardFace(
+        name=f.get("name", "") or "",
+        mana_cost=f.get("mana_cost", "") or "",
+        type_line=f.get("type_line", "") or "",
+        oracle_text=f.get("oracle_text", "") or "",
+        power=f.get("power", "") or "",
+        toughness=f.get("toughness", "") or "",
+        loyalty=f.get("loyalty", "") or "",
+        defense=f.get("defense", "") or "",
+        colors=f.get("colors", []) or [],
+        color_indicator=f.get("color_indicator", []) or [],
+    )
+
+
 def _card_from_json(data: dict) -> Card:
     oracle_text = data.get("oracle_text") or ""
     if not oracle_text and data.get("card_faces"):
@@ -136,6 +160,15 @@ def _card_from_json(data: dict) -> Card:
         if rulings_data:
             rulings = [r["comment"] for r in rulings_data.get("data", [])]
 
+    # Layout-first (Jon): read layout, then build the faces. A multi-face card
+    # (card_faces present) gets one CardFace per printed face -- so each face's
+    # own mana cost / type / power-toughness survives; a single-faced card gets
+    # one CardFace built from the top-level object.
+    if data.get("card_faces"):
+        faces = [_face_from_json(f) for f in data["card_faces"]]
+    else:
+        faces = [_face_from_json(data)]
+
     return Card(
         name=data.get("name", ""),
         oracle_text=oracle_text,
@@ -143,6 +176,11 @@ def _card_from_json(data: dict) -> Card:
         mana_cost=data.get("mana_cost", ""),
         oracle_id=data.get("oracle_id", ""),
         rulings=rulings,
+        layout=data.get("layout", "") or "",
+        mana_value=data.get("cmc", 0.0) or 0.0,
+        colors=data.get("colors", []) or [],
+        color_identity=data.get("color_identity", []) or [],
+        faces=faces,
     )
 
 
@@ -163,7 +201,11 @@ def get_card(ref: str, no_refresh: bool = False) -> Card | None:
     """
     cache = _get_cache()
     entry = cache.get(ref)
-    if entry is not None:
+    if entry is not None and entry.get("schema") == CARD_CACHE_SCHEMA:
+        # Only honor entries written by the current Card schema. An entry from
+        # an older schema (no per-face `faces`) is treated as a miss and
+        # refetched below, so it auto-upgrades rather than feeding the
+        # generator a card missing its per-face data.
         age_days = (time.time() - entry["fetched_at"]) / 86400
         if no_refresh or age_days <= TTL_DAYS:
             return Card(**entry["card"])
@@ -181,6 +223,6 @@ def get_card(ref: str, no_refresh: bool = False) -> Card | None:
             return None
 
     card = _card_from_json(card_json)
-    cache[ref] = {"fetched_at": time.time(), "card": card.model_dump()}
+    cache[ref] = {"fetched_at": time.time(), "schema": CARD_CACHE_SCHEMA, "card": card.model_dump()}
     _save_cache()
     return card

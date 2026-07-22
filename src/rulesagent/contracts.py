@@ -229,6 +229,31 @@ class RewrittenQuery(BaseModel):
     # alongside the answer so the user can refine without blocking on it.
 
 
+class CardFace(BaseModel):
+    """One printed face of a card. A single-faced card has exactly one; a
+    double-faced / split / flip / adventure card has one per face.
+
+    DECISION (docs/plan-card-enrichment-fields.md): cost/type/power/toughness/
+    loyalty/defense are read PER FACE, because for a modal DFC like Valki //
+    Tibalt each face has its own mana cost and type line and the card's
+    top-level mana_cost is empty. The enrichment (_format_cards) reads these so
+    the generator always sees each face's real cost -- the fix for the c014 miss
+    (model guessed a card's mana cost because the enrichment never gave it)."""
+
+    name: str = ""
+    mana_cost: str = ""
+    type_line: str = ""
+    oracle_text: str = ""
+    power: str = ""          # creatures
+    toughness: str = ""      # creatures
+    loyalty: str = ""        # planeswalkers
+    defense: str = ""        # battles
+    colors: list[str] = []
+    color_indicator: list[str] = []
+    # color_indicator = how a colored card with NO mana cost declares its color
+    # (a printed dot); needed for those cards' color.
+
+
 class Card(BaseModel):
     """A single card's Scryfall data, as fetched by tools/scryfall.py.
 
@@ -246,14 +271,15 @@ class Card(BaseModel):
     # The card's actual rules text. DECISION: for double-faced/split cards
     # where Scryfall puts text in `card_faces[]` instead of a top-level
     # `oracle_text`, both faces are joined here (see scryfall.py) so a card
-    # never loses half its text just because of how it's printed.
+    # never loses half its text just because of how it's printed. Kept as a
+    # whole-card convenience alongside the per-face `faces` below.
 
     type_line: str
     # e.g. "Instant" or "Legendary Creature -- Human Wizard".
 
     mana_cost: str
     # e.g. "{2}{U}". Empty string for cards with no mana cost (lands, and
-    # the back face of some double-faced cards).
+    # the back face of some double-faced cards -- see `faces` for per-face).
 
     oracle_id: str
     # Scryfall's stable cross-printing UUID -- the same card printed in ten
@@ -266,6 +292,34 @@ class Card(BaseModel):
     # first (see scryfall.py `get_card`). DECISION: "add all of them for
     # now" (Jon) -- no relevance filtering against the question. Defaults
     # to [] so a card with no rulings doesn't force callers to pass one.
+
+    layout: str = ""
+    # Scryfall layout: "normal", "modal_dfc", "transform", "split", "flip",
+    # "adventure", "meld", "battle", ... The RULES-REGIME discriminator, and
+    # read FIRST (it decides how the faces are interpreted): a modal DFC is cast
+    # by choosing a face, a transform card isn't. Surfacing this is the fix for
+    # the c011 miss (the model invented a "cast it transformed" restriction for
+    # a modal DFC because nothing told it which kind it was).
+
+    mana_value: float = 0.0
+    # Scryfall `cmc` for the whole card (X counts as 0). Per-face mana COST is
+    # on each CardFace; a per-face mana value is read off that printed cost
+    # rather than recomputed here.
+
+    colors: list[str] = []
+    color_identity: list[str] = []
+    # color_identity is Scryfall's COMPUTED value, deliberately NOT derived here.
+    # The rule (903.4) is subtle -- notably it IGNORES reminder text, so Extort's
+    # {W/B} reminder symbol does NOT add W/B: Blind Obedience is mono-W and Crypt
+    # Ghast mono-B despite both having Extort. Rather than reimplement "mana
+    # symbols in cost + rules text, minus reminder text, plus color indicators /
+    # basic land types / CDAs," we take Scryfall's value directly. Commander (the
+    # most popular format) is where color identity matters.
+
+    faces: list[CardFace] = []
+    # One entry for a single-faced card, one per printed face otherwise. The
+    # enrichment reads these so the generator always sees each face's own cost/
+    # type/power/toughness/loyalty/defense -- not just the joined oracle text.
 
 
 class Answer(BaseModel):
