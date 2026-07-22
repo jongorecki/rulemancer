@@ -17,10 +17,10 @@ are already `[...]` tokens.
 import json
 import re
 import time
-from pathlib import Path
 
 import httpx
 
+from rulesagent.cache import KVCache
 from rulesagent.contracts import Card, CardFace
 
 HEADERS = {"User-Agent": "mtg-rules-bot/0.1 (learning project)", "Accept": "application/json"}
@@ -38,10 +38,6 @@ CARD_CACHE_SCHEMA = 2
 # is slow, so this is generous on freshness while still being an actual TTL
 # rather than "cache forever."
 
-CACHE_PATH = Path(__file__).parent.parent.parent.parent / "data" / "parsed" / "scryfall_cache.json"
-# src/rulesagent/tools/scryfall.py -> repo root is four ".parent"s up, same
-# depth/pattern as retrieve/rewrite.py's CACHE_PATH.
-
 MIN_SPACING = 0.1
 # Seconds between consecutive LIVE requests. Scryfall sends no rate-limit
 # headers (verified in the plan's reachability spike) -- it relies on client
@@ -56,10 +52,10 @@ CARD_TOKEN_RE = re.compile(r"\[([^\]]+)\]")
 # a deferred frontend concern; see the plan). Brackets delimit multi-word
 # names cleanly and require no LLM name-guessing.
 
-_cache: dict | None = None
-# Module-level, lazily loaded once per process -- same pattern as
-# retrieve/rewrite.py's _cache, so a run that looks up many cards pays one
-# disk read instead of one per lookup.
+_cache = KVCache("scryfall")
+# L3 (docs/plan-l3-sqlite-caches.md): data/cache.db's `scryfall` table, keyed
+# by the ref token as-is; value is the {fetched_at, schema, card} entry as
+# JSON (TTL + schema-bump logic stay INSIDE the value, unchanged).
 
 _last_request_at = 0.0
 # Wall-clock (monotonic) timestamp of the last LIVE request, used to enforce
@@ -79,23 +75,6 @@ def parse_card_refs(question: str) -> tuple[str, list[str]]:
     tokens = CARD_TOKEN_RE.findall(question)
     stripped = CARD_TOKEN_RE.sub(lambda m: m.group(1), question)
     return stripped, tokens
-
-
-def _get_cache() -> dict:
-    global _cache
-    if _cache is None:
-        if CACHE_PATH.exists():
-            with open(CACHE_PATH, "r", encoding="utf-8") as f:
-                _cache = json.load(f)
-        else:
-            _cache = {}
-    return _cache
-
-
-def _save_cache() -> None:
-    CACHE_PATH.parent.mkdir(parents=True, exist_ok=True)
-    with open(CACHE_PATH, "w", encoding="utf-8") as f:
-        json.dump(_cache, f, indent=2, ensure_ascii=False)
 
 
 def _http_get(url: str, params: dict | None = None) -> dict | None:
@@ -191,16 +170,17 @@ def get_card(ref: str, no_refresh: bool = False) -> Card | None:
     tolerant) or an oracle_id UUID (routed through /cards/search?q=oracleid:
     and the first result taken). 404 / no results -> None, not an exception.
 
-    Cached in CACHE_PATH, keyed by `ref` itself (the token actually looked
-    up) -- mirrors retrieve/rewrite.py's cache, which is keyed by the input
-    question rather than by some normalized form of the model's output.
+    Cached in data/cache.db's `scryfall` table (L3,
+    docs/plan-l3-sqlite-caches.md), keyed by `ref` itself (the token actually
+    looked up) -- mirrors retrieve/rewrite.py's cache, which is keyed by the
+    input question rather than by some normalized form of the model's output.
     A cached entry is used without a network call when it's fresh (age <=
     TTL_DAYS) OR when no_refresh=True (the eval-reproducibility freeze mode,
     which uses ANY cached entry regardless of age). Otherwise, a live fetch
     is made and the cache entry is created/updated.
     """
-    cache = _get_cache()
-    entry = cache.get(ref)
+    raw = _cache.get(ref)
+    entry = json.loads(raw) if raw is not None else None
     if entry is not None and entry.get("schema") == CARD_CACHE_SCHEMA:
         # Only honor entries written by the current Card schema. An entry from
         # an older schema (no per-face `faces`) is treated as a miss and
@@ -223,6 +203,6 @@ def get_card(ref: str, no_refresh: bool = False) -> Card | None:
             return None
 
     card = _card_from_json(card_json)
-    cache[ref] = {"fetched_at": time.time(), "schema": CARD_CACHE_SCHEMA, "card": card.model_dump()}
-    _save_cache()
+    entry = {"fetched_at": time.time(), "schema": CARD_CACHE_SCHEMA, "card": card.model_dump()}
+    _cache.put(ref, json.dumps(entry, ensure_ascii=False).encode("utf-8"))
     return card

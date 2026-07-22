@@ -15,13 +15,13 @@ model rewrites. See evals/run_eval.py for the model/rewrite-count comparison
 this module feeds, and generate/answer.py for the shipped config.
 """
 
-import pickle
-from pathlib import Path
+import json
 
 import anthropic
 from dotenv import load_dotenv
 from pydantic import BaseModel
 
+from rulesagent.cache import KVCache
 from rulesagent.contracts import RewrittenQuery
 
 load_dotenv()
@@ -43,9 +43,6 @@ PROMPT_VERSION = "v1"
 # changes what a cached entry actually means, so bumping/changing this
 # busts the cache automatically instead of silently serving rewrites made
 # under a different prompt.
-
-CACHE_PATH = Path(__file__).parent.parent.parent.parent / "data" / "parsed" / "rewrite_cache.pkl"
-# src/rulesagent/retrieve/rewrite.py -> repo root is four ".parent"s up.
 
 # Copied verbatim from the pre-build spike (scratch script, never committed)
 # that validated this approach -- see the plan's "Step 0 -- the spike".
@@ -84,22 +81,10 @@ class _Rewrites(BaseModel):
     clarification: str | None = None
 
 
-_cache: dict | None = None
-# Module-level, lazily loaded once per process rather than re-read from disk
-# on every call -- rewrite_query() gets called once per (question, model, n)
-# in the eval loops, and there's no reason to pay a pickle-load each time.
-
-
-def _get_cache() -> dict:
-    global _cache
-    if _cache is None:
-        _cache = pickle.load(open(CACHE_PATH, "rb")) if CACHE_PATH.exists() else {}
-    return _cache
-
-
-def _save_cache() -> None:
-    CACHE_PATH.parent.mkdir(parents=True, exist_ok=True)
-    pickle.dump(_cache, open(CACHE_PATH, "wb"))
+_cache = KVCache("rewrite")
+# L3 (docs/plan-l3-sqlite-caches.md): one row per (model, PROMPT_VERSION, n,
+# question) in data/cache.db's `rewrite` table. Per-op connections -- no
+# module-level dict layer to go stale under a concurrent writer.
 
 
 def rewrite_query(
@@ -111,11 +96,11 @@ def rewrite_query(
 ) -> RewrittenQuery:
     """Rewrite `question` into `n` Comprehensive-Rules-vocabulary rewrites.
 
-    Disk-cached by (model, PROMPT_VERSION, n, question) -- same discipline
-    as the query-embedding and rerank caches in evals/run_eval.py. A second
-    call with the same key makes zero API calls; the pickle is only written
-    when a new entry is actually added, so re-runs with unchanged inputs
-    touch disk but never rewrite it.
+    SQLite-cached (data/cache.db, `rewrite` table) by (model, PROMPT_VERSION,
+    n, question) -- same discipline as the query-embedding and rerank caches
+    in evals/run_eval.py. A second call with the same key makes zero API
+    calls; a row is only written when a new entry is actually added, so
+    re-runs with unchanged inputs touch disk but never rewrite it.
 
     `context` (optional) is a condensed transcript of earlier conversation
     turns. When present, the model is asked to resolve the FINAL question's
@@ -132,11 +117,12 @@ def rewrite_query(
     something to search for -- rewriting must never block or crash the
     agent, only help it when it can.
     """
-    cache = _get_cache()
-    key = (model, PROMPT_VERSION, n, question)
-    if context is None and key in cache:
-        queries, clarification = cache[key]
-        return RewrittenQuery(original=question, queries=queries, clarification=clarification)
+    key = json.dumps([model, PROMPT_VERSION, n, question])
+    if context is None:
+        cached = _cache.get(key)
+        if cached is not None:
+            queries, clarification = json.loads(cached)
+            return RewrittenQuery(original=question, queries=queries, clarification=clarification)
 
     client = client or anthropic.Anthropic()
     parsed = None
@@ -201,6 +187,5 @@ def rewrite_query(
         original=question, queries=parsed.queries, clarification=parsed.clarification
     )
     if context is None:  # conversational rewrites are never cached (see docstring)
-        cache[key] = (result.queries, result.clarification)
-        _save_cache()
+        _cache.put(key, json.dumps([result.queries, result.clarification]).encode("utf-8"))
     return result

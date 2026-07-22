@@ -10,10 +10,10 @@ which is why this always runs rather than gating on a low-confidence answer.
 """
 
 import json
-from pathlib import Path
 
 import numpy as np
 
+from rulesagent.cache import KVCache
 from rulesagent.contracts import Card
 from rulesagent.index.embed import embed_documents, embed_query
 
@@ -33,25 +33,12 @@ COSINE_FLOOR = 0.38
 # limit of relevance retrieval, not a floor to chase down (lowering it wouldn't
 # lift those into the top 3 anyway). See LOG.md.
 
-CACHE_PATH = Path(__file__).parent.parent.parent.parent / "data" / "parsed" / "ruling_emb_cache.json"
-# oracle_id#index -> embedding (list[float]). Frozen once written -- embeddings
-# are stable enough and we want reproducible SELECTION. Same load-whole-dict /
-# dump-whole-dict shape as the other caches, so it's SUBJECT TO THE CACHE RACE:
-# never run two ruling-embedding-writing processes at once.
-
-_cache: dict | None = None
-
-
-def _get_cache() -> dict:
-    global _cache
-    if _cache is None:
-        _cache = json.loads(CACHE_PATH.read_text(encoding="utf-8")) if CACHE_PATH.exists() else {}
-    return _cache
-
-
-def _save_cache() -> None:
-    CACHE_PATH.parent.mkdir(parents=True, exist_ok=True)
-    CACHE_PATH.write_text(json.dumps(_cache), encoding="utf-8")
+_cache = KVCache("ruling_emb")
+# L3 (docs/plan-l3-sqlite-caches.md): data/cache.db's `ruling_emb` table,
+# keyed by oracle_id#index -> JSON list[float] embedding (matches the old
+# format). Frozen once written -- embeddings are stable enough and we want
+# reproducible SELECTION. Per-op connections fix the old load-whole-dict /
+# dump-whole-dict cache race (never run two writers at once -- now moot).
 
 
 def ruling_id(card: Card, i: int) -> str:
@@ -64,15 +51,16 @@ def ruling_id(card: Card, i: int) -> str:
 def _card_ruling_embeddings(card: Card) -> np.ndarray:
     """(R, dim) L2-normalized embeddings for card.rulings, cached per
     oracle_id#index. Only uncached rulings hit the API."""
-    cache = _get_cache()
     ids = [ruling_id(card, i) for i in range(len(card.rulings))]
-    missing = [(i, card.rulings[i]) for i, rid in enumerate(ids) if rid not in cache]
+    cached = {rid: _cache.get(rid) for rid in ids}
+    missing = [(i, card.rulings[i]) for i, rid in enumerate(ids) if cached[rid] is None]
     if missing:
         embs = embed_documents([t for _, t in missing], RULING_MODEL)
         for (i, _), vec in zip(missing, embs):
-            cache[ids[i]] = vec.tolist()
-        _save_cache()
-    return np.array([cache[rid] for rid in ids], dtype=np.float32)
+            value = json.dumps(vec.tolist()).encode("utf-8")
+            _cache.put(ids[i], value)
+            cached[ids[i]] = value
+    return np.array([json.loads(cached[rid]) for rid in ids], dtype=np.float32)
 
 
 def select_rulings(card: Card, query: str, floor: float = COSINE_FLOOR,

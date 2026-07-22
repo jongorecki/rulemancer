@@ -16,6 +16,7 @@ import json
 import pickle
 from pathlib import Path
 
+from rulesagent.cache import KVCache
 from rulesagent.contracts import EvalQuestion, Retrieved, RewrittenQuery
 from rulesagent.generate.answer import TOP_K as GEN_TOP_K
 from rulesagent.ingest.parser import parse_comprehensive_rules
@@ -72,32 +73,51 @@ def query_vectors(questions: list[EvalQuestion], model: str) -> dict[str, "objec
     """Freeze query embeddings to disk so the eval is reproducible. Voyage
     returns slightly different query vectors on repeated calls; caching the
     first result makes vector retrieval deterministic run-to-run (and faster,
-    since queries aren't re-embedded)."""
-    path = PARSED_DIR / f"query_emb_{model}.pkl"
-    cache = pickle.load(open(path, "rb")) if path.exists() else {}
-    new = False
+    since queries aren't re-embedded).
+
+    L3 (docs/plan-l3-sqlite-caches.md): SQLite-backed (data/cache.db,
+    `query_emb` table per the plan's fixed table set), key = the
+    query/rewrite string, value = `pickle.dumps` of the numpy vector (numpy
+    doesn't round-trip JSON cleanly). `model` is only ever called with the
+    single pinned VECTOR_MODEL in this codebase (mirrors the single
+    query_emb_voyage-4-large.pkl file that existed on disk -- there was
+    never a second model's file to collide with). Returns the same
+    {question: vector} shape as before -- callers are unaffected by the
+    storage swap."""
+    cache = KVCache("query_emb")
+    result: dict[str, object] = {}
     for q in questions:
-        if q.question not in cache:
-            cache[q.question] = embed_query(q.question, model)
-            new = True
-    if new:
-        path.parent.mkdir(parents=True, exist_ok=True)
-        pickle.dump(cache, open(path, "wb"))
-    return cache
+        raw = cache.get(q.question)
+        if raw is None:
+            vec = embed_query(q.question, model)
+            cache.put(q.question, pickle.dumps(vec))
+            result[q.question] = vec
+        else:
+            result[q.question] = pickle.loads(raw)
+    return result
 
 
-def cached_rerank(query, candidates, model, cache, chunk_map):
+def cached_rerank(query, candidates, model, cache: KVCache, chunk_map):
     """Rerank with an on-disk cache. Key = (model, query, exact pool ids), so
     a run with unchanged data hits the cache and makes zero API calls; if the
     pool changes (re-chunk / re-embed), the key changes and it re-reranks.
     Voyage's reranker is deterministic, so a cached result is identical to a
-    fresh one."""
+    fresh one.
+
+    L3 (docs/plan-l3-sqlite-caches.md): `cache` is a KVCache over the
+    `rerank` table. key = JSON-list of [model, query, pool ids] (tuples
+    can't be a TEXT key directly); value = `pickle.dumps` of the reranked
+    (source_id, score) order (numpy-adjacent score data, our own format --
+    pickle inside a BLOB is fine)."""
     pool_ids = tuple(c.chunk.source_id for c in candidates)
-    key = (model, query, pool_ids)
-    if key in cache:
-        return [Retrieved(chunk=chunk_map[sid], score=s) for sid, s in cache[key]]
+    key = json.dumps([model, query, list(pool_ids)])
+    raw = cache.get(key)
+    if raw is not None:
+        order = pickle.loads(raw)
+        return [Retrieved(chunk=chunk_map[sid], score=s) for sid, s in order]
     result = rerank(query, candidates, model)
-    cache[key] = [(r.chunk.source_id, r.score) for r in result]
+    order = [(r.chunk.source_id, r.score) for r in result]
+    cache.put(key, pickle.dumps(order))
     return result
 
 
@@ -173,17 +193,15 @@ def main() -> None:
     vstore = VectorStore.load(pkl)
     qvecs = query_vectors(questions, VECTOR_MODEL)  # frozen -> reproducible
     chunk_map = {c.source_id: c for c in chunks}
-    rerank_cache_path = PARSED_DIR / "rerank_cache.pkl"
-    rerank_cache = pickle.load(open(rerank_cache_path, "rb")) if rerank_cache_path.exists() else {}
-    rerank_cache_before = len(rerank_cache)
+    rerank_cache = KVCache("rerank")
 
     # --- Plan #3a: rewrite arms -----------------------------------------
     # One rewrite call per (question, model, n) -- cached on disk in
-    # rewrite.py's own rewrite_cache.pkl, so a second eval run makes zero
+    # rewrite.py's own `rewrite` table, so a second eval run makes zero
     # rewriting API calls. Every rewrite string then needs a query vector;
-    # those flow through the SAME query_emb_{VECTOR_MODEL}.pkl cache file
-    # the base questions use above -- rewrites are just different strings,
-    # so this stays reproducible for free.
+    # those flow through the SAME `query_emb` table the base questions use
+    # above -- rewrites are just different strings, so this stays
+    # reproducible for free.
     rewrites: dict[tuple[str, str, int], RewrittenQuery] = {}
     rewrite_texts: set[str] = set()
     for q in questions:
@@ -193,15 +211,18 @@ def main() -> None:
                 rewrites[(q.id, label, n_rw)] = rw
                 rewrite_texts.update(rw.queries)
 
-    qvec_path = PARSED_DIR / f"query_emb_{VECTOR_MODEL}.pkl"
-    qvec_cache = pickle.load(open(qvec_path, "rb")) if qvec_path.exists() else {}
-    qvec_cache_before = len(qvec_cache)
+    qvec_cache = dict(qvecs)  # base-question vectors already frozen above
+    qvec_kv = KVCache("query_emb")
     for text in rewrite_texts:
-        if text not in qvec_cache:
-            qvec_cache[text] = embed_query(text, VECTOR_MODEL)
-    if len(qvec_cache) != qvec_cache_before:
-        qvec_path.parent.mkdir(parents=True, exist_ok=True)
-        pickle.dump(qvec_cache, open(qvec_path, "wb"))
+        if text in qvec_cache:
+            continue
+        raw = qvec_kv.get(text)
+        if raw is None:
+            vec = embed_query(text, VECTOR_MODEL)
+            qvec_kv.put(text, pickle.dumps(vec))
+            qvec_cache[text] = vec
+        else:
+            qvec_cache[text] = pickle.loads(raw)
 
     def rewrite_rankings(q_id: str, label: str, n: int) -> tuple[list[Retrieved], list[list[Retrieved]]]:
         """(fused ranking, individual per-rewrite rankings) for one
@@ -285,8 +306,8 @@ def main() -> None:
             if hit_at(q, weighted_fuse([bm, vec], [1 - a, a]), 5):
                 sweep5[a] += 1
 
-    if len(rerank_cache) != rerank_cache_before:
-        pickle.dump(rerank_cache, open(rerank_cache_path, "wb"))
+    # rerank_cache is a KVCache -- every new entry is already committed to
+    # data/cache.db by cached_rerank()'s put() call above; no flush needed.
 
     # --- +orig variant ----------------------------------------------------
     # Spike finding: fusing a rewrite arm with the original question hurt on

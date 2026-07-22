@@ -6,14 +6,19 @@ RulesAgent, and serves an ENRICHED answer (cited rule/glossary text + card data
 @-picker.
 
 Private demo: no auth / rate-limiting (decision in the plan). A single lock
-serializes answer processing so the load-whole-dict/dump-whole-dict caches can't
-clobber under concurrent requests -- the atomic-per-key cache fix is the real
-solution and stays deferred tech debt.
+still serializes answer processing, but not for cache safety anymore -- L3
+(docs/plan-l3-sqlite-caches.md) moved every cache to per-key SQLite writes,
+so concurrent requests can't corrupt them. The lock's remaining job is
+narrower: it guards the `agent.last_*` recorder reads below (another request
+could overwrite them between answer() and the reads) until answer() returns
+a result object instead of recorder attributes -- its own small slice, not
+smuggled into L3.
 
 Run: uv run uvicorn rulesagent.api.main:app --reload
 """
 
 import json
+import sqlite3
 import threading
 import time
 import uuid
@@ -29,6 +34,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
+from rulesagent.cache import DEFAULT_DB
 from rulesagent.generate.answer import PROMPT_VERSION, RulesAgent
 from rulesagent.index.store import VectorStore
 
@@ -39,9 +45,10 @@ SCRYFALL_HEADERS = {"User-Agent": "mtg-rules-bot/0.1 (learning project)", "Accep
 
 _state: dict = {}
 _lock = threading.Lock()
-# Serializes /answer: RulesAgent.answer writes several whole-file caches, so two
-# concurrent calls would clobber them. Single worker + this lock is enough for a
-# private demo.
+# Serializes /answer. Cache writes no longer need this (L3: per-key SQLite).
+# It stays to guard the `agent.last_*` recorder reads made right after
+# answer() -- another concurrent request could overwrite those attributes
+# between the call and the reads.
 
 
 @asynccontextmanager
@@ -70,7 +77,7 @@ rules don't cover it (`answered=false`).
 `[Grist, the Hunger Tide]`. Use `GET /cards/autocomplete` to power an @-picker.
 
 Private demo — no auth or rate limiting. A single worker + a lock serialize
-`/answer` so the on-disk caches stay consistent.
+`/answer` so per-request debug state stays consistent.
 """
 
 app = FastAPI(
@@ -151,20 +158,67 @@ class AnswerResponse(BaseModel):
     debug: Debug
 
 
-# --- demo telemetry (plan-limitations-and-deploy.md L6/L8) -----------------
-# JSONL append stubs; the L3 SQLite slice migrates these into tables. One
-# row per /answer (question + answer + model + PROMPT_VERSION + latency) and
-# one per feedback event, joined by request_id. data/logs/ is gitignored.
-_LOG_DIR = REPO / "data" / "logs"
+# --- demo telemetry (plan-limitations-and-deploy.md L6/L8, migrated to     -
+# --- SQLite tables by L3, docs/plan-l3-sqlite-caches.md) --------------------
+# `queries` / `feedback` tables in the SAME data/cache.db the L3 KVCache
+# tables live in, replacing the old queries.jsonl / feedback.jsonl append
+# stubs. One row per /answer (question + answer + model + PROMPT_VERSION +
+# latency) and one per feedback event, joined by request_id.
+
+_QUERIES_SCHEMA = (
+    "CREATE TABLE IF NOT EXISTS queries ("
+    "request_id TEXT PRIMARY KEY, ts TEXT, question TEXT, history_len INTEGER, "
+    "cards TEXT, answered INTEGER, tldr TEXT, text TEXT, citations TEXT, "
+    "suggested_followups TEXT, model TEXT, prompt_version TEXT, latency_ms INTEGER)"
+)
+_FEEDBACK_SCHEMA = (
+    "CREATE TABLE IF NOT EXISTS feedback ("
+    "id INTEGER PRIMARY KEY AUTOINCREMENT, request_id TEXT, ts TEXT, "
+    "verdict TEXT, note TEXT)"
+    # request_id is NOT unique here -- a thumbs-down may arrive twice (once
+    # bare, once again with the note), so feedback is append-only per request.
+)
 
 
-def _log_row(filename: str, row: dict) -> None:
-    """Best-effort append -- telemetry must never break an answer."""
+def _log_row(table: str, row: dict) -> None:
+    """Best-effort INSERT into `queries` or `feedback` -- telemetry must
+    never break an answer, so any failure (locked db, schema hiccup) is
+    swallowed here exactly as the old JSONL append's `except OSError` did."""
     try:
-        _LOG_DIR.mkdir(parents=True, exist_ok=True)
-        with open(_LOG_DIR / filename, "a", encoding="utf-8") as fh:
-            fh.write(json.dumps(row, ensure_ascii=False) + "\n")
-    except OSError:
+        conn = sqlite3.connect(DEFAULT_DB, timeout=5.0)
+        try:
+            conn.execute("PRAGMA journal_mode=WAL")
+            conn.execute("PRAGMA busy_timeout=5000")
+            if table == "queries":
+                conn.execute(_QUERIES_SCHEMA)
+                conn.execute(
+                    "INSERT OR REPLACE INTO queries (request_id, ts, question, "
+                    "history_len, cards, answered, tldr, text, citations, "
+                    "suggested_followups, model, prompt_version, latency_ms) "
+                    "VALUES (:request_id, :ts, :question, :history_len, :cards, "
+                    ":answered, :tldr, :text, :citations, :suggested_followups, "
+                    ":model, :prompt_version, :latency_ms)",
+                    {
+                        **row,
+                        "cards": json.dumps(row["cards"], ensure_ascii=False),
+                        "answered": int(row["answered"]),
+                        "citations": json.dumps(row["citations"], ensure_ascii=False),
+                        "suggested_followups": json.dumps(
+                            row["suggested_followups"], ensure_ascii=False
+                        ),
+                    },
+                )
+            else:  # "feedback"
+                conn.execute(_FEEDBACK_SCHEMA)
+                conn.execute(
+                    "INSERT INTO feedback (request_id, ts, verdict, note) "
+                    "VALUES (:request_id, :ts, :verdict, :note)",
+                    row,
+                )
+            conn.commit()
+        finally:
+            conn.close()
+    except Exception:
         pass
 
 
@@ -178,7 +232,7 @@ class FeedbackIn(BaseModel):
 def feedback(fb: FeedbackIn) -> dict:
     """Visitor feedback on an answer, joined to the query log by request_id.
     A thumbs-down may arrive twice: once bare, once again with the note."""
-    _log_row("feedback.jsonl", {
+    _log_row("feedback", {
         "request_id": fb.request_id,
         "ts": datetime.now(timezone.utc).isoformat(),
         "verdict": fb.verdict,
@@ -255,7 +309,7 @@ def answer(req: AnswerRequest) -> AnswerResponse:
         retrieved_rules=[r.chunk.source_id for r in retrieved],
         selected_ruling_ids=selection,
     )
-    _log_row("queries.jsonl", {
+    _log_row("queries", {
         "request_id": request_id,
         "ts": datetime.now(timezone.utc).isoformat(),
         "question": req.question[:4000],

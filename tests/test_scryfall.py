@@ -3,12 +3,15 @@
 #
 # Every test monkeypatches scryfall._http_get -- the single seam every real
 # HTTP GET goes through -- so nothing here ever touches the network. Each
-# test also gets its own on-disk cache file (tmp_path) and a reset in-memory
-# cache/request-timer, so tests never see each other's state and never touch
-# the real data/parsed/scryfall_cache.json.
+# test also gets its own on-disk KVCache (tmp_path db, L3:
+# docs/plan-l3-sqlite-caches.md) and a reset request-timer, so tests never
+# see each other's state and never touch the real data/cache.db.
+
+import json
 
 import pytest
 
+from rulesagent.cache import KVCache
 from rulesagent.tools import scryfall
 
 CARD_JSON = {
@@ -47,12 +50,11 @@ EMPTY_RULINGS_JSON = {"object": "list", "data": []}
 
 @pytest.fixture(autouse=True)
 def _isolate_state(tmp_path, monkeypatch):
-    """Give every test its own cache file and a clean in-memory cache/
+    """Give every test its own KVCache (tmp_path db) and a clean
     request-timer -- otherwise tests would leak card data (and cache-hit
     behavior) into each other, and the module-level cache would drift
-    toward the real data/parsed/scryfall_cache.json."""
-    monkeypatch.setattr(scryfall, "CACHE_PATH", tmp_path / "scryfall_cache.json")
-    monkeypatch.setattr(scryfall, "_cache", None)
+    toward the real data/cache.db."""
+    monkeypatch.setattr(scryfall, "_cache", KVCache("scryfall", db_path=tmp_path / "cache.db"))
     monkeypatch.setattr(scryfall, "_last_request_at", 0.0)
     yield
 
@@ -199,8 +201,9 @@ def test_entry_older_than_ttl_refetches(monkeypatch):
     scryfall.get_card("dovins veto")
     assert len(fake.calls) == 2
 
-    cache = scryfall._get_cache()
-    cache["dovins veto"]["fetched_at"] -= (scryfall.TTL_DAYS + 1) * 86400
+    entry = json.loads(scryfall._cache.get("dovins veto"))
+    entry["fetched_at"] -= (scryfall.TTL_DAYS + 1) * 86400
+    scryfall._cache.put("dovins veto", json.dumps(entry).encode("utf-8"))
 
     scryfall.get_card("dovins veto")
 
@@ -219,8 +222,9 @@ def test_no_refresh_uses_stale_entry_without_fetching(monkeypatch):
     scryfall.get_card("dovins veto")
     assert len(fake.calls) == 2
 
-    cache = scryfall._get_cache()
-    cache["dovins veto"]["fetched_at"] -= (scryfall.TTL_DAYS + 1) * 86400
+    entry = json.loads(scryfall._cache.get("dovins veto"))
+    entry["fetched_at"] -= (scryfall.TTL_DAYS + 1) * 86400
+    scryfall._cache.put("dovins veto", json.dumps(entry).encode("utf-8"))
 
     card = scryfall.get_card("dovins veto", no_refresh=True)
 
