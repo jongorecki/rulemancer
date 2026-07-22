@@ -61,6 +61,30 @@ A small, unobtrusive donate link on the page for the public deploy.
 Placement/provider TBD in its own mini-plan (footer next to the WotC/
 Scryfall attribution is the obvious spot).
 
+### 8. CR auto-update pipeline (Jon, 2026-07-22 — subsumes the CR-version line)
+
+When WotC publishes a new CR (set releases), automatically pull it and
+rebuild the index so the bot never goes stale — the one real-world
+correctness complaint in the competitive space (see
+competitive-landscape.md). Rebuild compute is small (3,617 chunks; time
+`make index` for a real number once the tree is quiet). The plan's core
+is SAFETY, not speed — an unattended re-parse of a changed document can
+silently degrade the index:
+
+1. Detect: poll WotC's rules page for a new CR file.
+2. Build sideways into a NEW index; sanity gates (chunk count in range,
+   anchor rules like 601.2/704.5 resolvable).
+3. Validate: run the retrieval eval against the new index; scores must
+   stay in family with the old index. (The eval harness doubles as a
+   deployment gate.)
+4. Blue-green swap with the old index kept for rollback.
+5. Stamp the CR effective date -> the per-answer "Based on CR effective
+   [date]" line falls out for free.
+
+Plan doc when we're near deploy — steps 2-4 want the L3 + Fly.io shape
+settled first. Scryfall card/ruling data already stays fresh via TTL
+caching; the CR is the only stale-able piece.
+
 ## Considered and NOT picked (with why, for the record)
 
 - **Per-answer CR-version line** — not picked in this round.
