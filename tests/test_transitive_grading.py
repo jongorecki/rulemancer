@@ -19,6 +19,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "evals"))
 from judge_arm_pairs import (  # noqa: E402
     audit_sample,
     build_judge_pairs,
+    build_reduced_review_rows,
     decide_transfer,
     judge_error_report,
     rollup,
@@ -125,6 +126,54 @@ def test_build_judge_pairs_error_never_transfers():
     assert rows[0]["judge"] == "error"
     assert rows[0]["auto_verdict"] is None
     assert rows[0]["audit"] is False
+
+
+# ---------------------------------------------------------------- build_reduced_review_rows
+
+def test_build_reduced_review_rows_audit_rows_get_flag_and_prefix():
+    """Audit rows are marked with audit=True and question prefixed with [AUDIT]."""
+    target_rows = [
+        {"id": "q001", "question": "question 1", "answer": "a"},
+        {"id": "q002", "question": "question 2", "answer": "b"},
+        {"id": "q003", "question": "question 3", "answer": "c"},
+    ]
+    judge_rows = [
+        {"id": "q001", "judge": "same", "auto_verdict": "correct", "audit": False},
+        {"id": "q002", "judge": "same", "auto_verdict": "correct", "audit": True},
+        {"id": "q003", "judge": "different", "auto_verdict": None, "audit": False},
+    ]
+
+    reduced = build_reduced_review_rows(target_rows, judge_rows)
+    by_id = {r["id"]: r for r in reduced}
+
+    # q002 is in Jon's queue and is audited
+    assert "q002" in by_id
+    assert by_id["q002"]["audit"] is True
+    assert by_id["q002"]["question"] == "[AUDIT] question 2"
+
+    # q003 is in Jon's queue (different) but not audited
+    assert "q003" in by_id
+    assert "audit" not in by_id["q003"] or by_id["q003"].get("audit") is not True
+    assert by_id["q003"]["question"] == "question 3"
+
+    # q001 is not in Jon's queue (same, not audited)
+    assert "q001" not in by_id
+
+
+def test_build_reduced_review_rows_preserves_other_fields():
+    """Audit labeling doesn't mutate other row fields."""
+    target_rows = [
+        {"id": "q001", "question": "q", "answer": "a", "kind": "rule", "citations": [1, 2, 3]},
+    ]
+    judge_rows = [
+        {"id": "q001", "judge": "same", "auto_verdict": "correct", "audit": True},
+    ]
+
+    reduced = build_reduced_review_rows(target_rows, judge_rows)
+    assert len(reduced) == 1
+    assert reduced[0]["kind"] == "rule"
+    assert reduced[0]["citations"] == [1, 2, 3]
+    assert reduced[0]["answer"] == "a"
 
 
 # ---------------------------------------------------------------- summarize

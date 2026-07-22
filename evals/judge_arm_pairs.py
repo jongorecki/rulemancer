@@ -129,6 +129,30 @@ def diff_and_audit_ids(judge_rows: list[dict]) -> set[str]:
     return {r["id"] for r in judge_rows if r["judge"] != "same" or r["audit"]}
 
 
+def build_reduced_review_rows(target_rows: list[dict], judge_rows: list[dict]) -> list[dict]:
+    """Build reduced review rows for Jon's manual queue, with audit marking.
+
+    For each row in target_rows that's in Jon's queue (different/error or audited):
+    - Copy the row
+    - If it's an audit row, set audit=True and prefix question with "[AUDIT] "
+
+    Returns a list of reduced rows with audit labeling for the grading UI.
+    """
+    audit_by_id = {r["id"]: r["audit"] for r in judge_rows}
+    jon_ids = diff_and_audit_ids(judge_rows)
+
+    reduced = []
+    for r in target_rows:
+        if r["id"] in jon_ids:
+            row_copy = dict(r)
+            if audit_by_id.get(r["id"], False):
+                row_copy["audit"] = True
+                if "question" in row_copy:
+                    row_copy["question"] = "[AUDIT] " + row_copy["question"]
+            reduced.append(row_copy)
+    return reduced
+
+
 def rollup(manual: list[dict], auto: list[dict]) -> list[dict]:
     """Final per-arm verdicts = manual UNION auto; manual wins on any id
     present in both (Roll-up rule)."""
@@ -186,7 +210,7 @@ def _index_by_id(rows: list[dict]) -> dict:
     return {r["id"]: r for r in rows}
 
 
-def run_arm(label: str) -> dict:
+def run_arm(label: str, rebuild_html_only: bool = False) -> dict:
     target_rows = _load_json(PARSED / f"review_{label}.json")
     ref_rows = _load_json(PARSED / f"review_{REF_LABEL}.json")
     ref_verdicts = _load_json(EVALS / f"verdicts_{REF_LABEL}.json")
@@ -205,18 +229,22 @@ def run_arm(label: str) -> dict:
     if missing_verdicts:
         raise ValueError(f"{label}: no human verdict for ids {missing_verdicts}")
 
-    print(f"\n=== {label}: judging {len(target_rows)} pairs vs {REF_LABEL} "
-          f"(judge={JUDGE_SLUG}) ===")
-
-    def judge_fn(question, reference, candidate, rid):
-        v = call_judge(question, reference, candidate, rid)
-        print(f"  {rid}: judge={v}")
-        return v
-
-    judge_rows = build_judge_pairs(target_rows, ref_by_id, ref_verdicts_by_id, judge_fn)
-
     pairs_path = EVALS / f"judge_pairs_{label}.json"
-    pairs_path.write_text(json.dumps(judge_rows, indent=2), encoding="utf-8")
+
+    if rebuild_html_only:
+        print(f"\n=== {label}: rebuilding HTML from existing {pairs_path.name} ===")
+        judge_rows = _load_json(pairs_path)
+    else:
+        print(f"\n=== {label}: judging {len(target_rows)} pairs vs {REF_LABEL} "
+              f"(judge={JUDGE_SLUG}) ===")
+
+        def judge_fn(question, reference, candidate, rid):
+            v = call_judge(question, reference, candidate, rid)
+            print(f"  {rid}: judge={v}")
+            return v
+
+        judge_rows = build_judge_pairs(target_rows, ref_by_id, ref_verdicts_by_id, judge_fn)
+        pairs_path.write_text(json.dumps(judge_rows, indent=2), encoding="utf-8")
 
     auto_rows = []
     for r in judge_rows:
@@ -229,8 +257,7 @@ def run_arm(label: str) -> dict:
     auto_path = EVALS / f"verdicts_{label}.auto.json"
     auto_path.write_text(json.dumps(auto_rows, indent=2), encoding="utf-8")
 
-    jon_ids = diff_and_audit_ids(judge_rows)
-    reduced_rows = [r for r in target_rows if r["id"] in jon_ids]
+    reduced_rows = build_reduced_review_rows(target_rows, judge_rows)
     reduced_path = PARSED / f"review_{label}_diff.json"
     reduced_path.write_text(json.dumps(reduced_rows, indent=2, ensure_ascii=False), encoding="utf-8")
 
@@ -264,14 +291,17 @@ def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--target", required=True,
                     help="arm label, e.g. sonnet-v2 (reads data/parsed/review_<label>.json)")
+    ap.add_argument("--rebuild-html-only", action="store_true",
+                    help="rebuild HTML and reduced JSON from existing judge_pairs file (skip judging)")
     args = ap.parse_args()
-    run_arm(args.target)
-    print(
-        "\nAudit fallback rule: if Jon's manual grading of the AUDIT-labeled rows "
-        "disagrees with the judge-transferred verdict on >10% of that arm's audit "
-        "sample, this arm's auto-verdicts are unreliable and it falls back to full "
-        "manual grading (see judge_error_report() / docs/plan-judge-transitive-grading.md)."
-    )
+    run_arm(args.target, rebuild_html_only=args.rebuild_html_only)
+    if not args.rebuild_html_only:
+        print(
+            "\nAudit fallback rule: if Jon's manual grading of the AUDIT-labeled rows "
+            "disagrees with the judge-transferred verdict on >10% of that arm's audit "
+            "sample, this arm's auto-verdicts are unreliable and it falls back to full "
+            "manual grading (see judge_error_report() / docs/plan-judge-transitive-grading.md)."
+        )
 
 
 if __name__ == "__main__":
