@@ -89,14 +89,15 @@ must be explainable cold.
    resolution accuracy; answer faithfulness via `evals/build_grading_ui.py`.
 3. **Full re-grade.** The system prompt changed after the 31/31 grade (trust-
    the-ruling line). Regenerate all answers, Jon re-grades via the grading UI.
-4. **Outside judge (Jon requested).** Validate a non-Claude judge for the
-   ablation/eval harness via OpenRouter (pin the model, allow_fallbacks:false —
-   DESIGN's standing rule). Candidates by current pricing: DeepSeek V3.2
-   (~$0.14/$0.28 per 1M), Gemini 2.5 Flash-Lite (~$0.10/$0.40), GPT-5-mini
-   (~$0.40 in). Method: re-run the ablation agreement tally with the candidate
-   beside sonnet-5's verdicts; adopt at ≥95% agreement (Haiku's bar was 94-99%).
-   Bonus for the README: a non-Claude judge removes Claude-judging-Claude
-   family bias.
+4. **Outside judge — DONE (2026-07-22).** `openai/gpt-5-mini` via OpenRouter is
+   the validated outside judge: 21/22 = 95% agreement with sonnet-5 on
+   evals/judge_pairs.jsonl, identical miss-profile to the Haiku incumbent, and
+   it correctly discriminated the confident-wrong-vs-honest-hedge pair that
+   DeepSeek/Gemini missed (both 91%, not adopted). Harness:
+   evals/judge_bakeoff.py (re-runnable; slugs pinned, allow_fallbacks=false;
+   OPENROUTER_API_KEY is in .env). Full reasoning in DECISIONS. Remaining
+   integration: use `or_judge()` / the validated model in the card-eval
+   harness (#2) when it's built; borderline verdicts still go to Jon.
 5. **Follow-up rewrite mis-anchor** (LOG 2026-07-22): the conversational rewrite
    chased an earlier turn's topic (commander) instead of the follow-up's
    (reanimation). Improve the context instruction in `retrieve/rewrite.py`;

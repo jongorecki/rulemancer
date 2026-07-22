@@ -514,3 +514,20 @@ capture" section for the trigger rules.
   retrieval was off-target and the correct answer rode on the card rulings +
   conversation instead. Follow-up rewrite quality after a topic shift is a real
   limitation -- noted for later, not blocking.
+
+## 2026-07-22 — judge bake-off: gpt-5-mini ties Haiku at 95%, wins the outside seat
+
+- (Claude) Jon set up OpenRouter; ran 3 non-Claude judges + Haiku against
+  sonnet-5's verdicts on 22 real answer-pairs from this session (17 same / 5
+  different -- flips seeded on purpose). gpt-5-mini 21/22 (95%), Haiku 21/22,
+  DeepSeek V3.2 20/22 (91%), Gemini 2.5 Flash-Lite 20/22 (91%). Adopted
+  gpt-5-mini: ties the incumbent AND is a non-Claude family (kills the
+  Claude-judging-Claude bias objection for the README).
+- The fun findings: the ONE pair every judge except sonnet missed was my
+  degenerate construction (the "reference" side was a truncation notice --
+  inverts the rubric's assumption); sonnet alone stayed rubric-strict. And the
+  pair that actually separated the field was c015: confident-wrong ("aura stays
+  attached") vs honest hedge ("can't confirm") -- sonnet/haiku/gpt-5-mini all
+  said DIFFERENT, DeepSeek and Gemini said same. Discriminating
+  confident-wrong from honest-decline is exactly the judge skill this project
+  needs, so the 91% pair lost on the case that matters, not on noise.

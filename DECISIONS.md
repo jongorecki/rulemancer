@@ -1166,3 +1166,43 @@ debug panel; autocomplete returned live Scryfall suggestions.
 required before real concurrency (more than the single locked worker); token
 streaming if the frontend wants it; `image_uri` in the response if the frontend
 would rather not round-trip to Scryfall (a small cache-schema bump).
+
+---
+
+## 2026-07-22 — Outside judge: gpt-5-mini adopted (95% agreement with sonnet-5)
+
+**What:** Validated three non-Claude judges for the eval/ablation harness via
+OpenRouter (pinned slugs, allow_fallbacks=false) on evals/judge_pairs.jsonl --
+22 same-question answer pairs drawn from this session's real pipeline runs,
+seeded with known conclusion-flips so both verdict classes exist (sonnet: 17
+same / 5 different). Harness: evals/judge_bakeoff.py; raw verdicts in
+evals/judge_bakeoff_results.json. **Adopting openai/gpt-5-mini** as the
+outside judge.
+
+**Measured (agreement with claude-sonnet-5, pre-registered bar >=95% -- the
+bar Haiku cleared at 94-99%):**
+- haiku (incumbent): 21/22 = 95%
+- **gpt-5-mini: 21/22 = 95%** -- identical miss-profile to Haiku
+- deepseek-v3.2: 20/22 = 91%
+- gemini-2.5-flash-lite: 20/22 = 91%
+
+**Reading the misses (the interesting part):** the one pair EVERY judge except
+sonnet missed (c006:enr-vs-mini) is degenerate-by-construction -- the
+"reference" side is a truncation notice, inverting the rubric's assumption that
+the reference is a real answer; sonnet alone applied the rubric strictly.
+Excluding it: haiku and gpt-5-mini 21/21, deepseek/gemini 20/21. What actually
+separated the field is c015 (confident-wrong "aura stays attached" vs honest
+"can't confirm" hedge): sonnet, haiku, and gpt-5-mini all called it DIFFERENT
+(right -- the bottom lines diverge materially); deepseek and gemini called it
+same. That's a discrimination failure on exactly the class we care about.
+
+**Why gpt-5-mini over the other passers:** it ties the incumbent on the full
+set, discriminates the confident-wrong-vs-hedge case correctly, and maximizes
+the independence argument -- an OpenAI judge scoring Claude-generated answers
+removes same-family bias from the eval story. Cost ~$0.25/$2.00 per M; judge
+calls are tiny, effectively free.
+
+**What would change my mind:** n=22 is a screen, not a proof -- if gpt-5-mini
+diverges from sonnet on borderline verdicts once used at scale, or a larger
+pair set shows drift, re-run the bake-off (the harness is committed and
+re-runnable). Borderline verdicts still go to Jon regardless of judge.
