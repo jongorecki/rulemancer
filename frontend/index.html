@@ -133,12 +133,24 @@ async function autocompleteApi(q) {
 // ---- send / receive --------------------------------------------------------
 function rand() { return ARCANE[Math.floor(Math.random() * ARCANE.length)]; }
 
+function clearComposer() {
+  // Clear BOTH state and the live textarea. render() re-captures the DOM value
+  // to preserve in-progress drafts across re-renders, so clearing state alone
+  // gets overwritten by that capture and the just-sent text reappears in the
+  // box (the duplicate-info bug). Emptying the DOM first makes the capture
+  // read "" and the clear stick.
+  state.input = "";
+  const ta = document.getElementById("rm-composer");
+  if (ta) { ta.value = ""; autoGrow(ta); }
+  hideAC();
+}
+
 async function send(textArg) {
   const raw = typeof textArg === "string" ? textArg : state.input;
   const text = (raw || "").trim();
   if (!text || state.thinking) return;
   state.messages.push({ id: ++uid, role: "user", paras: [text] });
-  state.input = "";
+  clearComposer();
   state.view = "chat";
   state.thinking = true;
   state.thinkingWord = rand();
@@ -183,8 +195,9 @@ function regen() {
 function newChat() {
   clearInterval(thinkTimer);
   archiveCurrent();
-  state.view = "welcome"; state.messages = []; state.input = "";
+  state.view = "welcome"; state.messages = [];
   state.thinking = false; state.sidebarExpanded = false; state.drawer = null;
+  clearComposer();   // DOM + state, so render()'s draft-capture can't resurrect it
   render();
 }
 
@@ -207,6 +220,7 @@ function loadHistory(id) {
   if (!h) return;
   state.view = "chat"; state.messages = JSON.parse(JSON.stringify(h.messages));
   state.thinking = false; state.sidebarExpanded = false; state.drawer = null;
+  clearComposer();
   render();
 }
 
