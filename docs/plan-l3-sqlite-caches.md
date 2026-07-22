@@ -1,8 +1,8 @@
 # Plan — L3: SQLite cache layer (deploy blocker #1)
 
-Status: DRAFT for Jon's review (Rule 0). No implementation until approved.
-Implementation is blocked anyway until the OpenRouter arm run exits — the
-remaining arms launch fresh python processes that would import edited code.
+Status: APPROVED (Jon, 2026-07-22) and IMPLEMENTED — commits 09683fc
+(core) + 9127491 (review fixes). All 6 verification gates PASS; review
+Approved. Ledger: .superpowers/sdd/progress.md.
 
 ## Goal
 
