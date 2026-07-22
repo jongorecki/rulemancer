@@ -57,10 +57,13 @@ _lock = threading.Lock()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     store = VectorStore.load(REPO / "data" / "parsed" / f"vector_{VECTOR_MODEL}.pkl")
-    # chunk_map resolves a rule/glossary citation id -> its full text, straight
-    # off the store's own chunks (no need to re-parse the CR at startup).
-    _state["chunk_map"] = {c.source_id: c for c in store.chunks}
-    _state["agent"] = RulesAgent(store)  # ruling_select on; live Scryfall (fresh rulings)
+    agent = RulesAgent(store)  # ruling_select on; live Scryfall (fresh rulings)
+    # chunk_map resolves a rule/glossary citation id -> its full text. The
+    # agent is now its one owner (L1, docs/plan-l1-crossref-expansion.md --
+    # expand_crossrefs needs the same dict), built once from the store's own
+    # chunks; the API just reuses it rather than building a second copy.
+    _state["chunk_map"] = agent.chunk_map
+    _state["agent"] = agent
     yield
     _state.clear()
 

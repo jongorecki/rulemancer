@@ -15,6 +15,7 @@ from pydantic import ValidationError
 
 from rulesagent.contracts import Answer, Card, CardFace, Retrieved
 from rulesagent.index.store import VectorStore
+from rulesagent.retrieve.crossrefs import expand_crossrefs
 from rulesagent.retrieve.hybrid import rrf_fuse
 from rulesagent.retrieve.rewrite import rewrite_query
 from rulesagent.tools.ruling_retrieval import ruling_id, select_rulings
@@ -221,6 +222,16 @@ class RulesAgent:
         self.show_rewrite = show_rewrite
         self.card_no_refresh = card_no_refresh
         self.ruling_select = ruling_select
+        # Cross-ref expansion (L1, docs/plan-l1-crossref-expansion.md): id ->
+        # Chunk, built ONCE here from the store's own chunks so expand_crossrefs
+        # can resolve a "see rule X" mention without re-parsing the CR. Same
+        # dict api/main.py used to build itself in its lifespan -- the agent is
+        # now its one owner, and the API reads agent.chunk_map instead.
+        # getattr-guarded: a store double that only implements .search() (e.g.
+        # tests/test_prompt_identity.py's _FrozenStore) has no .chunks, and
+        # should degrade to an empty map -- expand_crossrefs then resolves
+        # nothing and appends nothing, an inert no-op -- rather than crash.
+        self.chunk_map = {c.source_id: c for c in getattr(store, "chunks", [])}
         # Per-card ruling mini-RAG (plan-rulings-on-demand.md): when True (the
         # default), a referenced card's rulings are relevance-filtered against
         # the question instead of dumped wholesale. False restores the old
@@ -261,6 +272,11 @@ class RulesAgent:
         # evals/run_answer_eval.py, recording them alongside the answer)
         # read it right after calling answer() rather than answer() growing
         # a second return value.
+        self.last_crossref: dict | None = None
+        # Set by answer() on every call: {"refs_found": [...], "appended":
+        # [...], "skipped": [...]} from expand_crossrefs -- so a label-like
+        # ref that resolved to no chunk (e.g. 701.5 "Cast") is an observable
+        # miss, not a silent one. Same pattern as last_rewritten.
 
     def answer(self, question: str, history: list[dict] | None = None) -> Answer:
         """`history` (optional): prior conversation turns, oldest first, each
@@ -347,6 +363,14 @@ class RulesAgent:
                 # tried on. See evals/run_eval.py's `+orig` variant.
         else:
             retrieved = self.store.search(question, self.k)
+        # Cross-ref expansion (L1): a pure post-ranking step -- runs AFTER
+        # retrieval/rewrite/fusion have already produced the organic top-k,
+        # so it can't move any rank the retrieval eval measures. No LLM call,
+        # no recursion (one hop only), no prompt-shape change: appended
+        # chunks are just more `[id] text` blocks after the organic ones.
+        crossref_debug: dict = {}
+        retrieved = expand_crossrefs(retrieved, self.chunk_map, debug=crossref_debug)
+        self.last_crossref = crossref_debug
         self.last_retrieved = retrieved
         # Empty/invalid structured output happens INTERMITTENTLY on
         # claude-sonnet-5 (c018 came back empty on two eval runs, then answered
