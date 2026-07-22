@@ -11,7 +11,7 @@ one rewrite call per question when --rewrite is on) -- run it in the
 background or with a long timeout, not inline with a short one.
 
 Run: `uv run python evals/run_answer_eval.py [--rewrite | --no-rewrite]
-      [--model MODEL] [--out PATH]`
+      [--model MODEL] [--out PATH] [--questions PATH] [--limit N]`
 """
 
 import argparse
@@ -36,6 +36,25 @@ QUESTIONS_PATH = Path(__file__).parent / "questions.jsonl"
 DEFAULT_OUT = PARSED_DIR / "review.json"
 
 
+def load_answer_gold(path: Path) -> dict[str, str]:
+    """id -> answer_gold, read straight from the raw jsonl rows.
+
+    `answer_gold` (RulesGuru's human-written reference answer) isn't a field
+    on EvalQuestion/contracts.py -- it's exactly the kind of extra field
+    load_questions() is required to ignore -- so it has to be recovered from
+    the raw JSON here rather than off the loaded EvalQuestion objects. Rows
+    without it (questions.jsonl, cards.jsonl) just don't appear in the dict.
+    """
+    out = {}
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if not line.strip():
+            continue
+        row = json.loads(line)
+        if row.get("answer_gold"):
+            out[row["id"]] = row["answer_gold"]
+    return out
+
+
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument(
@@ -53,6 +72,14 @@ def parse_args() -> argparse.Namespace:
     )
     p.add_argument("--model", default=GEN_MODEL, help=f"generator model (default: {GEN_MODEL})")
     p.add_argument("--out", type=Path, default=DEFAULT_OUT, help=f"output path (default: {DEFAULT_OUT})")
+    p.add_argument(
+        "--questions", type=Path, default=QUESTIONS_PATH,
+        help=f"eval questions jsonl (default: {QUESTIONS_PATH})",
+    )
+    p.add_argument(
+        "--limit", type=int, default=None,
+        help="answer only the first N questions (default: all) -- for cheap smoke slices",
+    )
     return p.parse_args()
 
 
@@ -70,10 +97,14 @@ def main() -> None:
     store = VectorStore.load(pkl)
     agent = RulesAgent(store, model=args.model, rewrite=args.rewrite, show_rewrite=args.show_rewrite)
 
-    questions = load_questions(QUESTIONS_PATH)
+    questions = load_questions(args.questions)
+    answer_gold = load_answer_gold(args.questions)
+    if args.limit is not None:
+        questions = questions[: args.limit]
     print(
         f"Generating {len(questions)} answers | model={args.model} "
-        f"| rewrite={args.rewrite} | show_rewrite={args.show_rewrite}\n"
+        f"| rewrite={args.rewrite} | show_rewrite={args.show_rewrite} "
+        f"| questions={args.questions.name}\n"
     )
 
     results = []
@@ -86,28 +117,32 @@ def main() -> None:
         gold_text = {g: chunk_map[g].text for g in q.gold if g in chunk_map}
         cited_text = {c: chunk_map[c].text for c in ans.citations if c in chunk_map}
 
-        results.append(
-            {
-                "id": q.id,
-                "question": q.question,
-                "match": q.match,
-                "kind": q.kind,
-                "show_rewrite": args.show_rewrite,
-                "answered": ans.answered,
-                "answer": ans.text,
-                "citations": ans.citations,
-                "gold": q.gold,
-                "gold_text": gold_text,
-                "cited_text": cited_text,
-                # New in plan #3a: what the rewriter actually did for this
-                # question, so a reviewer can see whether an answer change
-                # traces back to a different rewrite. None/[] when
-                # --no-rewrite so the two arms stay visibly distinguishable
-                # in the output, not just via a side channel.
-                "rewrite_queries": rewritten.queries if rewritten else [],
-                "clarification": rewritten.clarification if rewritten else None,
-            }
-        )
+        row = {
+            "id": q.id,
+            "question": q.question,
+            "match": q.match,
+            "kind": q.kind,
+            "show_rewrite": args.show_rewrite,
+            "answered": ans.answered,
+            "answer": ans.text,
+            "citations": ans.citations,
+            "gold": q.gold,
+            "gold_text": gold_text,
+            "cited_text": cited_text,
+            # New in plan #3a: what the rewriter actually did for this
+            # question, so a reviewer can see whether an answer change
+            # traces back to a different rewrite. None/[] when
+            # --no-rewrite so the two arms stay visibly distinguishable
+            # in the output, not just via a side channel.
+            "rewrite_queries": rewritten.queries if rewritten else [],
+            "clarification": rewritten.clarification if rewritten else None,
+        }
+        if q.id in answer_gold:
+            # Carried through only for questions that have it (RulesGuru
+            # rows) -- judge_rulesguru.py reads it straight off this row
+            # rather than re-joining against the source jsonl.
+            row["answer_gold"] = answer_gold[q.id]
+        results.append(row)
         print(f"  [{i}/{len(questions)}] {q.id} ({time.time() - t0:.1f}s)")
 
     args.out.parent.mkdir(parents=True, exist_ok=True)

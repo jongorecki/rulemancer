@@ -11,6 +11,8 @@ Metric = recall@k with per-question `match` semantics (any / all). recall@5 is
 the headline. Run: `uv run python evals/run_eval.py`
 """
 
+import argparse
+import json
 import pickle
 from pathlib import Path
 
@@ -44,12 +46,26 @@ REWRITE_MODELS = {"haiku": "claude-haiku-4-5", "sonnet": "claude-sonnet-5"}
 REWRITE_NS = (1, 3)
 
 
+_KNOWN_KINDS = {"rule", "glossary", "interaction", "other", "card-interaction"}
+# EvalQuestion.kind (src/rulesagent/contracts.py) is a closed Literal that
+# predates external question sources like RulesGuru ("kind": "rulesguru").
+# Widening that Literal is a src/ change this import deliberately stays out
+# of (plan-rulesguru-import.md "What does NOT change") -- so the loader
+# coerces any kind it doesn't recognize to "other" before validating. Every
+# other extra field (answer_gold, level, complexity, tags, url, submitter)
+# needs no such handling: pydantic drops unknown fields by default.
+
+
 def load_questions(path: Path) -> list[EvalQuestion]:
-    return [
-        EvalQuestion.model_validate_json(line)
-        for line in path.read_text(encoding="utf-8").splitlines()
-        if line.strip()
-    ]
+    questions = []
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if not line.strip():
+            continue
+        row = json.loads(line)
+        if row.get("kind") not in _KNOWN_KINDS:
+            row["kind"] = "other"
+        questions.append(EvalQuestion.model_validate(row))
+    return questions
 
 
 def query_vectors(questions: list[EvalQuestion], model: str) -> dict[str, "object"]:
@@ -105,11 +121,44 @@ def rewrite_arm_name(label: str, n: int) -> str:
     return f"vec+rw{n}-{label}"
 
 
+def hit_at_forced(q: EvalQuestion, ranking: list[Retrieved], k: int, mode: str) -> bool:
+    """Like hit_at, but scores q's flat `gold` list under a FORCED any/all
+    semantics, ignoring the question's own `match`/`gold_groups` fields.
+    Used only by --match-both: the two columns must look at the identical
+    flat gold list under both rules, not each question's preferred one, or
+    the gap between them (the finding --match-both exists to show) would be
+    comparing different things per question rather than two strictness
+    levels of the same thing. Empty gold never hits, same as hit_at."""
+    if not q.gold:
+        return False
+    topk = {r.chunk.source_id for r in ranking[:k]}
+    if mode == "any":
+        return any(g in topk for g in q.gold)
+    return all(g in topk for g in q.gold)
+
+
+def parse_args() -> argparse.Namespace:
+    p = argparse.ArgumentParser(description=__doc__)
+    p.add_argument(
+        "--questions", type=Path, default=QUESTIONS_PATH,
+        help=f"eval questions jsonl (default: {QUESTIONS_PATH})",
+    )
+    p.add_argument(
+        "--match-both", action="store_true",
+        help="also score every method's SAME retrieved top-k under forced "
+        "any AND forced all semantics (one retrieval pass, two hit rules) "
+        "and print both recall@k columns; default off, existing question "
+        "sets' output is unchanged either way",
+    )
+    return p.parse_args()
+
+
 def main() -> None:
+    args = parse_args()
     rules, glossary = parse_comprehensive_rules(CR_PATH)
     chunks = chunk_rules(rules, glossary)
     chunk_ids = {c.source_id for c in chunks}
-    questions = load_questions(QUESTIONS_PATH)
+    questions = load_questions(args.questions)
 
     for q in questions:
         missing = [g for g in q.gold if g not in chunk_ids]
@@ -173,7 +222,15 @@ def main() -> None:
     )
     matrix_names = ["BM25", VECTOR_MODEL] + [f"rerank:{m}" for m in RERANK_MODELS] + rw_arm_names
     n = len(questions)
-    print(f"\n{len(chunks)} chunks | {n} questions | vector={VECTOR_MODEL} | rerank pool={RERANK_POOL}\n")
+    n_empty_gold = sum(1 for q in questions if not q.gold)
+    n_scored = (n - n_empty_gold) or 1  # denominator floor: never /0
+    # Empty-gold questions (RulesGuru rows whose citedRules was {}) can never
+    # hit -- hit_at/hit_at_forced both return False for them already -- so
+    # excluding them is purely a DENOMINATOR change: recall% is hits/n_scored,
+    # not hits/n. They're still counted in n and reported here, per the plan
+    # ("skip in recall scoring but count in the summary").
+    print(f"\n{len(chunks)} chunks | {n} questions ({n_empty_gold} empty-gold, "
+          f"excluded from recall denominator) | vector={VECTOR_MODEL} | rerank pool={RERANK_POOL}\n")
 
     hits = {name: {k: 0 for k in KS} for name in method_names}
     per_q5 = {name: {} for name in method_names}
@@ -185,6 +242,11 @@ def main() -> None:
     individual_by_arm: dict[tuple[str, str], list[list[Retrieved]]] = {}
     # (q.id, arm_name) -> the per-rewrite rankings that fed that arm's fused
     # result, kept for the `+orig` pass below.
+    hits_any = {name: {k: 0 for k in KS} for name in method_names}
+    hits_all = {name: {k: 0 for k in KS} for name in method_names}
+    # --match-both only: same rankings, scored a second way (forced any /
+    # forced all) with zero extra retrieval calls -- populated in the same
+    # per-question loop below, printed as two extra columns afterward.
 
     for q in questions:
         bm = bm25.search(q.question, DEPTH)
@@ -212,6 +274,11 @@ def main() -> None:
             for k in KS:
                 if hit_at(q, ranking, k):
                     hits[name][k] += 1
+                if args.match_both:
+                    if hit_at_forced(q, ranking, k, "any"):
+                        hits_any[name][k] += 1
+                    if hit_at_forced(q, ranking, k, "all"):
+                        hits_all[name][k] += 1
             per_q5[name][q.id] = hit_at(q, ranking, 5)
             top_gen_k[name][q.id] = [r.chunk.source_id for r in ranking[:GEN_TOP_K]]
         for a in ALPHA_SWEEP:
@@ -230,6 +297,8 @@ def main() -> None:
     orig_arm = f"{best_arm}+orig"
     hits[orig_arm] = {k: 0 for k in KS}
     per_q5[orig_arm] = {}
+    hits_any[orig_arm] = {k: 0 for k in KS}
+    hits_all[orig_arm] = {k: 0 for k in KS}
     for q in questions:
         vec = vstore.search_vec(qvecs[q.question], DEPTH)
         individual = individual_by_arm[(q.id, best_arm)]
@@ -237,6 +306,11 @@ def main() -> None:
         for k in KS:
             if hit_at(q, ranking, k):
                 hits[orig_arm][k] += 1
+            if args.match_both:
+                if hit_at_forced(q, ranking, k, "any"):
+                    hits_any[orig_arm][k] += 1
+                if hit_at_forced(q, ranking, k, "all"):
+                    hits_all[orig_arm][k] += 1
         per_q5[orig_arm][q.id] = hit_at(q, ranking, 5)
 
     method_names = method_names + [orig_arm]
@@ -247,10 +321,27 @@ def main() -> None:
     print(header)
     print("-" * len(header))
     for name in method_names:
-        print(f"{name:<20}" + "".join(f"{hits[name][k]/n:>7.0%}   " for k in KS))
+        print(f"{name:<20}" + "".join(f"{hits[name][k]/n_scored:>7.0%}   " for k in KS))
 
     print("\nweighted-fusion alpha sweep (recall@5, alpha = vector weight):")
-    print("  " + "   ".join(f"a={a}: {sweep5[a]/n:.0%}" for a in ALPHA_SWEEP))
+    print("  " + "   ".join(f"a={a}: {sweep5[a]/n_scored:.0%}" for a in ALPHA_SWEEP))
+
+    if args.match_both:
+        # Same top-k as the table above, scored a second/third way -- no
+        # extra retrieval calls (Jon's call, docs/plan-rulesguru-import.md
+        # decision #1). The gap between the two columns measures how many
+        # context-extra citations the retriever drops relative to what's
+        # strictly required.
+        print(f"\n--match-both: recall@k under FORCED any vs FORCED all (ignores each question's own `match` field):")
+        header2 = f"{'retriever':<20}" + "".join(f"any@{k:<3}/all@{k:<3}" for k in KS)
+        print(header2)
+        print("-" * len(header2))
+        for name in method_names:
+            row = "".join(
+                f"{hits_any[name][k]/n_scored:>6.0%}/{hits_all[name][k]/n_scored:<6.0%}"
+                for k in KS
+            )
+            print(f"{name:<20}{row}")
 
     # per-question hit@5 matrix (pipeline progression: BM25 -> vector -> rerank -> rewrite)
     print("\nPer-question hit@5 (Y=hit, .=miss):")

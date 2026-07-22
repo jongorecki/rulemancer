@@ -1228,3 +1228,33 @@ so the second key costs a signup, not money.
 catalog (then it IS just a key swap — re-verify identical vectors before
 believing it), or a deliberate cross-embedding-model A/B done on its own
 merits as a README result.
+
+---
+
+## 2026-07-22 — RulesGuru import: 150 external questions with human gold
+
+**What:** Imported 150 judge-curated questions from RulesGuru's public API
+(30 per level, 0-3 + Corner Case) into evals/rulesguru.jsonl as a separate
+eval set with human-written gold answers AND cited-rule gold — never merged
+into the hand-curated questions.jsonl/cards.jsonl. Answers auto-judged by
+gpt-5-mini against RulesGuru's answerSimple; the judge (never the bot) gets
+the site's player-naming-convention note. Fetched data committed to the repo.
+Full plan: docs/plan-rulesguru-import.md.
+**Alternatives considered:** 30-60 hard-only questions (cheaper per run);
+hand-grading first to calibrate judge trust; gitignoring the fetched data
+and fetching on demand; picking one match semantic for recall.
+**Why:** The card-gold ablation showed most card questions were answerable
+from priors + oracle text — weak RAG tests with empty rules-gold. RulesGuru's
+harder tiers arrive with verified citations attached, fixing that for free.
+Full spread over hard-only because Jon wanted the difficulty curve visible.
+Committing the data because reproducible evals beat a live third-party
+dependency. And rather than choosing any-vs-all recall semantics, both are
+scored in one pass (--match-both; same top-k, only the hit rule differs) —
+Jon's call, and it paid off immediately: a ~2.5x any/all gap (40% vs 16%
+best-arm any@5/all@5), far wider than on the hand-curated set, because
+RulesGuru cites everything the answer leaned on, not a minimal set.
+**What would change my mind:** RulesGuru objecting to committed data (script
+regenerates everything, files can drop from the repo); judge spot-checks
+showing gpt-5-mini misgrades scenario questions (fall back to hand-grading
+via the review UI); ablation showing imported citation-gold is too noisy to
+trust for recall (then ablate per-question minimal sets instead).
