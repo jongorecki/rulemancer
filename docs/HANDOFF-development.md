@@ -115,6 +115,25 @@ must be explainable cold.
 8. **Eval curation (Jon-owned, ongoing):** more c004-shaped rules-RAG questions;
    unused drafted pool: Ice Cauldron, Illusionary Mask, Lich's Mirror, Splinter
    Twin, Emrakul variants.
+9. **Card display in the UI (Jon, 2026-07-22 — needs its own plan doc; Jon to
+   slot priority, likely right after #1).** Three parts:
+   - **Hover image in chat:** mousing over a referenced card's name shows the
+     card image right next to the name in the query.
+   - **Printing selection rule (Jon's spec):** NEVER show a Secret Lair
+     printing unless it's the only printing that exists; show the most common
+     English version. Scryfall's default named-card printing may or may not
+     satisfy this — ground the selection query in the Scryfall docs at build
+     time (candidate: prints search filtered on lang/set-type, exclude SLD),
+     don't assume.
+   - **Real mana symbols in the cited-cards sidebar:** render {W}/{2}/{T} etc.
+     as actual symbol images in mana costs AND oracle text, not curly-brace
+     text. Candidate source: Scryfall's /symbology SVGs (bundle or hot-link —
+     check their guidelines); the Mana icon font is an alternative but needs a
+     license check (same trap as the wordmark font).
+   - Interacts with the API v1 decision "frontend pulls images from Scryfall,
+     no backend image field": the printing-selection logic may want a small
+     backend proxy endpoint (like autocomplete) so the rule lives in one place
+     and caches; decide in the plan.
 
 ## Environment & gotchas
 
