@@ -29,7 +29,12 @@ API base.)
 ## Endpoints
 
 ### `POST /answer`
-Body: `{ "question": "...[Card Name]..." }` — the `[brackets]` mark cards.
+Body: `{ "question": "...[Card Name]...", "history": [{"role": "user"|"assistant", "content": "..."}] }`
+— the `[brackets]` mark cards; `history` (optional) is the thread so far, oldest
+first, so follow-ups and corrections are read in context. The server keeps the
+last 12 turns (4k chars each). Cards `[bracketed]` in earlier turns stay in
+play, and the retrieval rewriter resolves references ("what if **it**'s phased
+out?") against the thread.
 
 Returns:
 

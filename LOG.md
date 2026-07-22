@@ -489,3 +489,28 @@ capture" section for the trigger rules.
   rulings-RAG) doesn't hold: c011 is the rules-RAG case, c014 collapses to rulings
   like the rest. Only ablation, not intuition, told them apart.
 - Judge agreement Haiku vs sonnet-5: 34/36 (94%), consistent with the earlier 99%.
+
+## 2026-07-22 — conversation memory added; the follow-up rewrite can mis-anchor
+
+- (Jon, using the app) caught that the chat had NO thread memory -- a
+  clarification of an earlier question was answered with zero context. True: the
+  frontend sent only the latest question and RulesAgent.answer() took a single
+  string.
+- Built it through the whole pipeline, gated so the single-turn eval path stays
+  byte-identical (same prompt string, same caches): API takes history (last 12
+  turns), prior turns become real generator messages, [cards] from earlier turns
+  carry forward, and the rewriter gets a condensed transcript to resolve
+  references into standalone queries (conversational rewrites bypass the rewrite
+  cache).
+- Verified with a pronoun-only follow-up ("What happens if I try to reanimate IT
+  with [Animate Dead]?" after a Grist commander question): cards = [Grist,
+  Animate Dead] (carryover works), and the answer was the exact confirmed c015
+  ruling -- enters as a planeswalker, aura falls off as an SBA, sacrifice.
+- Two honest findings: (1) draw 1 of the same request came back weak/truncated
+  with answered=false, draw 2 was perfect -- sonnet-5's unpinned variance again;
+  a parseable-but-weak draw slips past the retry (it only catches hard parse
+  failures). (2) The contextualized REWRITE mis-anchored BOTH draws: it chased
+  turn 1's commander-color-identity topic instead of reanimation, so rules
+  retrieval was off-target and the correct answer rode on the card rulings +
+  conversation instead. Follow-up rewrite quality after a topic shift is a real
+  limitation -- noted for later, not blocking.

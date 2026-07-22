@@ -125,6 +125,14 @@
           "question": {
             "type": "string",
             "title": "Question"
+          },
+          "history": {
+            "items": {
+              "$ref": "#/components/schemas/Turn"
+            },
+            "type": "array",
+            "title": "History",
+            "default": []
           }
         },
         "type": "object",
@@ -133,7 +141,17 @@
         ],
         "title": "AnswerRequest",
         "example": {
-          "question": "If I copy a spell that had buyback paid with [Fork], how many cards return to my hand?"
+          "history": [
+            {
+              "content": "Does trample get through deathtouch?",
+              "role": "user"
+            },
+            {
+              "content": "Yes -- with deathtouch, any nonzero damage counts as lethal, so 1 damage per blocker satisfies trample's requirement...",
+              "role": "assistant"
+            }
+          ],
+          "question": "What if the blocker is 0/3 instead?"
         }
       },
       "AnswerResponse": {
@@ -287,6 +305,29 @@
         },
         "type": "object",
         "title": "HTTPValidationError"
+      },
+      "Turn": {
+        "properties": {
+          "role": {
+            "type": "string",
+            "enum": [
+              "user",
+              "assistant"
+            ],
+            "title": "Role"
+          },
+          "content": {
+            "type": "string",
+            "title": "Content"
+          }
+        },
+        "type": "object",
+        "required": [
+          "role",
+          "content"
+        ],
+        "title": "Turn",
+        "description": "One prior conversation turn, oldest first. Send the thread so far in\n`history` and the new question in `question` -- follow-ups and corrections\nare then read in context (and cards [bracketed] earlier stay in play)."
       },
       "ValidationError": {
         "properties": {

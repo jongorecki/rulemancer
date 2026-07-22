@@ -114,10 +114,10 @@ const esc = (s) => (s == null ? "" : String(s).replace(/[&<>"]/g, c => ({'&':'&a
 const app = document.getElementById("app");
 
 // ---- API -------------------------------------------------------------------
-async function askApi(question) {
+async function askApi(question, history) {
   const r = await fetch(API_BASE + "/answer", {
     method: "POST", headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ question }),
+    body: JSON.stringify({ question, history: history || [] }),
   });
   if (!r.ok) throw new Error("HTTP " + r.status);
   return r.json();
@@ -145,12 +145,18 @@ function clearComposer() {
   hideAC();
 }
 
-async function send(textArg) {
-  const raw = typeof textArg === "string" ? textArg : state.input;
-  const text = (raw || "").trim();
-  if (!text || state.thinking) return;
-  state.messages.push({ id: ++uid, role: "user", paras: [text] });
-  clearComposer();
+function apiHistory() {
+  // Prior turns for the API: everything BEFORE the trailing (current) user
+  // turn, minus engine-error bubbles. The backend keeps the last 12.
+  return state.messages.slice(0, -1)
+    .filter(m => !m.error)
+    .map(m => ({ role: m.role, content: (m.paras || []).join("\n\n") }))
+    .slice(-12);
+}
+
+async function runQuestion(text) {
+  // Assumes state.messages already ends with the user turn asking `text`
+  // (send pushes it; regen re-uses the existing one -- no duplicate bubble).
   state.view = "chat";
   state.thinking = true;
   state.thinkingWord = rand();
@@ -159,7 +165,7 @@ async function send(textArg) {
   thinkTimer = setInterval(() => { state.thinkingWord = rand(); paintThinking(); }, 850);
 
   try {
-    const d = await askApi(text);
+    const d = await askApi(text, apiHistory());
     const paras = (d.answer || "").split(/\n\s*\n/).map(s => s.trim()).filter(Boolean);
     const ruleCites = (d.citations || []).filter(c => c.kind !== "card");
     state.messages.push({
@@ -170,7 +176,7 @@ async function send(textArg) {
   } catch (e) {
     state.messages.push({
       id: ++uid, role: "assistant", answered: false, error: true,
-      paras: ["I couldn't reach the rules engine (" + esc(e.message) + "). Make sure the API is running (uvicorn rulesagent.api.main:app) and reachable at " + esc(API_BASE) + "."],
+      paras: ["I couldn't reach the rules engine (" + esc(e.message) + "). Make sure the API is running (uv run python run.py) and reachable at " + esc(API_BASE || location.origin) + "."],
       citations: [], cards: [], feedback: null,
     });
   }
@@ -180,16 +186,22 @@ async function send(textArg) {
   saveHistory();
 }
 
+async function send(textArg) {
+  const raw = typeof textArg === "string" ? textArg : state.input;
+  const text = (raw || "").trim();
+  if (!text || state.thinking) return;
+  state.messages.push({ id: ++uid, role: "user", paras: [text] });
+  clearComposer();
+  await runQuestion(text);
+}
+
 function regen() {
   if (state.thinking) return;
-  let lastUser = "";
-  for (let i = state.messages.length - 1; i >= 0; i--) {
-    if (state.messages[i].role === "user") { lastUser = state.messages[i].paras[0]; break; }
-  }
-  if (state.messages.length && state.messages[state.messages.length - 1].role === "assistant")
-    state.messages.pop();
-  render();
-  if (lastUser) send(lastUser);
+  if (!state.messages.length || state.messages[state.messages.length - 1].role !== "assistant") return;
+  state.messages.pop();  // drop the answer being regenerated; keep the user turn
+  const last = state.messages[state.messages.length - 1];
+  if (!last || last.role !== "user") { render(); return; }
+  runQuestion(last.paras[0]);
 }
 
 function newChat() {

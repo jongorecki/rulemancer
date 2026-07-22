@@ -190,7 +190,13 @@ class RulesAgent:
         # read it right after calling answer() rather than answer() growing
         # a second return value.
 
-    def answer(self, question: str) -> Answer:
+    def answer(self, question: str, history: list[dict] | None = None) -> Answer:
+        """`history` (optional): prior conversation turns, oldest first, each
+        {"role": "user"|"assistant", "content": text}. history=None is the
+        single-turn path and behaves exactly as before the parameter existed
+        (same prompt string, same caches) -- the evals run single-turn, so
+        their numbers are untouched by conversation support."""
+        history = history or []
         self.last_rewritten = None
         # Parse `[Card Name]` / `[oracle-id]` tokens BEFORE anything else
         # touches the question. `question` from here on is bracket-stripped
@@ -199,7 +205,20 @@ class RulesAgent:
         # no-brackets path are untouched: a question with no tokens comes
         # back unchanged and `cards` stays [].
         question, card_refs = parse_card_refs(question)
-        cards = [c for ref in card_refs if (c := get_card(ref, no_refresh=self.card_no_refresh)) is not None]
+        # Cards referenced in EARLIER user turns stay in play: a follow-up
+        # ("what if it's in the graveyard?") rarely repeats the [bracket], but
+        # the card's data is still what grounds the answer. Union, oldest
+        # first, deduped case-insensitively; the Scryfall cache makes the
+        # repeat lookups free.
+        seen: set[str] = set()
+        all_refs: list[str] = []
+        for turn in history:
+            if turn.get("role") == "user":
+                _, hist_refs = parse_card_refs(turn.get("content", ""))
+                all_refs.extend(hist_refs)
+        all_refs.extend(card_refs)
+        all_refs = [r for r in all_refs if not (r.lower() in seen or seen.add(r.lower()))]
+        cards = [c for ref in all_refs if (c := get_card(ref, no_refresh=self.card_no_refresh)) is not None]
         # Unresolvable tokens (typo'd past fuzzy match, made-up name) are
         # silently dropped rather than erroring the whole answer -- the
         # rules-only answer still has a shot at being useful. Not specified
@@ -217,8 +236,23 @@ class RulesAgent:
                 picked.append(card.model_copy(update={"rulings": [card.rulings[i] for i, _ in sel]}))
             cards, self.last_ruling_selection = picked, selection
         self.last_cards = cards
+        # Condensed transcript for the rewriter: a follow-up like "what about
+        # while it's phased out?" only rewrites into a useful standalone search
+        # query if the rewriter can see what "it" was. Last 6 turns, each
+        # clipped -- enough to resolve references without bloating the call.
+        convo_ctx = None
+        if history:
+            lines = []
+            for turn in history[-6:]:
+                who = "User" if turn.get("role") == "user" else "Assistant"
+                text = (turn.get("content") or "").strip()
+                if len(text) > 500:
+                    text = text[:500] + " …"
+                lines.append(f"{who}: {text}")
+            convo_ctx = "\n".join(lines)
         if self.rewrite:
-            rewritten = rewrite_query(question, REWRITE_MODEL, REWRITE_N, self.client)
+            rewritten = rewrite_query(question, REWRITE_MODEL, REWRITE_N, self.client,
+                                      context=convo_ctx)
             self.last_rewritten = rewritten
             if len(rewritten.queries) == 1:
                 # Nothing to fuse with one rewrite -- search it directly.
@@ -271,14 +305,29 @@ class RulesAgent:
         # So keep max_tokens at 16384 and RETRY once before degrading. Raising
         # the cap is not the fix and actively backfires: max_tokens=32768 trips
         # the SDK's non-streaming 10-minute-timeout guard and errors the call.
+        # Multi-turn: prior turns become real conversation messages ahead of
+        # the final user message (which alone carries the rules/card context),
+        # and the system prompt gains a context-reading line. Both are gated on
+        # `history` so the single-turn path -- and therefore every eval number
+        # -- stays byte-identical.
+        system = SYSTEM
+        msgs: list[dict] = [{"role": "user", "content": user}]
+        if history:
+            system = SYSTEM + (
+                "\n- This conversation has earlier turns. Read the final "
+                "question in their context -- it may refine or correct an "
+                "earlier one -- but ground the answer ONLY in the rules and "
+                "card data provided in the final message."
+            )
+            msgs = [{"role": t["role"], "content": t["content"]} for t in history] + msgs
         parsed, response = None, None
         for _attempt in range(2):
             try:
                 response = self.client.messages.parse(
                     model=self.model,
                     max_tokens=16384,
-                    system=SYSTEM,
-                    messages=[{"role": "user", "content": user}],
+                    system=system,
+                    messages=msgs,
                     output_format=Answer,
                 )
                 parsed = response.parsed_output

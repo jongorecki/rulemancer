@@ -16,6 +16,7 @@ Run: uv run uvicorn rulesagent.api.main:app --reload
 import threading
 from contextlib import asynccontextmanager
 from pathlib import Path
+from typing import Literal
 
 import httpx
 from fastapi import FastAPI, HTTPException
@@ -86,13 +87,28 @@ app.add_middleware(
 )
 
 
+class Turn(BaseModel):
+    """One prior conversation turn, oldest first. Send the thread so far in
+    `history` and the new question in `question` -- follow-ups and corrections
+    are then read in context (and cards [bracketed] earlier stay in play)."""
+
+    role: Literal["user", "assistant"]
+    content: str
+
+
 class AnswerRequest(BaseModel):
     question: str  # may contain [Card Name] / [oracle-id] tokens from the @-picker
+    history: list[Turn] = []  # prior turns; server keeps the last 12, 4k chars each
     model_config = {
         "json_schema_extra": {
             "example": {
-                "question": "If I copy a spell that had buyback paid with [Fork], "
-                "how many cards return to my hand?"
+                "question": "What if the blocker is 0/3 instead?",
+                "history": [
+                    {"role": "user", "content": "Does trample get through deathtouch?"},
+                    {"role": "assistant", "content": "Yes -- with deathtouch, any "
+                     "nonzero damage counts as lethal, so 1 damage per blocker "
+                     "satisfies trample's requirement..."},
+                ],
             }
         }
     }
@@ -147,10 +163,12 @@ def answer(req: AnswerRequest) -> AnswerResponse:
     if not req.question.strip():
         raise HTTPException(status_code=400, detail="empty question")
     agent, chunk_map = _state["agent"], _state["chunk_map"]
+    # Bound what a thread can cost: last 12 turns, each clipped to 4k chars.
+    history = [{"role": t.role, "content": t.content[:4000]} for t in req.history[-12:]]
     # Hold the lock across answer() AND the reads of its last_* attributes --
     # another request could overwrite them the moment the lock is released.
     with _lock:
-        ans = agent.answer(req.question)
+        ans = agent.answer(req.question, history=history)
         cards = list(agent.last_cards or [])
         retrieved = list(agent.last_retrieved or [])
         rewritten = agent.last_rewritten

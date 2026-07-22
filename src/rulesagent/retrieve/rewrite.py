@@ -107,6 +107,7 @@ def rewrite_query(
     model: str,
     n: int,
     client: anthropic.Anthropic | None = None,
+    context: str | None = None,
 ) -> RewrittenQuery:
     """Rewrite `question` into `n` Comprehensive-Rules-vocabulary rewrites.
 
@@ -116,6 +117,15 @@ def rewrite_query(
     when a new entry is actually added, so re-runs with unchanged inputs
     touch disk but never rewrite it.
 
+    `context` (optional) is a condensed transcript of earlier conversation
+    turns. When present, the model is asked to resolve the FINAL question's
+    references against it ("what if it's phased out?" -> a standalone query),
+    and the cache is BYPASSED entirely -- read and write. Conversational
+    rewrites are interactive one-offs: caching them would either collide with
+    the single-turn key for the same question text or bloat the eval cache
+    with keys the eval never uses. The evals are single-turn (context=None),
+    so their cache behavior is byte-identical to before this parameter.
+
     Never raises and never returns an empty `queries` list: a failed or
     unparseable response (refusal, truncation, network error) falls back to
     RewrittenQuery(original, [original], None) so retrieval always has
@@ -124,7 +134,7 @@ def rewrite_query(
     """
     cache = _get_cache()
     key = (model, PROMPT_VERSION, n, question)
-    if key in cache:
+    if context is None and key in cache:
         queries, clarification = cache[key]
         return RewrittenQuery(original=question, queries=queries, clarification=clarification)
 
@@ -144,11 +154,22 @@ def rewrite_query(
         # headroom that claude-sonnet-5's default adaptive thinking doesn't
         # eat the whole budget and truncate the structured output to nothing
         # (the same failure mode answer.py's max_tokens comment documents).
+        content = question
+        if context is not None:
+            # Contextualize a conversational follow-up: the rewrites must stand
+            # alone (retrieval sees only the rewrite string, never the thread).
+            content = (
+                "Conversation so far, for context only:\n"
+                f"{context}\n\n"
+                "Rewrite ONLY this final follow-up question. Resolve any "
+                "pronouns or references against the conversation above so each "
+                f"rewrite is fully standalone:\n{question}"
+            )
         response = client.messages.parse(
             model=model,
             max_tokens=2048,
             system=SYSTEM.format(n=n),
-            messages=[{"role": "user", "content": question}],
+            messages=[{"role": "user", "content": content}],
             **extra,
             output_format=_Rewrites,
         )
@@ -174,6 +195,7 @@ def rewrite_query(
     result = RewrittenQuery(
         original=question, queries=parsed.queries, clarification=parsed.clarification
     )
-    cache[key] = (result.queries, result.clarification)
-    _save_cache()
+    if context is None:  # conversational rewrites are never cached (see docstring)
+        cache[key] = (result.queries, result.clarification)
+        _save_cache()
     return result
