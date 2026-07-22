@@ -548,3 +548,33 @@ capture" section for the trigger rules.
   attackers" renders without clipping. The pane refused to actually resize
   (claims success, innerWidth unchanged) so 375/768 are UNVERIFIED —
   Jon's screen is the final gate, as ever.
+
+## 2026-07-22 — L3 + L1 land; the lab gets its six arms
+
+- L3 SQLite caches shipped (09683fc + 9127491 after review): five
+  whole-file caches -> one WAL db, telemetry JSONL -> tables, single-writer
+  rule retired. Proven immediately: two arm re-runs + the sonnet re-grade
+  ran concurrently against the same caches. Review found one Important
+  (silent telemetry except -> now logs) — closed.
+- q001 identity flake fixed Jon's way (80d02c7): frozen-store double,
+  5 consecutive green runs. c015's skip-prefix trick didn't transfer
+  (rules-only questions ARE the prefix); freezing retrieval at the source
+  was the right layer.
+- Fair-shake re-runs with the retry backend: gemini 100/100 clean
+  (yesterday's 12 parse failures were flakiness, not inability),
+  v4-flash full 50/50 clean at $0.014.
+- Sonnet re-grade (L4): 50/50 answered, joins the table as incumbent.
+  Mechanical six-arm table (gold-citation proxy, hand-grade pending):
+  sonnet 32/33 any-gold; v4-flash & v3.2 30/33 at ~1/20th the cost;
+  v4-pro WORSE than its cheaper siblings; gpt-5-mini last (+4 declines).
+  Key reframe: all arms answer from byte-identical prompts, so cross-arm
+  misses are GENERATOR failures, not retrieval — confirmed by...
+- L1 cross-refs shipped (92fa295..30ac5db, review clean): mechanism
+  correct/tested, but honest null result — none of the 5 "known misses"
+  were retrieval gaps (gold already in pool). Part B union arm measured:
+  16/25 -> 20/25 load-bearing rulings, 0 regressions; ship call open.
+- NEW BUG found by L1's gate 4: q029 answered:true with EMPTY text slips
+  past _degenerate() (fires only on answered:false). Needs its own slice.
+- Grading session ready: evals/build_arm_review.py adapts arm outputs to
+  the grading UI; six grading_<arm>.html files in data/parsed/, verdicts
+  export to evals/verdicts_<arm>.json for the L2 roll-up.
