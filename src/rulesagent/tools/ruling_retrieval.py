@@ -67,6 +67,20 @@ def _card_ruling_embeddings(card: Card) -> np.ndarray:
     return np.array([json.loads(cached[rid]) for rid in ids], dtype=np.float32)
 
 
+def _select_from_scores(scores: np.ndarray, floor: float, top_n: int) -> list[tuple[int, float]]:
+    """Shared cap+floor selection: highest score first, stop at the first
+    score under `floor` (scores are sorted descending, so that's also every
+    remaining one), capped at `top_n`."""
+    out: list[tuple[int, float]] = []
+    for i in np.argsort(-scores):
+        if float(scores[i]) < floor:
+            break
+        out.append((int(i), float(scores[i])))
+        if len(out) >= top_n:
+            break
+    return out
+
+
 def select_rulings(card: Card, query: str, floor: float = COSINE_FLOOR,
                    top_n: int = TOP_N) -> list[tuple[int, float]]:
     """Return (ruling_index, cosine) for the card's rulings relevant to `query`:
@@ -79,11 +93,29 @@ def select_rulings(card: Card, query: str, floor: float = COSINE_FLOOR,
     embs = _card_ruling_embeddings(card)     # (R, dim), normalized
     qvec = embed_query(query, RULING_MODEL)  # (dim,), normalized
     scores = embs @ qvec                     # cosine per ruling (both normalized)
-    out: list[tuple[int, float]] = []
-    for i in np.argsort(-scores):
-        if float(scores[i]) < floor:
-            break
-        out.append((int(i), float(scores[i])))
-        if len(out) >= top_n:
-            break
-    return out
+    return _select_from_scores(scores, floor, top_n)
+
+
+def select_rulings_union(card: Card, queries: list[str], floor: float = COSINE_FLOOR,
+                         top_n: int = TOP_N + 1) -> list[tuple[int, float]]:
+    """MEASUREMENT ONLY -- the rewrite-as-ruling-query eval ARM (docs/plan-l1-
+    crossref-expansion.md Part B), not the shipped path. `select_rulings`
+    embeds the raw question only; this scores each ruling against EVERY query
+    in `queries` (typically [raw_question] + the Haiku rewrite string(s)) and
+    keeps the MAX cosine per ruling -- a ruling can clear the floor via
+    whichever phrasing (plain English or rules vocabulary) actually matches
+    it. `top_n` defaults to TOP_N + 1 (4) rather than TOP_N (3): a union of
+    two query angles surfacing one more candidate is the point, but still
+    capped so it can't flood the prompt the way an uncapped union could.
+
+    Cost: one extra cached query embedding per rewrite string (ruling
+    embeddings themselves are already cached/frozen) -- `queries` should be
+    passed already-deduplicated; a caller repeating the raw question inside
+    `queries` just wastes one redundant (but cached) embed call."""
+    if not card.rulings or not queries:
+        return []
+    embs = _card_ruling_embeddings(card)  # (R, dim), normalized
+    qvecs = [embed_query(q, RULING_MODEL) for q in queries]  # each (dim,), normalized
+    all_scores = np.stack([embs @ qv for qv in qvecs], axis=0)  # (Q, R)
+    scores = all_scores.max(axis=0)  # (R,) -- best angle per ruling
+    return _select_from_scores(scores, floor, top_n)

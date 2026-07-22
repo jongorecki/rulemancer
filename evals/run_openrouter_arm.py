@@ -58,14 +58,41 @@ sys.path.insert(0, str(Path(__file__).parent))  # so `from run_eval import ...` 
 from run_eval import CR_PATH, PARSED_DIR, VECTOR_MODEL, load_questions  # noqa: E402
 
 from rulesagent.generate import openrouter_backend  # noqa: E402
-from rulesagent.generate.answer import RulesAgent  # noqa: E402
+from rulesagent.generate.answer import REWRITE_MODEL, REWRITE_N, RulesAgent  # noqa: E402
 from rulesagent.index.store import VectorStore  # noqa: E402
 from rulesagent.ingest.chunker import chunk_rules  # noqa: E402
 from rulesagent.ingest.parser import parse_comprehensive_rules  # noqa: E402
+from rulesagent.retrieve.rewrite import rewrite_query  # noqa: E402
+from rulesagent.tools.ruling_retrieval import select_rulings, select_rulings_union  # noqa: E402
+from rulesagent.tools.scryfall import get_card  # noqa: E402
 
 QUESTIONS_PATH = Path(__file__).parent / "questions.jsonl"
 CARDS_PATH = Path(__file__).parent / "cards.jsonl"
 ANSWERS_DIR = Path(__file__).parent / "answers"
+
+# Part B (docs/plan-l1-crossref-expansion.md): question id -> {card name (as
+# it appears in that row's "cards" list) -> [load-bearing ruling indices]},
+# manually transcribed from each row's Jon-authored "note" field in
+# cards.jsonl -- not regex-parsed from the free text, because several notes
+# name ruling numbers for MULTIPLE cards in one paragraph and an automated
+# attribution step risks assigning a ruling to the wrong card. This is the
+# measurement's ground truth for "did the load-bearing ruling make the cut."
+LOAD_BEARING_RULINGS = {
+    "c006": {"Fork": [8]},
+    "c007": {"Mimic Vat": [0]},
+    "c008": {"Lithoform Engine": [4]},
+    "c009": {"Teferi's Protection": [21]},
+    "c010": {"Emrakul, the Promised End": [2, 3]},
+    "c011": {"Valki, God of Lies": [17]},
+    "c012": {"Lithoform Engine": [6, 7, 14], "Emrakul, the Promised End": [14]},
+    "c013": {"Mimic Vat": [4], "Lithoform Engine": [6, 7]},
+    "c014": {"Trinisphere": [0]},
+    "c015": {"Grist, the Hunger Tide": [1], "Animate Dead": [1, 4]},
+    "c016": {"Skullbriar, the Walking Grave": [2]},
+    "c017": {"Sundial of the Infinite": [1, 4]},
+    "c018": {"Clone": [0]},
+    "c019": {"Gogo, Master of Mimicry": [2, 10, 12]},
+}
 
 VARIANCE_IDS = ("q001", "q014", "c015")  # the plan's task-3 spot-check set
 VARIANCE_DRAWS = 3
@@ -189,10 +216,104 @@ def run_variance(store: VectorStore, model: str) -> dict:
     return out
 
 
+def ruling_query_report(mode: str) -> dict:
+    """Part B measurement (docs/plan-l1-crossref-expansion.md): for every
+    ruling-bearing cards.jsonl question in LOAD_BEARING_RULINGS, check
+    whether the load-bearing ruling(s) clear the floor / make the cut under
+    today's shipped RAW-question selection, and -- when mode=="union" --
+    under the union-with-Haiku-rewrite arm. MEASURE ONLY: this never touches
+    RulesAgent or what a real answer's prompt contains; select_rulings() /
+    select_rulings_union() are called directly against the eval question
+    text, exactly the query RulesAgent.answer() would select rulings against
+    for the SAME question when ruling_select is on (see generate/answer.py).
+
+    `rewrite_query` is called with client=None -- every cards.jsonl question
+    already has a warm rewrite-cache entry from prior full eval runs (see
+    this module's docstring), so this makes zero live Anthropic calls; a
+    cold cache would raise inside rewrite_query's own `anthropic.Anthropic()`
+    construction (no API key configured for this measurement on purpose --
+    a cache miss should fail loud, not silently spend a call).
+    """
+    all_cards_q = {q.id: q for q in load_questions(CARDS_PATH)}
+    rows = []
+    for qid, per_card in LOAD_BEARING_RULINGS.items():
+        q = all_cards_q.get(qid)
+        if q is None:
+            rows.append({"id": qid, "error": "question id not found in cards.jsonl"})
+            continue
+        rewrites: list[str] = []
+        if mode == "union":
+            rw = rewrite_query(q.question, REWRITE_MODEL, REWRITE_N, client=None, context=None)
+            rewrites = rw.queries
+        for card_name, load_bearing in per_card.items():
+            card = get_card(card_name, no_refresh=True)
+            if card is None:
+                rows.append({"id": qid, "card": card_name, "error": "card not found (cold Scryfall cache)"})
+                continue
+            raw_sel = {i for i, _ in select_rulings(card, q.question)}
+            row = {
+                "id": qid,
+                "card": card_name,
+                "load_bearing": load_bearing,
+                "raw_selected_indices": sorted(raw_sel),
+                "raw_all_clear": all(i in raw_sel for i in load_bearing),
+                "raw_missing": [i for i in load_bearing if i not in raw_sel],
+            }
+            if mode == "union":
+                union_sel = {i for i, _ in select_rulings_union(card, [q.question] + rewrites)}
+                row.update({
+                    "rewrites": rewrites,
+                    "union_selected_indices": sorted(union_sel),
+                    "union_all_clear": all(i in union_sel for i in load_bearing),
+                    "union_missing": [i for i in load_bearing if i not in union_sel],
+                })
+            rows.append(row)
+
+    n = len(rows)
+    n_raw_ok = sum(1 for r in rows if r.get("raw_all_clear"))
+    # Index-level counts too (not just the strict "every load-bearing index
+    # in this row cleared" all_clear bit): a row can partially improve --
+    # e.g. c019 needs 3 rulings and union recovers 2 of the 3 it was
+    # missing -- and that's real signal for Jon's ship call even where it
+    # doesn't flip all_clear for the whole row.
+    n_indices = sum(len(r["load_bearing"]) for r in rows if "load_bearing" in r)
+    n_raw_indices_ok = sum(len(r["load_bearing"]) - len(r.get("raw_missing", []))
+                           for r in rows if "load_bearing" in r)
+    summary = {
+        "mode": mode,
+        "n_load_bearing_cases": n,
+        "raw_all_clear": n_raw_ok,
+        "n_load_bearing_indices": n_indices,
+        "raw_indices_cleared": n_raw_indices_ok,
+    }
+    if mode == "union":
+        n_union_ok = sum(1 for r in rows if r.get("union_all_clear"))
+        n_union_indices_ok = sum(len(r["load_bearing"]) - len(r.get("union_missing", []))
+                                 for r in rows if "load_bearing" in r)
+        gained_rows = [r["id"] + "/" + r["card"] for r in rows
+                      if r.get("union_all_clear") and not r.get("raw_all_clear")]
+        lost_rows = [r["id"] + "/" + r["card"] for r in rows
+                    if r.get("raw_all_clear") and not r.get("union_all_clear")]
+        gained_indices = [f"{r['id']}/{r['card']}#{i}" for r in rows if "load_bearing" in r
+                          for i in r["raw_missing"] if i not in r.get("union_missing", r["raw_missing"])]
+        lost_indices = [f"{r['id']}/{r['card']}#{i}" for r in rows if "load_bearing" in r
+                        for i in r.get("union_missing", []) if i not in r["raw_missing"]]
+        summary.update({
+            "union_all_clear": n_union_ok,
+            "union_indices_cleared": n_union_indices_ok,
+            "gained_by_union_rows": gained_rows,       # raw missed the WHOLE row, union clears it
+            "lost_by_union_rows": lost_rows,           # raw had the whole row, union drops it
+            "gained_by_union_indices": gained_indices,  # individual rulings newly cleared
+            "lost_by_union_indices": lost_indices,      # individual rulings union somehow drops
+        })
+    return {"summary": summary, "rows": rows}
+
+
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument("--model", required=True,
-                    help="OpenRouter model id to generate with, e.g. deepseek/deepseek-v4-flash")
+    p.add_argument("--model", default=None,
+                    help="OpenRouter model id to generate with, e.g. deepseek/deepseek-v4-flash "
+                         "(required unless --ruling-query is given -- that mode does no generation)")
     p.add_argument("--questions", type=Path, default=QUESTIONS_PATH,
                     help=f"rules-only eval questions jsonl (default: {QUESTIONS_PATH})")
     p.add_argument("--cards", type=Path, default=CARDS_PATH,
@@ -206,11 +327,45 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--variance", action="store_true",
                     help="also run the q001/q014/c015 x3-draw spot-check (Task 3) and store it "
                          "under the 'variance' key of the output JSON")
-    return p.parse_args()
+    p.add_argument("--ruling-query", choices=["raw", "union"], default=None,
+                    help="MEASURE ONLY (docs/plan-l1-crossref-expansion.md Part B), does not "
+                         "change the shipped default: report, per ruling-bearing cards.jsonl "
+                         "question, whether the load-bearing ruling clears the floor / makes "
+                         "the cut under today's raw-question select_rulings ('raw'), or also "
+                         "under the union-with-Haiku-rewrite arm ('union'). Skips the main "
+                         "generation loop entirely -- no --model needed, no LLM generation "
+                         "call, writes a NEW evals/answers/ruling_query_report_<mode>.json "
+                         "rather than touching any existing answers file.")
+    args = p.parse_args()
+    if args.ruling_query is None and args.model is None:
+        p.error("--model is required unless --ruling-query is given")
+    return args
 
 
 def main() -> None:
     args = parse_args()
+
+    if args.ruling_query is not None:
+        # Part B measurement path -- no vector store, no generation, no
+        # --model needed. See ruling_query_report()'s docstring.
+        report = ruling_query_report(args.ruling_query)
+        out_path = args.out or (ANSWERS_DIR / f"ruling_query_report_{args.ruling_query}.json")
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(out_path, "w", encoding="utf-8") as f:
+            json.dump(report, f, indent=2, ensure_ascii=False)
+        s = report["summary"]
+        print(f"Ruling-query report (mode={s['mode']}) -> {out_path}")
+        print(f"  load-bearing cases (rows):    {s['raw_all_clear']}/{s['n_load_bearing_cases']} raw all-clear")
+        print(f"  load-bearing rulings (index): {s['raw_indices_cleared']}/{s['n_load_bearing_indices']} raw cleared")
+        if args.ruling_query == "union":
+            print(f"  union all-clear (rows):   {s['union_all_clear']}/{s['n_load_bearing_cases']}")
+            print(f"  union cleared (indices):  {s['union_indices_cleared']}/{s['n_load_bearing_indices']}")
+            print(f"  gained rows:    {s['gained_by_union_rows']}")
+            print(f"  lost rows:      {s['lost_by_union_rows']}")
+            print(f"  gained indices: {s['gained_by_union_indices']}")
+            print(f"  lost indices:   {s['lost_by_union_indices']}")
+        return
+
     out_path = args.out or (ANSWERS_DIR / f"openrouter_{_slug_for(args.model)}.json")
 
     pkl = PARSED_DIR / f"vector_{VECTOR_MODEL}.pkl"
