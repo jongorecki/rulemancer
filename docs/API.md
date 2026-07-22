@@ -7,8 +7,13 @@ machine-readable spec: [`openapi.json`](openapi.json). Design + decisions:
 ## Run — one command
 
 ```bash
-uv run python run.py
+python run.py
 ```
+
+(`uv run python run.py` works too — the script re-launches itself under the
+project environment if it was started with the wrong Python, and it stops any
+stale copy of the server on the port before binding, so a restart always serves
+the current code.)
 
 That's the whole thing: one process serves the API **and** the frontend
 (`frontend/` is mounted as static files on the app) and opens your browser at
