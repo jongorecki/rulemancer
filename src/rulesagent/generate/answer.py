@@ -11,6 +11,7 @@ reproducible answer evals -- see DECISIONS.md.
 
 import anthropic
 from dotenv import load_dotenv
+from pydantic import ValidationError
 
 from rulesagent.contracts import Answer, Card, Retrieved
 from rulesagent.index.store import VectorStore
@@ -177,17 +178,35 @@ class RulesAgent:
                 "asked, say so plainly rather than answering the "
                 "reinterpretation."
             )
-        # 4096: claude-sonnet-5 runs adaptive thinking by default, and thinking
-        # tokens draw from max_tokens -- too small a budget gets eaten by
-        # thinking and truncates the structured answer to nothing.
-        response = self.client.messages.parse(
-            model=self.model,
-            max_tokens=4096,
-            system=SYSTEM,
-            messages=[{"role": "user", "content": user}],
-            output_format=Answer,
-        )
-        parsed = response.parsed_output
+        # 8192: claude-sonnet-5 runs adaptive thinking by default, and thinking
+        # tokens draw from max_tokens. 4096 was enough for the 31 rules-only
+        # questions, but card questions carry far more context (oracle text +
+        # all rulings) and are harder interactions, so thinking ran longer and
+        # ate the whole budget -- leaving EMPTY structured output. Doubling the
+        # budget gives thinking room AND leaves space for the answer.
+        try:
+            response = self.client.messages.parse(
+                model=self.model,
+                max_tokens=8192,
+                system=SYSTEM,
+                messages=[{"role": "user", "content": user}],
+                output_format=Answer,
+            )
+            parsed = response.parsed_output
+        except ValidationError:
+            # Safety net: if the model still returns empty/invalid content
+            # (thinking consumed the whole budget), messages.parse RAISES a
+            # ValidationError rather than returning parsed_output=None -- so
+            # the None-guard below never fires and the crash propagates. Catch
+            # it and degrade to an honest non-answer instead of taking the
+            # whole pipeline down. Raising max_tokens above should make this
+            # rare; this keeps a truncation from ever being fatal.
+            return Answer(
+                text="(no structured answer: the model returned empty output, "
+                "likely truncated -- try again or raise max_tokens)",
+                citations=[],
+                answered=False,
+            )
         if parsed is None:
             # incomplete/blocked output -- treat as an honest non-answer
             return Answer(

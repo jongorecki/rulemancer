@@ -924,3 +924,31 @@ set (write it after watching the pipeline run).
 **What would change my mind:** if including all rulings bloats context on
 cards with many rulings, add relevance-filtering (a mini-retrieval over that
 card's rulings) -- but not before an eval shows it's a problem.
+
+---
+
+## 2026-07-21 — Bug: empty structured output CRASHED instead of degrading; max_tokens 4096 -> 8192
+
+**What:** Running the card questions through the generator, two of five crashed
+with a pydantic ValidationError ("Invalid JSON: EOF ... input_value=''").
+Root cause: claude-sonnet-5's adaptive thinking draws from max_tokens, and on
+hard card interactions (more context: oracle text + all rulings + rules)
+thinking ate the whole 4096 budget, leaving EMPTY structured output.
+`messages.parse()` RAISES on empty content -- it never returns
+parsed_output=None -- so the existing `if parsed is None` honest-non-answer
+guard never fired and the crash propagated.
+
+**Fix (two parts):** (1) max_tokens 4096 -> 8192 -- enough for the 31 rules-only
+questions but not for the heavier card prompts; doubling gives thinking room
+AND leaves space for the answer. (2) wrap the parse call in try/except
+ValidationError -> return the honest non-answer, so a truncation degrades
+gracefully instead of ever being fatal. The None-guard stays as a second net.
+
+**Why it matters:** the 31 rules answers (graded 31/31) never hit this because
+they carry less context. Card enrichment exposed it. The bug was latent in the
+shipped generator, not new to #3b -- any sufficiently hard rules question could
+have tripped it too.
+
+**What would change my mind:** if 8192 still truncates on some inputs, the
+answer degrades honestly now (the catch) rather than crashing -- and the real
+fix at that point is streaming or a task budget, not an ever-larger max_tokens.
