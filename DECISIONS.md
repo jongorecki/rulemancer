@@ -1136,3 +1136,33 @@ retrieval fault.
 **What would change my mind:** if a larger card set shows the top-3 cap dropping
 load-bearing rulings that DO match the question (not the semantic-mismatch cases),
 raise N; if answer quality ever drops vs dump, revisit the floor.
+
+---
+
+## 2026-07-22 — Backend API (FastAPI), v1 for the frontend
+
+**What:** Built `src/rulesagent/api/main.py` -- a thin FastAPI wrapper over
+`RulesAgent` so Jon's Claude-Design frontend can call the engine. `POST /answer`
+returns an ENRICHED response (cited rule/glossary text resolved via a chunk_map,
+the card data + mini-RAG-selected rulings used, and an optional debug panel:
+rewrites / retrieved rule ids / selected ruling ids). `GET /cards/autocomplete`
+proxies Scryfall for the @-picker. `GET /health`. `RulesAgent` gained
+`last_cards` / `last_retrieved` recorders to feed the response. Plan +
+decisions: docs/plan-api.md.
+
+**Key calls (Jon):** enriched response (frontend renders rule text + cards);
+**private demo** so no auth/rate-limiting in v1; **card images pulled by the
+frontend from Scryfall** using the name/oracle_id the API returns (no backend
+image field, no cache-schema bump); **autocomplete built now** (nobody
+hand-types card names right); **non-streaming v1**; **single worker + a lock**
+serializing `/answer` so the whole-file caches can't clobber under concurrency.
+
+**Verified live:** all three endpoints answered correctly against a running
+server -- `/answer` on a `[Fork]` buyback question returned the right answer with
+resolved rule-text citations, Fork's card data + 3 selected rulings, and the
+debug panel; autocomplete returned live Scryfall suggestions.
+
+**What would change my mind / deferred:** the atomic-per-key cache fix is
+required before real concurrency (more than the single locked worker); token
+streaming if the frontend wants it; `image_uri` in the response if the frontend
+would rather not round-trip to Scryfall (a small cache-schema bump).

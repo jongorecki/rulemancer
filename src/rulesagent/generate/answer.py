@@ -157,6 +157,13 @@ class RulesAgent:
         # {card name -> [ruling_id, ...]} chosen on the last answer() call (None
         # if ruling_select is off). Read by the rulings-recall eval, mirroring
         # last_rewritten.
+        self.last_cards: list | None = None
+        self.last_retrieved: list | None = None
+        # Also recorded per answer() call, for the API to build an enriched
+        # response: the resolved cards used (each already carrying its
+        # mini-RAG-selected rulings) and the retrieved rule chunks. Not part of
+        # the Answer contract -- read right after answer(), same pattern as
+        # last_rewritten / last_ruling_selection.
         # Passed straight through to get_card()'s no_refresh -- eval-
         # reproducibility freeze mode (plan #3b): use any cached card entry
         # regardless of its TTL age, so a card eval re-run is byte-
@@ -209,6 +216,7 @@ class RulesAgent:
                 selection[card.name] = [ruling_id(card, i) for i, _ in sel]
                 picked.append(card.model_copy(update={"rulings": [card.rulings[i] for i, _ in sel]}))
             cards, self.last_ruling_selection = picked, selection
+        self.last_cards = cards
         if self.rewrite:
             rewritten = rewrite_query(question, REWRITE_MODEL, REWRITE_N, self.client)
             self.last_rewritten = rewritten
@@ -223,6 +231,7 @@ class RulesAgent:
                 # tried on. See evals/run_eval.py's `+orig` variant.
         else:
             retrieved = self.store.search(question, self.k)
+        self.last_retrieved = retrieved
         context = _format_context(retrieved)
         user = f"Rules context:\n{context}"
         if cards:
