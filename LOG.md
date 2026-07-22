@@ -531,3 +531,20 @@ capture" section for the trigger rules.
   said DIFFERENT, DeepSeek and Gemini said same. Discriminating
   confident-wrong from honest-decline is exactly the judge skill this project
   needs, so the 91% pair lost on the case that matters, not on noise.
+
+## 2026-07-22 — waiting ticker walks the turn
+
+- Replaced the random ARCANE word draw with TURN_PHASES: a sequential walk
+  through Jon's 13-step turn list (untapping -> ... -> cleaning up ->
+  passing turn, "passing turn" added by Jon mid-slice), 2500ms cadence,
+  reset to untapping per question, loops if the answer outlasts the turn.
+  Plan: docs/plan-turn-phase-ticker.md.
+- Swapped the trample example (composer placeholder + suggestion pill) for
+  Jon's fuller phrasing: "If my creature has trample and deathtouch, how
+  much damage can trample over the blocker?"
+- Verified by pixels via a static file server on 8901 (arm run still owns
+  the caches, so no live question): walk order asserted in-page (13 steps,
+  wraps), dark + light both clean at 1280, longest word "declaring
+  attackers" renders without clipping. The pane refused to actually resize
+  (claims success, innerWidth unchanged) so 375/768 are UNVERIFIED —
+  Jon's screen is the final gate, as ever.

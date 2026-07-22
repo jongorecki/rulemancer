@@ -79,12 +79,13 @@ const API_BASE = (window.RULESMANCER_API !== undefined) ? window.RULESMANCER_API
 // mount, any port); localhost:8000 only as the fallback for a file:// open.
 const MARK = "assets/rulemancer-mark.svg";
 
-const ARCANE = ["attacking","blocking","casting","conjuring","divining","untapping","scrying","reviving",
-  "regenerating","brewing","mystifying","disguising","manifesting","tapping","exiling","countering",
-  "resolving","surveiling","foretelling","proliferating","cascading","convoking","channeling","incanting",
-  "prophesying","transmuting","populating","unsummoning","enchanting","riffling","adjudicating"];
+// Waiting ticker walks a Magic turn IN ORDER (docs/plan-turn-phase-ticker.md).
+// "main phasing" appears twice on purpose -- pre- and post-combat main phases.
+const TURN_PHASES = ["untapping","upkeeping","drawing","main phasing","combatting",
+  "declaring attackers","declaring blockers","resolving damage","ending combat",
+  "main phasing","end stepping","cleaning up","passing turn"];
 const EXAMPLES = [
-  "Does trample get through deathtouch?",
+  "If my creature has trample and deathtouch, how much damage can trample over the blocker?",
   "Can I respond to a land being played?",
   "How does cascade interact with the stack?",
   "If I copy [Emrakul, the Promised End]'s cast trigger, do I control two turns?",
@@ -152,7 +153,14 @@ async function autocompleteApi(q) {
 }
 
 // ---- send / receive --------------------------------------------------------
-function rand() { return ARCANE[Math.floor(Math.random() * ARCANE.length)]; }
+// Sequential walk; wraps back to "untapping" if the turn ends before the
+// answer arrives (taking another turn beats looking hung on "cleaning up").
+let phaseIdx = 0;
+function nextPhase() {
+  const w = TURN_PHASES[phaseIdx];
+  phaseIdx = (phaseIdx + 1) % TURN_PHASES.length;
+  return w;
+}
 
 function clearComposer() {
   // Clear BOTH state and the live textarea. render() re-captures the DOM value
@@ -180,10 +188,11 @@ async function runQuestion(text) {
   // (send pushes it; regen re-uses the existing one -- no duplicate bubble).
   state.view = "chat";
   state.thinking = true;
-  state.thinkingWord = rand();
+  phaseIdx = 0; // every question starts a fresh turn at "untapping"
+  state.thinkingWord = nextPhase();
   render();
   clearInterval(thinkTimer);
-  thinkTimer = setInterval(() => { state.thinkingWord = rand(); paintThinking(); }, 850);
+  thinkTimer = setInterval(() => { state.thinkingWord = nextPhase(); paintThinking(); }, 2500);
 
   try {
     const d = await askApi(text, apiHistory());
@@ -442,7 +451,7 @@ function welcome() {
         ${staticLine}${crLine}
       </div>
       <p style="font-size:12.5px;color:var(--fg-subtle);margin:0 0 26px;text-align:center;">I don't give deck-building or strategy advice, and I can't predict bans.</p>
-      ${composer("e.g. Does trample get through deathtouch?", true)}
+      ${composer("e.g. If my creature has trample and deathtouch, how much damage can trample over the blocker?", true)}
       <div style="display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:22px;">${examples}</div>
     </div>
   </div>
