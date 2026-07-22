@@ -13,10 +13,11 @@ import anthropic
 from dotenv import load_dotenv
 from pydantic import ValidationError
 
-from rulesagent.contracts import Answer, Card, Retrieved
+from rulesagent.contracts import Answer, Card, CardFace, Retrieved
 from rulesagent.index.store import VectorStore
 from rulesagent.retrieve.hybrid import rrf_fuse
 from rulesagent.retrieve.rewrite import rewrite_query
+from rulesagent.tools.ruling_retrieval import ruling_id, select_rulings
 from rulesagent.tools.scryfall import ATTRIBUTION, get_card, parse_card_refs
 
 load_dotenv()
@@ -62,7 +63,12 @@ SYSTEM = (
     "- You may also be given specific cards' oracle text and rulings, "
     "labeled \"Card data\" below the rules context. Treat that as additional "
     "ground truth alongside the rules -- if you rely on a card, cite it by "
-    "name in the citations field, the same way you cite rule numbers."
+    "name in the citations field, the same way you cite rule numbers.\n"
+    "- A provided ruling is itself authoritative, self-sufficient grounding. If "
+    "a ruling directly states what happens in the interaction, rely on it and "
+    "answer -- do NOT decline or hedge just because the underlying numbered rule "
+    "isn't also in the context. (You still must not invent rules or rulings that "
+    "weren't provided.)"
 )
 
 
@@ -70,21 +76,71 @@ def _format_context(retrieved: list[Retrieved]) -> str:
     return "\n\n".join(f"[{r.chunk.source_id}] {r.chunk.text}" for r in retrieved)
 
 
+def _face_block(f: CardFace, label: str = "") -> str:
+    """One face rendered as a header line (name, cost, type, P/T or loyalty or
+    defense, color indicator) followed by its oracle text."""
+    header = label + f.name
+    if f.mana_cost:
+        header += f" {f.mana_cost}"
+    attrs = []
+    if f.type_line:
+        attrs.append(f.type_line)
+    if f.power != "" or f.toughness != "":
+        attrs.append(f"{f.power}/{f.toughness}")
+    if f.loyalty:
+        attrs.append(f"loyalty {f.loyalty}")
+    if f.defense:
+        attrs.append(f"defense {f.defense}")
+    if f.color_indicator:
+        attrs.append("color indicator " + "/".join(f.color_indicator))
+    if attrs:
+        header += " -- " + " -- ".join(attrs)
+    return header + (f"\n{f.oracle_text}" if f.oracle_text else "")
+
+
 def _format_cards(cards: list[Card]) -> str:
+    # Enrich with every printed, rules-relevant field, layout-first: a
+    # single-faced card folds its card-level meta (mana value, color identity,
+    # layout) onto its one header line; a multi-face card leads with the layout
+    # + meta, then renders EACH face so the generator sees each face's own cost
+    # and type (docs/plan-card-enrichment-fields.md).
     parts = []
     for c in cards:
-        block = f"{c.name}\n{c.oracle_text}"
+        meta = []
+        if c.layout and c.layout != "normal":
+            meta.append(c.layout)
+        meta.append(f"MV {c.mana_value:g}")
+        if c.color_identity:
+            meta.append("color identity " + "/".join(c.color_identity))
+        meta_str = ", ".join(meta)
+
+        lines = []
+        if len(c.faces) > 1:
+            lines.append(f"{c.name}  ({meta_str})")
+            for i, f in enumerate(c.faces, 1):
+                lines.append(_face_block(f, label=f"Face {i}: "))
+        else:
+            f = c.faces[0] if c.faces else CardFace(
+                name=c.name, oracle_text=c.oracle_text,
+                type_line=c.type_line, mana_cost=c.mana_cost,
+            )
+            first, _, rest = _face_block(f).partition("\n")
+            lines.append(f"{first}  ({meta_str})")
+            if rest:
+                lines.append(rest)
+
         if c.rulings:
-            rulings = "\n".join(f"- {r}" for r in c.rulings)
-            block += f"\nRulings:\n{rulings}"
-        parts.append(block)
+            lines.append("Rulings:")
+            lines.extend(f"- {r}" for r in c.rulings)
+        parts.append("\n".join(lines))
     return "\n\n".join(parts)
 
 
 class RulesAgent:
     def __init__(self, store: VectorStore, client: anthropic.Anthropic | None = None,
                  model: str = GEN_MODEL, k: int = TOP_K, rewrite: bool = True,
-                 show_rewrite: bool = False, card_no_refresh: bool = False):
+                 show_rewrite: bool = False, card_no_refresh: bool = False,
+                 ruling_select: bool = True):
         self.store = store
         self.client = client or anthropic.Anthropic()
         self.model = model
@@ -92,6 +148,15 @@ class RulesAgent:
         self.rewrite = rewrite
         self.show_rewrite = show_rewrite
         self.card_no_refresh = card_no_refresh
+        self.ruling_select = ruling_select
+        # Per-card ruling mini-RAG (plan-rulings-on-demand.md): when True (the
+        # default), a referenced card's rulings are relevance-filtered against
+        # the question instead of dumped wholesale. False restores the old
+        # dump-all behavior, so the answer eval can A/B the two.
+        self.last_ruling_selection: dict | None = None
+        # {card name -> [ruling_id, ...]} chosen on the last answer() call (None
+        # if ruling_select is off). Read by the rulings-recall eval, mirroring
+        # last_rewritten.
         # Passed straight through to get_card()'s no_refresh -- eval-
         # reproducibility freeze mode (plan #3b): use any cached card entry
         # regardless of its TTL age, so a card eval re-run is byte-
@@ -132,6 +197,18 @@ class RulesAgent:
         # silently dropped rather than erroring the whole answer -- the
         # rules-only answer still has a shot at being useful. Not specified
         # by the plan either way; this is the call made here.
+        self.last_ruling_selection = None
+        if self.ruling_select:
+            # Ruling mini-RAG: replace each card's full ruling list with only
+            # the ones relevant to the (stripped, pre-rewrite) question. A card
+            # with no relevant ruling contributes none -- rulings withheld, the
+            # rules-RAG + oracle text stand alone.
+            selection, picked = {}, []
+            for card in cards:
+                sel = select_rulings(card, question)
+                selection[card.name] = [ruling_id(card, i) for i, _ in sel]
+                picked.append(card.model_copy(update={"rulings": [card.rulings[i] for i, _ in sel]}))
+            cards, self.last_ruling_selection = picked, selection
         if self.rewrite:
             rewritten = rewrite_query(question, REWRITE_MODEL, REWRITE_N, self.client)
             self.last_rewritten = rewritten
@@ -178,39 +255,37 @@ class RulesAgent:
                 "asked, say so plainly rather than answering the "
                 "reinterpretation."
             )
-        # 8192: claude-sonnet-5 runs adaptive thinking by default, and thinking
-        # tokens draw from max_tokens. 4096 was enough for the 31 rules-only
-        # questions, but card questions carry far more context (oracle text +
-        # all rulings) and are harder interactions, so thinking ran longer and
-        # ate the whole budget -- leaving EMPTY structured output. Doubling the
-        # budget gives thinking room AND leaves space for the answer.
-        try:
-            response = self.client.messages.parse(
-                model=self.model,
-                max_tokens=8192,
-                system=SYSTEM,
-                messages=[{"role": "user", "content": user}],
-                output_format=Answer,
-            )
-            parsed = response.parsed_output
-        except ValidationError:
-            # Safety net: if the model still returns empty/invalid content
-            # (thinking consumed the whole budget), messages.parse RAISES a
-            # ValidationError rather than returning parsed_output=None -- so
-            # the None-guard below never fires and the crash propagates. Catch
-            # it and degrade to an honest non-answer instead of taking the
-            # whole pipeline down. Raising max_tokens above should make this
-            # rare; this keeps a truncation from ever being fatal.
-            return Answer(
-                text="(no structured answer: the model returned empty output, "
-                "likely truncated -- try again or raise max_tokens)",
-                citations=[],
-                answered=False,
-            )
+        # Empty/invalid structured output happens INTERMITTENTLY on
+        # claude-sonnet-5 (c018 came back empty on two eval runs, then answered
+        # cleanly on retry -- diagnosed at ~600 thinking + ~1600 output tokens,
+        # nowhere near the 16384 cap, so it is NOT budget/thinking exhaustion).
+        # So keep max_tokens at 16384 and RETRY once before degrading. Raising
+        # the cap is not the fix and actively backfires: max_tokens=32768 trips
+        # the SDK's non-streaming 10-minute-timeout guard and errors the call.
+        parsed, response = None, None
+        for _attempt in range(2):
+            try:
+                response = self.client.messages.parse(
+                    model=self.model,
+                    max_tokens=16384,
+                    system=SYSTEM,
+                    messages=[{"role": "user", "content": user}],
+                    output_format=Answer,
+                )
+                parsed = response.parsed_output
+            except ValidationError:
+                # messages.parse RAISES on empty content rather than returning
+                # parsed_output=None -- treat both the same: retry, then degrade.
+                parsed = None
+            if parsed is not None:
+                break
         if parsed is None:
-            # incomplete/blocked output -- treat as an honest non-answer
+            # Both attempts came back empty/invalid -- honest non-answer, not a
+            # crash. Rare after the retry; a persistent failure is worth seeing.
+            stop = response.stop_reason if response is not None else "error"
             return Answer(
-                text=f"(no structured answer; stop_reason={response.stop_reason})",
+                text="(no structured answer: the model returned empty output "
+                f"twice, stop_reason={stop} -- try again)",
                 citations=[],
                 answered=False,
             )

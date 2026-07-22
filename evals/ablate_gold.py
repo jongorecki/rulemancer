@@ -67,7 +67,7 @@ def generate(retrieved: list[Retrieved], cards: list[Card], question: str) -> An
     user += f"\n\nQuestion: {question}"
     try:
         resp = client.messages.parse(
-            model=GEN_MODEL, max_tokens=8192, system=SYSTEM,
+            model=GEN_MODEL, max_tokens=16384, system=SYSTEM,
             messages=[{"role": "user", "content": user}], output_format=Answer,
         )
         return resp.parsed_output or Answer(text="(empty)", citations=[], answered=False)
@@ -125,9 +125,17 @@ def trials(retrieved, cards, question, n=TRIALS):
 
 
 def main():
+    import argparse
+    p = argparse.ArgumentParser(description="Gold by ablation for card questions.")
+    p.add_argument("--ids", default="", help="comma-separated question ids to ablate (default: all)")
+    args = p.parse_args()
+    only = {i.strip() for i in args.ids.split(",") if i.strip()} or None
+
     store = VectorStore.load(REPO / "data" / "parsed" / f"vector_{VECTOR_MODEL}.pkl")
     agree = {"total": 0, "agree": 0}
     for row in load_cards():
+        if only and row["id"] not in only:
+            continue
         q = row["question"]
         stripped, refs = parse_card_refs(q)
         cards = [c for r in refs if (c := get_card(r)) is not None]
