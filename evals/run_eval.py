@@ -85,12 +85,20 @@ def cached_rerank(query, candidates, model, cache, chunk_map):
     return result
 
 
-def hit_at(q: EvalQuestion, ranking: list[Retrieved], k: int) -> bool:
-    ranked = [r.chunk.source_id for r in ranking]
-    gold_ranks = {g: ranked.index(g) + 1 for g in q.gold if g in ranked}
+def gold_groups(q: EvalQuestion) -> list[list[str]]:
+    """The general AND-of-ORs form of a question's gold. any/all are the two
+    degenerate cases, so all three match modes flow through one hit rule and
+    existing any/all questions score exactly as before."""
+    if q.match == "groups":
+        return q.gold_groups
     if q.match == "all":
-        return len(gold_ranks) == len(q.gold) and all(r <= k for r in gold_ranks.values())
-    return any(r <= k for r in gold_ranks.values())
+        return [[g] for g in q.gold]  # each id its own required group
+    return [q.gold]  # "any": one OR-group of alternatives
+
+
+def hit_at(q: EvalQuestion, ranking: list[Retrieved], k: int) -> bool:
+    topk = {r.chunk.source_id for r in ranking[:k]}
+    return all(any(g in topk for g in group) for group in gold_groups(q))
 
 
 def rewrite_arm_name(label: str, n: int) -> str:

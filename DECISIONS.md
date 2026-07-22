@@ -952,3 +952,59 @@ have tripped it too.
 **What would change my mind:** if 8192 still truncates on some inputs, the
 answer degrades honestly now (the catch) rather than crashing -- and the real
 fix at that point is streaming or a task budget, not an ever-larger max_tokens.
+
+---
+
+## 2026-07-21 — Gold-by-ablation: the RAG rules were redundant on 4 of 5 card questions
+
+**What:** Built evals/ablate_gold.py (plan-card-gold-ablation.md): hold card
+data fixed, remove each CITED rule, judge whether the answer still holds
+(3 trials, majority), and read gold off what's necessary. Ran it on the 5
+TheJudge-derived card questions.
+
+**The finding (important, and a risk to the RAG story):** on c001, c002, c003,
+c005 the "sanity" check -- remove ALL cited rules -- HELD: the answer stayed
+correct with zero retrieved CR rules. The card oracle text + Scryfall rulings +
+the model's own trained knowledge of common interactions (countering, trample/
+deathtouch, APNAP) answered them; the rules-RAG added nothing. Only **c004**
+(SBA timing vs a spell on the stack -- not in the card text, not something the
+model nails reliably) genuinely needed rules.
+
+**Implication (Jon's call, being actioned):** most card questions test the
+ENRICHMENT, not the rules-RAG. To demonstrate the RAG doing real work with cards
+(the whole point of the project), the card set must lean toward c004-shaped
+questions -- ones whose answer ISN'T in the card data. Jon also wants the RULES
+retrieval demonstrably relevant, and is pushing rulings toward RAG-relevance
+retrieval rather than wholesale dump (separate plan, next).
+
+**c004's gold, determined by ablation (the mixed case that motivated the schema
+change):** ALL of [704.3, 120.5, 117.2d] AND ANY ONE of [704.5g, 704.4, 120.6,
+302.7]. Notably 704.5g (TheJudge's gold, the "obvious" lethal-damage rule)
+tested REPLACEABLE, not required -- several rules convey it.
+
+**Judge model:** Haiku vs sonnet-5 agreed on 104/105 verdicts (99%). Haiku is a
+reliable judge here, so the harness switches to Haiku -- the method gets cheap
+enough to run on a big crowdsourced card set.
+
+**What would change my mind:** if a larger card set shows Haiku diverging from
+sonnet on borderline verdicts, move the judge back to sonnet for the calls that
+decide gold.
+
+---
+
+## 2026-07-21 — match field extended to "groups" (AND of ORs)
+
+**What:** EvalQuestion.match gains a third mode, "groups", backed by a new
+`gold_groups: list[list[str]]`. A hit iff every OR-group has a member in top-k.
+any/all are the two degenerate cases (one big OR-group; N one-member groups),
+so hit_at derives groups from match and existing any/all questions score
+byte-identically -- verified with a synthetic truth-table over any/all/groups.
+
+**Why:** ablation found real MIXED gold (c004: all of X + any of Y) that a single
+any/all flag can't express. Rather than a c004-specific hack, "groups" is the
+general form that subsumes both -- and Jon expects more mixed cases as the card
+set grows, so the general model earns its keep.
+
+**What would change my mind:** nothing foreseeable -- AND-of-ORs is the general
+form of "which rules must be retrievable"; anything more exotic (e.g. "at least
+2 of N") would be a rare enough case to handle then.

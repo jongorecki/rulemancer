@@ -257,3 +257,22 @@ capture" section for the trigger rules.
   typing trigger (autocomplete, like tagging someone), [brackets] is what
   actually lands in the query. Clean separation -- deterministic parse, no LLM
   guessing which words are cards.
+
+## 2026-07-21 — ablation: my RAG was redundant on 4 of 5 card questions
+
+- Built the gold-by-ablation harness and ran it. Gut-punch finding: on 4 of 5
+  card questions, removing EVERY retrieved rule left the answer correct. The
+  card oracle text + rulings + the model already knowing counter/trample/APNAP
+  answered them. The rules-RAG -- the thing this whole project is meant to show
+  off -- did nothing for those.
+- Only c004 (does a creature with lethal marked damage die before Lightning Bolt
+  resolves) actually needed rules, because that timing isn't in the card text.
+- Real lesson: enrichment (card data + rulings) can quietly make a RAG look
+  pointless. The RAG earns its keep on questions the model CAN'T already answer
+  from context. So the card eval has to steer toward those, or the RAG isn't
+  being tested. Jon's call, and he wants rulings themselves pulled by relevance
+  (RAG) next, not dumped wholesale.
+- Nice side win: Haiku judged 99% the same as sonnet-5 (104/105), so the
+  ablation judge is now Haiku -- cheap enough to scale.
+- Ablation also extracted c004's exact mixed gold (all of 3 + any of 4), which
+  forced the "groups" match mode. The method proved itself.

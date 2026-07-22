@@ -164,9 +164,8 @@ class EvalQuestion(BaseModel):
     # "Cast", which has no chunk of its own) can never be retrieved. The
     # harness validates this and warns.
 
-    match: Literal["any", "all"] = "any"
-    # How the gold ids are scored -- the difference between two kinds of
-    # multi-rule question:
+    match: Literal["any", "all", "groups"] = "any"
+    # How the gold ids are scored:
     #   "any" (default): the gold ids are ALTERNATIVES -- finding any one in
     #     the top k is a correct hit. Right when the same answer is restated
     #     in two places (e.g. an SBA and its cross-reference), or when either
@@ -174,12 +173,27 @@ class EvalQuestion(BaseModel):
     #   "all": the gold ids are ALL REQUIRED -- a true interaction where the
     #     answer isn't complete without every piece (e.g. trample + deathtouch
     #     needs both keyword definitions). Counts as a hit at k only if EVERY
-    #     gold id lands within the top k. This is the honest bar for whether
-    #     the generator would have everything it needs.
+    #     gold id lands within the top k.
+    #   "groups": the general form -- an AND of ORs. Uses `gold_groups` below
+    #     instead of `gold`: a hit iff EVERY group has at least one member in
+    #     the top k. Added because ablation (docs/plan-card-gold-ablation.md)
+    #     found real MIXED gold that any/all can't express -- e.g. c004 needs
+    #     ALL of [704.3],[120.5],[117.2d] AND ANY ONE of the interchangeable
+    #     lethal-damage rules [704.5g,704.4,120.6,302.7]. "any" and "all" are
+    #     just the two degenerate cases of this (one big OR-group, or N
+    #     one-member groups); the harness derives groups from match, so
+    #     existing any/all questions score identically -- see run_eval.hit_at.
 
-    kind: Literal["rule", "glossary", "interaction", "other"] = "rule"
+    gold_groups: list[list[str]] = []
+    # Only used when match=="groups". Each inner list is an OR-group (satisfied
+    # by any one member in the top k); the question is a hit iff ALL groups are
+    # satisfied. `gold` should still hold the flat union of every id here, for
+    # display and the "gold ids exist as chunks" validation.
+
+    kind: Literal["rule", "glossary", "interaction", "other", "card-interaction"] = "rule"
     # Coarse question type, for breaking down recall by category later.
-    # "interaction" = questions that hinge on how two rules combine.
+    # "interaction" = two rules combine; "card-interaction" = a card+rules
+    # question in the separate card eval set (evals/cards.jsonl).
 
 
 class RewrittenQuery(BaseModel):
