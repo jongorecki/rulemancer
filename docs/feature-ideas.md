@@ -17,10 +17,12 @@ context gets us to an answerable state. Only after clarification still
 fails does the UI show an "ask a real judge" link to
 https://chat.magicjudges.org/mtgrules/ (24/7 human judge chat).
 
-Implementation lead worth chasing: the Haiku rewriter ALREADY produces a
-`clarification` output alongside its query rewrites (it's in the rewrite
-cache value). The plan for this feature should start by checking whether
-that existing signal is good enough to drive the clarify step.
+NOTE on the rewriter (Jon, 2026-07-22): the Haiku `clarification` output is
+NOT a clarifying question — it's a translation of whatever the user typed
+into actual rules vocabulary. It does not drive this feature's clarify
+step; that needs its own mechanism. Related parked idea (later, not part
+of this feature): show the user that rules-talk translation and confirm
+"is this what you meant?" — a cheap trust surface once the core flow works.
 
 ### 2. Legality chip on discussed cards
 
