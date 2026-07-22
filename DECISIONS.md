@@ -1258,3 +1258,22 @@ regenerates everything, files can drop from the repo); judge spot-checks
 showing gpt-5-mini misgrades scenario questions (fall back to hand-grading
 via the review UI); ablation showing imported citation-gold is too noisy to
 trust for recall (then ablate per-question minimal sets instead).
+
+## 2026-07-22 — Feature shortlist for the public demo
+
+**What:** From a researched candidate list, picked: clarify-then-escalate
+(ask the user for context on answered:false BEFORE showing an "ask a real
+judge" link), legality chip on discussed cards, misconceptions example
+gallery, shareable answer permalinks (post-L3), an "undefined in the CR"
+flag, and a donate link. Full list + evidence: docs/feature-ideas.md.
+**Alternatives considered:** quiz/practice mode, decklist upload, IPG/MTR
+corpora, Commander mode, numeric confidence indicator, CR-version line,
+multi-source ruling aggregation, CR version diffing.
+**Why:** Ranked by demo credibility per unit of effort. The picks either
+reuse machinery we have (Scryfall legalities, the rewriter's clarification
+output, L3's answer storage) or harden the project's core story — grounded
+honesty over confident guessing. The clarify-first refinement is Jon's:
+escalation to a human should be the third rung, not the second.
+**What would change my mind:** Real public-demo traffic. If actual users
+show up post-deploy, quiz mode and Commander support are the first two to
+revisit — they serve users more than they serve the portfolio.
