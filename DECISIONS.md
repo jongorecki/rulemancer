@@ -882,3 +882,45 @@ earlier prompt-tuning passes.
 **What would change my mind:** if forcing citations starts producing padded or
 wrong citations (citing rules the answer didn't really use), loosen to "cite
 what you relied on" and accept the occasional inline-only ref.
+
+---
+
+## 2026-07-21 — #3b built: Scryfall enrichment (not routing), verified live
+
+**What:** Card enrichment shipped. `[Card Name]` / `[oracle_id]` tokens in a
+question are parsed deterministically, resolved via Scryfall (fuzzy name or
+oracleid search), and each card's oracle text + all rulings are injected into
+the generator prompt AFTER the retrieved rules, before the question. Rules are
+ALWAYS retrieved; cards ADDITIONALLY enrich. No router, no tool-use classifier
+-- the `[bracket]` is the signal. Rewriter unchanged (never sees card data).
+Implemented by a Sonnet subagent against the approved plan; Opus verified.
+
+**Verified LIVE end-to-end** (not just mocked tests): "if I cast [Dovin's Veto]
+while [Dovescape] is on the battlefield, does Dovescape counter it?" -> correct
+"No," and crucially it used DOVESCAPE'S RULING (not just oracle text) to add
+that the Bird tokens are still created even though the spell can't be countered
+-- card-specific knowledge the Comprehensive Rules cannot supply. Both cards
+cited by name; multiplayer addressed; Scryfall attribution appended. This is the
+combined card+rules case (Jon's whole reason for #3b) working.
+
+**Design calls made during the build (accepted):**
+- Cache keyed by the raw `ref` token, not a normalized card name -- mirrors the
+  rewrite cache (keyed by input, not output). Cost: "[dovins veto]" and
+  "[Dovin's Veto]" cache separately. Acceptable; revisit only if it bites.
+- Unresolvable `[tokens]` (typo past fuzzy, made-up name) are silently dropped;
+  the rules-only answer still runs. Future nicety: surface "couldn't find card
+  X" -- deferred, MVP drops silently.
+- Attribution appended whenever any card data was fetched (the `Answer` contract
+  has no "card-context-used" field; appending to text was the minimal option).
+- TTL = 7 days on the cache (rulings get added over time); `card_no_refresh`
+  flag on RulesAgent + `no_refresh` on get_card = the eval-reproducibility
+  freeze mode (use any cached entry regardless of age).
+
+**Still deferred (unchanged):** the `@` autocomplete UI (needs a frontend; the
+pipeline parses `[brackets]` today), nicknames, bulk corpus, ruling relevance-
+filtering (all rulings included for now), and the Jon-authored card+rules eval
+set (write it after watching the pipeline run).
+
+**What would change my mind:** if including all rulings bloats context on
+cards with many rulings, add relevance-filtering (a mini-retrieval over that
+card's rulings) -- but not before an eval shows it's a problem.

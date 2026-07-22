@@ -215,6 +215,45 @@ class RewrittenQuery(BaseModel):
     # alongside the answer so the user can refine without blocking on it.
 
 
+class Card(BaseModel):
+    """A single card's Scryfall data, as fetched by tools/scryfall.py.
+
+    DECISION: mirrors Chunk's role for cards -- this is the shape the
+    generator prompt gets enriched with when the question `[bracket]`-
+    references a card, alongside (not instead of) the retrieved rules.
+    """
+
+    name: str
+    # The card's resolved name (Scryfall's, not necessarily the user's exact
+    # spelling -- fuzzy name lookup and oracle_id lookup both resolve to
+    # this). What answers should display when citing the card.
+
+    oracle_text: str
+    # The card's actual rules text. DECISION: for double-faced/split cards
+    # where Scryfall puts text in `card_faces[]` instead of a top-level
+    # `oracle_text`, both faces are joined here (see scryfall.py) so a card
+    # never loses half its text just because of how it's printed.
+
+    type_line: str
+    # e.g. "Instant" or "Legendary Creature -- Human Wizard".
+
+    mana_cost: str
+    # e.g. "{2}{U}". Empty string for cards with no mana cost (lands, and
+    # the back face of some double-faced cards).
+
+    oracle_id: str
+    # Scryfall's stable cross-printing UUID -- the same card printed in ten
+    # sets shares one oracle_id. This is what `[uuid]` tokens in a question
+    # resolve against, so answers can reference a card independent of which
+    # printing/art a user has in mind.
+
+    rulings: list[str] = []
+    # Every ruling `comment` Scryfall has for this card, oldest schema
+    # first (see scryfall.py `get_card`). DECISION: "add all of them for
+    # now" (Jon) -- no relevance filtering against the question. Defaults
+    # to [] so a card with no rulings doesn't force callers to pass one.
+
+
 class Answer(BaseModel):
     """The generator's output: a cited answer, or an honest 'not found.'
     Structured so the answer-accuracy eval can check citations and the

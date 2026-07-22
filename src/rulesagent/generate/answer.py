@@ -12,10 +12,11 @@ reproducible answer evals -- see DECISIONS.md.
 import anthropic
 from dotenv import load_dotenv
 
-from rulesagent.contracts import Answer, Retrieved
+from rulesagent.contracts import Answer, Card, Retrieved
 from rulesagent.index.store import VectorStore
 from rulesagent.retrieve.hybrid import rrf_fuse
 from rulesagent.retrieve.rewrite import rewrite_query
+from rulesagent.tools.scryfall import ATTRIBUTION, get_card, parse_card_refs
 
 load_dotenv()
 
@@ -56,7 +57,11 @@ SYSTEM = (
     "- If the provided rules cover multiplayer or Commander cases, address "
     "them too, not just the two-player case.\n"
     "- Keep the answer accurate and to the point; a player should be able to "
-    "act on it."
+    "act on it.\n"
+    "- You may also be given specific cards' oracle text and rulings, "
+    "labeled \"Card data\" below the rules context. Treat that as additional "
+    "ground truth alongside the rules -- if you rely on a card, cite it by "
+    "name in the citations field, the same way you cite rule numbers."
 )
 
 
@@ -64,16 +69,33 @@ def _format_context(retrieved: list[Retrieved]) -> str:
     return "\n\n".join(f"[{r.chunk.source_id}] {r.chunk.text}" for r in retrieved)
 
 
+def _format_cards(cards: list[Card]) -> str:
+    parts = []
+    for c in cards:
+        block = f"{c.name}\n{c.oracle_text}"
+        if c.rulings:
+            rulings = "\n".join(f"- {r}" for r in c.rulings)
+            block += f"\nRulings:\n{rulings}"
+        parts.append(block)
+    return "\n\n".join(parts)
+
+
 class RulesAgent:
     def __init__(self, store: VectorStore, client: anthropic.Anthropic | None = None,
                  model: str = GEN_MODEL, k: int = TOP_K, rewrite: bool = True,
-                 show_rewrite: bool = False):
+                 show_rewrite: bool = False, card_no_refresh: bool = False):
         self.store = store
         self.client = client or anthropic.Anthropic()
         self.model = model
         self.k = k
         self.rewrite = rewrite
         self.show_rewrite = show_rewrite
+        self.card_no_refresh = card_no_refresh
+        # Passed straight through to get_card()'s no_refresh -- eval-
+        # reproducibility freeze mode (plan #3b): use any cached card entry
+        # regardless of its TTL age, so a card eval re-run is byte-
+        # identical instead of drifting if Scryfall adds a ruling mid-eval.
+        # Default False: the live/interactive path wants TTL freshness.
         # show_rewrite (EXPERIMENTAL, default OFF): hand the generator the
         # rewrite alongside the user's original wording (see answer() below) so
         # it can flag when retrieval drifted from intent. Default off because
@@ -97,6 +119,18 @@ class RulesAgent:
 
     def answer(self, question: str) -> Answer:
         self.last_rewritten = None
+        # Parse `[Card Name]` / `[oracle-id]` tokens BEFORE anything else
+        # touches the question. `question` from here on is bracket-stripped
+        # ("[Dovescape]" -> "Dovescape") -- what the rewriter sees, what the
+        # generator sees as the question -- so the rewriter and the
+        # no-brackets path are untouched: a question with no tokens comes
+        # back unchanged and `cards` stays [].
+        question, card_refs = parse_card_refs(question)
+        cards = [c for ref in card_refs if (c := get_card(ref, no_refresh=self.card_no_refresh)) is not None]
+        # Unresolvable tokens (typo'd past fuzzy match, made-up name) are
+        # silently dropped rather than erroring the whole answer -- the
+        # rules-only answer still has a shot at being useful. Not specified
+        # by the plan either way; this is the call made here.
         if self.rewrite:
             rewritten = rewrite_query(question, REWRITE_MODEL, REWRITE_N, self.client)
             self.last_rewritten = rewritten
@@ -112,7 +146,13 @@ class RulesAgent:
         else:
             retrieved = self.store.search(question, self.k)
         context = _format_context(retrieved)
-        user = f"Rules context:\n{context}\n\nQuestion: {question}"
+        user = f"Rules context:\n{context}"
+        if cards:
+            # Card data goes in AFTER the rules context, per Jon's call in
+            # the plan -- it enriches generation, it never touches
+            # retrieval or the (unchanged) rewrite step above.
+            user += f"\n\nCard data:\n{_format_cards(cards)}"
+        user += f"\n\nQuestion: {question}"
         if self.show_rewrite and self.last_rewritten is not None:
             # Jon's idea: let the generator see BOTH the user's own words and
             # the reinterpretation retrieval actually searched on, so the
@@ -155,4 +195,12 @@ class RulesAgent:
                 citations=[],
                 answered=False,
             )
+        if cards:
+            # Minimal approach consistent with the Answer contract (no new
+            # field): append the Fan Content Policy attribution to the
+            # prose whenever Scryfall card data was in the prompt at all,
+            # rather than trying to detect post hoc whether the model
+            # "relied on" it -- the citations field already covers which
+            # specific rules/cards it leaned on.
+            parsed.text = f"{parsed.text}\n\n{ATTRIBUTION}"
         return parsed

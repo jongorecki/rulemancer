@@ -243,3 +243,17 @@ capture" section for the trigger rules.
   Reachable, and it validated on Jon's exact example: @Dovin's Veto resolves,
   its 1 ruling is exactly the countering nuance the CR can't give, @dove
   autocompletes to Dovescape. Green light.
+
+## 2026-07-21 — #3b works, and the RULINGS are what make it sing
+
+- Built the enrichment pipeline (Sonnet subagent, approved plan). First live
+  end-to-end on the real question -- "[Dovin's Veto] while [Dovescape] is out,
+  does Dovescape counter it?" -- came back correct AND used Dovescape's Scryfall
+  RULING to note the Bird tokens still get made even though the spell can't be
+  countered. That's the payoff: the Comprehensive Rules literally cannot tell
+  you that; it's card-specific ruling knowledge. Rules + oracle + rulings fused
+  into one answer, both cards cited. First try, no fixups.
+- The @ vs [brackets] split clicked once Jon explained it: @ is the mobile
+  typing trigger (autocomplete, like tagging someone), [brackets] is what
+  actually lands in the query. Clean separation -- deterministic parse, no LLM
+  guessing which words are cards.
