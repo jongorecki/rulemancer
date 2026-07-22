@@ -1008,3 +1008,131 @@ set grows, so the general model earns its keep.
 **What would change my mind:** nothing foreseeable -- AND-of-ORs is the general
 form of "which rules must be retrievable"; anything more exotic (e.g. "at least
 2 of N") would be a rare enough case to handle then.
+
+---
+
+## 2026-07-21 — Card eval expanded 5->14; curation driven by the ruling-count data
+
+**What:** Added 9 Jon-authored card questions (c006-c014) to evals/cards.jsonl.
+Eight are rulings-RAG cases (each hinges on a specific load-bearing RULING, not a
+CR rule): c006 Fork/buyback, c007 Mimic Vat/manifested-nonpermanent, c008
+Lithoform Engine/linked-ability, c009 Teferi's Protection/phase-out-Banishing-
+Light, c010 Emrakul/counter-the-cast-trigger, c011 Valki//Tibalt/cascade-mana-
+value, c012 Emrakul+Lithoform+Voltaic Key (multi-card combo), c013 Mimic
+Vat+Lithoform (copy-on-copy). One is a rules-warper (rules-RAG): c014
+Trinisphere+Awaken the Woods. Gold is left EMPTY on all nine, pending ablation;
+each carries a `note` naming the load-bearing ruling (the future rulings-recall
+gold) and the expected conclusion.
+
+**How the pool was chosen (the data, not memory):** pulled Scryfall's rulings
+bulk file and found (a) rules-warpers Jon expected to be ruling-heavy are actually
+ruling-LIGHT (Trinisphere 2, Humility 3, Blood Moon 4) -- their warping lives in
+the CR, so they're rules-RAG cases; (b) the true high-ruling cards are new-keyword
+mechanic cards (Rooms/manifest/battles, mostly shared boilerplate) plus complex
+singletons. Deduping ruling text shared across cards surfaced the cards with the
+most CARD-SPECIFIC rulings (Teferi's Protection, Fork, Mimic Vat, Lithoform
+Engine, Emrakul, Valki, ...), which is the rulings-RAG pool. See LOG.md.
+
+**Why this set:** the rulings-on-demand spike showed the old 5-question set was a
+thin testbed -- 4 of 5 referenced cards had ZERO rulings, and the 1 that did (c003)
+was answerable from rules anyway. These 9 give a real testbed where a specific
+ruling is load-bearing (so the mini-RAG has selection work AND its recall is
+measurable), plus one rules-warper to keep the rules-RAG exercised. Several are
+"the ruling overrides the naive rule reading" cases (Emrakul c010, Valki c011,
+Trinisphere c014), the strongest demonstration that grounding on rulings beats the
+model's training guess.
+
+**What would change my mind:** if ablation shows some of these are ALSO
+over-determined (rules OR rulings each sufficient, like c003), keep them as
+rulings-recall / faithfulness tests but don't count them as rules-RAG tests --
+same honest bookkeeping as c001-c003.
+
+---
+
+## 2026-07-21 — Card enrichment: layout-first, all printed rules-relevant fields
+
+**What:** The generator enrichment (`_format_cards`) dropped everything but name
++ oracle text + rulings. Rebuilt it to include, PER FACE, mana cost, mana value,
+type line, power/toughness, loyalty, defense, colors, color indicator, plus
+whole-card layout and color identity. `_card_from_json` now reads `layout` and
+`card_faces` FIRST (Jon's architecture call), then builds one `CardFace` per
+printed face -- so a modal DFC's two faces each keep their own cost/type. New
+`CardFace` submodel; `Card` gains `layout`, `mana_value`, `colors`,
+`color_identity`, `faces`. Cache versioned (schema 2) so old-schema entries
+auto-refetch. Plan: docs/plan-card-enrichment-fields.md.
+
+**Why:** two baseline misses were pure enrichment gaps. c014 (Trinisphere): the
+model guessed Awaken the Woods = {X}{G}{G}{G} (it's {X}{G}{G}) because the cost was
+never in the prompt. c011 (Valki//Tibalt): the model invented a "cast it
+transformed" restriction because nothing told it the card is a MODAL DFC. Both
+are the exact failure the project targets -- relying on training for a printed
+fact.
+
+**Result (measured, re-ran all 9):** both misses fixed. c014 now picks X=2 as
+best value with the real cost. c011 now IDs the modal DFC correctly AND -- the big
+one -- retrieved cascade rule 702.85a and applied its resulting-mana-value clause
+to conclude you CANNOT cast Tibalt off a normal cascade. That is the grounded-
+CORRECT answer, and it OVERTURNED what both Jon and I confidently believed (the
+pre-errata "cast Tibalt for free"). The RAG checked its own builders. The other 6
+stayed correct; c006 truncated to an honest non-answer (see max_tokens below).
+
+**Two honesty notes captured in the same slice:** (1) I justified taking
+Scryfall's color_identity with a FALSE claim ("Extort's {W/B} makes a colorless
+card W/B") -- color identity ignores reminder text, so it doesn't; Blind Obedience
+is mono-W, Crypt Ghast mono-B. Fixed the comment; the code (take Scryfall's value)
+was already right. (2) See c011 above. Both are model-memory hallucinations caught
+by grounding -- README material, and the reason color identity is taken from
+Scryfall rather than derived.
+
+**max_tokens 8192 -> 16384 (generator + ablation):** Jon's call. c006 truncated
+once the richer enrichment enlarged the prompt (sonnet-5's adaptive thinking ate
+the budget -> empty structured output -> honest non-answer via the ValidationError
+catch). Raising the cap is nearly free (you pay for tokens produced, not the
+ceiling). Supersedes the earlier "don't just raise max_tokens" lean for this
+eval-scale use; streaming / a task budget remains the proper fix if 16384 ever
+isn't enough.
+
+**What would change my mind:** if per-face MV (read off the shown cost) ever needs
+to be an explicit computed field, add it; if 16384 still truncates, move to
+streaming rather than raising again.
+
+---
+
+## 2026-07-21 — Rulings on demand: relevance-selected per-card ruling mini-RAG (BUILT + verified)
+
+**What:** Replaced the wholesale ruling dump with a per-card mini-RAG
+(`tools/ruling_retrieval.py`): embed a referenced card's own rulings
+(voyage-4-large), keep the top-3 whose cosine to the stripped question clears a
+0.38 floor, inject only those. Withhold by default (nothing relevant -> nothing
+included). Wired into RulesAgent (`ruling_select=True`; False = old dump for
+A/B). Ruling ids are `oracle_id#index`; embeddings cached/frozen. Plan +
+decisions: docs/plan-rulings-on-demand.md.
+
+**Why this shape (Jon's grounding call):** confidence-gating (withhold until the
+model says it can't answer) was rejected -- it's the design that lets the model
+lean on training whenever it feels sure, the exact thing to avoid. The need-signal
+comes from the corpus (relevance), not the model's confidence, so the mini-RAG
+always runs and includes any relevant ruling.
+
+**Measured (19-question card eval, mini-RAG vs dump-all):**
+- Floor calibrated on real cosines: load-bearing ruling lands rank-1/top-3 on
+  12/15 ruling-bearing questions (0.41-0.66). Set floor 0.38 + top-3 cap.
+- **Answer quality HELD**: every question correct under dump-all stayed correct
+  with <=3 relevant rulings instead of the full list -- while cutting ruling
+  context hard (c009 35->6, c011 22->3, c010 18->3). The RAG does measurable
+  selection work with no correctness cost.
+- Honest ceiling: 3 questions (c010/c011/c019) have their specific load-bearing
+  ruling phrased too differently from the question for relevance to reach it;
+  answers held anyway via the rules-RAG + other rulings. Same class as the q016
+  multi-hop gap.
+
+**Deferred / not done:** the "cite the ruling by id" step (rulings-recall is
+measured off `last_ruling_selection` instead for now); the rewrite-as-ruling-query
+arm; the global rulings corpus (the per-card mini-RAG is the chosen long-term
+path). c018 truncates reproducibly (generation runaway, both configs) and c015 is
+a faithfulness gap (right ruling selected, not applied) -- both open, neither a
+retrieval fault.
+
+**What would change my mind:** if a larger card set shows the top-3 cap dropping
+load-bearing rulings that DO match the question (not the semantic-mismatch cases),
+raise N; if answer quality ever drops vs dump, revisit the floor.

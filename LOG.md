@@ -276,3 +276,216 @@ capture" section for the trigger rules.
   ablation judge is now Haiku -- cheap enough to scale.
 - Ablation also extracted c004's exact mixed gold (all of 3 + any of 4), which
   forced the "groups" match mode. The method proved itself.
+
+## 2026-07-21 — rulings-on-demand spike: 4 of 5 cards have NO rulings
+
+- (Claude) Spiked the 5 card questions rules+oracle-only vs with-all-rulings
+  BEFORE building the rulings mini-RAG. Surprise: 4 of 5 questions reference only
+  cards with ZERO Scryfall rulings (c001 Counterspell/Divination, c002
+  Rhino/Nighthawk, c004 Grizzly Bears/Lightning Bolt, c005 Phyrexian Arena). So
+  today's "dump every ruling" was a NO-OP on 4/5 -- the only question that ever
+  had rulings to dump is c003 (Monastery Swiftspear 4 + Shardless Agent 9 = 13).
+- c003, the one ruling-bearing question, answered CORRECTLY without its rulings
+  too -- the CR rules alone reached "prowess resolves before the cascaded spell."
+  So even the ruling-dependent question is over-determined on this set: rules
+  sufficient AND rulings sufficient. No confidently-wrong-without-rulings case
+  fired (but 4/5 had no rulings, so the set literally can't test that hole).
+- The grounding nuance that DID show: without the ruling, c003 reached for a
+  loosely-relevant rule (704.4, an SBA rule) to prop up an inferred conclusion;
+  WITH the ruling it grounded cleanly on Swiftspear's own text ("prowess goes on
+  the stack on top of the spell... resolves before that spell"). Evidence for
+  surfacing the relevant ruling even when the model can guess right -- the decided
+  direction.
+- Real consequence: the current 5-question card set is a THIN testbed for a
+  rulings-RAG. To build+measure it we need questions where a referenced card HAS
+  rulings AND a ruling is load-bearing (the Dovescape Bird-tokens case from #3b is
+  the archetype -- and it's not in cards.jsonl yet). Entangles this task with the
+  eval curation (task #2).
+
+## 2026-07-21 — pulled the rulings bulk file: rules-warpers have the FEWEST rulings
+
+- (Claude) Jon's instinct: start eval curation from cards with the most rulings,
+  and he named Trinisphere ("created a whole new step in mana-cost calc"). Pulled
+  Scryfall's rulings bulk file (25.9 MB, 77,999 rulings over 19,770 cards) and
+  counted per oracle_id instead of guessing. His hunch inverted cleanly:
+  Trinisphere has just **2** rulings. Humility 3, Blood Moon 4, Opalescence 4,
+  Doubling Season 5, Mycosynth Lattice 4. The rules-warpers have FEW card-specific
+  rulings -- because the warping lives in the Comprehensive RULES themselves (the
+  mana-cost steps, the layer system, land-type rules), so Scryfall doesn't need
+  card-specific rulings to explain them.
+- The actual top of the ruling-count list is a different category entirely:
+  new-keyword cards that got a big SHARED mechanic FAQ replicated onto every card
+  -- Duskmourn Rooms (20-32 each), manifest (Cloudform/Lightform/Jeskai
+  Infiltrator ~29-30), battles (Invasion of X ~20-26) -- plus genuinely gnarly
+  singletons (Teferi's Protection 27, Lurrus 23, Valki//Tibalt 22, Krark 20, the
+  Gods 20-25).
+- The clean split this hands us for eval curation:
+  * RULES-warpers (Trinisphere/Humility/Blood Moon/layers) = few rulings, answer
+    lives in the CR -> the RULES-RAG's job. This is c004-shaped (task #2).
+  * HIGH-ruling cards (Rooms/manifest/battles/complex singletons) = many rulings,
+    a specific one load-bearing -> the RULINGS-RAG's job, and the 20-32-ruling
+    cards are perfect FILTERING stress tests for the mini-RAG (pull 1-2 of 30).
+  So the two tasks the handoff named map onto two different card pools, and the
+  data tells us which is which instead of us guessing.
+
+## 2026-07-21 — Trinisphere + X-spell: a ruling that OVERRIDES the naive rule reading
+
+- (Claude) Jon proposed a card question: opponent has untapped Trinisphere, you
+  cast Awaken the Woods ({X}{G}{G}, "create X 1/1 Forest Dryads") with reducers.
+  Verified against fetched data -- his logic holds. X=0 -> {G}{G}=2 -> Trinisphere
+  floors to 3 -> zero tokens (paid 3 for nothing). X=1 -> {1}{G}{G}=3 already -> a
+  token for the same 3. So NEVER cast X=0 into Trinisphere; reducers let you push
+  to the largest X whose reduced cost is still <=3, all at the same forced 3 mana.
+- The gem: Trinisphere's ruling says its effect is applied LAST, AFTER cost
+  reductions. The general CR cost order (601.2f: increases before reductions)
+  would have you treat Trinisphere as an ordinary increase applied BEFORE
+  reductions -- which gets the reducer interaction wrong. The card-specific RULING
+  is what flips it. So this single question exercises the rules-RAG AND the
+  rulings-RAG, and it's a live example of a ruling correcting the naive rule
+  reading -- the strongest card-eval candidate so far. Pending Jon's wording +
+  ablation-derived gold before it goes in cards.jsonl.
+
+## 2026-07-21 — before-baseline on the 9 new card Qs: 7 right, 2 telling misses
+
+- (Claude) Ran the 9 new card questions through today's dump-all-rulings pipeline.
+  7 correct (c006-c010, c012, c013) -- including the two multi-card combos: c012
+  nailed the trap (copying Emrakul the SPELL gives a token but NO second cast
+  trigger, because the copy was never cast). Good.
+- MISS 1 -- c011 (Valki//Tibalt cascade), CONFIDENTLY WRONG. Bot said you can't
+  cast the Tibalt back face off cascade, justifying it with "you'd need permission
+  to cast it transformed." That's a category error: Valki//Tibalt is a MODAL DFC,
+  not a transforming one -- you cast a back face by CHOICE, no "transform"
+  permission needed. Real-world Modern Tibalt-cascade decks confirm the
+  interaction works. answered=true, so it's a confident-wrong -- the exact failure
+  mode the grounding push targets. Needs the right MDFC-casting rules surfaced
+  (and Valki's mana cost -- see below).
+- MISS 2 -- c014 (Trinisphere), and it exposed a PIPELINE GAP. Bot used Awaken the
+  Woods = {X}{G}{G}{G} and concluded "Trinisphere never fires." The real cost is
+  {X}{G}{G} (two green) -- with X=0 that's 2 mana, so Trinisphere DOES fire (2->3).
+  Root cause: _format_cards enriches name + oracle_text + rulings but OMITS
+  mana_cost and type_line, so for a cost/mana-value question the model guesses the
+  cost from training and gets it wrong. Top-line advice ("never X=0") survived,
+  but the cost math was wrong. Same gap hurt c011 (Valki's mana cost wasn't given
+  either). Fix: add mana_cost + type_line to the enrichment. Small, clear
+  grounding win -- pending Jon's OK (plan-before-code).
+
+## 2026-07-21 — I asserted a false rules fact while BUILDING the grounding fix
+
+- (Claude) Justifying why we take Scryfall's computed color_identity, I wrote
+  "Extort's {W/B} is in the rules text, so a colorless card with Extort has a W/B
+  identity." Jon: wrong -- color identity IGNORES reminder text (rule 903.4), and
+  Extort's {W/B} is reminder text. Blind Obedience is mono-W, Crypt Ghast mono-B,
+  both with Extort. My claim was a plausible-sounding hallucination from training.
+- The irony writes itself: I stated a false MTG rules fact from memory in the same
+  breath as building the feature whose whole purpose is to stop the model doing
+  exactly that. Best possible argument for grounding on Scryfall + the CR instead
+  of model knowledge. The code was already right (we take Scryfall's value); only
+  my rationale was wrong. Good README material.
+
+## 2026-07-21 — the enrichment fix flipped c011, and proved the whole thesis
+
+- (Claude) After adding layout + per-face data, re-ran c011. The bot now correctly
+  calls Valki // Tibalt a MODAL DFC (not transform) -- and went further: it
+  retrieved cascade rule 702.85a and applied its clause "You may cast that card
+  without paying its mana cost IF the resulting spell's mana value is less than
+  this spell's mana value." Tibalt's MV is 7, so off a normal cascade (MV 3-6) you
+  CANNOT cast Tibalt; you can only cast Valki (front MV 2). The bot is RIGHT.
+- The twist: I'd told Jon earlier, confidently, that the bot was wrong and "Modern
+  Tibalt-cascade decks confirm it works." Jon agreed ("the bot is wrong on c11").
+  We were BOTH wrong -- working from the PRE-errata (early 2021) interaction. WotC
+  errata'd cascade with the resulting-mana-value clause specifically to kill it,
+  and that errata is right there in our June 2026 CR (702.85a). The grounded rules
+  settled what neither the human expert nor the model's memory had right.
+- This is the single best demonstration of why the project exists: ground on the
+  CURRENT CR, not on anyone's memory, human OR model. Two confident wrong answers,
+  one correct rule. Straight into the README.
+- The rest of the after-fix re-run: c014 now CORRECT (with the real {X}{G}{G} the
+  bot picks X=2 as best value -- the enrichment gave it the cost the baseline had
+  guessed wrong). c007-c010, c012, c013 still correct. c006 truncated to an honest
+  non-answer (flaky max_tokens/thinking degradation, not a wrong answer -- likely
+  answers on a re-run). Both prior misses fixed by the enrichment.
+
+## 2026-07-21 — ruling mini-RAG built + floor calibrated on real cosines
+
+- (Claude) Built the per-card ruling mini-RAG (ruling_retrieval.py): embed a
+  card's own rulings, keep only the top-3 above a cosine floor, replacing the
+  wholesale dump. Wired into RulesAgent (ruling_select=True default; False = old
+  dump, for A/B).
+- Calibrated the floor off actual data instead of guessing. For each card
+  question, embedded the referenced cards' rulings and ranked by cosine to the
+  question. The load-bearing ruling (the one my cards.jsonl notes name) landed
+  rank-1 or within top-3 on 12 of 15 ruling-bearing questions, cosines 0.41-0.66
+  (c008 Lithoform-linked 0.662, c016 Skullbriar 0.652, c003 prowess 0.618). Set
+  COSINE_FLOOR = 0.38 (just under the 0.41 low end) + top-3 cap.
+- The honest limit: 3 questions have their load-bearing ruling BELOW top-3 --
+  c010 (Emrakul "resolves even if countered"), c011 (Valki mana-value ruling 17),
+  c019 (Gogo "don't re-pay costs"). Semantic mismatch: the question's wording
+  doesn't match the ruling's, so relevance retrieval can't reach it, and lowering
+  the floor wouldn't help (they're outside top-3 by rank, not just score). On
+  c010/c011 the rules-RAG carries the answer anyway. Good README point: relevance
+  retrieval has a real ceiling when the answer-ruling is phrased differently from
+  the question -- same class as the q016 multi-hop gap.
+
+## 2026-07-21 — mini-RAG head-to-head: ruling context slashed, answer quality HELD
+
+- (Claude) Ran all 19 with the ruling mini-RAG (top-3 relevant rulings) vs the
+  dump-all baselines. The win: quality HELD everywhere. Every question correct
+  under dump-all is still correct feeding <=3 relevant rulings per card instead of
+  the whole list -- and the cut is huge: c009 dumped 35 rulings (Banishing Light 8
+  + Teferi's 27) -> 6; c011 dumped Valki's 22 -> 3; c010 Emrakul 18 -> 3. Massive
+  context reduction, zero correctness lost. That's the whole value proposition,
+  measured: the rulings-RAG does real selection work AND doesn't degrade answers.
+- The 3 semantic-mismatch questions (c010/c011/c019) whose SPECIFIC load-bearing
+  ruling the mini-RAG can't reach: answers STILL correct -- the rules-RAG (c011's
+  702.85a) and general reasoning + the other selected rulings carried them. The
+  known ceiling didn't break anything.
+- Selection sanity: c001/c002/c004/c005 (no rulings on any card) selected NOTHING
+  -- withhold-by-default works. Load-bearing ruling selected on 12/15.
+- Two caveats, neither the mini-RAG's fault:
+  * c015 (Animate Dead/Grist): the mini-RAG SELECTED the right ruling (Animate
+    Dead #4, which spells out the SBA + sacrifice) but the model didn't apply it
+    -- it hedged ("can't confirm the aura falls off"). Faithfulness/reasoning gap,
+    not retrieval. Still better than the baseline's confident-wrong.
+  * c018 (Clone): reproducibly truncates to an empty answer in BOTH configs, even
+    at 16384 max_tokens on a tiny prompt. NOT a mini-RAG issue (dump-all fails it
+    too) -- a generation runaway specific to this question. Needs a look, not more
+    rulings.
+
+## 2026-07-21 — c018 + c015 fixed: retry-on-empty, and "trust the ruling"
+
+- (Claude) c018 (Clone) diagnosed by rebuilding its exact prompt and reading the
+  RAW response. NOT a budget/thinking runaway: at 16384 it answers cleanly
+  (stop_reason=end_turn, 622 thinking + 1633 output tokens, far under the cap).
+  The empty answers were INTERMITTENT flaky responses. And raising the cap
+  BACKFIRES: max_tokens=32768 trips the SDK's non-streaming 10-minute-timeout
+  guard and errors the whole call. Fix: RETRY the parse once on empty/invalid
+  output before degrading -- recovered c018. Lesson: I'd assumed "give it more
+  tokens"; the data said the opposite (don't, it breaks) and that the real fix is
+  a retry. Measure before "fixing."
+- c015 (Animate Dead/Grist): the mini-RAG selected the RIGHT ruling (Animate Dead
+  #4, which states the SBA + sacrifice outcome), but the model HEDGED -- "can't
+  confirm, would need a rule not in context" -- over-deferring to the numbered CR
+  rule over the ruling that already answered it. Fix: a system-prompt line -- "a
+  provided ruling is self-sufficient grounding; don't decline just because the
+  underlying numbered rule isn't also present." After the fix c015 reaches Jon's
+  confirmed answer (Grist returns as a planeswalker, Animate Dead can't attach ->
+  graveyard SBA -> sacrifice Grist), citing ruling #4. c009/c016 regression-
+  checked, still correct. (Prompt change rewords all answers -- a full re-grade
+  should watch for regressions, same caveat as prior prompt tweaks.)
+
+## 2026-07-22 — scoped ablation: c011 is the real rules-RAG test, c014 is ruling-carried
+
+- (Claude) Ran gold-by-ablation on the two "rules-dependent" card questions. c011:
+  removing cascade rule 702.85a BREAKS the answer (NECESSARY); the three MDFC
+  rules (712.11/712.8c/712.11d) all tested REPLACEABLE, because the enrichment
+  already hands the model the modal-DFC face data. Gold = [702.85a]. A genuine
+  rules-RAG test where the load-bearing rule is a CR rule, not a card ruling.
+- c014 (Trinisphere): the sanity check (remove ALL cited rules) HELD -- the CR
+  rules were redundant. Trinisphere's ruling 0 already states the cost order
+  (reductions, then Trinisphere; mana value unchanged) and the enrichment supplies
+  the {X}{G}{G} cost, so the rules-RAG added nothing. Gold = []. So a "rules-
+  warper" I'd bucketed as rules-RAG turned out RULING-carried once a ruling
+  restated the rule. The clean split (warpers -> rules-RAG, high-ruling cards ->
+  rulings-RAG) doesn't hold: c011 is the rules-RAG case, c014 collapses to rulings
+  like the rest. Only ablation, not intuition, told them apart.
+- Judge agreement Haiku vs sonnet-5: 34/36 (94%), consistent with the earlier 99%.
