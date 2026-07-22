@@ -22,6 +22,8 @@ coverage).
 
 import json
 import os
+import random
+import time
 from dataclasses import dataclass, field
 
 import httpx
@@ -69,11 +71,33 @@ class ORResult:
 
 def generate(system: str, user: str, model: str,
              timeout: float = 300.0) -> ORResult:
-    """One answer from `model` for an already-assembled prompt pair."""
+    """One answer from `model` for an already-assembled prompt pair.
+
+    Retries two failure classes, both measured on the 2026-07-22 arm runs:
+    transient HTTP (429/5xx -- DeepInfra rate limits took 31/50 v4-flash
+    questions) inside `_attempt`, and truncated-parse responses (Google
+    aborted gemini-flash-lite generations mid-string, returning partial
+    JSON with completion_tokens=0 as an HTTP 200) via up to two re-asks
+    here. A model that GENUINELY can't follow the schema still surfaces:
+    its parse failures are consistent, not stochastic, and the third
+    failure is recorded honestly with the raw text kept."""
     key = os.environ.get("OPENROUTER_API_KEY")
     if not key:
         return ORResult(None, model, None, None, None, None,
                         error="OPENROUTER_API_KEY not set")
+    result = None
+    for _ in range(3):
+        result = _attempt(system, user, model, key, timeout)
+        if result.answer is not None:
+            return result
+        if result.error and not result.error.startswith("parse"):
+            return result  # definitive non-parse failure -- don't re-ask
+        time.sleep(1.0 + random.uniform(0, 1))
+    return result
+
+
+def _attempt(system: str, user: str, model: str, key: str,
+             timeout: float) -> ORResult:
 
     temperature = None if model in NO_TEMPERATURE else 0.0
     body = {
@@ -94,14 +118,37 @@ def generate(system: str, user: str, model: str,
     if temperature is not None:
         body["temperature"] = temperature
 
-    try:
-        r = httpx.post(API_URL, json=body, timeout=timeout,
-                       headers={"Authorization": f"Bearer {key}"})
-        r.raise_for_status()
-        data = r.json()
-    except httpx.HTTPError as e:
+    # Transient upstream failures (429 from a pinned provider, 5xx) get a
+    # bounded retry with backoff -- the v4-flash arm lost 31/50 questions to
+    # DeepInfra 429s on the first full run (2026-07-22), which is a provider
+    # traffic condition, not a model answer. Anything else still fails fast
+    # and is recorded honestly. Retry-After is honored when present.
+    data = None
+    last_err = None
+    for attempt in range(5):
+        try:
+            r = httpx.post(API_URL, json=body, timeout=timeout,
+                           headers={"Authorization": f"Bearer {key}"})
+            r.raise_for_status()
+            data = r.json()
+            break
+        except httpx.HTTPStatusError as e:
+            status = e.response.status_code
+            last_err = f"http: {e}"
+            if status == 429 or status >= 500:
+                retry_after = e.response.headers.get("retry-after")
+                delay = (float(retry_after) if retry_after and
+                         retry_after.replace(".", "", 1).isdigit()
+                         else 2.0 * (2 ** attempt))
+                time.sleep(min(delay, 60.0) + random.uniform(0, 1))
+                continue
+            break  # non-retryable HTTP error
+        except httpx.HTTPError as e:  # timeouts, connection failures
+            last_err = f"http: {e}"
+            time.sleep(2.0 * (2 ** attempt) + random.uniform(0, 1))
+    if data is None:
         return ORResult(None, model, None, None, temperature, SEED,
-                        error=f"http: {e}")
+                        error=last_err or "http: exhausted retries")
 
     if "error" in data:
         return ORResult(None, model, None, None, temperature, SEED,
