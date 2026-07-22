@@ -21,6 +21,7 @@ from typing import Literal
 import httpx
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
@@ -220,4 +221,16 @@ def autocomplete(q: str) -> dict:
 # the guard keeps the bare API working if frontend/ is ever absent.
 _frontend_dir = REPO / "frontend"
 if _frontend_dir.is_dir():
+    # index.html is the cache-busting entry point (docs/plan-cache-busting.md):
+    # it always REVALIDATES (no-cache != no-store -- the browser keeps a copy
+    # but must check freshness first), so a plain refresh picks up upgrades.
+    # Everything index.html references carries a ?v= it controls, so assets
+    # stay cache-friendly while never going stale. Registered before the
+    # mount, so these explicit routes win the "/" match.
+    @app.get("/", include_in_schema=False)
+    @app.get("/index.html", include_in_schema=False)
+    def _index() -> FileResponse:
+        return FileResponse(_frontend_dir / "index.html",
+                            headers={"Cache-Control": "no-cache"})
+
     app.mount("/", StaticFiles(directory=_frontend_dir, html=True), name="frontend")
