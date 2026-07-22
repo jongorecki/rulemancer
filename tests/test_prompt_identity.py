@@ -36,6 +36,23 @@ class _RecordingClient:
         raise _Recorded
 
 
+class _FrozenStore:
+    """A store stand-in whose .search() always returns a fixed, pre-captured
+    retrieved list, ignoring the query. Used to remove q001's only source of
+    run-to-run flake -- the live path's fresh Voyage query embedding -- while
+    everything downstream of retrieval (rewrite cache, build_prompt, the
+    final client call) still runs for real. The frozen list itself was
+    captured once, offline, from the current code (see git history for the
+    one-off capture script; not committed -- same "capture once, freeze it"
+    idea as tests/fixtures/prompt_identity.json itself)."""
+
+    def __init__(self, retrieved):
+        self._retrieved = retrieved
+
+    def search(self, query, k):
+        return self._retrieved[:k]
+
+
 @pytest.fixture(scope="module")
 def baseline():
     return json.loads(FIXTURE.read_text(encoding="utf-8"))
@@ -56,13 +73,26 @@ def _capture(store, question):
     return client.kwargs
 
 
-def test_q001_prompt_is_byte_identical(baseline, store):
-    """Rules-only question: the whole assembled request must match the
-    pre-refactor capture byte for byte. (q001's retrieval ranks are stable
-    across the live path's Voyage embedding wobble -- if this ever flakes,
-    suspect a rank boundary, not the assembly; see c015 below.)"""
+def test_q001_prompt_is_byte_identical(baseline):
+    """Rules-only question: the whole assembled request must match a frozen
+    capture byte for byte, given a FROZEN retrieved list (tests/fixtures/
+    prompt_identity.json's "retrieved"). q001's retrieval sits at a rank
+    boundary, so the live path's documented Voyage embedding wobble
+    occasionally flips a chunk in the pool -- a retrieval concern, not an
+    assembly one. Freezing the retrieved pool removes that flake at the
+    source instead of chasing it in the assertion, the way c015 below does
+    for a card question (there the retrieval-dependent prefix is skipped
+    over; here, for a rules-only question, the entire message IS that
+    prefix, so there's nothing stable left to compare against without
+    freezing retrieval itself)."""
+    from rulesagent.contracts import Chunk, Retrieved
+
     expect = baseline["q001"]
-    kw = _capture(store, expect["question"])
+    retrieved = [
+        Retrieved(chunk=Chunk(**r["chunk"]), score=r["score"])
+        for r in expect["retrieved"]
+    ]
+    kw = _capture(_FrozenStore(retrieved), expect["question"])
     assert kw["system"] == expect["system"]
     assert kw["messages"] == expect["messages"]
     assert kw["model"] == expect["model"]
