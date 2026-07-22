@@ -105,12 +105,40 @@ on Fly.io anyone can use from a link.
   (Claude-tell research applied: no kickers, no negative parallelism, no
   bold-led lists); it waits to absorb the lab table + demo link.
 
-## THE QUEUE (priority order)
+## THE QUEUE (priority order — REORDERED by Jon 2026-07-22: L3 first)
 
-1. **Verify the arm run** (see above), re-run gaps. Then Jon's pending
-   green-light: extend all arms + sonnet over the RulesGuru 150 with
-   auto-judging (~$10 total incl. sonnet) — his hand-grading stays capped
-   at the curated 50.
+0. **L3 SQLite caches is the FIRST implementation task** (Jon's pivot; the
+   approved plan is plan-limitations-and-deploy.md L3): all four whole-file
+   caches (scryfall, rewrite, ruling_emb, query_emb) -> one stdlib sqlite3
+   db, WAL mode, per-cache tables, same public function signatures, a
+   migration script that preserves every entry (count + spot-check), plus
+   migrating the queries/feedback JSONL stubs to tables. Then the API lock
+   becomes a cost knob, concurrent sessions stop corrupting caches, and the
+   Fly.io volume story is one file. "Other features" from the deploy track
+   may ride along at Jon's direction (streaming, guards, Dockerfile — each
+   already planned in L5).
+
+0b. **Arm-run state + the reruns Jon fires himself afterward:** the 5-arm
+   run COMPLETED (results + costs in evals/answers/, summarized in the
+   session log); v4-pro/v3.2/gpt-5-mini data is clean (two full runs each).
+   v4-flash lost 31+27 questions to DeepInfra 429s and gemini-flash-lite
+   8+4 to Google mid-generation aborts — the backend now retries both
+   classes (commit d810287) and the fair-shake reruns are PENDING (a rerun
+   was started then deliberately stopped mid-run to pivot; output files are
+   only written at completion, so the original arm files are intact):
+
+       uv run python evals/run_openrouter_arm.py --model deepseek/deepseek-v4-flash
+       uv run python evals/run_openrouter_arm.py --model deepseek/deepseek-v4-flash --variance --out evals/answers/variance_deepseek-deepseek-v4-flash.json
+       uv run python evals/run_openrouter_arm.py --model google/gemini-2.5-flash-lite
+       uv run python evals/run_openrouter_arm.py --model google/gemini-2.5-flash-lite --variance --out evals/answers/variance_google-gemini-2-5-flash-lite.json
+
+   (Sequential, quiet tree, PYTHONIOENCODING=utf-8. Variance finding so
+   far: temp=0+seed is byte-stable on NO arm — gemini closest at 2/3 —
+   so the L2 decision rests on graded quality vs cost vs reliability.)
+
+1. Then Jon's pending green-light: extend all arms + sonnet over the
+   RulesGuru 150 with auto-judging (~$10 total incl. sonnet) — his
+   hand-grading stays capped at the curated 50.
 2. **Sonnet re-grade arm** on prompt v2 via run_answer_eval.py (current,
    post-RulesGuru form) — this IS the L4 re-grade.
 3. **Live verification batch** (server restart + quiet tree): L8 smoke
