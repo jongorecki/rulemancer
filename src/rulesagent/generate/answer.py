@@ -76,6 +76,15 @@ def _format_context(retrieved: list[Retrieved]) -> str:
     return "\n\n".join(f"[{r.chunk.source_id}] {r.chunk.text}" for r in retrieved)
 
 
+def _degenerate(a: Answer) -> bool:
+    """A parseable draw that is nonetheless a non-answer: declined, cited
+    nothing, and said almost nothing. Deliberately narrow so an HONEST decline
+    -- answered=false with a real explanation of what's missing (200+ chars
+    across the eval history) -- never matches. The 80-char bound clears the
+    observed degenerate specimens (0 and ~70 chars, 2026-07-22) with margin."""
+    return (not a.answered) and not a.citations and len(a.text.strip()) < 80
+
+
 def _face_block(f: CardFace, label: str = "") -> str:
     """One face rendered as a header line (name, cost, type, P/T or loyalty or
     defense, color indicator) followed by its oracle text."""
@@ -305,22 +314,30 @@ class RulesAgent:
         # So keep max_tokens at 16384 and RETRY once before degrading. Raising
         # the cap is not the fix and actively backfires: max_tokens=32768 trips
         # the SDK's non-streaming 10-minute-timeout guard and errors the call.
-        # Multi-turn: prior turns become real conversation messages ahead of
-        # the final user message (which alone carries the rules/card context),
-        # and the system prompt gains a context-reading line. Both are gated on
-        # `history` so the single-turn path -- and therefore every eval number
-        # -- stays byte-identical.
+        # Multi-turn (docs/plan-multiturn-stability.md): the conversation goes
+        # into the final user message as a condensed TRANSCRIPT block -- the
+        # same clipped form the rewriter consumes -- NOT as real prose
+        # assistant messages. Injecting prose turns measurably destabilized
+        # structured output (~50% degenerate answered=false draws on the
+        # Grist/Animate Dead thread, 2026-07-22) -- plausibly because a
+        # transcript of prose assistant replies contradicts the JSON reply
+        # format, or because history citing rules absent from the current
+        # context trips the grounding guard. With the transcript inlined, the
+        # message list is single-turn-shaped in every case. Gated on `history`
+        # so the single-turn path -- and therefore every eval number -- stays
+        # byte-identical.
         system = SYSTEM
-        msgs: list[dict] = [{"role": "user", "content": user}]
         if history:
             system = SYSTEM + (
-                "\n- This conversation has earlier turns. Read the final "
-                "question in their context -- it may refine or correct an "
-                "earlier one -- but ground the answer ONLY in the rules and "
-                "card data provided in the final message."
+                "\n- This conversation has earlier turns, provided as a "
+                "transcript at the top of the message. Read the final question "
+                "in their context -- it may refine or correct an earlier one -- "
+                "but ground the answer ONLY in the rules and card data provided."
             )
-            msgs = [{"role": t["role"], "content": t["content"]} for t in history] + msgs
+            user = f"Conversation so far (for context only):\n{convo_ctx}\n\n{user}"
+        msgs: list[dict] = [{"role": "user", "content": user}]
         parsed, response = None, None
+        weak = None  # best parseable-but-degenerate draw, kept as a fallback
         for _attempt in range(2):
             try:
                 response = self.client.messages.parse(
@@ -335,8 +352,22 @@ class RulesAgent:
                 # messages.parse RAISES on empty content rather than returning
                 # parsed_output=None -- treat both the same: retry, then degrade.
                 parsed = None
+            if parsed is not None and _degenerate(parsed):
+                # Parsed fine but it's a degenerate non-answer (answered=false,
+                # no citations, ~empty text) -- the weak-draw class the old
+                # retry couldn't see because it only caught parse FAILURES.
+                # Retry once, same budget as the parse-failure retry; keep the
+                # longer draw in case both come back degenerate. An honest
+                # decline explains what's missing (200+ chars in the eval
+                # history) so it doesn't match _degenerate and is never
+                # retried away.
+                if weak is None or len(parsed.text) > len(weak.text):
+                    weak = parsed
+                parsed = None
             if parsed is not None:
                 break
+        if parsed is None and weak is not None:
+            parsed = weak  # both draws degenerate: return the better one honestly
         if parsed is None:
             # Both attempts came back empty/invalid -- honest non-answer, not a
             # crash. Rare after the retry; a persistent failure is worth seeing.
