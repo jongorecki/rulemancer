@@ -119,7 +119,7 @@ def _open_browser() -> None:
 
 if __name__ == "__main__":
     _stop_stale_instances(PORT)
-    print(f"Rulesmancer -> {URL}   (API docs: {URL}/docs)")
+    print(f"Rulemancer -> {URL}   (API docs: {URL}/docs)")
     if not os.environ.get("RULESMANCER_NO_BROWSER"):
         threading.Thread(target=_open_browser, daemon=True).start()
     uvicorn.run("rulesagent.api.main:app", host="127.0.0.1", port=PORT)

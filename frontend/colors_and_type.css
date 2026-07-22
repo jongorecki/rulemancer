@@ -4,20 +4,14 @@
  * ========================================================================= */
 
 /* @import MUST precede every other rule or browsers silently drop it (the
- * design file had it after the @font-face block, which is why the fallback
+ * design file had it after a @font-face block, which is why the fallback
  * faces never loaded). Body/mono faces come from Google Fonts. */
 @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
 
-/* Wordmark face — the actual hand-lettered logo font, self-hosted from
- * fonts/CitadelOfBlackrose.ttf (pulled from the design project). Falls back to
- * Cormorant Garamond if the file is missing. */
-@font-face {
-    font-family: 'Citadel of Blackrose';
-    src: url('fonts/CitadelOfBlackrose.ttf') format('truetype');
-    font-weight: 400 700;
-    font-style: normal;
-    font-display: swap;
-}
+/* The wordmark is a pre-rendered SVG (assets/rulemancer-wordmark.svg, inlined
+ * as a <symbol> in index.html) -- the Citadel of Blackrose font it was drawn
+ * from is donationware without redistribution rights, so the TTF doesn't ship
+ * (docs/plan-packaging.md Part 3). --font-display now leads with Cormorant. */
 
 :root {
     /* Garnet — original brand axis (kept; the DC overrides swap the accent to plum) */
@@ -48,8 +42,8 @@
     --accent-link:var(--garnet-500); --sigil:var(--teal-500); --sigil-soft:var(--teal-300);
 
     /* Typography */
-    --font-display:'Citadel of Blackrose','Cormorant Garamond','Cinzel','EB Garamond',Georgia,serif;
-    --font-wordmark:'Citadel of Blackrose','Cormorant Garamond','Cinzel',Georgia,serif;
+    --font-display:'Cormorant Garamond','Cinzel','EB Garamond',Georgia,serif;
+    --font-wordmark:'Cormorant Garamond','Cinzel',Georgia,serif;
     --font-sans:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;
     --font-mono:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,'Courier New',monospace;
 
