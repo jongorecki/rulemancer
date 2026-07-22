@@ -123,6 +123,9 @@ def rewrite_query(
         if cached is not None:
             queries, clarification = json.loads(cached)
             return RewrittenQuery(original=question, queries=queries, clarification=clarification)
+        # Benign check-then-act race: two concurrent cold-cache callers may both
+        # perform the expensive rewrite call; last write wins and duplicate work
+        # is accepted by design. Per-key SQLite writes prevent corruption.
 
     client = client or anthropic.Anthropic()
     parsed = None

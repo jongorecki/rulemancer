@@ -189,6 +189,9 @@ def get_card(ref: str, no_refresh: bool = False) -> Card | None:
         age_days = (time.time() - entry["fetched_at"]) / 86400
         if no_refresh or age_days <= TTL_DAYS:
             return Card(**entry["card"])
+    # Benign check-then-act race: two concurrent cache misses may both issue
+    # live Scryfall requests; last write to the cache wins. Safe, just duplicate
+    # work. Per-key SQLite writes prevent any corruption.
 
     if _UUID_RE.fullmatch(ref):
         search_result = _live_get(

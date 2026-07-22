@@ -55,6 +55,10 @@ def _card_ruling_embeddings(card: Card) -> np.ndarray:
     cached = {rid: _cache.get(rid) for rid in ids}
     missing = [(i, card.rulings[i]) for i, rid in enumerate(ids) if cached[rid] is None]
     if missing:
+        # Benign check-then-act race: concurrent requests discovering the same
+        # missing ruling will both call embed_documents and _cache.put; last write
+        # wins. Duplicate embedding work is accepted; per-key SQLite writes prevent
+        # corruption.
         embs = embed_documents([t for _, t in missing], RULING_MODEL)
         for (i, _), vec in zip(missing, embs):
             value = json.dumps(vec.tolist()).encode("utf-8")

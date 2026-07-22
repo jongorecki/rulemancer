@@ -18,6 +18,7 @@ Run: uv run uvicorn rulesagent.api.main:app --reload
 """
 
 import json
+import logging
 import sqlite3
 import threading
 import time
@@ -37,6 +38,8 @@ from pydantic import BaseModel
 from rulesagent.cache import DEFAULT_DB
 from rulesagent.generate.answer import PROMPT_VERSION, RulesAgent
 from rulesagent.index.store import VectorStore
+
+logger = logging.getLogger(__name__)
 
 REPO = Path(__file__).parent.parent.parent.parent
 VECTOR_MODEL = "voyage-4-large"
@@ -218,8 +221,8 @@ def _log_row(table: str, row: dict) -> None:
             conn.commit()
         finally:
             conn.close()
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning("telemetry write failed: %r", e)
 
 
 class FeedbackIn(BaseModel):
