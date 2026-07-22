@@ -4,11 +4,17 @@ Thin FastAPI wrapper over `RulesAgent` (`src/rulesagent/api/main.py`). Full
 machine-readable spec: [`openapi.json`](openapi.json). Design + decisions:
 [`plan-api.md`](plan-api.md).
 
-## Run
+## Run — one command
 
 ```bash
-uv run uvicorn rulesagent.api.main:app --port 8000
+uv run python run.py
 ```
+
+That's the whole thing: one process serves the API **and** the frontend
+(`frontend/` is mounted as static files on the app) and opens your browser at
+http://127.0.0.1:8000. Pass a port as the first argument to use another one;
+set `RULESMANCER_NO_BROWSER=1` to skip the auto-open. First load waits a few
+seconds while the vector store loads.
 
 Interactive docs are served automatically once it's up:
 
@@ -16,10 +22,9 @@ Interactive docs are served automatically once it's up:
 - **ReDoc** — http://localhost:8000/redoc
 - **OpenAPI JSON** — http://localhost:8000/openapi.json
 
-The frontend lives in [`../frontend/`](../frontend); serve it statically (e.g.
-`python -m http.server 5500 --directory frontend`) and open it — it calls the
-API at `http://localhost:8000` by default (override with
-`window.RULESMANCER_API`).
+(The frontend can still be hosted separately if you ever want that — it calls
+same-origin when served over http, and `window.RULESMANCER_API` overrides the
+API base.)
 
 ## Endpoints
 

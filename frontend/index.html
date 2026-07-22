@@ -57,7 +57,10 @@
 
 <script>
 "use strict";
-const API_BASE = (window.RULESMANCER_API !== undefined) ? window.RULESMANCER_API : "http://localhost:8000";
+const API_BASE = (window.RULESMANCER_API !== undefined) ? window.RULESMANCER_API
+  : (location.protocol.startsWith("http") ? "" : "http://localhost:8000");
+// Same-origin when the API serves the frontend itself (run.py / the StaticFiles
+// mount, any port); localhost:8000 only as the fallback for a file:// open.
 const MARK = "assets/rulemancer-mark.svg";
 
 const ARCANE = ["attacking","blocking","casting","conjuring","divining","untapping","scrying","reviving",

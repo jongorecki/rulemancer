@@ -20,6 +20,7 @@ from pathlib import Path
 import httpx
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from rulesagent.generate.answer import RulesAgent
@@ -194,3 +195,11 @@ def autocomplete(q: str) -> dict:
         return {"suggestions": r.json().get("data", [])}
     except httpx.HTTPError:
         return {"suggestions": []}
+
+
+# Serve the frontend from the same process (mounted LAST so the API routes and
+# /docs win the match first). One `uv run python run.py` then serves everything;
+# the guard keeps the bare API working if frontend/ is ever absent.
+_frontend_dir = REPO / "frontend"
+if _frontend_dir.is_dir():
+    app.mount("/", StaticFiles(directory=_frontend_dir, html=True), name="frontend")
