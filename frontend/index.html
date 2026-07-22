@@ -94,6 +94,11 @@ const I = {
   x:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>',
   arrowR:'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex:none;"><path d="M5 12h14M13 6l6 6-6 6"/></svg>',
 };
+// Feedback thumbs reuse the existing thumb-shaped I.up / I.down icons (same
+// stroke style/size already used for the old local-only feedback toggle) --
+// aliased under the names the spec calls for rather than duplicating the SVGs.
+I.thumbUp = I.up;
+I.thumbDown = I.down;
 
 // ---- state -----------------------------------------------------------------
 const state = {
@@ -173,6 +178,10 @@ async function runQuestion(text) {
       id: ++uid, role: "assistant", answered: d.answered,
       paras: paras.length ? paras : ["(no answer)"],
       citations: ruleCites, cards: d.cards || [], feedback: null,
+      tldr: d.tldr || "",
+      suggested_followups: Array.isArray(d.suggested_followups) ? d.suggested_followups.slice(0, 3) : [],
+      requestId: d.request_id || null,
+      tab: "simple",
     });
   } catch (e) {
     state.messages.push({
@@ -275,13 +284,73 @@ function copyMsg(mi) {
   if (navigator.clipboard) navigator.clipboard.writeText(t).catch(() => {});
   showToast("Answer copied to clipboard.");
 }
-function feedback(mi, val) {
+function setAnswerTab(mi, tab) {
   const m = state.messages[mi];
-  m.feedback = m.feedback === val ? null : val;
+  if (!m) return;
+  m.tab = tab;
   render();
-  showToast(val === "up" ? "Thanks — logged as a good ruling." : "Noted. Use Report ruling to flag it for review.");
 }
 function report() { showToast("Ruling flagged for review. Thank you."); }
+
+// ---- feedback (thumbs up/down -> POST /feedback) ---------------------------
+// feedbackNoteFor holds the message index currently showing the inline
+// "what's wrong?" box (transient UI state, not persisted to history).
+let feedbackNoteFor = null;
+
+async function postFeedback(requestId, verdict, note) {
+  if (!requestId) return;
+  try {
+    await fetch(API_BASE + "/feedback", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ request_id: requestId, verdict, note: note || undefined }),
+    });
+  } catch (e) { /* fire-and-forget; a failed vote must not break the UI */ }
+}
+function voteUp(mi) {
+  const m = state.messages[mi];
+  if (!m || m.feedback || !m.requestId) return;
+  m.feedback = "up";
+  feedbackNoteFor = null;
+  postFeedback(m.requestId, "up");
+  render();
+  saveHistory();
+}
+function voteDownStart(mi) {
+  const m = state.messages[mi];
+  if (!m || m.feedback || !m.requestId) return;
+  m.feedback = "down";
+  postFeedback(m.requestId, "down");
+  feedbackNoteFor = mi;
+  render();
+  saveHistory();
+}
+function feedbackNoteSubmit(mi) {
+  const m = state.messages[mi];
+  const input = document.getElementById("rm-fb-note-" + mi);
+  const note = input ? input.value.trim() : "";
+  if (m) postFeedback(m.requestId, "down", note);
+  feedbackNoteFor = null;
+  render();
+}
+function feedbackNoteCancel() {
+  feedbackNoteFor = null;
+  render();
+}
+function wireFeedbackNote(mi) {
+  const input = document.getElementById("rm-fb-note-" + mi);
+  if (!input) return;
+  input.focus();
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") { e.preventDefault(); feedbackNoteSubmit(mi); }
+    else if (e.key === "Escape") { e.preventDefault(); feedbackNoteCancel(); }
+  });
+  // Skip-by-clicking-elsewhere: a blur that isn't immediately followed by the
+  // Send click (which re-renders and resets feedbackNoteFor first) collapses
+  // to the thanks state, same pattern as the @-picker's blur/hideAC.
+  input.addEventListener("blur", () => setTimeout(() => {
+    if (feedbackNoteFor === mi) feedbackNoteCancel();
+  }, 150));
+}
 
 // ---- render ----------------------------------------------------------------
 function markImg(size, extra) { return `<img src="${MARK}" alt="" style="width:${size}px;height:${size}px;display:block;${extra||""}" />`; }
@@ -358,7 +427,7 @@ function welcome() {
   </div>
   <div style="flex:none;padding:14px 24px 18px;display:flex;justify-content:center;">
     <p style="max-width:620px;font-size:11.5px;line-height:1.6;color:var(--fg-subtle);text-align:center;margin:0;">
-      Rulemancer is an unofficial fan project, not affiliated with Wizards of the Coast. Magic: The Gathering and the Comprehensive Rules are &copy; <a href="https://company.wizards.com/" target="_blank" rel="noopener">Wizards of the Coast</a>. Card data by <a href="https://scryfall.com/" target="_blank" rel="noopener">Scryfall</a>.
+      Rulemancer is an unofficial fan project, not affiliated with Wizards of the Coast. Magic: The Gathering and the Comprehensive Rules are &copy; <a href="https://company.wizards.com/" target="_blank" rel="noopener">Wizards of the Coast</a>. Card data by <a href="https://scryfall.com/" target="_blank" rel="noopener">Scryfall</a>. Questions asked here are logged to improve the demo.
     </p>
   </div>`;
 }
@@ -385,16 +454,58 @@ function citeCard(m, mi) {
   return out;
 }
 
+function feedbackBlock(m, mi) {
+  if (m.error || !m.requestId) return "";   // no feedback on errors or pre-upgrade history
+  if (m.feedback === "down" && feedbackNoteFor === mi) {
+    return `<div style="display:flex;align-items:center;gap:8px;">
+      <input id="rm-fb-note-${mi}" type="text" placeholder="What's wrong? (optional)" style="flex:1;min-width:120px;max-width:260px;font-size:12.5px;padding:6px 10px;background:var(--bg-elevated);border:1px solid var(--border-default);border-radius:7px;color:var(--fg-primary);outline:none;" />
+      <button data-action="feedback-send" data-mi="${mi}" style="font-size:12px;font-weight:600;color:var(--accent);background:transparent;border:none;cursor:pointer;padding:4px 8px;">Send</button>
+    </div>`;
+  }
+  const disabled = !!m.feedback;
+  const votedUp = m.feedback === "up", votedDown = m.feedback === "down";
+  const upC = votedUp ? "var(--teal-700)" : "inherit";
+  const dnC = votedDown ? "var(--status-red)" : "inherit";
+  const btn = (act, title, svg, color, isVoted) => {
+    const parts = ["width:30px","height:30px","border:none","background:transparent",
+      `color:${color}`, "border-radius:7px", `cursor:${disabled ? "default" : "pointer"}`,
+      "display:flex","align-items:center","justify-content:center"];
+    if (disabled) parts.push("pointer-events:none", `opacity:${isVoted ? 1 : .35}`);
+    return `<button data-action="${act}" data-mi="${mi}" title="${title}" class="rm-act" ${disabled?"disabled":""} style="${parts.join(";")}">${svg}</button>`;
+  };
+  return `${btn("thumb-up","Good ruling",I.thumbUp,upC,votedUp)}${btn("thumb-down","Wrong ruling",I.thumbDown,dnC,votedDown)}${disabled ? `<span style="font-size:12px;color:var(--fg-muted);margin-left:2px;">Thanks</span>` : ""}`;
+}
+
 function assistantActions(m, mi) {
   const ab = (act, title, svg, color) =>
     `<button data-action="${act}" data-mi="${mi}" title="${title}" class="rm-act" style="width:30px;height:30px;border:none;background:transparent;color:${color||"inherit"};border-radius:7px;cursor:pointer;display:flex;align-items:center;justify-content:center;">${svg}</button>`;
-  const upC = m.feedback === "up" ? "var(--teal-700)" : "inherit";
-  const dnC = m.feedback === "down" ? "var(--status-red)" : "inherit";
-  return `<div style="display:flex;align-items:center;gap:2px;margin-top:11px;color:var(--fg-muted);">
-    ${ab("copy","Copy",I.copy)}${ab("regen","Regenerate",I.regen)}${ab("thumb-up","Good ruling",I.up,upC)}${ab("thumb-down","Wrong ruling",I.down,dnC)}
+  return `<div style="display:flex;align-items:center;gap:2px;margin-top:11px;color:var(--fg-muted);flex-wrap:wrap;">
+    ${ab("copy","Copy",I.copy)}${ab("regen","Regenerate",I.regen)}${feedbackBlock(m, mi)}
     <div style="width:1px;height:18px;background:var(--border-default);margin:0 6px;"></div>
     <button data-action="report" data-mi="${mi}" title="Report a wrong ruling" class="rm-act" style="display:flex;align-items:center;gap:6px;height:30px;padding:0 10px;border:none;background:transparent;color:var(--fg-muted);border-radius:7px;cursor:pointer;font-size:12px;">${I.flag} Report ruling</button>
   </div>`;
+}
+
+function answerTabs(mi, tab) {
+  const tabBtn = (val, label) => {
+    const active = tab === val;
+    return `<button data-action="answer-tab" data-arg="${mi}:${val}" style="background:transparent;border:none;padding:2px 0;margin-right:18px;font-size:12.5px;font-weight:600;cursor:pointer;color:${active?"var(--accent)":"var(--fg-subtle)"};border-bottom:2px solid ${active?"var(--accent)":"transparent"};">${label}</button>`;
+  };
+  return `<div style="display:flex;margin-bottom:10px;">${tabBtn("simple","Simple")}${tabBtn("full","Full")}</div>`;
+}
+function simpleBody(m) {
+  return `<div style="font-size:16px;line-height:1.6;color:var(--fg-primary);">${esc(m.tldr)}</div>`;
+}
+function fullBody(m, mi) {
+  const paras = m.paras.map(p=>`<p style="margin:0;">${esc(p)}</p>`).join("");
+  return `<div style="font-size:15px;line-height:1.65;color:var(--fg-primary);display:flex;flex-direction:column;gap:10px;">${paras}</div>${citeCard(m, mi)}`;
+}
+function followupPills(m, mi) {
+  const list = m.suggested_followups;
+  if (!list || !list.length) return "";
+  const items = list.slice(0, 3).map(q =>
+    `<button data-action="followup" data-arg="${esc(q)}" class="rm-pill-hover" style="display:flex;align-items:center;gap:6px;padding:6px 12px;background:var(--bg-card);border:1px solid var(--border-default);border-radius:999px;font-size:12.5px;color:var(--fg-secondary);cursor:pointer;"><span style="color:var(--teal-500);font-size:11px;">✦</span>${esc(q)}</button>`).join("");
+  return `<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;">${items}</div>`;
 }
 
 function messageEl(m, mi) {
@@ -407,14 +518,18 @@ function messageEl(m, mi) {
     : (m.answered === false
       ? `<span style="font-size:10px;font-weight:600;color:var(--status-yellow);background:rgba(224,167,64,.15);padding:2px 7px;border-radius:999px;">NOT IN THE RULES</span>`
       : `<span style="display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:600;color:var(--teal-700);background:#d9f0ec;padding:2px 7px;border-radius:999px;">${I.check}JUDGE</span>`);
-  const paras = m.paras.map(p=>`<p style="margin:0;">${esc(p)}</p>`).join("");
+  // Pre-upgrade history rows have no tldr -- fall back to Full-only, no tabs.
+  const hasTldr = !m.error && !!(m.tldr && m.tldr.trim());
+  const tab = hasTldr ? (m.tab || "simple") : "full";
+  const body = (hasTldr && tab === "simple") ? simpleBody(m) : fullBody(m, mi);
   return `<div style="display:flex;gap:13px;animation:rm-rise .35s var(--ease-out);">
     ${markImg(34,"flex:none;")}
     <div style="flex:1;min-width:0;">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:7px;">
         <span style="font-weight:600;font-size:14px;color:var(--fg-primary);">Rulemancer</span>${badge}</div>
-      <div style="font-size:15px;line-height:1.65;color:var(--fg-primary);display:flex;flex-direction:column;gap:10px;">${paras}</div>
-      ${citeCard(m, mi)}
+      ${hasTldr ? answerTabs(mi, tab) : ""}
+      ${body}
+      ${m.error ? "" : followupPills(m, mi)}
       ${m.error ? "" : assistantActions(m, mi)}
     </div></div>`;
 }
@@ -498,6 +613,8 @@ function render() {
   }
   const sc = document.getElementById("rm-scroll");
   if (sc) requestAnimationFrame(() => { sc.scrollTop = sc.scrollHeight; });
+
+  if (feedbackNoteFor != null) wireFeedbackNote(feedbackNoteFor);
 }
 
 // ---- composer wiring: autogrow + @-autocomplete + Enter --------------------
@@ -584,14 +701,21 @@ app.addEventListener("click", (e) => {
     case "toggle-theme": toggleTheme(); break;
     case "toggle-sidebar": toggleSidebar(); break;
     case "example": send(t.dataset.arg); break;
+    case "followup": send(t.dataset.arg); break;
     case "load-history": loadHistory(+t.dataset.arg); break;
     case "open-cite": openCite(+t.dataset.mi, +t.dataset.ci); break;
     case "open-card": openCard(+t.dataset.mi, +t.dataset.ki); break;
     case "close-drawer": closeDrawer(); break;
     case "copy": copyMsg(mi); break;
     case "regen": regen(); break;
-    case "thumb-up": feedback(mi, "up"); break;
-    case "thumb-down": feedback(mi, "down"); break;
+    case "thumb-up": voteUp(mi); break;
+    case "thumb-down": voteDownStart(mi); break;
+    case "feedback-send": feedbackNoteSubmit(mi); break;
+    case "answer-tab": {
+      const parts = (t.dataset.arg || "").split(":");
+      setAnswerTab(+parts[0], parts[1]);
+      break;
+    }
     case "report": report(); break;
   }
 });
