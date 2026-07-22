@@ -17,11 +17,12 @@ it, because the two harnesses' shapes diverge too much to share cleanly:
     that exact prompt to openrouter_backend.generate() instead. Retrieval,
     the query rewriter, and card enrichment all run for real -- the fake
     only ever intercepts the FINAL generation call. This works because every
-    eval question's rewrite is already warm in
-    data/parsed/rewrite_cache.pkl and every referenced card is already warm
-    in data/parsed/scryfall_cache.json (both verified for all 50 rows before
-    writing this), so rewrite_query() returns from its cache and never
-    reaches the fake client at all.
+    eval question's rewrite is already warm in the `rewrite` table and every
+    referenced card is already warm in the `scryfall` table (both in
+    data/cache.db as of L3, docs/plan-l3-sqlite-caches.md -- previously
+    data/parsed/rewrite_cache.pkl / scryfall_cache.json; verified for all 50
+    rows before writing this), so rewrite_query() returns from its cache and
+    never reaches the fake client at all.
 
 Result records carry the plan's attribution fields straight off
 openrouter_backend.ORResult (served_model/provider/temperature_sent/
