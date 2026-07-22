@@ -1206,3 +1206,25 @@ calls are tiny, effectively free.
 diverges from sonnet on borderline verdicts once used at scale, or a larger
 pair set shows drift, re-run the bake-off (the harness is committed and
 re-runnable). Borderline verdicts still go to Jon regardless of judge.
+
+---
+
+## 2026-07-22 — One-key config via OpenRouter embeddings: rejected
+
+**What:** Jon asked whether the Voyage embeddings could run through the
+OpenRouter key (already in .env for the upcoming outside-judge work) so a
+fresh user configures one key instead of three.
+**Checked (live, not memory):** OpenRouter does now expose an /embeddings
+endpoint — but its 27-model catalog (OpenAI, Google, Qwen, Mistral, BGE,
+E5, ...) contains NO Voyage models.
+**Why rejected:** routing embeddings through OpenRouter therefore means
+switching MODELS, not keys. voyage-4-large is pinned; it won the measured
+A/B (recall@5 65% vs voyage-4's 55% vs BM25's 32%) and every retrieval
+number since is built on it. A model swap invalidates the entire measured
+ladder and forces a corpus re-embed + full eval re-run — a research
+project, not a config simplification. Voyage's free tier covers the corpus,
+so the second key costs a signup, not money.
+**What would change my mind:** Voyage appearing in OpenRouter's embeddings
+catalog (then it IS just a key swap — re-verify identical vectors before
+believing it), or a deliberate cross-embedding-model A/B done on its own
+merits as a README result.
