@@ -331,11 +331,23 @@ class Answer(BaseModel):
     # The answer in plain language. When answered is False, this explains
     # what the provided rules were missing rather than guessing.
 
+    tldr: str
+    # One or two plain sentences that directly answer the question for a
+    # player in a hurry -- no rule numbers, no hedging. The frontend's
+    # default "Simple" tab (plan-limitations-and-deploy.md L7). When
+    # answered is False, it plainly says the rules provided don't settle it.
+
     citations: list[str]
     # The rule numbers / glossary terms the answer actually relied on --
     # must come from the chunks provided in context, not outside knowledge.
+    # Card rulings are cited by their prompt label, e.g.
+    # "[Animate Dead ruling #4]" (L8: enables the rulings-recall metric).
 
     answered: bool
     # True if the provided rules were sufficient to answer. False triggers
     # the low-confidence path: the bot says it can't answer from the rules
     # it was given rather than hallucinating. This is the groundedness guard.
+
+    suggested_followups: list[str]
+    # Two or three short natural next questions a player might ask after
+    # this answer. Clickable pills in the frontend; empty list is fine.

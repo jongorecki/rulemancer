@@ -161,9 +161,14 @@ def rewrite_query(
             content = (
                 "Conversation so far, for context only:\n"
                 f"{context}\n\n"
-                "Rewrite ONLY this final follow-up question. Resolve any "
-                "pronouns or references against the conversation above so each "
-                f"rewrite is fully standalone:\n{question}"
+                "Rewrite ONLY this final follow-up question. Use the "
+                "conversation above ONLY to resolve pronouns and references "
+                "(\"it\", \"that card\", \"the trigger\") into their concrete "
+                "names -- do NOT import earlier turns' topics. The rewrites "
+                "must target what THIS question asks about; if it shifts to a "
+                "new topic, follow the shift and drop the old topic entirely. "
+                "Each rewrite must be fully standalone:\n"
+                f"{question}"
             )
         response = client.messages.parse(
             model=model,

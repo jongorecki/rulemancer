@@ -13,8 +13,12 @@ solution and stays deferred tech debt.
 Run: uv run uvicorn rulesagent.api.main:app --reload
 """
 
+import json
 import threading
+import time
+import uuid
 from contextlib import asynccontextmanager
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Literal
 
@@ -25,7 +29,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from rulesagent.generate.answer import RulesAgent
+from rulesagent.generate.answer import PROMPT_VERSION, RulesAgent
 from rulesagent.index.store import VectorStore
 
 REPO = Path(__file__).parent.parent.parent.parent
@@ -138,10 +142,49 @@ class Debug(BaseModel):
 
 class AnswerResponse(BaseModel):
     answer: str
+    tldr: str               # the frontend's default "Simple" tab
     answered: bool          # False -> the "couldn't ground it" UI state
     citations: list[Citation]
     cards: list[CardOut]
+    suggested_followups: list[str]  # clickable next-question pills
+    request_id: str         # join key for POST /feedback + the query log
     debug: Debug
+
+
+# --- demo telemetry (plan-limitations-and-deploy.md L6/L8) -----------------
+# JSONL append stubs; the L3 SQLite slice migrates these into tables. One
+# row per /answer (question + answer + model + PROMPT_VERSION + latency) and
+# one per feedback event, joined by request_id. data/logs/ is gitignored.
+_LOG_DIR = REPO / "data" / "logs"
+
+
+def _log_row(filename: str, row: dict) -> None:
+    """Best-effort append -- telemetry must never break an answer."""
+    try:
+        _LOG_DIR.mkdir(parents=True, exist_ok=True)
+        with open(_LOG_DIR / filename, "a", encoding="utf-8") as fh:
+            fh.write(json.dumps(row, ensure_ascii=False) + "\n")
+    except OSError:
+        pass
+
+
+class FeedbackIn(BaseModel):
+    request_id: str
+    verdict: Literal["up", "down"]
+    note: str = ""          # optional "what's wrong?" free text
+
+
+@app.post("/feedback", tags=["answers"], summary="Thumbs up/down on an answer")
+def feedback(fb: FeedbackIn) -> dict:
+    """Visitor feedback on an answer, joined to the query log by request_id.
+    A thumbs-down may arrive twice: once bare, once again with the note."""
+    _log_row("feedback.jsonl", {
+        "request_id": fb.request_id,
+        "ts": datetime.now(timezone.utc).isoformat(),
+        "verdict": fb.verdict,
+        "note": fb.note[:2000],
+    })
+    return {"ok": True}
 
 
 @app.get("/health", tags=["ops"], summary="Liveness / readiness")
@@ -166,6 +209,8 @@ def answer(req: AnswerRequest) -> AnswerResponse:
     agent, chunk_map = _state["agent"], _state["chunk_map"]
     # Bound what a thread can cost: last 12 turns, each clipped to 4k chars.
     history = [{"role": t.role, "content": t.content[:4000]} for t in req.history[-12:]]
+    request_id = uuid.uuid4().hex
+    t0 = time.monotonic()
     # Hold the lock across answer() AND the reads of its last_* attributes --
     # another request could overwrite them the moment the lock is released.
     with _lock:
@@ -174,12 +219,27 @@ def answer(req: AnswerRequest) -> AnswerResponse:
         retrieved = list(agent.last_retrieved or [])
         rewritten = agent.last_rewritten
         selection = dict(agent.last_ruling_selection or {})
+    latency_ms = int((time.monotonic() - t0) * 1000)
+
+    # Labeled rulings shown to the model, for resolving ruling citations:
+    # each card ruling string starts with its "[Name ruling #N]" label.
+    ruling_by_label = {}
+    for c in cards:
+        for r in c.rulings:
+            if r.startswith("[") and "]" in r:
+                ruling_by_label[r[: r.index("]") + 1]] = r
 
     citations = []
     for cid in ans.citations:
         chunk = chunk_map.get(cid)
+        label = cid if cid.startswith("[") else f"[{cid}]"
         if chunk is not None:
             citations.append(Citation(id=cid, kind=chunk.kind, text=chunk.text))
+        elif label in ruling_by_label:
+            # A ruling cited by its prompt label -- resolve the full text so
+            # the drawer can show it (L8 cite-by-label).
+            citations.append(Citation(id=cid, kind="ruling",
+                                      text=ruling_by_label[label]))
         else:
             citations.append(Citation(id=cid, kind="card", text=None))
 
@@ -195,8 +255,24 @@ def answer(req: AnswerRequest) -> AnswerResponse:
         retrieved_rules=[r.chunk.source_id for r in retrieved],
         selected_ruling_ids=selection,
     )
+    _log_row("queries.jsonl", {
+        "request_id": request_id,
+        "ts": datetime.now(timezone.utc).isoformat(),
+        "question": req.question[:4000],
+        "history_len": len(history),
+        "cards": [c.name for c in cards],
+        "answered": ans.answered,
+        "tldr": ans.tldr,
+        "text": ans.text,
+        "citations": ans.citations,
+        "suggested_followups": ans.suggested_followups,
+        "model": agent.model,
+        "prompt_version": PROMPT_VERSION,
+        "latency_ms": latency_ms,
+    })
     return AnswerResponse(
-        answer=ans.text, answered=ans.answered,
+        answer=ans.text, tldr=ans.tldr, answered=ans.answered,
+        suggested_followups=ans.suggested_followups, request_id=request_id,
         citations=citations, cards=cards_out, debug=debug,
     )
 

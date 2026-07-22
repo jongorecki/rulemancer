@@ -26,6 +26,13 @@ GEN_MODEL = "claude-sonnet-5"  # pinned; one-line swap to A/B other models
 TOP_K = 15  # pure-vector top-15 (raised from 10: near-miss rules like a
 # multiplayer clause at rank ~13 were just outside the old window)
 
+PROMPT_VERSION = 2
+# Bump on EVERY change to SYSTEM or the Answer schema, and note what changed.
+# Stamped into the public-demo query log so feedback stays interpretable
+# across deploys (plan-limitations-and-deploy.md L8).
+#   v1: through the 31/31 grade + trust-the-ruling + transcript-in-message.
+#   v2: L8 batch -- tldr, suggested_followups, cite-rulings-by-label.
+
 # Plan #3a: the winning rewriter config from evals/run_eval.py's 2x2 grid
 # (rewrite count x rewriter model, see docs/plan-3a-query-rewriting.md).
 # Kept as module constants -- not inlined below -- so picking a different
@@ -68,7 +75,17 @@ SYSTEM = (
     "a ruling directly states what happens in the interaction, rely on it and "
     "answer -- do NOT decline or hedge just because the underlying numbered rule "
     "isn't also in the context. (You still must not invent rules or rulings that "
-    "weren't provided.)"
+    "weren't provided.)\n"
+    "- Card rulings in the context are labeled like \"[Card Name ruling #4]\". "
+    "When you rely on a ruling, put that exact label in the citations field, "
+    "the same way you cite rule numbers.\n"
+    "- Fill the tldr field with one or two plain sentences that directly answer "
+    "the question for a player in a hurry -- no rule numbers, no hedging "
+    "boilerplate. If answered is false, the tldr plainly says the provided "
+    "rules don't settle it.\n"
+    "- Fill suggested_followups with two or three short natural next questions "
+    "a curious player might ask after reading this answer, each under about "
+    "twelve words."
 )
 
 
@@ -288,8 +305,18 @@ class RulesAgent:
             for card in cards:
                 sel = select_rulings(card, question)
                 selection[card.name] = [ruling_id(card, i) for i, _ in sel]
-                picked.append(card.model_copy(update={"rulings": [card.rulings[i] for i, _ in sel]}))
+                # Label each ruling with its ORIGINAL Scryfall index so the
+                # model can cite it precisely ("[Name ruling #4]") and the
+                # cited label maps back to the gold oracle_id#index (L8).
+                picked.append(card.model_copy(update={"rulings": [
+                    f"[{card.name} ruling #{i}] {card.rulings[i]}" for i, _ in sel]}))
             cards, self.last_ruling_selection = picked, selection
+        else:
+            # Dump-all A/B path gets the same labels, so the cite-by-label
+            # convention holds in both configs.
+            cards = [c.model_copy(update={"rulings": [
+                f"[{c.name} ruling #{i}] {r}" for i, r in enumerate(c.rulings)]})
+                for c in cards]
         self.last_cards = cards
         # Condensed transcript for the rewriter: a follow-up like "what about
         # while it's phased out?" only rewrites into a useful standalone search
@@ -387,8 +414,10 @@ class RulesAgent:
             return Answer(
                 text="(no structured answer: the model returned empty output "
                 f"twice, stop_reason={stop} -- try again)",
+                tldr="Something went wrong generating this answer -- try again.",
                 citations=[],
                 answered=False,
+                suggested_followups=[],
             )
         if cards:
             # Minimal approach consistent with the Answer contract (no new
