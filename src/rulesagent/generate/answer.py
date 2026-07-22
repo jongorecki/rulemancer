@@ -76,6 +76,52 @@ def _format_context(retrieved: list[Retrieved]) -> str:
     return "\n\n".join(f"[{r.chunk.source_id}] {r.chunk.text}" for r in retrieved)
 
 
+def build_prompt(question: str, retrieved: list[Retrieved], cards: list[Card],
+                 convo_ctx: str | None = None,
+                 rewrite_queries: list[str] | None = None) -> tuple[str, str]:
+    """Assemble the exact (system, user) prompt pair the generator is called
+    with. Extracted from RulesAgent.answer() (plan-openrouter-models.md) so
+    the OpenRouter A/B arms generate from the byte-identical prompt the
+    pinned Anthropic path sees -- tests/fixtures/prompt_identity.json guards
+    that this stays true. `convo_ctx` is the condensed transcript (None =
+    single-turn); `rewrite_queries` is the show_rewrite transparency block
+    (None = off, the shipped default)."""
+    context = _format_context(retrieved)
+    user = f"Rules context:\n{context}"
+    if cards:
+        # Card data goes in AFTER the rules context, per Jon's call in
+        # the plan -- it enriches generation, it never touches
+        # retrieval or the (unchanged) rewrite step.
+        user += f"\n\nCard data:\n{_format_cards(cards)}"
+    user += f"\n\nQuestion: {question}"
+    if rewrite_queries is not None:
+        # Jon's idea: let the generator see BOTH the user's own words and
+        # the reinterpretation retrieval actually searched on, so the
+        # stronger model can notice when they've drifted apart. A
+        # transparency/faithfulness lever, not a recall one -- see the
+        # show_rewrite flag notes in RulesAgent.__init__.
+        searched = "\n".join(f"- {q}" for q in rewrite_queries)
+        user += (
+            f"\n\nFor context: to search the rules, that question was "
+            f"reinterpreted as:\n{searched}\n"
+            "Answer the question the user actually asked. If the "
+            "reinterpretation drifted from their intent, or the rules "
+            "retrieved answer a broader or narrower question than they "
+            "asked, say so plainly rather than answering the "
+            "reinterpretation."
+        )
+    system = SYSTEM
+    if convo_ctx is not None:
+        system = SYSTEM + (
+            "\n- This conversation has earlier turns, provided as a "
+            "transcript at the top of the message. Read the final question "
+            "in their context -- it may refine or correct an earlier one -- "
+            "but ground the answer ONLY in the rules and card data provided."
+        )
+        user = f"Conversation so far (for context only):\n{convo_ctx}\n\n{user}"
+    return system, user
+
+
 def _degenerate(a: Answer) -> bool:
     """A parseable draw that is nonetheless a non-answer: declined, cited
     nothing, and said almost nothing. Deliberately narrow so an HONEST decline
@@ -275,38 +321,6 @@ class RulesAgent:
         else:
             retrieved = self.store.search(question, self.k)
         self.last_retrieved = retrieved
-        context = _format_context(retrieved)
-        user = f"Rules context:\n{context}"
-        if cards:
-            # Card data goes in AFTER the rules context, per Jon's call in
-            # the plan -- it enriches generation, it never touches
-            # retrieval or the (unchanged) rewrite step above.
-            user += f"\n\nCard data:\n{_format_cards(cards)}"
-        user += f"\n\nQuestion: {question}"
-        if self.show_rewrite and self.last_rewritten is not None:
-            # Jon's idea: let the generator see BOTH the user's own words and
-            # the reinterpretation retrieval actually searched on, so the
-            # stronger model can notice when they've drifted apart. The
-            # generator has always answered the ORIGINAL question (the
-            # `Question:` line above is `question`, never a rewrite) -- what
-            # this adds is the ability to SAY the retrieved rules answer a
-            # differently-scoped question than the one asked, instead of
-            # silently answering whatever was retrieved.
-            #
-            # This cannot recover a chunk that retrieval never surfaced -- a
-            # missed rule is missed regardless of how well intent is
-            # understood. It's a transparency/faithfulness lever, not a
-            # recall one, so it's graded on the ANSWER eval, not recall@k.
-            searched = "\n".join(f"- {q}" for q in self.last_rewritten.queries)
-            user += (
-                f"\n\nFor context: to search the rules, that question was "
-                f"reinterpreted as:\n{searched}\n"
-                "Answer the question the user actually asked. If the "
-                "reinterpretation drifted from their intent, or the rules "
-                "retrieved answer a broader or narrower question than they "
-                "asked, say so plainly rather than answering the "
-                "reinterpretation."
-            )
         # Empty/invalid structured output happens INTERMITTENTLY on
         # claude-sonnet-5 (c018 came back empty on two eval runs, then answered
         # cleanly on retry -- diagnosed at ~600 thinking + ~1600 output tokens,
@@ -326,15 +340,13 @@ class RulesAgent:
         # message list is single-turn-shaped in every case. Gated on `history`
         # so the single-turn path -- and therefore every eval number -- stays
         # byte-identical.
-        system = SYSTEM
-        if history:
-            system = SYSTEM + (
-                "\n- This conversation has earlier turns, provided as a "
-                "transcript at the top of the message. Read the final question "
-                "in their context -- it may refine or correct an earlier one -- "
-                "but ground the answer ONLY in the rules and card data provided."
-            )
-            user = f"Conversation so far (for context only):\n{convo_ctx}\n\n{user}"
+        system, user = build_prompt(
+            question, retrieved, cards,
+            convo_ctx=convo_ctx,
+            rewrite_queries=(self.last_rewritten.queries
+                             if self.show_rewrite and self.last_rewritten is not None
+                             else None),
+        )
         msgs: list[dict] = [{"role": "user", "content": user}]
         parsed, response = None, None
         weak = None  # best parseable-but-degenerate draw, kept as a fallback
