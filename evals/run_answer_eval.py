@@ -20,6 +20,8 @@ import sys
 import time
 from pathlib import Path
 
+from pydantic import ValidationError
+
 sys.path.insert(0, str(Path(__file__).parent))  # so `from run_eval import ...` resolves
 # regardless of the caller's cwd -- evals/ isn't part of the installed
 # rulesagent package, it's a scripts directory, so it needs to be on
@@ -27,10 +29,12 @@ sys.path.insert(0, str(Path(__file__).parent))  # so `from run_eval import ...` 
 
 from run_eval import CR_PATH, PARSED_DIR, VECTOR_MODEL, load_questions  # noqa: E402
 
-from rulesagent.generate.answer import GEN_MODEL, RulesAgent  # noqa: E402
+from rulesagent.contracts import Answer  # noqa: E402
+from rulesagent.generate.answer import GEN_MODEL, RulesAgent, _degenerate  # noqa: E402
 from rulesagent.index.store import VectorStore  # noqa: E402
 from rulesagent.ingest.chunker import chunk_rules  # noqa: E402
 from rulesagent.ingest.parser import parse_comprehensive_rules  # noqa: E402
+from rulesagent.tools.scryfall import ATTRIBUTION  # noqa: E402
 
 QUESTIONS_PATH = Path(__file__).parent / "questions.jsonl"
 DEFAULT_OUT = PARSED_DIR / "review.json"
@@ -53,6 +57,59 @@ def load_answer_gold(path: Path) -> dict[str, str]:
         if row.get("answer_gold"):
             out[row["id"]] = row["answer_gold"]
     return out
+
+
+def _answer_from_frozen_prompt(client, model: str, system: str, user: str) -> Answer:
+    """Generate straight from an already-assembled (system, user) pair,
+    bypassing RulesAgent.answer()'s retrieval/rewrite/assembly entirely --
+    used only when --prompts-cache supplies a frozen prompt (docs/plan-v3-
+    execution-tasks.md Task 2: genuine cross-arm AND cross-run byte-identity
+    requires every arm/run to generate from the literal same prompt bytes,
+    which RulesAgent.answer()'s live, uncached Voyage query embedding can't
+    guarantee -- see --prompts-cache's help text for the measured drift).
+
+    Deliberately duplicates RulesAgent.answer()'s generation-call tail
+    (retry-on-empty/degenerate, ATTRIBUTION suffix) rather than modifying
+    RulesAgent itself -- same "copy the pattern into the eval script rather
+    than touch the class under test" choice run_openrouter_arm.py's
+    _RecordingClient already makes (see its own docstring), so the
+    incumbent/go-no-go-critical sonnet path in answer.py stays untouched.
+    Kept in sync by hand; if RulesAgent.answer()'s tail changes, this must
+    be re-copied. cards_present is inferred from the frozen user string
+    (build_prompt() only appends "\\n\\nCard data:\\n" when cards is
+    non-empty) rather than threaded separately, since the prompts-cache
+    stores only the two assembled strings."""
+    msgs: list[dict] = [{"role": "user", "content": user}]
+    parsed, response = None, None
+    weak = None
+    for _attempt in range(2):
+        try:
+            response = client.messages.parse(
+                model=model, max_tokens=16384, system=system, messages=msgs,
+                output_format=Answer,
+            )
+            parsed = response.parsed_output
+        except ValidationError:
+            parsed = None
+        if parsed is not None and _degenerate(parsed):
+            if weak is None or len(parsed.text) > len(weak.text):
+                weak = parsed
+            parsed = None
+        if parsed is not None:
+            break
+    if parsed is None and weak is not None:
+        parsed = weak
+    if parsed is None:
+        stop = response.stop_reason if response is not None else "error"
+        return Answer(
+            text="(no structured answer: the model returned empty output "
+            f"twice, stop_reason={stop} -- try again)",
+            tldr="Something went wrong generating this answer -- try again.",
+            citations=[], answered=False, suggested_followups=[],
+        )
+    if "\n\nCard data:\n" in user:
+        parsed.text = f"{parsed.text}\n\n{ATTRIBUTION}"
+    return parsed
 
 
 def parse_args() -> argparse.Namespace:
@@ -101,6 +158,17 @@ def parse_args() -> argparse.Namespace:
         help="which of the two independent generation runs this is (1 or 2), stamped into "
         "each output row's 'run' field for provenance -- purely informational",
     )
+    p.add_argument(
+        "--prompts-cache", type=Path, default=None,
+        help="path to a JSON {qid: {system, user}} prompt cache built by "
+        "evals/run_openrouter_arm.py --assemble-only. When given, every question's "
+        "assembled prompt is READ from this file (via _answer_from_frozen_prompt(), "
+        "bypassing RulesAgent's own retrieval/assembly) instead of calling agent.answer() "
+        "fresh -- required for genuine cross-arm byte-identity with the OpenRouter arms "
+        "sharing the same cache. Rows generated this way carry empty rewrite_queries/"
+        "clarification (RulesAgent never ran its rewrite step) -- an honest gap, same "
+        "treatment build_arm_review.py already gives the non-native OpenRouter rows.",
+    )
     return p.parse_args()
 
 
@@ -132,6 +200,22 @@ def main() -> None:
         card_no_refresh=True,
     )
 
+    prompts_cache = None
+    if args.prompts_cache is not None:
+        if not args.prompts_cache.exists():
+            print(f"[ERROR] --prompts-cache {args.prompts_cache} does not exist -- "
+                  f"build it first with evals/run_openrouter_arm.py --assemble-only")
+            return
+        cached = json.loads(args.prompts_cache.read_text(encoding="utf-8"))
+        if cached["rewrite_version"] != args.rewrite_version or cached["ruling_query_mode"] != args.ruling_query_mode:
+            print(f"[ERROR] --prompts-cache {args.prompts_cache} was built with "
+                  f"rewrite_version={cached['rewrite_version']!r}/ruling_query_mode="
+                  f"{cached['ruling_query_mode']!r}, but this run asked for "
+                  f"rewrite_version={args.rewrite_version!r}/ruling_query_mode="
+                  f"{args.ruling_query_mode!r} -- refusing to silently mix configs")
+            return
+        prompts_cache = cached["prompts"]
+
     questions = load_questions(args.questions)
     answer_gold = load_answer_gold(args.questions)
     if args.limit is not None:
@@ -141,6 +225,7 @@ def main() -> None:
         f"| rewrite={args.rewrite} | show_rewrite={args.show_rewrite} "
         f"| rewrite_version={args.rewrite_version} | ruling_query_mode={args.ruling_query_mode} "
         f"| condition={args.condition} | run={args.run} "
+        f"| prompts_cache={args.prompts_cache} "
         f"| questions={args.questions.name}\n"
     )
 
@@ -148,8 +233,18 @@ def main() -> None:
     start = time.time()
     for i, q in enumerate(questions, 1):
         t0 = time.time()
-        ans = agent.answer(q.question)
-        rewritten = agent.last_rewritten  # None when --no-rewrite
+        if prompts_cache is not None:
+            if q.id not in prompts_cache:
+                print(f"[ERROR] question id {q.id!r} not found in {args.prompts_cache} -- "
+                      f"the cache doesn't cover this question set")
+                return
+            ans = _answer_from_frozen_prompt(
+                agent.client, args.model,
+                prompts_cache[q.id]["system"], prompts_cache[q.id]["user"],
+            )
+        else:
+            ans = agent.answer(q.question)
+        rewritten = agent.last_rewritten  # None when --no-rewrite, or when using --prompts-cache
 
         gold_text = {g: chunk_map[g].text for g in q.gold if g in chunk_map}
         cited_text = {c: chunk_map[c].text for c in ans.citations if c in chunk_map}

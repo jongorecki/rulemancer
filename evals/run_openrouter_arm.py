@@ -356,6 +356,26 @@ def parse_args() -> argparse.Namespace:
         help="which of the two independent generation runs this is (1 or 2), stamped into "
         "the output payload's 'run' field for provenance -- purely informational",
     )
+    p.add_argument(
+        "--prompts-cache", type=Path, default=None,
+        help="path to a JSON {qid: {system, user}} prompt cache (see --assemble-only). When "
+        "given on a normal generation run, the assembled prompt is READ from this file "
+        "instead of being re-captured live -- required for genuine cross-arm AND cross-run "
+        "byte-identity, since RulesAgent.answer()'s retrieval step live-embeds the query via "
+        "Voyage on every call with no cache (docs/plan-v3-execution-tasks.md Task 2 found "
+        "this causes real, non-trivial drift -- ~30%% of the 50 eval questions got a "
+        "meaningfully different retrieved-chunk set on a second live capture with identical "
+        "config). The file must already exist (built via --assemble-only) -- a missing id or "
+        "missing file is a loud error, never a silent fall-back to live capture.",
+    )
+    p.add_argument(
+        "--assemble-only", action="store_true",
+        help="build a --prompts-cache file (capturing (system, user) for the FULL combined "
+        "questions.jsonl + cards.jsonl set via _capture_prompt(), under --rewrite-version/"
+        "--ruling-query-mode) and exit -- no --model needed, no generation call. Run this "
+        "ONCE per condition, before the 12 (6 arms x 2 runs) generation invocations that "
+        "share it via --prompts-cache.",
+    )
     p.add_argument("--ruling-query", choices=["raw", "union"], default=None,
                     help="MEASURE ONLY (docs/plan-l1-crossref-expansion.md Part B), does not "
                          "change the shipped default: report, per ruling-bearing cards.jsonl "
@@ -365,9 +385,29 @@ def parse_args() -> argparse.Namespace:
                          "generation loop entirely -- no --model needed, no LLM generation "
                          "call, writes a NEW evals/answers/ruling_query_report_<mode>.json "
                          "rather than touching any existing answers file.")
+    p.add_argument(
+        "--retry-errors", type=Path, default=None,
+        help="path to an EXISTING answers JSON (written by a normal run of this script). "
+        "Re-generates ONLY the rows with a truthy 'error' field -- reads that file's own "
+        "recorded rewrite_version/ruling_query_mode/prompts_cache (no need to pass them "
+        "again), regenerates each errored question, merges the new result back into the "
+        "SAME row (preserving row order and every already-successful row untouched), "
+        "recomputes summary, and writes in place to the same path. Still requires --model "
+        "(the file doesn't record which model produced it in a way this reads back, so "
+        "the caller states it explicitly, same as a normal run). Content-level completeness "
+        "matters more than file presence: a 50/50-row file can still have per-row 'error' "
+        "set from a transient 400/429 -- this is how those get fixed without re-spending "
+        "the whole 50-question cost.",
+    )
     args = p.parse_args()
-    if args.ruling_query is None and args.model is None:
-        p.error("--model is required unless --ruling-query is given")
+    if args.assemble_only:
+        if args.prompts_cache is None:
+            p.error("--assemble-only requires --prompts-cache PATH")
+    elif args.retry_errors is not None:
+        if args.model is None:
+            p.error("--retry-errors requires --model")
+    elif args.ruling_query is None and args.model is None:
+        p.error("--model is required unless --ruling-query or --assemble-only is given")
     return args
 
 
@@ -395,13 +435,108 @@ def main() -> None:
             print(f"  lost indices:   {s['lost_by_union_indices']}")
         return
 
-    out_path = args.out or (ANSWERS_DIR / f"openrouter_{_slug_for(args.model)}.json")
+    if args.retry_errors is not None:
+        # Content-level completeness fix (docs/plan-v3-execution-tasks.md Task
+        # 2): a 50/50-row file can still have per-row 'error' set from a
+        # transient provider 400/429 that outlasted openrouter_backend.py's
+        # own retry budget -- this re-generates ONLY those rows, in place, no
+        # vector store needed (prompts come from the file's own recorded
+        # prompts_cache, not fresh retrieval).
+        path = args.retry_errors
+        if not path.exists():
+            print(f"[ERROR] --retry-errors {path} does not exist")
+            return
+        data = json.loads(path.read_text(encoding="utf-8"))
+        rw_ver, rq_mode = data.get("rewrite_version"), data.get("ruling_query_mode")
+        cache_path_str = data.get("prompts_cache")
+        prompts_cache = None
+        if cache_path_str:
+            cached = json.loads(Path(cache_path_str).read_text(encoding="utf-8"))
+            prompts_cache = cached["prompts"]
+        results = data["results"]
+        by_id = {r["id"]: i for i, r in enumerate(results)}
+        err_ids = [r["id"] for r in results if r.get("error")]
+        print(f"Retrying {len(err_ids)} errored rows in {path} | model={args.model} "
+              f"| rewrite_version={rw_ver} | ruling_query_mode={rq_mode} "
+              f"| prompts_cache={cache_path_str}\n")
+        for i, qid in enumerate(err_ids, 1):
+            t0 = time.time()
+            question = results[by_id[qid]]["question"]
+            if prompts_cache is not None and qid in prompts_cache:
+                system, user = prompts_cache[qid]["system"], prompts_cache[qid]["user"]
+            else:
+                print(f"[ERROR] {qid} not found in prompts cache {cache_path_str} -- skipping")
+                continue
+            result = openrouter_backend.generate(system, user, args.model)
+            results[by_id[qid]] = _answer_row(qid, question, result)
+            status = "ok" if result.answer is not None else f"FAIL ({result.error})"
+            print(f"  [{i}/{len(err_ids)}] {qid} -> {status} ({time.time() - t0:.1f}s)")
+
+        answered = sum(1 for r in results if r["answered"] is True)
+        parse_failures = sum(1 for r in results if r["text"] is None)
+        total_cost = sum((r["usage"] or {}).get("cost", 0) or 0 for r in results)
+        data["summary"] = {
+            "n_questions": len(results), "answered": answered,
+            "parse_failures": parse_failures, "total_cost": total_cost,
+        }
+        path.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
+        remaining = [r["id"] for r in results if r.get("error")]
+        print(f"\nRetried {len(err_ids)} rows -> {path}")
+        print(f"  remaining errors: {len(remaining)} -> {remaining}")
+        return
 
     pkl = PARSED_DIR / f"vector_{VECTOR_MODEL}.pkl"
     if not pkl.exists():
         print(f"[ERROR] no vector index at {pkl.name}; run build_vector_indexes.py")
         return
     store = VectorStore.load(pkl)
+
+    if args.assemble_only:
+        # One retrieval/prompt-assembly pass over the FULL 50-question set
+        # (docs/plan-v3-execution-tasks.md Task 2, brief item 2) -- ignores
+        # --limit/--questions/--cards overrides on purpose, always the full
+        # combined set, so every arm/run sharing this cache answers the same
+        # 50 questions. Always fresh: any pre-existing file at this path is
+        # overwritten, never merged, so a condition's cache can't end up a
+        # stitched-together mix of two different capture sessions.
+        all_q = load_questions(QUESTIONS_PATH) + load_questions(CARDS_PATH)
+        cache: dict[str, dict[str, str]] = {}
+        t0 = time.time()
+        for i, q in enumerate(all_q, 1):
+            system, user = _capture_prompt(store, q.question, rewrite_version=args.rewrite_version,
+                                           ruling_query_mode=args.ruling_query_mode)
+            cache[q.id] = {"system": system, "user": user}
+            print(f"  [{i}/{len(all_q)}] {q.id} assembled")
+        args.prompts_cache.parent.mkdir(parents=True, exist_ok=True)
+        with open(args.prompts_cache, "w", encoding="utf-8") as f:
+            json.dump({
+                "rewrite_version": args.rewrite_version,
+                "ruling_query_mode": args.ruling_query_mode,
+                "n_questions": len(all_q),
+                "prompts": cache,
+            }, f, indent=2, ensure_ascii=False)
+        print(f"\nAssembled {len(all_q)} prompts (rewrite_version={args.rewrite_version}, "
+              f"ruling_query_mode={args.ruling_query_mode}) -> {args.prompts_cache} "
+              f"in {time.time() - t0:.1f}s")
+        return
+
+    out_path = args.out or (ANSWERS_DIR / f"openrouter_{_slug_for(args.model)}.json")
+
+    prompts_cache = None
+    if args.prompts_cache is not None:
+        if not args.prompts_cache.exists():
+            print(f"[ERROR] --prompts-cache {args.prompts_cache} does not exist -- "
+                  f"build it first with --assemble-only")
+            return
+        cached = json.loads(args.prompts_cache.read_text(encoding="utf-8"))
+        if cached["rewrite_version"] != args.rewrite_version or cached["ruling_query_mode"] != args.ruling_query_mode:
+            print(f"[ERROR] --prompts-cache {args.prompts_cache} was built with "
+                  f"rewrite_version={cached['rewrite_version']!r}/ruling_query_mode="
+                  f"{cached['ruling_query_mode']!r}, but this run asked for "
+                  f"rewrite_version={args.rewrite_version!r}/ruling_query_mode="
+                  f"{args.ruling_query_mode!r} -- refusing to silently mix configs")
+            return
+        prompts_cache = cached["prompts"]
 
     questions = load_questions(args.questions) + load_questions(args.cards)
     if args.limit is not None:
@@ -410,15 +545,23 @@ def main() -> None:
     print(
         f"Generating {len(questions)} answers | model={args.model} | out={out_path} "
         f"| rewrite_version={args.rewrite_version} | ruling_query_mode={args.ruling_query_mode} "
-        f"| condition={args.condition} | run={args.run}\n"
+        f"| condition={args.condition} | run={args.run} "
+        f"| prompts_cache={args.prompts_cache}\n"
     )
 
     results = []
     start = time.time()
     for i, q in enumerate(questions, 1):
         t0 = time.time()
-        system, user = _capture_prompt(store, q.question, rewrite_version=args.rewrite_version,
-                                       ruling_query_mode=args.ruling_query_mode)
+        if prompts_cache is not None:
+            if q.id not in prompts_cache:
+                print(f"[ERROR] question id {q.id!r} not found in {args.prompts_cache} -- "
+                      f"the cache doesn't cover this question set")
+                return
+            system, user = prompts_cache[q.id]["system"], prompts_cache[q.id]["user"]
+        else:
+            system, user = _capture_prompt(store, q.question, rewrite_version=args.rewrite_version,
+                                           ruling_query_mode=args.ruling_query_mode)
         result = openrouter_backend.generate(system, user, args.model)
         results.append(_answer_row(q.id, q.question, result))
         status = "ok" if result.answer is not None else f"FAIL ({result.error})"
@@ -441,6 +584,7 @@ def main() -> None:
         "ruling_query_mode": args.ruling_query_mode,
         "condition": args.condition,
         "run": args.run,
+        "prompts_cache": str(args.prompts_cache) if args.prompts_cache else None,
         "results": results,
         "summary": {
             "n_questions": len(results),
