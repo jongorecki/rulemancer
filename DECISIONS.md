@@ -1313,6 +1313,31 @@ that verdict should move to match this rubric. Also revisit once
 clarify-then-escalate ships: if "disclose or ask" becomes the enforced norm,
 non-disclosure may re-enter the verdict as partial again.
 
+## 2026-07-23 — v3 A/B outcome calls (after Jon graded the 144-row queue)
+
+Graded rollup (correct/50, r1/r2; strict, partial=not-correct), best condition:
+sonnet 46 (flat, 0 flips) · gpt-5-mini 45 (+3, cond C) · v4-pro 45 (+1, cond B)
+· v4-flash 44 (+2, cond C) · v3-2 43 (flat) · gemini 37 (regressed from 38).
+
+- **v3: GO, adopted as the INTERIM production prompt, prompt-v4 to supersede.**
+  Gate 1 clear (sonnet untouched), 3/5 cheap arms up (meets the go criterion).
+  Mixed as predicted: helped mid-tier reasoners (gpt-5-mini +3), overloaded the
+  weakest (gemini -1 to -4). Jon's call: adopt now, but the c014 mana-notation
+  failures v3 did NOT fix make a prompt-v4 clearly next.
+- **Part B ruling-query union: DOES NOT SHIP** (Jon's pre-commit rule D>=C
+  failed). Condition D was worse than C on the best arms (gpt-5-mini 45->43,
+  v4-flash down), better only on gemini. The retrieval-level win (+4 rulings,
+  0 regressions) did not reach generation and actively hurt the lead arm.
+  Union stays available behind its flag, OFF by default.
+- **L2 generator: gpt-5-mini is the lead candidate to replace sonnet** (45 vs
+  46 at ~25-50x cheaper, strong grading notes). PENDING: Jon initially said
+  switch, but on a misread ("both 100%"); real gap is 45/50 vs 46/50. Re-confirm
+  on accurate numbers; if switching, it's a Rule 0 config change (GEN_MODEL ->
+  gpt-5-mini via OpenRouter) with its own plan. Also gated on whether prompt-v4
+  + reasoning-enabled (condition-E) push gpt-5-mini past 46.
+- **2 ungraded rows** (gemini-flash-lite B_r2: c006, c014) still need Jon's
+  verdict; gemini's exact count is provisional until then.
+
 ## 2026-07-23 — Four pre-commitments while grading the v3 A/B queue
 
 **What:** Jon set decision rules before seeing his own graded numbers (grading
