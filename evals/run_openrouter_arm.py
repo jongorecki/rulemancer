@@ -114,15 +114,21 @@ class _RecordingClient:
         raise _Recorded
 
 
-def _capture_prompt(store: VectorStore, question: str) -> tuple[str, str]:
+def _capture_prompt(store: VectorStore, question: str, rewrite_version: str = "v2",
+                    ruling_query_mode: str = "raw") -> tuple[str, str]:
     """tests/test_prompt_identity.py's _capture() helper, verbatim pattern: a
     fresh RulesAgent + fresh recording client per question, so no state leaks
     between calls. Runs retrieval/rewrite/card-enrichment for real (warm
     caches -> no Anthropic call happens during rewrite either) and raises
     _Recorded the instant the generation call would go out. Never touches the
-    Anthropic API -- there is no live client anywhere in this call chain."""
+    Anthropic API -- there is no live client anywhere in this call chain.
+
+    `rewrite_version`/`ruling_query_mode` (prompt-v3 A/B, docs/plan-v3-
+    execution-tasks.md Task 2): threaded straight into RulesAgent so this
+    captures the exact condition-B/C/D prompt, not just the shipped default."""
     client = _RecordingClient()
-    agent = RulesAgent(store, client=client, card_no_refresh=True)
+    agent = RulesAgent(store, client=client, card_no_refresh=True,
+                       rewrite_version=rewrite_version, ruling_query_mode=ruling_query_mode)
     try:
         agent.answer(question)
     except _Recorded:
@@ -184,7 +190,8 @@ def _load_all_questions() -> dict[str, str]:
     return out
 
 
-def run_variance(store: VectorStore, model: str) -> dict:
+def run_variance(store: VectorStore, model: str, rewrite_version: str = "v2",
+                 ruling_query_mode: str = "raw") -> dict:
     """Task 3: for q001/q014/c015, draw VARIANCE_DRAWS answers each from the
     SAME captured prompt and report whether the draws are byte-identical --
     the honest question for any temp=0 arm (temp=0 reduces draw variance, it
@@ -196,7 +203,8 @@ def run_variance(store: VectorStore, model: str) -> dict:
         if question is None:
             out[qid] = {"error": f"question id {qid!r} not found in questions.jsonl/cards.jsonl"}
             continue
-        system, user = _capture_prompt(store, question)
+        system, user = _capture_prompt(store, question, rewrite_version=rewrite_version,
+                                       ruling_query_mode=ruling_query_mode)
         texts = []
         for draw in range(VARIANCE_DRAWS):
             result = openrouter_backend.generate(system, user, model)
@@ -327,6 +335,27 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--variance", action="store_true",
                     help="also run the q001/q014/c015 x3-draw spot-check (Task 3) and store it "
                          "under the 'variance' key of the output JSON")
+    p.add_argument(
+        "--rewrite-version", choices=["v1", "v2"], default="v2",
+        help="rewriter SYSTEM prompt version, threaded into RulesAgent(rewrite_version=...) "
+        "(default: v2 -- the shipped default; prompt-v3 A/B condition B needs v1, docs/"
+        "plan-v3-execution-tasks.md Task 2)",
+    )
+    p.add_argument(
+        "--ruling-query-mode", choices=["raw", "union"], default="raw",
+        help="Part B ruling-query selection mode, threaded into RulesAgent(ruling_query_mode="
+        "...) (default: raw -- the shipped default; prompt-v3 A/B condition D needs union)",
+    )
+    p.add_argument(
+        "--condition", default=None,
+        help="prompt-v3 A/B condition label (e.g. B/C/D), stamped into the output payload's "
+        "'condition' field for provenance -- purely informational, has no effect on the run",
+    )
+    p.add_argument(
+        "--run", type=int, default=None,
+        help="which of the two independent generation runs this is (1 or 2), stamped into "
+        "the output payload's 'run' field for provenance -- purely informational",
+    )
     p.add_argument("--ruling-query", choices=["raw", "union"], default=None,
                     help="MEASURE ONLY (docs/plan-l1-crossref-expansion.md Part B), does not "
                          "change the shipped default: report, per ruling-bearing cards.jsonl "
@@ -378,13 +407,18 @@ def main() -> None:
     if args.limit is not None:
         questions = questions[: args.limit]
 
-    print(f"Generating {len(questions)} answers | model={args.model} | out={out_path}\n")
+    print(
+        f"Generating {len(questions)} answers | model={args.model} | out={out_path} "
+        f"| rewrite_version={args.rewrite_version} | ruling_query_mode={args.ruling_query_mode} "
+        f"| condition={args.condition} | run={args.run}\n"
+    )
 
     results = []
     start = time.time()
     for i, q in enumerate(questions, 1):
         t0 = time.time()
-        system, user = _capture_prompt(store, q.question)
+        system, user = _capture_prompt(store, q.question, rewrite_version=args.rewrite_version,
+                                       ruling_query_mode=args.ruling_query_mode)
         result = openrouter_backend.generate(system, user, args.model)
         results.append(_answer_row(q.id, q.question, result))
         status = "ok" if result.answer is not None else f"FAIL ({result.error})"
@@ -397,11 +431,16 @@ def main() -> None:
     variance = None
     if args.variance:
         print("\nVariance spot-check (q001/q014/c015, 3 draws each):")
-        variance = run_variance(store, args.model)
+        variance = run_variance(store, args.model, rewrite_version=args.rewrite_version,
+                                ruling_query_mode=args.ruling_query_mode)
 
     out_path.parent.mkdir(parents=True, exist_ok=True)
     payload = {
         "model": args.model,
+        "rewrite_version": args.rewrite_version,
+        "ruling_query_mode": args.ruling_query_mode,
+        "condition": args.condition,
+        "run": args.run,
         "results": results,
         "summary": {
             "n_questions": len(results),

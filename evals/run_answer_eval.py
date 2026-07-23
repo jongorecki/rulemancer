@@ -80,6 +80,27 @@ def parse_args() -> argparse.Namespace:
         "--limit", type=int, default=None,
         help="answer only the first N questions (default: all) -- for cheap smoke slices",
     )
+    p.add_argument(
+        "--rewrite-version", choices=["v1", "v2"], default="v2",
+        help="rewriter SYSTEM prompt version, threaded into RulesAgent(rewrite_version=...) "
+        "(default: v2 -- the shipped default; prompt-v3 A/B condition B needs v1, docs/"
+        "plan-v3-execution-tasks.md Task 2)",
+    )
+    p.add_argument(
+        "--ruling-query-mode", choices=["raw", "union"], default="raw",
+        help="Part B ruling-query selection mode, threaded into RulesAgent(ruling_query_mode="
+        "...) (default: raw -- the shipped default; prompt-v3 A/B condition D needs union)",
+    )
+    p.add_argument(
+        "--condition", default=None,
+        help="prompt-v3 A/B condition label (e.g. B/C/D), stamped into each output row's "
+        "'condition' field for provenance -- purely informational, has no effect on the run",
+    )
+    p.add_argument(
+        "--run", type=int, default=None,
+        help="which of the two independent generation runs this is (1 or 2), stamped into "
+        "each output row's 'run' field for provenance -- purely informational",
+    )
     return p.parse_args()
 
 
@@ -95,7 +116,21 @@ def main() -> None:
         print(f"[ERROR] no vector index at {pkl.name}; run build_vector_indexes.py")
         return
     store = VectorStore.load(pkl)
-    agent = RulesAgent(store, model=args.model, rewrite=args.rewrite, show_rewrite=args.show_rewrite)
+    agent = RulesAgent(
+        store, model=args.model, rewrite=args.rewrite, show_rewrite=args.show_rewrite,
+        rewrite_version=args.rewrite_version, ruling_query_mode=args.ruling_query_mode,
+        # card_no_refresh=True: eval-reproducibility freeze mode (plan #3b) --
+        # use any cached Scryfall entry regardless of TTL age. Previously
+        # unset (defaulted False) on this native-sonnet path while
+        # run_openrouter_arm.py's _capture_prompt() already set it True for
+        # every OpenRouter arm -- an inconsistency that could let a card's
+        # oracle text/rulings drift (a live TTL refresh) between the sonnet
+        # arm's prompt and every other arm's prompt for the identical
+        # question, undermining the cross-arm byte-identity guarantee the
+        # prompt-v3 A/B depends on. Set here so all six arms read cards from
+        # the same frozen cache during the A/B.
+        card_no_refresh=True,
+    )
 
     questions = load_questions(args.questions)
     answer_gold = load_answer_gold(args.questions)
@@ -104,6 +139,8 @@ def main() -> None:
     print(
         f"Generating {len(questions)} answers | model={args.model} "
         f"| rewrite={args.rewrite} | show_rewrite={args.show_rewrite} "
+        f"| rewrite_version={args.rewrite_version} | ruling_query_mode={args.ruling_query_mode} "
+        f"| condition={args.condition} | run={args.run} "
         f"| questions={args.questions.name}\n"
     )
 
@@ -123,6 +160,10 @@ def main() -> None:
             "match": q.match,
             "kind": q.kind,
             "show_rewrite": args.show_rewrite,
+            "rewrite_version": args.rewrite_version,
+            "ruling_query_mode": args.ruling_query_mode,
+            "condition": args.condition,
+            "run": args.run,
             "answered": ans.answered,
             "answer": ans.text,
             "citations": ans.citations,
