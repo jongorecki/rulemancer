@@ -1313,6 +1313,35 @@ that verdict should move to match this rubric. Also revisit once
 clarify-then-escalate ships: if "disclose or ask" becomes the enforced norm,
 non-disclosure may re-enter the verdict as partial again.
 
+## 2026-07-23 — Four pre-commitments while grading the v3 A/B queue
+
+**What:** Jon set decision rules before seeing his own graded numbers (grading
+was in progress), so the rules can't be bent to fit the results:
+1. **Groundedness tripwire: signed off, not a no-go** — 5 questions / 7
+   instances / <1%, scattered, not the 1c-multiplayer spike the rule was
+   written for. PLUS a follow-up slice queued: read the 7 answers,
+   determine whether a prompt tweak or a post-hoc citation filter could
+   zero them out (mini-plan needed, Rule 0).
+2. **Part B union ships if D ≥ C on graded correct-counts** (retrieval-level
+   already proven: +4 load-bearing rulings, 0 regressions). Watch item: if
+   D < C specifically on deepseek-v4-pro (its 13 unstable D-flips), discuss
+   instead of auto-shipping.
+3. **L2 generator decided from the v3 table:** best cheap arm within 1-2
+   correct of sonnet's 46 → Jon reviews the actual flipped answers and
+   decides if the gap is livable at ~25-50x cheaper; gap ≥3 → sonnet stays
+   pinned. Final call Jon's either way.
+4. **SSO timing: OIDC slice next** (after the v3/Part B/L2 calls settle,
+   ahead of local-bulk and deploy; localhost callbacks). SAML + Jon-driven
+   breakage lab after L5 deploy when real URLs exist.
+**Why:** Pre-committing decision rules before data arrives is the same
+discipline as the frozen judge — it keeps the experimenter honest. SSO
+ordering favors resume timing (Jon is actively applying) at zero technical
+cost since OIDC needs no deployed URL.
+**What would change my mind:** Grading results that surprise in a way the
+rules didn't anticipate (e.g., D ≥ C overall but a quality cliff visible in
+the flipped answers themselves) — the rules route the default, Jon can
+always override with reasons on the record.
+
 ## 2026-07-23 — Scryfall data licensing: signed off for the public deploy
 
 **What:** Jon reviewed Scryfall's API usage policy (the Wizards Fan Content
