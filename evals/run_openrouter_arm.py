@@ -389,12 +389,12 @@ def parse_args() -> argparse.Namespace:
         "--retry-errors", type=Path, default=None,
         help="path to an EXISTING answers JSON (written by a normal run of this script). "
         "Re-generates ONLY the rows with a truthy 'error' field -- reads that file's own "
-        "recorded rewrite_version/ruling_query_mode/prompts_cache (no need to pass them "
+        "recorded model/rewrite_version/ruling_query_mode/prompts_cache (no need to pass them "
         "again), regenerates each errored question, merges the new result back into the "
         "SAME row (preserving row order and every already-successful row untouched), "
         "recomputes summary, and writes in place to the same path. Still requires --model "
-        "(the file doesn't record which model produced it in a way this reads back, so "
-        "the caller states it explicitly, same as a normal run). Content-level completeness "
+        "argument, which must match the model recorded in the file to prevent accidentally "
+        "mixing different models' answers. Content-level completeness "
         "matters more than file presence: a 50/50-row file can still have per-row 'error' "
         "set from a transient 400/429 -- this is how those get fixed without re-spending "
         "the whole 50-question cost.",
@@ -447,6 +447,13 @@ def main() -> None:
             print(f"[ERROR] --retry-errors {path} does not exist")
             return
         data = json.loads(path.read_text(encoding="utf-8"))
+        # Guard: model in the file must match the --model argument, to prevent
+        # accidentally splicing a different model's answers into the results.
+        if data.get("model") and data["model"] != args.model:
+            print(f"[ERROR] --retry-errors {path} was generated with model={data['model']!r}, "
+                  f"but this invocation passed --model={args.model!r} -- refusing to silently "
+                  f"mix models")
+            return
         rw_ver, rq_mode = data.get("rewrite_version"), data.get("ruling_query_mode")
         cache_path_str = data.get("prompts_cache")
         prompts_cache = None
