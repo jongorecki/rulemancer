@@ -1312,3 +1312,21 @@ count movement on these two arms.
 that verdict should move to match this rubric. Also revisit once
 clarify-then-escalate ships: if "disclose or ask" becomes the enforced norm,
 non-disclosure may re-enter the verdict as partial again.
+
+## 2026-07-23 — Scryfall data licensing: signed off for the public deploy
+
+**What:** Jon reviewed Scryfall's API usage policy (the Wizards Fan Content
+Policy pass-through: no "simply repackag[ing], republish[ing], or proxy[ing]"
+— software "must create additional value for end-users") and ruled Rulemancer
+compliant for the future public Fly.io deploy that will carry the local bulk
+snapshot (docs/plan-scryfall-local-bulk.md).
+**Why (Jon's words):** "we aren't just serving their data, we're using it as
+a reference source to answer questions directly, which their site doesn't do
+— that's additional value for sure."
+**Alternatives considered:** deferring the call to the deploy slice (the
+plan's original checkpoint design); seeking an outside/legal opinion
+(disproportionate for a fan project under the Fan Content Policy).
+**What would change my mind:** Scryfall revising their policy wording;
+Scryfall or Wizards objecting directly; the product's shape changing into
+something closer to a card-database mirror (e.g., a card-lookup feature that
+just re-serves oracle text without the rules-answering layer).

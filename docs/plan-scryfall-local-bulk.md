@@ -1,10 +1,16 @@
-# Plan — Scryfall local bulk snapshot (replaces live lookups) (DRAFT, pending Jon's review)
+# Plan — Scryfall local bulk snapshot (replaces live lookups)
 
-**Jon's rulings so far (2026-07-23):**
+**APPROVED by Jon 2026-07-23 — all open questions ruled. Sequencing still
+binds: implementation starts only after the prompt-v3 A/B concludes.**
+
+**Jon's rulings (2026-07-23):**
 - **Fuzzy threshold: start at 90**, with the explicit expectation it gets tuned against real queries.
 - **Ambiguity guard: ship it, but measure how often it fires.** Jon's hypothesis: near-ties will be rare enough that forced test scenarios are needed to exercise it at all. So every guard trigger gets logged/counted (same debug surface as fuzzy fallbacks), and the TDD suite's forced near-tie case (§7 test 5) is the primary exercise path. Revisit the margin only if real-world data shows it firing.
 - **Calendar window: refresh starting 8 days before each set's `released_at` through 21 days after.** Grounding (Jon): prerelease is 7 days before the release date, and all cards are spoiled by prerelease — so day −8 catches the full spoiler set with a day of margin.
-- Still open: `no_refresh` keep-vs-remove, admin endpoint shape, licensing sign-off (see Open questions).
+- **`no_refresh`: keep as a documented no-op** for zero call-site churn; delete in a later cleanup slice.
+- **Admin refresh endpoint: background task + status poll** (`POST /admin/scryfall/refresh` returns immediately; `GET /admin/scryfall/status` to check), `ADMIN_TOKEN` env-var pattern approved.
+- **Licensing: SIGNED OFF for the public deploy.** Jon reviewed Scryfall's policy directly and ruled: "we aren't just serving their data, we're using it as a reference source to answer questions directly, which their site doesn't do — that's additional value." Recorded in DECISIONS.md; the pre-deploy checkpoint in §8's risk table is satisfied.
+- Fuzzy threshold/window numbers remain tunable post-ship as noted above.
 
 Working Rule 0 artifact. No build until Jon signs off. **Sequencing: do NOT
 start this until the prompt-v3 A/B (docs/plan-prompt-tuning.md §4, queued as
