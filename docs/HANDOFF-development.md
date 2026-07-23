@@ -1,185 +1,140 @@
-# Handoff — Rulemancer: model lab, demo polish, road to public deploy (supersedes the prior handoff; git has the old one)
+# Handoff — Rulemancer: post-lab, prompt-v3 decision pending (supersedes the prior handoff; git has the old one)
 
 You are picking up **Rulemancer** (package `rulesagent`): a RAG agent over the
-MTG Comprehensive Rules with a per-card rulings mini-RAG, a FastAPI backend,
-and a shipped chat frontend. Repo: `D:\Job_hunt\mtg-rules-bot`. It's a
-job-hunt proof-of-work (applied AI / RAG) — **articulation beats polish**:
-every decision must be explainable cold. End goal now in scope: a public demo
-on Fly.io anyone can use from a link.
+MTG Comprehensive Rules with a per-card rulings mini-RAG, FastAPI backend,
+shipped chat frontend. Repo: `D:\Job_hunt\mtg-rules-bot`. Job-hunt
+proof-of-work (applied AI / RAG) — **articulation beats polish**: every
+decision must be explainable cold. End goal: public demo on Fly.io.
 
 ## Read these FIRST (source of truth, not this summary)
 
-- `DESIGN.md` — build plan and **Working Rule 0: plan before code**. No
-  implementation (yours, Jon's, or a subagent's) until a written plan for the
-  slice exists and Jon has reviewed it.
-- `DECISIONS.md` — every non-obvious decision with reasoning. Read all of it.
-- `LOG.md` — raw build log. (2026-07-22 entries may lag the commits — git log
-  for the real trail.)
-- `docs/plan-limitations-and-deploy.md` — THE ROADMAP (L1-L8: every known
-  limitation with its approved fix, Fly.io deploy track, the L8 batch spec).
-- `docs/plan-openrouter-models.md` — the model lab (generation A/B + judge).
-- `docs/plan-rulesguru-import.md` — the 150-question external eval set.
-- `docs/API.md` + `docs/openapi.json` — backend contract (pre-L8; the spec
-  export needs a refresh, it lacks tldr/followups/request_id/feedback).
+- `DESIGN.md` — build plan and **Working Rule 0: plan before code.** No
+  implementation until a written plan exists and Jon has reviewed it.
+- `DECISIONS.md` — every non-obvious decision with reasoning.
+- `LOG.md` — raw build log (2026-07-22 has two big entries; git log is the
+  full trail).
+- `docs/plan-prompt-tuning.md` — **THE PENDING DECISION** (see Queue #1).
+- `docs/plan-limitations-and-deploy.md` — the roadmap (L1-L8 + Fly.io track).
+- `docs/feature-ideas.md` — Jon's approved feature shortlist + evidence.
+- `docs/competitive-landscape.md` — six-bot teardown, README positioning raw
+  material.
+- `.superpowers/sdd/progress.md` — session ledger (task/commit/review trail).
 
 ## How Jon works (respect these)
 
 - **Rule 0: plan before code.** Write the plan, get his review, THEN build.
-- **Token economy:** Opus orchestrates/scopes/judges; Sonnet implements
-  against an approved spec; Haiku for bulk. Subagent delegation is Jon's
-  standing preference for scoped implementation work.
+- **Token economy:** Opus orchestrates/judges; Sonnet implements against
+  approved specs (subagent-driven: fresh implementer -> fresh-context
+  reviewer -> fix loop, evidence not assertions); Haiku for mechanical
+  fixes; Fable ONLY for the hardest design work with Jon's explicit OK
+  (used once: the prompt-tuning plan).
 - **Do-not-delegate:** eval questions, gold, grading criteria, reading
-  failures are Jon's. The RulesGuru auto-judge extends his reach; it does
-  not replace his ownership of "what counts as correct."
-- **Commit per slice**; end commit messages with the Co-Authored-By line.
-- **NEVER assert an MTG or model fact from memory.** Ground in the CR,
-  Scryfall, or a live check. This has burned confident claims repeatedly
-  (Tibalt-cascade is the flagship story — it's in the draft README).
-- **Verify UI by PIXELS.** DOM metrics pass while pixels are broken (the
-  wordmark symbol/use bug proved it). Screenshots at 375/768/1280 in BOTH
-  themes, or say plainly it is unverified. Jon's screen is the final gate.
-- **SINGLE WRITER RULE:** never run two generation/cache-writing processes
-  at once — Jon sometimes has parallel Claude sessions in this repo (one
-  imported RulesGuru today while this session ran the lab; a transient
-  rewrite-cache EOFError was observed THREE times). Whole-file caches
-  corrupt. Check `git status` for another session's live edits before
-  running anything that generates or writes caches. L3 (SQLite) fixes this
-  properly and is the next major slice.
+  failures are Jon's. The transitive-grading pipeline extends his reach
+  (judge routes same/different; his verdicts transfer); it never grades.
+- **Judge instrument is FROZEN:** judge_bakeoff's prompt + gpt-5-mini
+  (95% agreement, 0/21 live audit errors). Rewording it invalidates the
+  bakeoff AND the transitive pipeline. Do not touch.
+- **Commit per slice** on master; end commit messages with the
+  Co-Authored-By line. **Verify UI by PIXELS** (screenshots; Jon's screen
+  is final — browser pane can't resize, so 375/768 checks are his).
+- **SINGLE-WRITER RULE IS RETIRED** (L3 shipped): caches are SQLite/WAL,
+  concurrent eval runs + server are safe. Still check `git status` for a
+  parallel session's edits before implementing (two sessions collided on
+  L3 and converged by luck).
+- **NEVER assert an MTG or model fact from memory.** Ground in CR/Scryfall/
+  live check. Model pricing: never from memory (claude-api skill).
 
-## Current state (commits through `a1df551` + `a27c4e0`; git log is the trail)
+## State (all of 2026-07-22; commits through ~075d3f6+ — git log is the trail)
 
-- **Engine:** pure vector voyage-4-large over 3,617 chunks; always-on Haiku
-  rewriter (temp=0); generation claude-sonnet-5 pinned, top-15, structured
-  Answer{text, tldr, citations, answered, suggested_followups}. Multi-turn:
-  history as a transcript INSIDE the single user message (real prose turns
-  destabilized structured output ~50% -> fixed, 5/5) + degenerate-draw retry.
-- **PROMPT_VERSION = 2** (constant in generate/answer.py): tldr,
-  suggested_followups, rulings labeled "[Card Name ruling #N]" (original
-  Scryfall index, both mini-RAG and dump paths) and cited by that label.
-  Bump the constant on ANY prompt/schema change and note it there.
-- **prompt build:** `build_prompt()` extracted, byte-identity guarded by
-  tests/fixtures/prompt_identity.json + tests/test_prompt_identity.py.
-  Intended prompt changes = regenerate the fixture (capture script pattern
-  is in the test file; c015's retrieval wobbles at a boundary rank —
-  the test asserts only what assembly owns).
-- **API:** /answer returns tldr, suggested_followups, request_id; appends
-  to data/logs/queries.jsonl (model + PROMPT_VERSION + latency stamped);
-  POST /feedback (up/down + optional note) -> feedback.jsonl. index.html
-  served Cache-Control: no-cache (stale-page class of bugs closed).
-- **Frontend:** Simple/Full tabs (Simple=tldr default; pre-upgrade saves
-  degrade gracefully), follow-up pills that submit, thumbs feedback wired
-  to /feedback, chat bubbles (user accent-tinted right, bot bordered
-  bubble), fluid inline wordmark (NO symbol/use — it clip-rendered),
-  overlay flyout under 720px, static capability pills flattened to text.
-  **Jon has NOT yet visually confirmed the responsive pass** — the browser
-  pane's screenshot compositor died mid-verification (4 real screenshots +
-  DOM assertions exist; his refresh is the final check).
-- **OpenRouter lab (docs/plan-openrouter-models.md):**
-  `generate/openrouter_backend.py` (pinned model, allow_fallbacks:false,
-  temp=0+seed=42 where accepted — gpt-5-mini rejects temperature — strict
-  Answer json_schema, served model/provider/cost recorded).
-  `evals/run_openrouter_arm.py` (--model/--questions/--variance; captures
-  the byte-identical prompt via a recording fake client, zero Anthropic
-  calls). `evals/judge_agreement.py` (any OR model vs stored sonnet
-  verdicts). **Outside judge DECIDED: gpt-5-mini at 95% agreement**
-  (judge_bakeoff.py, commit 538cc5f).
-- **Arms in flight:** a background run of 5 arms x (full 50-question set +
-  variance 3x3) was launched 2026-07-22 (~an hour): deepseek-v4-pro,
-  deepseek-v4-flash, deepseek-v3.2, gemini-2.5-flash-lite, gpt-5-mini.
-  Outputs: evals/answers/openrouter_<slug>.json + variance_<slug>.json.
-  **CHECK COMPLETENESS FIRST** (50 rows/arm; v4-flash upstream 429s are
-  expected as honest error rows — the backend is single-shot no-retry;
-  re-run failed questions if needed). Known already: v4-flash shows
-  draw variance even at temp=0+seed — temp-0 determinism is NOT a given;
-  the variance reports are decision data, not a formality.
-- **RulesGuru set (other session, commit a27c4e0):** evals/rulesguru.jsonl,
-  150 questions, human gold answers + citation gold; fetch script;
-  judge_rulesguru.py auto-judges via gpt-5-mini; run_eval --match-both
-  (any 40% vs all 16% @5 best-arm — a much harder set). Smoke: 2 real bot
-  errors in 5.
-- **Packaging done:** MIT LICENSE (+WotC/Scryfall notices), uv.lock
-  committed, SVG wordmark (Citadel TTF removed — donationware, no
-  redistribution), name standardized Rulemancer, branding/ committed,
-  Makefile targets real, index builder defaults to voyage-4-large only.
-  **README.md drafted but deliberately UNCOMMITTED** — twice voice-tuned
-  (Claude-tell research applied: no kickers, no negative parallelism, no
-  bold-led lists); it waits to absorb the lab table + demo link.
+- **L3 SQLite caches SHIPPED** (09683fc + 9127491 review fixes): five
+  whole-file caches -> data/cache.db (WAL, per-op conns), queries/feedback
+  JSONL -> tables, telemetry logs on failure. 6/6 gates incl. byte-identical
+  retrieval eval. Deploy blocker #1 cleared.
+- **L1 cross-refs SHIPPED** (92fa295..30ac5db): mechanism correct + tested
+  (18 TDD tests), organic ranks untouched, last_crossref debug field.
+  HONEST NULL RESULT: none of q016/c011/q029 were retrieval gaps (gold was
+  already in pool) — generation is the quality frontier. Part B
+  (--ruling-query union) MEASURED: 16/25 -> 20/25 load-bearing rulings,
+  0 regressions, ships only on Jon's call.
+- **Ticker slice** (36f0994): sequential 13-phase turn walk, 2500ms; new
+  homepage example (trample+deathtouch). q001 identity flake fixed
+  (80d02c7, frozen-store double, 5x green).
+- **Six-arm HUMAN-GRADED table** (the L2 evidence, final):
+  sonnet-v2 45/50 · v3.2 43 · v4-pro 43 · v4-flash 42 · gpt-5-mini 42 ·
+  gemini 38 (10 wrong — stable-but-wrong). All arms answered from
+  byte-identical prompts, so gaps are pure generation. Mechanical
+  citation-proxy MISLED on extremes (gpt-5-mini underrated, gemini
+  overrated) — proxy is triage only, cards are invisible to it (gold=[]).
+- **Transitive grading pipeline SHIPPED** (819bbc7, ae5d5d8, b4deac2;
+  review approved): evals/judge_arm_pairs.py routes pairs vs Jon's graded
+  reference; 250 -> 56 hand-grades (78% cut); audit 0/21 errors.
+  Roll-up: manual wins; >10% audit disagreement = arm falls back manual.
+  Adapter evals/build_arm_review.py; combined queue
+  evals/build_combined_diff.py (--split fans a combined export back out).
+  All verdicts committed: evals/verdicts_*_{manual,final}.json (075d3f6).
+- **Sonnet cost estimated** (not measured): ~$0.55-0.85 per 50-run
+  (~129k in / ~28k out at $3/$15; tokenizer + adaptive-thinking
+  uncertainty). = ~25x v3.2, ~50x v4-flash. Decision dashboard:
+  data/parsed/l2-model-decision.html (gitignored, rebuildable from the
+  committed verdict files if needed).
+- **Fable prompt-tuning plan WRITTEN** (docs/plan-prompt-tuning.md, DRAFT):
+  6 surgical system-prompt bullets (~520 tok; F1 card-role, F2 mana
+  semantics, F4 multiplayer, F5 assumptions, F7 card-text-overrides,
+  F3/F6 clarity) + 2 rewriter bullets + Jon's oracle-text-to-rewriter
+  pass-through as its OWN section (structurally sound; cards already
+  resolve before rewrite in current code; needs cache-key fingerprint;
+  NEW risk: Haiku role-drift; recommended as separate flag/version).
+  Predicted flips: 3x c002, 3x c014, 2x c004, v4-flash:c016 (highest
+  conf), 3x q014 (hedged). Riskiest: multiplayer bullet vs groundedness
+  rule. c012 finding: NO multi-card bug in build_prompt — suspect
+  get_card() fuzzy-match or stale scryfall cache entry (fresh tracing
+  session needed).
+- **Feature shortlist approved** (docs/feature-ideas.md): clarify-then-
+  escalate (#1, WotC-patent-validated), legality chip, misconceptions
+  gallery, permalinks (post-L3), CR-gap flag, donate link, CR auto-update
+  pipeline (#8, gated blue-green design). Rewriter's `clarification` =
+  rules-talk translation, NOT a clarifying question.
 
-## THE QUEUE (priority order — REORDERED by Jon 2026-07-22: L3 first)
+## THE QUEUE (priority order)
 
-0. **L3 SQLite caches is the FIRST implementation task** (Jon's pivot; the
-   approved plan is plan-limitations-and-deploy.md L3): all four whole-file
-   caches (scryfall, rewrite, ruling_emb, query_emb) -> one stdlib sqlite3
-   db, WAL mode, per-cache tables, same public function signatures, a
-   migration script that preserves every entry (count + spot-check), plus
-   migrating the queries/feedback JSONL stubs to tables. Then the API lock
-   becomes a cost knob, concurrent sessions stop corrupting caches, and the
-   Fly.io volume story is one file. "Other features" from the deploy track
-   may ride along at Jon's direction (streaming, guards, Dockerfile — each
-   already planned in L5).
-
-0b. **Arm-run state + the reruns Jon fires himself afterward:** the 5-arm
-   run COMPLETED (results + costs in evals/answers/, summarized in the
-   session log); v4-pro/v3.2/gpt-5-mini data is clean (two full runs each).
-   v4-flash lost 31+27 questions to DeepInfra 429s and gemini-flash-lite
-   8+4 to Google mid-generation aborts — the backend now retries both
-   classes (commit d810287) and the fair-shake reruns are PENDING (a rerun
-   was started then deliberately stopped mid-run to pivot; output files are
-   only written at completion, so the original arm files are intact):
-
-       uv run python evals/run_openrouter_arm.py --model deepseek/deepseek-v4-flash
-       uv run python evals/run_openrouter_arm.py --model deepseek/deepseek-v4-flash --variance --out evals/answers/variance_deepseek-deepseek-v4-flash.json
-       uv run python evals/run_openrouter_arm.py --model google/gemini-2.5-flash-lite
-       uv run python evals/run_openrouter_arm.py --model google/gemini-2.5-flash-lite --variance --out evals/answers/variance_google-gemini-2-5-flash-lite.json
-
-   (Sequential, quiet tree, PYTHONIOENCODING=utf-8. Variance finding so
-   far: temp=0+seed is byte-stable on NO arm — gemini closest at 2/3 —
-   so the L2 decision rests on graded quality vs cost vs reliability.)
-
-1. Then Jon's pending green-light: extend all arms + sonnet over the
-   RulesGuru 150 with auto-judging (~$10 total incl. sonnet) — his
-   hand-grading stays capped at the curated 50.
-2. **Sonnet re-grade arm** on prompt v2 via run_answer_eval.py (current,
-   post-RulesGuru form) — this IS the L4 re-grade.
-3. **Live verification batch** (server restart + quiet tree): L8 smoke
-   (tabs/pills/thumbs -> log rows land), Jon's visual pass on the
-   responsive UI, Grist-thread rewrite mis-anchor check (LOG 2026-07-22
-   thread; fix is committed but unverified live).
-4. **Jon's grading session:** curated 50 x 6 arms in the grading UI
-   (evals/build_grading_ui.py may need a small adapter for arm-output
-   format). Output: L2 generator decision (cost/variance/quality) + L4
-   closed + the README table.
-5. **L3 SQLite caches** (deploy blocker #1; also migrates queries/feedback
-   JSONL stubs to tables). Then **streaming**, **guards** (per-IP rate
-   limit, daily budget breaker, CORS), **Dockerfile**, **Fly.io deploy**
-   (index builds ON the host — a public image with CR text is
-   redistribution; keys as host secrets).
-6. **L1 cross-ref expansion** (multi-hop: follow "see rule X" refs in
-   retrieved chunks, append <=5; then the rewrite-as-ruling-query arm) —
-   parallel-anytime quality slice.
-7. **To-do #9 card display** (hover card images — never Secret Lair unless
-   only printing, most common English; real mana symbols via Scryfall
-   symbology) — pre-deploy polish, needs its own plan.
-8. **README finish**: absorb lab table + RulesGuru numbers + demo link,
-   then the clean-clone "stranger runs it" test, then commit. Also decide
-   branding-preview/ + design-system/ (loose, uncommitted).
+1. **Jon reads docs/plan-prompt-tuning.md and rules on prompt v3.**
+   Controller's recommendation on record: adopt the 6+2 wording bullets as
+   v3, A/B via the existing harness (re-run arms, transitive judge-compare
+   v3 vs v2, hand-grade diffs only); hold oracle-text as its own slice.
+2. **Pending Jon micro-decisions:** c004 partial-flips (rec: flip sonnet +
+   v4-pro c004 -> correct-with-note => 46/44); L2 generator call (sonnet
+   45/50 at ~25x cost vs v3.2 43/50 — may reasonably wait for v3 results);
+   Part B union ship; RulesGuru-150 extension (~$10).
+3. **Code slices needing plans (Rule 0):** q029 empty-answer guard
+   (answered:true + blank text slips _degenerate(); production answer
+   path); c012 Scryfall fuzzy-match/stale-cache tracing.
+4. **Deploy track (L5):** streaming, per-IP rate limit + budget breaker,
+   CORS, Dockerfile, Fly.io (index builds ON host — CR text in a public
+   image is redistribution; keys as secrets). Then feature shortlist +
+   README (absorb the six-arm table + audit story + competitive landscape;
+   draft README exists, deliberately uncommitted).
 
 ## Environment & gotchas
 
-- Python via `uv run`; `.env` has VOYAGE_API_KEY + ANTHROPIC_API_KEY +
-  OPENROUTER_API_KEY. Windows: PYTHONIOENCODING=utf-8 everywhere.
-- **Pinned:** embeddings voyage-4-large; generation claude-sonnet-5 (until
-  the L2 decision); rewriter claude-haiku-4-5; judge gpt-5-mini (bakeoff).
-- **Jon runs run.py on port 8000** — never bind/kill it; test on another
-  port (run.py auto-kills ITS OWN stale instance per-port). Static files
-  hot-serve; Python changes need HIS restart. index.html is no-cache now.
-- Generation runs >120s go in background commands. Eval/gen runs are
-  SEQUENTIAL (single writer rule above).
-- The live answer path embeds queries FRESH (Voyage wobble) — only the
-  eval path has frozen query embeddings. Don't chase phantom retrieval
-  diffs (the identity-test docstrings explain).
-- Browser pane may deny new localhost origins, and its screenshot
-  compositor can die (pane must be visibly displayed to composite) —
-  verify with curl + driving JS, and say when pixels are unverified.
-- doc metadata rule, resume rules, etc. live in D:\Job_hunt\CLAUDE.md
-  (project-wide, applies here too).
+- Python via `uv run` / .venv\Scripts\python.exe; PYTHONIOENCODING=utf-8
+  everywhere; `.env` has VOYAGE/ANTHROPIC/OPENROUTER keys.
+- **Pinned:** voyage-4-large embeddings; generation claude-sonnet-5 (until
+  L2 call); rewriter claude-haiku-4-5; judge gpt-5-mini (FROZEN).
+- **Jon runs run.py on port 8000 — never bind/kill it.** Test elsewhere.
+- Detached background jobs report phantom exit code -1 after completion —
+  read the output log tail, not the code (runs print "... DONE" markers).
+- Browser pane: resize_window claims success but doesn't resize; file://
+  blocked — serve via throwaway `python -m http.server 890x`, kill after.
+- OpenRouter backend retries 429s/truncations (d810287) — first-attempt
+  reliability still differs per model (ops table in the dashboard).
+- evals/answers/ is untracked (big data); verdicts_*.json in evals/ ARE
+  tracked. data/parsed/ is gitignored (generated).
+- Untracked leftovers Jon may keep/delete: README.md (draft, deliberately
+  uncommitted), branding-preview/, design-system/, evals/merge_arm_gap.py
+  (parallel session's tool), sh.exe.stackdump (junk), evals/answers/
+  gap_*.json (junk artifacts of a stopped run).
+- Grading UI: evals/build_grading_ui.py (--in review-format json). Six
+  per-arm HTMLs + grading_all_diff.html in data/parsed/. Exports download
+  as answer_verdicts.json (browser appends " (N)").
+- doc metadata rule, resume rules, token economy live in
+  D:\Job_hunt\CLAUDE.md — applies here too.
