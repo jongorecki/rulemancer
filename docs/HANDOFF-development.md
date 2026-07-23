@@ -96,6 +96,16 @@ decision must be explainable cold. End goal: public demo on Fly.io.
 - **Pending Jon after Task 3**: grade the stable-flip queue; v3 go/no-go;
   Part B ship call (D vs C); L2 generator call; RulesGuru-150 (ruled: after
   this A/B).
+- **SSO track ADDED (Jon, 2026-07-23; spec: TODO-SSO.md, committed):**
+  OIDC (Authlib) then SAML vs Okta + Entra dev tenants, breakage lab +
+  writeup. Resume-driven. Integration decisions on record: SSO never gates
+  the anonymous public demo; its first protected surface is the local-bulk
+  admin refresh endpoint (upgrades the ADMIN_TOKEN design); the breakage
+  lab is JON-DRIVEN (delegating it defeats its interview purpose — same
+  principle as grading). Sequencing: Jon chooses OIDC-before-deploy
+  (localhost callbacks work with both IdPs; resume-urgent) vs whole track
+  after L5 — not yet ruled. Each slice gets its own Rule 0 plan; auth =
+  high-risk area (strongest-model review).
 
 ## State (all of 2026-07-22; commits through ~075d3f6+ — git log is the trail)
 
