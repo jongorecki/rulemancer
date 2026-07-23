@@ -44,6 +44,59 @@ decision must be explainable cold. End goal: public demo on Fly.io.
 - **NEVER assert an MTG or model fact from memory.** Ground in CR/Scryfall/
   live check. Model pricing: never from memory (claude-api skill).
 
+## State update — 2026-07-23 (READ THIS FIRST; supersedes the 07-22 state below where they conflict)
+
+- **Prompt v3 SHIPPED** (f9a70fe, review approved, verbatim-verified): all
+  six §1 bullets + two §2 rewriter bullets from docs/plan-prompt-tuning.md
+  (APPROVED with amendments — see its header). answer.py PROMPT_VERSION=3;
+  rewrite.py "v2" with **v1 selectable** (rewrite_version param, cache-keyed);
+  Part B union togglable (ruling_query_mode="raw"|"union").
+- **c004 RULED (flipped)**: sonnet + v4-pro c004 partial→correct-with-note.
+  Baselines now sonnet 46/50, v4-pro 44/50 (verdict files updated, notes
+  retained; DECISIONS.md has the rubric meaning). §1d's c004 predicted
+  flips are off the board.
+- **A/B sweep COMPLETE** (Task 2: 9c20ffb, be2a286, 2491c8c, fix b0b9546;
+  review Approved): conditions B (gen-v3+rw-v1+raw), C (v3+v2+raw),
+  D (v3+v2+union) × 2 runs × 6 arms. 1,798/1,800 rows clean; persistent
+  exception gemini-flash-lite D c003 (both runs, provider-side).
+  **CRITICAL DISCOVERY**: retrieval embedding (Voyage) is nondeterministic —
+  30-34% of questions can draw different chunks between captures. Fixed
+  within the A/B by an assemble-once prompt cache
+  (evals/answers/_prompts_{B,C,D}.json; both runs share a capture).
+  Condition A's prompts were never captured → A-vs-new comparisons carry
+  unquantifiable retrieval-draw variance; Task 3 tags affected questions.
+- **Task 3 IN FLIGHT** (judge-compare vs A verdicts via frozen pipeline,
+  stable-flip intersection, groundedness tripwire, Jon's grading queue +
+  evals/report-v3-ab.md). Outputs: evals/judge_pairs_v3ab_*.json.
+- **Opus-grader calibrations DONE** (v1: 22805b2 — API, $3.41, a billing
+  mistake, see below; v2: b0af49b prep + f5968cc results — in-session
+  subagents on Jon's subscription): v1 76.4% / v2 78.3% primary agreement,
+  boundary 83.3%→86.7%, vs frozen-judge bar 95%. VERDICT: Opus is an
+  audit lens, NOT a delegate grader. Card data fixed the coherent-but-wrong
+  class (16 disagreements resolved) but introduced 12 new ones.
+- **BILLING RULE (Jon, 2026-07-23)**: batch Claude-labor (grading,
+  experiments) runs as in-session subagents on Jon's SUBSCRIPTION, never
+  scripted Anthropic API calls; API credits are for the product/eval arms
+  only. (Also in workspace memory.)
+- **Plans APPROVED by Jon 2026-07-23, implementation pending:**
+  - docs/plan-q029-empty-answer-guard.md (BOTH slices + amendment: also
+    FLAG answered:true+zero-citations — surfaced, not retried; skip
+    PROMPT_VERSION bump; broad except with graceful degrade). Unblocked
+    the moment Task 3 lands (generation is done; only judging remains).
+  - docs/plan-scryfall-local-bulk.md (fully ruled: threshold 90 tunable,
+    measure-first ambiguity guard, refresh window −8/+21 days around set
+    release [prerelease = release−7, Jon], no_refresh stays documented
+    no-op, admin = background+status-poll+ADMIN_TOKEN, **Scryfall
+    licensing SIGNED OFF** — DECISIONS.md). Implement AFTER the A/B
+    concludes and its follow-ups settle.
+- **New gotchas**: background bash jobs die at ~1hr (kill-and-resume
+  cycles; runners need resume logic — Task 2's has it). evals/answers/
+  still has no .gitignore entry (discipline-only). gpt-5-mini D r2 +
+  repairs used --retry-errors (now model-guarded).
+- **Pending Jon after Task 3**: grade the stable-flip queue; v3 go/no-go;
+  Part B ship call (D vs C); L2 generator call; RulesGuru-150 (ruled: after
+  this A/B).
+
 ## State (all of 2026-07-22; commits through ~075d3f6+ — git log is the trail)
 
 - **L3 SQLite caches SHIPPED** (09683fc + 9127491 review fixes): five
