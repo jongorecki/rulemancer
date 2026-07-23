@@ -151,6 +151,11 @@ class Debug(BaseModel):
     rewrites: list[str]
     retrieved_rules: list[str]
     selected_ruling_ids: dict
+    unresolved_card_refs: list[dict]  # c012 observability (plan-q029-empty-
+    # answer-guard.md Plan B): every `[bracket]` ref that failed to resolve
+    # this request, {"ref": ..., "reason": "not_found" | "error"} each --
+    # mirrors agent.last_unresolved_refs, read the same way rewrites/
+    # retrieved_rules/selected_ruling_ids already are.
 
 
 class AnswerResponse(BaseModel):
@@ -279,6 +284,7 @@ def answer(req: AnswerRequest) -> AnswerResponse:
         retrieved = list(agent.last_retrieved or [])
         rewritten = agent.last_rewritten
         selection = dict(agent.last_ruling_selection or {})
+        unresolved_refs = list(agent.last_unresolved_refs or [])
     latency_ms = int((time.monotonic() - t0) * 1000)
 
     # Labeled rulings shown to the model, for resolving ruling citations:
@@ -314,6 +320,7 @@ def answer(req: AnswerRequest) -> AnswerResponse:
         rewrites=rewritten.queries if rewritten else [],
         retrieved_rules=[r.chunk.source_id for r in retrieved],
         selected_ruling_ids=selection,
+        unresolved_card_refs=unresolved_refs,
     )
     _log_row("queries", {
         "request_id": request_id,

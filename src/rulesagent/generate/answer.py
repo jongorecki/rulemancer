@@ -9,6 +9,8 @@ Reads ANTHROPIC_API_KEY from the environment (.env). Model is pinned for
 reproducible answer evals -- see DECISIONS.md.
 """
 
+import logging
+
 import anthropic
 from dotenv import load_dotenv
 from pydantic import ValidationError
@@ -22,6 +24,8 @@ from rulesagent.tools.ruling_retrieval import ruling_id, select_rulings, select_
 from rulesagent.tools.scryfall import ATTRIBUTION, get_card, parse_card_refs
 
 load_dotenv()
+
+logger = logging.getLogger(__name__)
 
 GEN_MODEL = "claude-sonnet-5"  # pinned; one-line swap to A/B other models
 TOP_K = 15  # pure-vector top-15 (raised from 10: near-miss rules like a
@@ -204,7 +208,13 @@ def _degenerate(a: Answer) -> bool:
     -- answered=false with a real explanation of what's missing (200+ chars
     across the eval history) -- never matches. The 80-char bound clears the
     observed degenerate specimens (0 and ~70 chars, 2026-07-22) with margin."""
-    return (not a.answered) and not a.citations and len(a.text.strip()) < 80
+    if not a.answered:
+        return not a.citations and len(a.text.strip()) < 80
+    # answered=True but no actual content: q029 (2026-07-21, L1 gate 4) drew
+    # answered:true with fully blank text. Deliberately blank-only (not a
+    # length threshold) so a legitimately short answered=True answer never
+    # matches -- that's the only shape observed.
+    return not a.text.strip()
 
 
 def _face_block(f: CardFace, label: str = "") -> str:
@@ -359,6 +369,13 @@ class RulesAgent:
         # [...], "skipped": [...]} from expand_crossrefs -- so a label-like
         # ref that resolved to no chunk (e.g. 701.5 "Cast") is an observable
         # miss, not a silent one. Same pattern as last_rewritten.
+        self.last_unresolved_refs: list[dict] | None = None
+        # Set by answer() on every call (c012 observability, docs/plan-q029-
+        # empty-answer-guard.md Plan B): [{"ref": ..., "reason": "not_found" |
+        # "error"}, ...] for every `[bracket]` token that failed to resolve to
+        # a Card, either a confirmed Scryfall miss or a fetch exception (the
+        # latter previously crashed the whole request). Same lifecycle/
+        # pattern as last_crossref -- read right after answer() by the API.
 
     def answer(self, question: str, history: list[dict] | None = None) -> Answer:
         """`history` (optional): prior conversation turns, oldest first, each
@@ -388,11 +405,32 @@ class RulesAgent:
                 all_refs.extend(hist_refs)
         all_refs.extend(card_refs)
         all_refs = [r for r in all_refs if not (r.lower() in seen or seen.add(r.lower()))]
-        cards = [c for ref in all_refs if (c := get_card(ref, no_refresh=self.card_no_refresh)) is not None]
         # Unresolvable tokens (typo'd past fuzzy match, made-up name) are
         # silently dropped rather than erroring the whole answer -- the
         # rules-only answer still has a shot at being useful. Not specified
-        # by the plan either way; this is the call made here.
+        # by the plan either way; this is the call made here. c012
+        # observability (docs/plan-q029-empty-answer-guard.md Plan B): both
+        # failure shapes -- a confirmed miss (get_card -> None) and a
+        # transient fetch error (get_card raises) -- are now recorded on
+        # last_unresolved_refs and logged, instead of vanishing (or, for a
+        # raise, crashing the whole request) with zero trace. Broad
+        # `except Exception` on purpose: it's the audit trail for any fetch
+        # failure, not just the ones we've anticipated.
+        resolved, unresolved = [], []
+        for ref in all_refs:
+            try:
+                c = get_card(ref, no_refresh=self.card_no_refresh)
+            except Exception as e:
+                logger.warning("card ref failed to resolve (fetch error): %r: %r", ref, e)
+                unresolved.append({"ref": ref, "reason": "error"})
+                continue
+            if c is None:
+                logger.warning("card ref failed to resolve (not found): %r", ref)
+                unresolved.append({"ref": ref, "reason": "not_found"})
+                continue
+            resolved.append(c)
+        cards = resolved
+        self.last_unresolved_refs = unresolved
 
         # Condensed transcript for the rewriter: a follow-up like "what about
         # while it's phased out?" only rewrites into a useful standalone search
@@ -544,8 +582,12 @@ class RulesAgent:
                 parsed = None
             if parsed is not None:
                 break
-        if parsed is None and weak is not None:
-            parsed = weak  # both draws degenerate: return the better one honestly
+        if parsed is None and weak is not None and not weak.answered:
+            # Only an honest answered=false decline is ever reused as a
+            # fallback -- a still-blank answered=true `weak` (q029, L1 gate 4)
+            # falls through to the honest non-answer Answer below instead of
+            # ever being returned as if it were real content.
+            parsed = weak
         if parsed is None:
             # Both attempts came back empty/invalid -- honest non-answer, not a
             # crash. Rare after the retry; a persistent failure is worth seeing.
