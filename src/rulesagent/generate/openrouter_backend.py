@@ -123,6 +123,15 @@ def _attempt(system: str, user: str, model: str, key: str,
     # DeepInfra 429s on the first full run (2026-07-22), which is a provider
     # traffic condition, not a model answer. Anything else still fails fast
     # and is recorded honestly. Retry-After is honored when present.
+    #
+    # One additional case added 2026-07-23 (docs/plan-v3-execution-tasks.md
+    # Task 2 content-completeness gap-fill): a 400 whose OpenRouter error body
+    # carries provider_error_code "400001" / "This response_format type is
+    # unavailable now" -- confirmed by direct testing to be a StreamLake
+    # (deepseek-v4-pro's provider) capacity condition, not a malformed
+    # request: identical requests succeeded on a plain retry, no request
+    # change. A real malformed-request 400 (bad schema, bad model id) still
+    # fails fast -- this only widens retry for this one detected body shape.
     data = None
     last_err = None
     for attempt in range(5):
@@ -135,7 +144,14 @@ def _attempt(system: str, user: str, model: str, key: str,
         except httpx.HTTPStatusError as e:
             status = e.response.status_code
             last_err = f"http: {e}"
-            if status == 429 or status >= 500:
+            retryable_400 = False
+            if status == 400:
+                try:
+                    err_body = e.response.json().get("error", {})
+                    retryable_400 = err_body.get("metadata", {}).get("provider_error_code") == "400001"
+                except Exception:
+                    retryable_400 = False
+            if status == 429 or status >= 500 or retryable_400:
                 retry_after = e.response.headers.get("retry-after")
                 delay = (float(retry_after) if retry_after and
                          retry_after.replace(".", "", 1).isdigit()
