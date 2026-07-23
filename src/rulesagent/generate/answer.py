@@ -369,6 +369,15 @@ class RulesAgent:
         # [...], "skipped": [...]} from expand_crossrefs -- so a label-like
         # ref that resolved to no chunk (e.g. 701.5 "Cast") is an observable
         # miss, not a silent one. Same pattern as last_rewritten.
+        self.last_uncited_success: bool = False
+        # Set by answer() on every call (Plan A amendment, docs/plan-q029-
+        # empty-answer-guard.md header ruling 1, Jon 2026-07-23): True when
+        # the final draw is answered=true but cites nothing -- "then it's
+        # not grounding in the rules." Flag ONLY, never a retry trigger (a
+        # legitimately card-only-grounded answer can look like this, so
+        # auto-retrying risks false positives) -- surfaced via a warning log
+        # and Debug.uncited_success so every ungrounded "success" is
+        # auditable in telemetry.
         self.last_unresolved_refs: list[dict] | None = None
         # Set by answer() on every call (c012 observability, docs/plan-q029-
         # empty-answer-guard.md Plan B): [{"ref": ..., "reason": "not_found" |
@@ -385,6 +394,7 @@ class RulesAgent:
         their numbers are untouched by conversation support."""
         history = history or []
         self.last_rewritten = None
+        self.last_uncited_success = False
         # Parse `[Card Name]` / `[oracle-id]` tokens BEFORE anything else
         # touches the question. `question` from here on is bracket-stripped
         # ("[Dovescape]" -> "Dovescape") -- what the rewriter sees, what the
@@ -600,6 +610,18 @@ class RulesAgent:
                 answered=False,
                 suggested_followups=[],
             )
+        if parsed.answered and not parsed.citations:
+            # Plan A amendment (docs/plan-q029-empty-answer-guard.md header
+            # ruling 1): a non-blank answered=true draw that cites nothing is
+            # NOT grounded in the rules -- flag it (log + Debug field), don't
+            # retry it. Blank text already went through _degenerate()/the
+            # retry loop above; this catches the separate, unretried shape:
+            # real-looking prose with zero citations.
+            logger.warning(
+                "answered=true with no citations (ungrounded success): %r",
+                parsed.text[:200],
+            )
+            self.last_uncited_success = True
         if cards:
             # Minimal approach consistent with the Answer contract (no new
             # field): append the Fan Content Policy attribution to the

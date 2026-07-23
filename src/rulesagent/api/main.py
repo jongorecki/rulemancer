@@ -156,6 +156,10 @@ class Debug(BaseModel):
     # this request, {"ref": ..., "reason": "not_found" | "error"} each --
     # mirrors agent.last_unresolved_refs, read the same way rewrites/
     # retrieved_rules/selected_ruling_ids already are.
+    uncited_success: bool  # Plan A amendment (plan-q029-empty-answer-guard.md
+    # header ruling 1): True when this answer was answered=true but cited
+    # nothing -- surfaced (not retried) so an ungrounded "success" is
+    # auditable. Mirrors agent.last_uncited_success.
 
 
 class AnswerResponse(BaseModel):
@@ -285,6 +289,7 @@ def answer(req: AnswerRequest) -> AnswerResponse:
         rewritten = agent.last_rewritten
         selection = dict(agent.last_ruling_selection or {})
         unresolved_refs = list(agent.last_unresolved_refs or [])
+        uncited_success = bool(getattr(agent, "last_uncited_success", False))
     latency_ms = int((time.monotonic() - t0) * 1000)
 
     # Labeled rulings shown to the model, for resolving ruling citations:
@@ -321,6 +326,7 @@ def answer(req: AnswerRequest) -> AnswerResponse:
         retrieved_rules=[r.chunk.source_id for r in retrieved],
         selected_ruling_ids=selection,
         unresolved_card_refs=unresolved_refs,
+        uncited_success=uncited_success,
     )
     _log_row("queries", {
         "request_id": request_id,
