@@ -32,24 +32,33 @@ load_dotenv()
 # without breaking the eval's Sonnet comparison arms.
 TEMPERATURE_OK = {"claude-haiku-4-5"}
 
-PROMPT_VERSION = "v1"
-# v2 (scope-preservation + keep-defined-term bullets) was A/B'd and REVERTED
-# for the shipped rw1-haiku config: it lifted the sonnet arms but cost the
-# haiku-n=1 arm 9 pts of recall@5 (77% -> 68%). It fixed q025's glossary miss
-# but reintroduced a q010 miss and zeroed out clarification-field population.
-# Net negative for the cell we ship. Kept documented in DECISIONS.md as a
-# measured finding, not carried in the code.
-# Part of the disk-cache key below (see rewrite_query) -- editing SYSTEM
-# changes what a cached entry actually means, so bumping/changing this
-# busts the cache automatically instead of silently serving rewrites made
-# under a different prompt.
+PROMPT_VERSION = "v2"
+# v2 named here is a DIFFERENT v2 than the one this comment used to describe
+# (that earlier scope-preservation/keep-defined-term v2 was A/B'd and
+# REVERTED for the shipped rw1-haiku config: it lifted the sonnet arms but
+# cost the haiku-n=1 arm 9 pts of recall@5, 77% -> 68%; fixed q025's glossary
+# miss but reintroduced a q010 miss and zeroed out clarification-field
+# population -- net negative, documented in DECISIONS.md, never carried in
+# code). THIS v2 (docs/plan-prompt-tuning.md Sec 2a/2b, approved 2026-07-22)
+# adds the mana-symbol-spellout and multiplayer-phrasing bullets below.
+#
+# Both SYSTEM texts are kept, selectable via `version` (see SYSTEM_VERSIONS
+# and rewrite_query()'s `version` param, default PROMPT_VERSION == "v2").
+# v1 stays byte-identical to what shipped before this change -- the prompt-v3
+# A/B's condition B runs gen-v3 + rewrite-v1 on purpose, so v1 must remain a
+# fully runnable, unchanged prompt, not just a historical comment.
+#
+# The selected version string is part of the disk-cache key below (see
+# rewrite_query) -- editing either SYSTEM text changes what a cached entry
+# actually means, so a version bump/change busts the cache automatically
+# instead of silently serving rewrites made under a different prompt.
 
 # Copied verbatim from the pre-build spike (scratch script, never committed)
 # that validated this approach -- see the plan's "Step 0 -- the spike".
 # Deliberately general: no MTG examples, no rule numbers, no wording drawn
 # from evals/questions.jsonl, so this can't be overfit to the 31-question
 # eval set (see the plan's "Anti-overfit guards").
-SYSTEM = """You rewrite casual Magic: The Gathering rules questions into the \
+SYSTEM_V1 = """You rewrite casual Magic: The Gathering rules questions into the \
 vocabulary the official Comprehensive Rules actually use, so that a semantic \
 search over the rules text finds the rules that answer them.
 
@@ -69,6 +78,47 @@ poisons the search.
 - Set clarification ONLY if the correct answer would materially differ \
 between readings (player count, which of two cards is meant, a named \
 format). Most questions need none -- leave it null."""
+
+# v2 (docs/plan-prompt-tuning.md Sec 2a/2b, verbatim, Jon-approved wording):
+# v1 plus two new Requirements bullets, inserted as a block right after
+# "Never include rule numbers..." and before "Each rewrite is a
+# self-contained question...". Mana-symbol curly braces below are doubled
+# ({{1}}, {{G}}, ...) so str.format(n=n) doesn't try to interpret them as
+# format fields -- only the real {n} placeholder is a field.
+SYSTEM_V2 = """You rewrite casual Magic: The Gathering rules questions into the \
+vocabulary the official Comprehensive Rules actually use, so that a semantic \
+search over the rules text finds the rules that answer them.
+
+The rules use precise technical language that players rarely say out loud. \
+Rewrite the question the way the rules themselves would phrase it, and name \
+the underlying game concepts likely at issue (for example: priority, the \
+stack, zones, steps and phases, timing, state-based actions, or the discrete \
+parts of casting a spell or activating an ability).
+
+Requirements:
+- Produce exactly {n} distinct rewrite(s). With more than one, each must \
+attack the question from a genuinely different angle rather than restating \
+the same phrasing.
+- Never include rule numbers. You do not know them, and a wrong number \
+poisons the search.
+- If the question contains a mana symbol in curly braces (like {{1}}, {{G}}, \
+{{C}}, {{X}}), spell it out in the rules' own words in your rewrite instead \
+of using the symbol: {{1}} -> "one generic mana", {{G}} -> "one green mana" \
+(same pattern for {{U}}/{{B}}/{{R}}/{{W}}), {{C}} -> "one colorless mana", \
+{{X}} -> "X mana" or "an amount of mana equal to X". Do not use the symbol \
+itself in the rewrite -- the corpus is prose, not symbol notation, and a \
+literal brace character rarely matches.
+- If the question doesn't say how many players are in the game, include \
+multiplayer-relevant phrasing in the rewrite too (for example, mention \
+"the defending player" or "when there is more than one opponent") \
+alongside the ordinary two-player phrasing, so multiplayer-specific rules \
+can be found without dropping the two-player rules.
+- Each rewrite is a self-contained question or statement, not a keyword list.
+- Set clarification ONLY if the correct answer would materially differ \
+between readings (player count, which of two cards is meant, a named \
+format). Most questions need none -- leave it null."""
+
+SYSTEM_VERSIONS = {"v1": SYSTEM_V1, "v2": SYSTEM_V2}
 
 
 class _Rewrites(BaseModel):
@@ -93,14 +143,26 @@ def rewrite_query(
     n: int,
     client: anthropic.Anthropic | None = None,
     context: str | None = None,
+    version: str = PROMPT_VERSION,
 ) -> RewrittenQuery:
     """Rewrite `question` into `n` Comprehensive-Rules-vocabulary rewrites.
 
-    SQLite-cached (data/cache.db, `rewrite` table) by (model, PROMPT_VERSION,
-    n, question) -- same discipline as the query-embedding and rerank caches
-    in evals/run_eval.py. A second call with the same key makes zero API
-    calls; a row is only written when a new entry is actually added, so
-    re-runs with unchanged inputs touch disk but never rewrite it.
+    `version` (default PROMPT_VERSION == "v2") selects which SYSTEM prompt
+    (SYSTEM_VERSIONS["v1"] or ["v2"]) to rewrite with -- selectable per call
+    or per agent config (docs/plan-prompt-tuning.md Sec 2, Task 1 in
+    docs/plan-v3-execution-tasks.md). The prompt-v3 A/B's condition B needs
+    gen-v3 + rewrite-v1, so v1 must stay callable and byte-identical to what
+    shipped before v2 existed.
+
+    SQLite-cached (data/cache.db, `rewrite` table) by (model, version, n,
+    question) -- same discipline as the query-embedding and rerank caches in
+    evals/run_eval.py. The cache key uses the SELECTED version string, not a
+    fixed constant, so a v1 call and a v2 call for the identical
+    (model, n, question) never collide or shadow one another -- switching
+    versions can never silently keep serving a rewrite made under the other
+    version's prompt. A second call with the same key makes zero API calls; a
+    row is only written when a new entry is actually added, so re-runs with
+    unchanged inputs touch disk but never rewrite it.
 
     `context` (optional) is a condensed transcript of earlier conversation
     turns. When present, the model is asked to resolve the FINAL question's
@@ -117,7 +179,8 @@ def rewrite_query(
     something to search for -- rewriting must never block or crash the
     agent, only help it when it can.
     """
-    key = json.dumps([model, PROMPT_VERSION, n, question])
+    system_text = SYSTEM_VERSIONS[version]
+    key = json.dumps([model, version, n, question])
     if context is None:
         cached = _cache.get(key)
         if cached is not None:
@@ -162,7 +225,7 @@ def rewrite_query(
         response = client.messages.parse(
             model=model,
             max_tokens=2048,
-            system=SYSTEM.format(n=n),
+            system=system_text.format(n=n),
             messages=[{"role": "user", "content": content}],
             **extra,
             output_format=_Rewrites,
