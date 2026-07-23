@@ -1329,12 +1329,14 @@ sonnet 46 (flat, 0 flips) · gpt-5-mini 45 (+3, cond C) · v4-pro 45 (+1, cond B
   v4-flash down), better only on gemini. The retrieval-level win (+4 rulings,
   0 regressions) did not reach generation and actively hurt the lead arm.
   Union stays available behind its flag, OFF by default.
-- **L2 generator: gpt-5-mini is the lead candidate to replace sonnet** (45 vs
-  46 at ~25-50x cheaper, strong grading notes). PENDING: Jon initially said
-  switch, but on a misread ("both 100%"); real gap is 45/50 vs 46/50. Re-confirm
-  on accurate numbers; if switching, it's a Rule 0 config change (GEN_MODEL ->
-  gpt-5-mini via OpenRouter) with its own plan. Also gated on whether prompt-v4
-  + reasoning-enabled (condition-E) push gpt-5-mini past 46.
+- **L2 generator: gpt-5-mini is the lead candidate; switch DEFERRED until
+  prompt-v4 + reasoning-enabled (condition-E) are tested** (Jon's call, on the
+  accurate 45/50 vs sonnet 46/50 numbers — he'd misread it as a 100% tie).
+  Rationale: gpt-5-mini's own c014 mana errors and the reasoning-off runs mean
+  v4/reasoning could push it to 46+, making the switch zero-compromise instead
+  of a 1-answer concession. Sonnet stays production ~1-2 experiment cycles. If
+  gpt-5-mini then matches/beats 46, switch via a Rule 0 config plan (GEN_MODEL
+  -> gpt-5-mini via OpenRouter; reliability/latency notes).
 - **2 ungraded rows** (gemini-flash-lite B_r2: c006, c014) still need Jon's
   verdict; gemini's exact count is provisional until then.
 
