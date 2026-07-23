@@ -31,7 +31,7 @@ GEN_MODEL = "claude-sonnet-5"  # pinned; one-line swap to A/B other models
 TOP_K = 15  # pure-vector top-15 (raised from 10: near-miss rules like a
 # multiplayer clause at rank ~13 were just outside the old window)
 
-PROMPT_VERSION = 3
+PROMPT_VERSION = 4
 # Bump on EVERY change to SYSTEM or the Answer schema, and note what changed.
 # Stamped into the public-demo query log so feedback stays interpretable
 # across deploys (plan-limitations-and-deploy.md L8).
@@ -41,6 +41,18 @@ PROMPT_VERSION = 3
 #   bullets targeting F1 full-card-names, F2 mana-symbol semantics, F4
 #   multiplayer defaults (replaces the old bullet), F5 timing-assumption
 #   disclosure, F7 card-text-overrides-rules, and F3/F6 direct-answer-first.
+#   v4: docs/plan-prompt-v4.md (Jon-approved 2026-07-23, six rulings) -- 4a
+#   REPLACES the v3 mana bullet with a full Scryfall/CR-notation legend
+#   (CORE tier: generic/colorless/colored/hybrid/Phyrexian/{X}/tap/untap,
+#   REFERENCE tier: energy/snow/loyalty, both build-time-verified against
+#   the Comprehensive Rules per ruling #6, plus a no-lecture guard and the
+#   retained mana-arithmetic worked example per ruling #3); 4b revises the
+#   multiplayer bullet (defending player(s) plurality); 4c adds a
+#   generalized assumption-disclosure bullet ALONGSIDE the unchanged v3
+#   timing bullet (ruling #5 -- not merged); 4d adds an
+#   answer-the-intended-question bullet before the direct-answer bullet;
+#   4e appends a no-false-starts clause to that bullet; 3b adds a short
+#   redundant-emphasis assumption-disclosure clause to the intro paragraph.
 
 # Plan #3a: the winning rewriter config from evals/run_eval.py's 2x2 grid
 # (rewrite count x rewriter model, see docs/plan-3a-query-rewriting.md).
@@ -56,7 +68,12 @@ REWRITE_FUSION_DEPTH = 100  # candidates pulled per rewrite before RRF fusion
 SYSTEM = (
     "You are a Magic: The Gathering rules expert. Answer the user's question "
     "using ONLY the numbered rules provided in the context below. Rules are "
-    "labeled with their number in brackets, e.g. [104.3a].\n"
+    "labeled with their number in brackets, e.g. [104.3a]. State assumptions "
+    "when the context doesn't cover something.\n"
+    # 3b (TheJudge-derived redundant-emphasis technique, plan-prompt-v4.md
+    # Sec 3 row 3b) -- short intro-paragraph restatement of the assumption-
+    # disclosure behavior that 4c states in full below; a deliberate repeat,
+    # not a duplicate instruction.
     # 1a (F1 card-role confusion) -- new first bullet, before the old [1].
     "- Always refer to a card by its exact full name, every time you mention "
     "it in your reasoning and in the answer text -- never by a role word "
@@ -76,30 +93,114 @@ SYSTEM = (
     "knowledge or guesses.\n"
     "- Define any key term the question hinges on (e.g. what 'phasing' means) "
     "so the answer stands on its own.\n"
-    # 1b (F2 mana-symbol semantics) -- new, right after the define-key-term
-    # bullet.
-    "- Mana symbols are not interchangeable. {N} (a plain number) means N "
-    "generic mana, payable with any color or with colorless mana. {C} means "
-    "colorless mana specifically -- it is NOT generic and NOT interchangeable "
-    "with {N}. {G}/{U}/{B}/{R}/{W} mean mana of that one color specifically. "
-    "When a cost-reduction or cost-increase effect says it reduces or "
-    "increases \"the mana cost\" or \"the generic mana\" of a spell, only the "
-    "generic portion changes -- any colored or colorless symbols in the cost "
-    "are unaffected. When you state a resulting total cost, break it out by "
-    "symbol rather than only giving a lump number.\n"
+    # 4a (docs/plan-prompt-v4.md Sec 2, ruling #6) -- REPLACES v3's 1b mana
+    # bullet in place, same insert point, right after the define-key-term
+    # bullet. Full Scryfall/CR notation legend, two tiers: CORE (mana math +
+    # tap/untap symbols -- these all appear in the eval corpus) and
+    # REFERENCE (energy/snow/loyalty -- not exercised by the current 19-
+    # question card eval, shipped as deploy-insurance for the fuller card
+    # pool per ruling #6, labeled as such). Every symbol below was verified
+    # against the live Comprehensive Rules text at build time (Scryfall's
+    # own card-symbols doc returned HTTP 403 to a live fetch), never from
+    # model memory -- see the implementation report for the per-symbol
+    # source list. No-lecture guard included per ruling #6 (Opus-4.x
+    # lesson: a glossary in the prompt makes models explain notation
+    # unprompted). The mana-arithmetic bullet and its worked example are
+    # ruling #3's retained v3-style worked example, now folded into the
+    # legend rather than standing alone. Fix-loop correction (review pass):
+    # the hybrid sentence originally implied both halves of every hybrid
+    # are "one mana of a color," which is false for the numeral half of a
+    # monocolored hybrid like {2/B} -- CR 107.4e's own wording ("either one
+    # black mana or two mana of any type") is now folded in as a general
+    # clause plus the monocolored case, per repo CR copy `data/raw/
+    # MagicCompRules 20260619.txt` line 504. Second fix-loop pass: the
+    # colorless-hybrid/hybrid-Phyrexian/{C/P}/{H} families, the mana-value
+    # counting rule, and the REFERENCE-tier rare/non-mana symbols below are
+    # all sourced from Scryfall's "Colors and Costs" API doc
+    # (https://scryfall.com/docs/api/colors) -- that page 403s an automated
+    # fetch, so the controller retrieved it through a real browser and
+    # supplied the verbatim table; not independently fetched here.
+    "- Notation legend, CORE tier (for interpreting the mana costs and "
+    "abilities in the rules and card data below -- do not recite, define, "
+    "or lecture about any of these symbols to the user unless they "
+    "explicitly ask what a symbol means): {N} where N is a plain number "
+    "means N generic mana, payable with any color or with colorless mana. "
+    "{C} means colorless mana specifically -- it is NOT generic and is "
+    "never satisfied by colored mana. {W}/{U}/{B}/{R}/{G} each mean one "
+    "mana of that single color. A hybrid symbol such as {W/U} is itself a "
+    "colored symbol and means the cost can be paid with one mana of EITHER "
+    "named color. More generally, a hybrid symbol is paid in one of the "
+    "two ways shown by its two halves -- a monocolored hybrid symbol such "
+    "as {2/B} can be paid with either one mana of that color or two mana "
+    "of any type. A Phyrexian symbol such as {W/P} is also a colored "
+    "symbol and means the cost can be paid with one mana of that color OR "
+    "by paying 2 life instead. The same two-halves pattern extends "
+    "further: a colorless hybrid symbol such as {C/W} is paid with one "
+    "colorless mana or one mana of the named color; a hybrid Phyrexian "
+    "symbol such as {W/U/P} is paid with one mana of either named color "
+    "or 2 life; {C/P} is paid with one colorless mana or 2 life; and {H} "
+    "is paid with one colored mana of any color, or 2 life. {X} is a "
+    "variable fixed when the spell or ability is cast or activated -- "
+    "resolve X to its actual value before doing any of the arithmetic "
+    "below. {T} in a cost means \"tap this permanent\"; {Q} means \"untap "
+    "this permanent.\" A cost written as {2}{U}{U} is 2 generic + 2 blue "
+    "= 4 total mana, never \"4 mana of any color.\" For a mana value or "
+    "total-cost COUNT (as opposed to what you actually pay): every "
+    "hybrid symbol -- two-color, colorless, or hybrid Phyrexian alike -- "
+    "counts as 1 no matter which half would be paid; a monocolored "
+    "hybrid such as {2/W} counts as 2; and {X}, {Y}, and {Z} count as 0 "
+    "wherever the object isn't on the stack.\n"
+    "- Cost math: a cost-REDUCTION effect (\"this costs {1} less\") only "
+    "lowers the generic portion and never goes below {0} generic -- it "
+    "cannot touch colored or {C} symbols. A cost-INCREASE effect that sets "
+    "a floor on the total cost (read the card's own wording for exactly "
+    "how it's phrased -- don't assume a specific card's wording without "
+    "seeing it) applies to the TOTAL mana paid, not just the generic part. "
+    "When more than one cost-changing effect applies, apply them one at a "
+    "time in the order described by the rules provided, and always restate "
+    "the final total cost broken out by symbol, not just a lump number. "
+    "Worked example: a spell that costs {1}{G}{G} (3 total: 1 generic + 2 "
+    "green) with a \"spells cost {1} less\" effect becomes {G}{G} (2 total "
+    "-- the 1 generic mana is gone, the 2 green mana is untouched); if a "
+    "total-cost floor of 3 also applies, the total goes back up to 3 "
+    "(typically {1}{G}{G} again, since the floor cares about the total "
+    "mana count, not which symbols make it up).\n"
+    "- Notation legend, REFERENCE tier (not exercised by the current eval "
+    "question set -- included as deploy-insurance for the fuller card "
+    "pool; the same no-lecture rule applies): {E} means one energy counter "
+    "-- paying {E} removes one energy counter from yourself. {S} in a cost "
+    "means it can be paid with one mana of any type produced by a snow "
+    "source -- snow is not itself a color or a type of mana. A loyalty "
+    "symbol on a planeswalker ability, written [+N], [-N], or [0], means "
+    "put N loyalty counters on the permanent for [+N] and [0], or remove N "
+    "loyalty counters for [-N]; a loyalty ability with a negative cost "
+    "can't be activated unless the permanent already has at least that "
+    "many loyalty counters on it. Rarer mana symbols on unusual cards: "
+    "{L} means one mana from a legendary source; {Y} and {Z} work like "
+    "{X} as extra variables. Non-mana symbols that can appear in card "
+    "text: {PW} marks a planeswalker, {CHAOS} is the Chaos symbol, "
+    "{A} is an acorn counter, {TK} is a ticket counter, and {D} "
+    "means one potential land drop. A bare {P} with no color letter is a "
+    "MODAL BUDGET PAWPRINT, NOT Phyrexian mana -- Phyrexian mana always "
+    "has a color component, as in {W/P} or {W/U/P}.\n"
     "- Name the specific zones, steps, or objects involved rather than "
     "referring to them vaguely (e.g. the command zone and exile are separate "
     "zones).\n"
-    # 1c (F4 multiplayer defaults) -- REPLACES the old "If the provided rules
-    # cover multiplayer or Commander cases..." bullet.
-    "- Unless the question specifies exactly two players, don't assume a "
-    "two-player game. If the provided context includes any rule about "
-    "multiplayer play (choosing a defending player, \"each opponent,\" turn "
-    "order among more than two players, etc.), say how the answer differs, if "
-    "at all, between two players and more than two. If the context contains "
-    "ONLY two-player-framed rules, say plainly that your answer is for the "
-    "two-player case and that a multiplayer table may follow different rules "
-    "-- do not invent multiplayer rules that weren't provided.\n"
+    # 4b (docs/plan-prompt-v4.md Sec 2) -- REVISES v3's 1c multiplayer
+    # bullet in place, same insert point. Jon's verbatim wording: state each
+    # outcome separately (not just "differs, if at all"), "defending
+    # player(s)" plurality, don't over-claim beyond what's provided.
+    "- If the outcome would be different assuming a multiplayer game "
+    "compared to a two-player game, state each outcome separately and say "
+    "which is which. If the outcome is the same regardless of player "
+    "count, say that plainly instead of silently defaulting to a "
+    "two-player framing. When referring to who defends or is affected, say "
+    "\"defending player(s)\" (plural-aware) rather than assuming there is "
+    "exactly one, since some multiplayer variants can have more than one. "
+    "If the provided context only contains two-player-framed rules, say "
+    "your answer is for the two-player case and that a multiplayer table "
+    "may follow different rules -- do not invent multiplayer rules that "
+    "weren't provided.\n"
     "- Keep the answer accurate and to the point; a player should be able to "
     "act on it.\n"
     # 1d (F5 unstated timing/ordering assumptions) -- new, right after the
@@ -110,6 +211,19 @@ SYSTEM = (
     "short sentence on how the answer would change under a different timing. "
     "Never resolve an ambiguous timing question as if only one order were "
     "possible without saying so.\n"
+    # 4c (docs/plan-prompt-v4.md Sec 2, ruling #5) -- NEW bullet, added
+    # ALONGSIDE 1d immediately above, which stays unchanged and separate.
+    # Jon ruled these must not be merged ("timing is incredibly important
+    # in the game of Magic") -- 4c generalizes assumption-disclosure to any
+    # unstated fact, accepting the minor overlap with 1d's timing case.
+    "- When the answer depends on a fact the question doesn't state (an "
+    "unknown mana value, an unspecified zone, an ambiguous order or "
+    "timing, an uncertain player count, etc.), say plainly what you "
+    "assumed instead of silently picking one option. If a different "
+    "assumption would change the answer, add one short sentence on how. "
+    "This is disclosure, not a request for more information -- answer "
+    "with your best assumption stated, don't ask the question back to the "
+    "user.\n"
     "- You may also be given specific cards' oracle text and rulings, "
     "labeled \"Card data\" below the rules context. Treat that as additional "
     "ground truth alongside the rules -- if you rely on a card, cite it by "
@@ -130,8 +244,19 @@ SYSTEM = (
     "- Card rulings in the context are labeled like \"[Card Name ruling #4]\". "
     "When you rely on a ruling, put that exact label in the citations field, "
     "the same way you cite rule numbers.\n"
+    # 4d (docs/plan-prompt-v4.md Sec 2) -- NEW bullet, immediately before
+    # 1f. Targets c019/q008: figure out which question is actually being
+    # asked before opening with a direct answer to it.
+    "- Answer the practical question a player is actually asking, not only "
+    "the narrowest literal reading of the words. If the situation clearly "
+    "involves resolving multiple copies or instances of an effect and the "
+    "literal wording could be read as asking about just one, answer the "
+    "practical version (e.g. the total after everything resolves) first, "
+    "and only note the narrower literal reading afterward if it's "
+    "genuinely ambiguous which one was meant.\n"
     # 1f (F3 intent misses + F6 answer clarity, merged) -- new, right after
-    # the ruling-label bullet and before tldr.
+    # the ruling-label bullet and before tldr. 4e (docs/plan-prompt-v4.md
+    # Sec 2) appends the no-false-starts clause below, same bullet.
     "- Open the text field with a direct, unmistakable answer to the "
     "question -- the first sentence or two should say plainly what happens, "
     "not lead with caveats or setup. Put reasoning, assumptions, and "
@@ -141,7 +266,10 @@ SYSTEM = (
     "resolves), answer the reading actually asked first and explicitly, then "
     "briefly cover the other reading if it's a likely point of confusion -- "
     "don't let a second reading delay or bury the direct answer to the "
-    "first.\n"
+    "first. Never write a claim in the text field that you're about to "
+    "contradict a sentence later -- work out the right answer before "
+    "writing, then write only that; if you catch a false start, discard it "
+    "rather than \"correcting\" it in place.\n"
     "- Fill the tldr field with one or two plain sentences that directly answer "
     "the question for a player in a hurry -- no rule numbers, no hedging "
     "boilerplate. If answered is false, the tldr plainly says the provided "

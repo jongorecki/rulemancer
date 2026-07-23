@@ -81,6 +81,30 @@ played for the v3 A/B.
   in place; v3 continues to exist only inside the frozen capture file. That
   is sufficient for this A/B and no selector should be added.
 
+## MEASURED prompt size after Task 1 (corrects plan-prompt-v4.md §4's table)
+
+v3 SYSTEM 5,189 chars (sha256 `25aa69e1…`) → **v4 SYSTEM 10,045 chars**
+(sha256 `76e74001…`): **+4,856 chars ≈ +1,215 tokens**, versus the ~+360
+tokens plan-prompt-v4.md §4 budgeted. The prompt roughly doubled.
+
+**Why the table was stale, not the build unauthorized:** §4's token table
+priced the ORIGINAL 4a draft (plain mana notation + `{X}`). Ruling #6 —
+decided the same day, layered on top of that table — expanded 4a into a full
+two-tier notation legend (hybrid, Phyrexian, `{T}`/`{Q}`, plus the whole
+REFERENCE tier). Jon then supplied Scryfall's Colors-and-Costs symbology
+(2026-07-24), adding the hybrid families, `{C/P}`, `{H}`, `{L}`, `{Y}`/`{Z}`,
+the non-mana recognition line, and — the highest-value item — the mana-value
+counting rule (hybrid counts 1, `{2/W}` counts 2, `{X}`/`{Y}`/`{Z}` count 0),
+which the CR never states in one place. Half-mana and infinite symbols were
+excluded by Jon's ruling as Un-set-only; tests assert their absence.
+
+**Consequence for the run:** cost stays negligible (~+$0.0024/query on
+sonnet, and the legend sits in the cacheable system prefix), and the
+bloat-sensitive arms are out of the decision set per ruling #1. But
+plan-prompt-v4.md §5 named stacked bloat as THE key risk against a much
+smaller prompt than what actually shipped, so Task 5's report must state
+this size explicitly rather than reporting against the stale estimate.
+
 ## The grid
 
 | Cell | Prompt | Model | reasoning | Runs | Baseline it moves against |
