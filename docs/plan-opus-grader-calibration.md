@@ -54,6 +54,22 @@ bakeoff or the transitive pipeline changes.
 - Script: `evals/opus_grader_calibration.py`; report:
   `evals/opus_grader_report.md` + raw JSONL alongside.
 
+## v2 (approved by Jon 2026-07-23, after v1 ran)
+
+v1 result: 76.4% primary agreement (vs the judge's 95% bar) — dominated by
+a known input gap: on card questions (especially empty-gold ones) the
+grader had no card text, so it graded coherence, not substance. v2 changes
+EXACTLY ONE variable: the grader input adds the same "Card data" block
+(oracle text + selected rulings) the answering arm saw, on every
+card-interaction question. Rubric, blindness, comparison sets unchanged.
+
+Mechanics change (Jon's billing correction, see also the workspace memory
+note): grading runs as in-session Opus subagents on Jon's subscription —
+local scripts only assemble batch input files and compute metrics; NO
+Anthropic API calls. Outputs: evals/opus_grader_results_v2.jsonl,
+evals/opus_grader_report_v2.md (side-by-side v1 vs v2 agreement, plus
+which v1 disagreements resolved/persisted/appeared).
+
 ## What would change the design
 
 - If direct-manual N is too small for a stable % on the correct/partial
