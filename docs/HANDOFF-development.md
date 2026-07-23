@@ -1,10 +1,111 @@
-# Handoff — Rulemancer: post-lab, prompt-v3 decision pending (supersedes the prior handoff; git has the old one)
+# Handoff — Rulemancer: v3 shipped, SIX plans await Jon's review (supersedes all prior handoffs; git has them)
 
 You are picking up **Rulemancer** (package `rulesagent`): a RAG agent over the
 MTG Comprehensive Rules with a per-card rulings mini-RAG, FastAPI backend,
 shipped chat frontend. Repo: `D:\Job_hunt\mtg-rules-bot`. Job-hunt
 proof-of-work (applied AI / RAG) — **articulation beats polish**: every
 decision must be explainable cold. End goal: public demo on Fly.io.
+
+## SESSION-END STATE — 2026-07-23 evening (read this whole block first; it supersedes everything below it)
+
+**This session ended with NOTHING running and SIX Rule 0 plans drafted, all
+awaiting Jon's review before any build. His context filled up; this handoff
+is the reset. All work is committed (git log through 63487ed).**
+
+### What SHIPPED and is DONE (reviewed, committed):
+- **Prompt v3** (f9a70fe): six §1 bullets + two §2 rewriter bullets;
+  `answer.py PROMPT_VERSION=3`; rewriter v2 with **v1 still selectable**
+  (`rewrite_version` param); Part B ruling-query union togglable
+  (`ruling_query_mode`). **ADOPTED as interim production prompt** — v4 to
+  supersede.
+- **The v3 A/B — COMPLETE** (Tasks 1-3, all reviewed): B/C/D conditions ×
+  2 runs × 6 arms, 1798/1800 rows clean (persistent exception:
+  gemini-flash-lite D c003). Assemble-once prompt cache
+  (evals/answers/_prompts_{B,C,D}.json) fixed a REAL 30-34% retrieval
+  nondeterminism (Voyage embed has no cache on the live path). Jon graded
+  the 72-stable-flip queue (evals/verdicts_v3ab.json).
+- **q029 empty-answer guard + c012 observability SHIPPED** (197ac79,
+  390545b, review approved, 152/152 tests): blank-answer degenerate guard,
+  uncited-success flag (Debug.uncited_success), unresolved-ref logging
+  (Debug.unresolved_card_refs, crash→graceful).
+- **Opus-grader calibration v1+v2 DONE** (verdict: audit lens, NOT a
+  delegate grader — 78% primary vs the judge's 95% bar).
+- **Note-harvester TOOL shipped** (evals/harvest_grading_notes.py): mines
+  Jon's grading `note` fields into docs/grading-feedback-backlog.md,
+  categorized (prompt-tuning = the prompt-v4 feed, retrieval-gap, display-ui,
+  etc.). **RE-RUN IT after every grading export** (reads evals/verdicts_*.json
+  + ~/Downloads/answer_verdicts*.json).
+
+### The v3 A/B RESULT (correct/50, Jon-graded, strict):
+sonnet **46** (flat, 0 flips) · gpt-5-mini **45** (+3, cond C) · v4-pro **45**
+(+1) · v4-flash **44** (+2) · v3-2 **43** (flat) · gemini **37** (regressed).
+Decisions (DECISIONS.md 2026-07-23): **v3 GO (interim)**; **Part B union does
+NOT ship** (D<C on the best arms); **L2 generator switch to gpt-5-mini
+DEFERRED** until prompt-v4 + condition-E test whether it reaches ≥46.
+gpt-5-mini is ~8x cheaper than sonnet (MEASURED; the old "25-50x" was vs the
+reasoning-OFF deepseek arms).
+
+### THE QUEUE — six Rule 0 plans, all drafted, ALL AWAIT JON'S REVIEW (none built):
+1. **docs/plan-prompt-v4.md** — FULLY RULED, ready to implement. Full Scryfall
+   notation legend (replaces the mana block; CORE mana/tap/hybrid tier the
+   eval validates + REFERENCE energy/snow/loyalty tier for the full card pool,
+   in the GENERATION system prompt, cache-friendly, no-lecture guard, symbol
+   defs verified at build NOT memory); §1d timing bullet KEPT SEPARATE;
+   multiplayer refinement (Jon's verbatim wording); assumption disclosure.
+2. **docs/plan-condition-e-reasoning.md** — enable/raise OpenRouter `reasoning`
+   on gpt-5-mini, measure vs sonnet 46. KEY FACT: sonnet is NOT thinking today
+   (default), so E tests raising gpt-5-mini effort vs a non-thinking incumbent.
+   GATES the deferred L2 switch. Pairs with v4.
+3. **docs/plan-rewriter-model-bakeoff.md** — retrieval-only bakeoff: gpt-5-mini/
+   deepseek/gemini vs Haiku control as the query rewriter, scored on gold
+   recall (mean±spread over 3 runs to control embedding noise). Targets the
+   documented retrieval gaps q016/q014/c019. Phase 2 (generation A/B) only if
+   a candidate wins recall.
+4. **docs/plan-scryfall-local-bulk.md** — APPROVED (all questions ruled,
+   licensing signed off); implement AFTER the A/B track settles. Local
+   card+rulings snapshot (data/scryfall.db), exact-then-local-fuzzy lookup
+   (threshold 90), −8/+21-day set-calendar refresh + admin endpoint. Kills the
+   network/fuzzy-match failure class (c012's root).
+5. **docs/plan-sso.md** — OIDC slice NEXT (Authlib+FastAPI, Okta+Entra dev
+   tenants, localhost callbacks) protecting the local-bulk admin endpoint;
+   anonymous demo stays open. SAML + Jon-driven breakage lab + writeup
+   post-deploy. Auth = HIGH-RISK (strongest-model + security review at build).
+6. **docs/plan-deploy.md** — Fly.io. THE critical slice is the budget breaker
+   (global daily spend cap + per-IP rate limit + kill switch — a public LLM
+   endpoint without it is a financial hole). CORS is wide-open today; no
+   Dockerfile/fly.toml exist; /answer is synchronous (streaming is new). Corpus
+   redistribution fix: .dockerignore + Fly volume, never bake CR text in the
+   image.
+
+### Jon's IMMEDIATE next actions (his calls, not an agent's):
+- Grade the **2 ungraded v3ab rows** (gemini-flash-lite B_r2: c006, c014) if
+  he wants gemini's count exact (gemini isn't a production candidate, so low
+  priority).
+- **Review the six plans** and rule on their open questions (each plan lists
+  them). Then pick implementation order. Suggested sequencing (his call):
+  prompt-v4 → condition-E (settles L2) → rewriter bakeoff, with SSO OIDC
+  sliding in next per his timing ruling, and local-bulk + deploy after the
+  A/B track. A **follow-up groundedness slice** is also owed (read the 7
+  flagged instances, decide on a fix) per the 2026-07-23 pre-commitments.
+
+### Standing facts a fresh session needs:
+- **BILLING RULE (Jon 2026-07-23, also in workspace memory):** batch
+  Claude-labor (grading, calibration, analysis) runs as in-session Opus
+  SUBAGENTS on Jon's subscription, NEVER scripted Anthropic API calls. API
+  spend is for the product/eval arms only (a $3.41 API mistake triggered this).
+- **c004 ruling (2026-07-22):** sonnet + v4-pro c004 flipped partial→
+  correct-with-note; baselines are 46/44. Verdict files carry the ruling tag.
+- **Retrieval is nondeterministic** (~30-34% chunk drift, Voyage no-cache) —
+  the assemble-once prompt cache is the control; any future A/B must use it.
+- **tmp/ is gitignored** (holds throwaway clones like TheJudge, mined for
+  prompt ideas — nothing copied verbatim).
+- **Sandbox gotcha:** heredoc-to-file python scripts run via
+  `.venv/Scripts/python.exe "$CLAUDE_JOB_DIR/tmp/x.py"` intermittently see a
+  wrong cwd (file reads return empty). Prefer inline `python -c` for
+  data reads, or absolute paths.
+- **Cost (measured):** gpt-5-mini ~$0.0059/query vs sonnet ~$0.048 std /
+  ~$0.032 intro (Sonnet 5 pricing $3/$15, intro $2/$10 through 2026-08-31,
+  from the claude-api skill — never quote model pricing from memory).
 
 ## Read these FIRST (source of truth, not this summary)
 
