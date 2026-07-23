@@ -59,8 +59,9 @@ decision must be explainable cold. End goal: public demo on Fly.io.
 - **Ticker slice** (36f0994): sequential 13-phase turn walk, 2500ms; new
   homepage example (trample+deathtouch). q001 identity flake fixed
   (80d02c7, frozen-store double, 5x green).
-- **Six-arm HUMAN-GRADED table** (the L2 evidence, final):
-  sonnet-v2 45/50 · v3.2 43 · v4-pro 43 · v4-flash 42 · gpt-5-mini 42 ·
+- **Six-arm HUMAN-GRADED table** (the L2 evidence; c004 ruling 2026-07-22
+  flipped sonnet + v4-pro c004 partial→correct-with-note, see DECISIONS.md):
+  sonnet-v2 46/50 · v3.2 43 · v4-pro 44 · v4-flash 42 · gpt-5-mini 42 ·
   gemini 38 (10 wrong — stable-but-wrong). All arms answered from
   byte-identical prompts, so gaps are pure generation. Mechanical
   citation-proxy MISLED on extremes (gpt-5-mini underrated, gemini
@@ -101,8 +102,10 @@ decision must be explainable cold. End goal: public demo on Fly.io.
    Controller's recommendation on record: adopt the 6+2 wording bullets as
    v3, A/B via the existing harness (re-run arms, transitive judge-compare
    v3 vs v2, hand-grade diffs only); hold oracle-text as its own slice.
-2. **Pending Jon micro-decisions:** c004 partial-flips (rec: flip sonnet +
-   v4-pro c004 -> correct-with-note => 46/44); L2 generator call (sonnet
+2. **Pending Jon micro-decisions:** ~~c004 partial-flips~~ RULED 2026-07-22:
+   FLIPPED to correct-with-note (see DECISIONS.md — sonnet 46/50, v4-pro
+   44/50 now; verdict files updated, note retained; §1d's c004 predicted
+   flips are off the board); L2 generator call (sonnet
    45/50 at ~25x cost vs v3.2 43/50 — may reasonably wait for v3 results);
    Part B union ship; RulesGuru-150 extension (~$10).
 3. **Code slices needing plans (Rule 0):** q029 empty-answer guard

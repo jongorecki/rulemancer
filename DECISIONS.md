@@ -1277,3 +1277,38 @@ escalation to a human should be the third rung, not the second.
 **What would change my mind:** Real public-demo traffic. If actual users
 show up post-deploy, quiz mode and Commander support are the first two to
 revisit — they serve users more than they serve the portfolio.
+
+## 2026-07-22 — c004 flipped to correct-with-note (rubric call on undisclosed assumptions)
+
+**What:** Jon ruled the two c004 "partial" verdicts (sonnet-v2 and
+deepseek-v4-pro — identical answers per the transitive judge, one grading
+note transferred) flip to **correct**, with his original grading note
+retained verbatim in the verdict files plus a ruling tag. New baselines for
+the prompt-v3 A/B: **sonnet-v2 46/50, deepseek-v4-pro 44/50** (verified by
+count after the edit). The other three arms' c004 verdicts (v4-flash,
+gemini-flash-lite, gpt-5-mini — all auto-transferred **wrong** vs the
+deepseek-v3.2 reference, a different answer cluster with a substantive
+SBA-sequencing error) are untouched and stay wrong.
+**Alternatives considered:** Keep them partial — Jon's first lean, briefly
+recorded here before he reversed it the same session. The case: it preserved
+the F5 signal behind prompt-plan §1d and kept that bullet's predicted
+c004 flips falsifiable in the A/B.
+**Why:** Jon's grading note opens "correct but..." — the answers were right
+under the natural reading of the question, and the eval question itself
+omits when the damage was marked, so the undisclosed ambiguity is as much
+the question's fault as the answer's. Rubric meaning going forward:
+*a correct answer that silently assumes away an ambiguity the asker didn't
+resolve grades correct-with-note, not partial* — the disclosure bar belongs
+to the clarify-then-escalate feature (shortlist #1), not to the correctness
+verdict.
+**Consequences for the prompt-v3 A/B:** the go/no-go baseline for the
+incumbent is now 46/50 (any net drop from 46 = no-go); §1d's two predicted
+c004 partial→correct flips are off the board (already correct), so the
+"half of predicted flips land" denominator shrinks accordingly — §1d is now
+justified by disclosure quality (and the lower-confidence v3.2:c004), not by
+count movement on these two arms.
+**What would change my mind:** Inconsistency elsewhere in the 300-cell grid
+(a same-shaped undisclosed-assumption answer still graded partial) — then
+that verdict should move to match this rubric. Also revisit once
+clarify-then-escalate ships: if "disclose or ask" becomes the enforced norm,
+non-disclosure may re-enter the verdict as partial again.
