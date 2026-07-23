@@ -1,6 +1,15 @@
 # Plan — q029 empty-answer guard + c012 silent-drop observability (two independent Rule 0 mini-plans)
 
-Status: DRAFT for Jon's review (Rule 0). No implementation until approved. Two small, independent production-path fixes bundled in one doc — both surfaced from the L1 diagnostic pass (LOG.md 2026-07-21). Either can ship without the other.
+Status: **APPROVED by Jon 2026-07-23, with amendments.** His rulings on the open questions:
+
+1. **Plan A scope (amended):** catch blank-text as degenerate (as planned), AND additionally **flag** any `answered: true` answer with zero citations — "then it's not grounding in the rules." Interpretation applied (flag ≠ retry): blank text triggers the retry/degenerate machinery; success-with-no-citations is **surfaced** (log warning + a `Debug` field + visible in telemetry), NOT auto-retried — this respects the false-positive concern for legitimately ruling-grounded answers while making every ungrounded "success" auditable. If Jon meant no-citations to also retry, say so and it's a two-line change.
+2. **PROMPT_VERSION bump: skipped** (confirmed — nothing about the prompt changes).
+3. **Plan B crash→graceful: approved, catch broadly** — Jon: "catch all error types broadly, which should help us audit this." The broad `except Exception` ships with the warning log as the audit trail.
+4. **Does the transient-fetch worry (Plan B shape 2) go away once docs/plan-scryfall-local-bulk.md ships?** Mostly at the network level, yes — local lookups can't network-fail. But the observability stays valuable: (a) the local-bulk slice ships later, so there's an interim window; (b) local lookups still have non-network failure modes (disk, db, code bugs); (c) post-migration, a silent "card ref failed" log line is exactly the proof the migration worked — the line should simply stop appearing. So Plan B ships as designed, and its logging becomes the local-bulk migration's verification signal.
+
+**Sequencing:** implementation must wait until the in-flight prompt-v3 A/B generation runs fully complete — these changes touch the production answer path (`answer.py`), and editing it mid-sweep would make late re-runs inconsistent with early ones.
+
+Two small, independent production-path fixes bundled in one doc — both surfaced from the L1 diagnostic pass (LOG.md 2026-07-21). Either can ship without the other.
 
 ---
 
