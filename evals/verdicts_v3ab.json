@@ -1,0 +1,722 @@
+[
+  {
+    "id": "deepseek-v4-flash_B_r1:c002",
+    "verdict": "correct",
+    "note": "citations are in text answer but missing in cited by the answer section. This answer does eventually get to the correct answer because it realizes that charging rhino doesn't have deathtouch."
+  },
+  {
+    "id": "deepseek-v4-flash_B_r2:c002",
+    "verdict": "correct",
+    "note": "no citations directly in the text, citations are in the cited by answer section but missing the actual text with a (text not found as chunk) message"
+  },
+  {
+    "id": "deepseek-v4-flash_C_r1:c002",
+    "verdict": "correct",
+    "note": "citations are in the cited by answer section but missing the actual text with a (text not found as chunk) message"
+  },
+  {
+    "id": "deepseek-v4-flash_C_r2:c002",
+    "verdict": "correct",
+    "note": "no citations directly in the text, citations are in the cited by answer section but missing the actual text with a (text not found as chunk) message"
+  },
+  {
+    "id": "gemini-flash-lite_B_r1:c002",
+    "verdict": "wrong",
+    "note": ""
+  },
+  {
+    "id": "gemini-flash-lite_B_r2:c002",
+    "verdict": "wrong",
+    "note": ""
+  },
+  {
+    "id": "gemini-flash-lite_C_r1:c002",
+    "verdict": "partial",
+    "note": "\"Since the Vampire Nighthawk has deathtouch, any amount of damage you assign to it is considered lethal damage for the purpose of assigning damage \" is incorrect, \"You must assign at least 2 damage to the Vampire Nighthawk before you can assign any excess damage to the player. This is because the Vampire Nighthawk has a toughness of 3 [302.4b], and while deathtouch means any damage is lethal, trample requires you to assign lethal damage to the blocker first.\" is also incorrect. \n\nthis part is correct:\n\nHowever, the rules for trample state that you must assign lethal damage to the blocking creature(s) before assigning excess damage to the player [702.19b]. In this scenario, the Vampire Nighthawk has a toughness of 3. Therefore, you must assign at least 3 damage to the Vampire Nighthawk to satisfy the lethal damage requirement for the blocker, even though deathtouch would normally destroy it with less damage. Once you have assigned 3 damage to the Vampire Nighthawk, any remaining damage from the Charging Rhino can be assigned to the player."
+  },
+  {
+    "id": "gemini-flash-lite_C_r2:c002",
+    "verdict": "partial",
+    "note": "this part is incorrect:\nYou must assign at least 2 damage to the Vampire Nighthawk before you can assign any excess damage to the player. This is because the Vampire Nighthawk has a toughness of 3 [302.4b], and while deathtouch means any damage is lethal, trample requires you to assign lethal damage to the blocker first. Since the Vampire Nighthawk has deathtouch, any amount of damage you assign to it is considered lethal damage for the purpose of assigning damage [702.2c]. \n\nthe rest is correct, and the correct conclusion is in here. The problem is that it states two different things in the answer which will confuse the user. "
+  },
+  {
+    "id": "gemini-flash-lite_D_r1:c002",
+    "verdict": "partial",
+    "note": "This part is incorrect:\n\nYou must assign at least 2 damage to the Vampire Nighthawk before you can assign any excess damage to the player. \n\nIt does eventually get to the right answer at the end, but it states a wrong answer first. this is a repeated pattern with gemini models."
+  },
+  {
+    "id": "gemini-flash-lite_D_r2:c002",
+    "verdict": "partial",
+    "note": "\nIt does eventually get to the right answer at the end, but it states a wrong answer first. this is a repeated pattern with gemini models."
+  },
+  {
+    "id": "gpt-5-mini_D_r1:c002",
+    "verdict": "wrong",
+    "note": ""
+  },
+  {
+    "id": "gpt-5-mini_D_r2:c002",
+    "verdict": "wrong",
+    "note": ""
+  },
+  {
+    "id": "gemini-flash-lite_B_r1:c006",
+    "verdict": "wrong",
+    "note": "confidently wrong. while no COPIES end up back in your hand, the original DOES end up back in your hand."
+  },
+  {
+    "id": "gemini-flash-lite_B_r2:c006",
+    "verdict": "",
+    "note": ""
+  },
+  {
+    "id": "deepseek-v3-2_C_r1:c010",
+    "verdict": "wrong",
+    "note": ""
+  },
+  {
+    "id": "deepseek-v3-2_C_r2:c010",
+    "verdict": "wrong",
+    "note": ""
+  },
+  {
+    "id": "gemini-flash-lite_D_r1:c010",
+    "verdict": "wrong",
+    "note": "spells don't need to resolve to have their cast triggers resolve. that's the whole point of a cast trigger, and the difference between that and an etb trigger."
+  },
+  {
+    "id": "gemini-flash-lite_D_r2:c010",
+    "verdict": "wrong",
+    "note": ""
+  },
+  {
+    "id": "gpt-5-mini_B_r1:c011",
+    "verdict": "correct",
+    "note": ""
+  },
+  {
+    "id": "gpt-5-mini_B_r2:c011",
+    "verdict": "correct",
+    "note": "its close, but not quite there. The real answer is \"it depends\" not a firm yes or no because we don't know what the spell's mana value is that we're cascading from. when our full pipeline is in place, we might want to, in this case, since we wouldn't know the mana value of the spell we're cascading from, ask what that spell's mana value is so we can determine if casting tibalt is legal or not. "
+  },
+  {
+    "id": "gpt-5-mini_C_r1:c011",
+    "verdict": "correct",
+    "note": "its close, but not quite there. The real answer is \"it depends\" not a firm yes or no because we don't know what the spell's mana value is that we're cascading from. when our full pipeline is in place, we might want to, in this case, since we wouldn't know the mana value of the spell we're cascading from, ask what that spell's mana value is so we can determine if casting tibalt is legal or not. "
+  },
+  {
+    "id": "gpt-5-mini_C_r2:c011",
+    "verdict": "correct",
+    "note": "this is the most correct answer so far, and clearly outlines the assumptions it makes. this could be something that we integrate into our system prompts, to also spell out any assumptions that are being made, and confirming with the user depending on when that assumption happens. I'd prefer asking a follow-up \"is this what you're trying to ask?\" over making a wrong assumption."
+  },
+  {
+    "id": "gpt-5-mini_D_r1:c011",
+    "verdict": "correct",
+    "note": ""
+  },
+  {
+    "id": "gpt-5-mini_D_r2:c011",
+    "verdict": "correct",
+    "note": ""
+  },
+  {
+    "id": "deepseek-v3-2_C_r1:c012",
+    "verdict": "partial",
+    "note": "we might need to look back at these further in the queue because I may have read them wrong. The emrakul ruling this brings up is correct and it does say \"opponent's turns\" not \"opponents' turns\" which could imply a 2 player game, which would make this ruling correct. one thing that is missing is that when the copy enters the battlefield, legend rule will trigger because you have 2 legendary permanents with the same name, so you will have to sacrifice one.\n\nsomething we could add to the system prompt to try to fix this is something to the effect of \"if the outcome would be different for this if this is assumed to be a multiplayer game compared to if it was assumed  to be a two player game, state each outcome separately. If they are the same outcome regardless of the number of players, state that instead.\"\n\nwhat I'm confused about is that this brings up epic, when epic is never mentioned."
+  },
+  {
+    "id": "deepseek-v3-2_C_r2:c012",
+    "verdict": "correct",
+    "note": "its technically missing the legend rule sacrifice thing, but that's not really a full miss here because you do get a token emrakul, you just have to sacrifice it to state-based actions right away."
+  },
+  {
+    "id": "gemini-flash-lite_D_r1:c012",
+    "verdict": "correct",
+    "note": "correct for everything except you do get a second emrakul (the token) that you then sacrifice either the original or the token to the legend rule once they're both on the battlefield. technically we should be asking a clarifying question here to confirm whether you target the same player or not with the two cast triggered abilities since we can select new targets for the ability with lithoform engine. so the net outcome is the same, with one emrakul on the battlefield, one control+extra turn for target opponent."
+  },
+  {
+    "id": "gemini-flash-lite_D_r2:c012",
+    "verdict": "correct",
+    "note": "correct for everything except you do get a second emrakul (the token) that you then sacrifice either the original or the token to the legend rule once they're both on the battlefield. technically we should be asking a clarifying question here to confirm whether you target the same player or not with the two cast triggered abilities since we can select new targets for the ability with lithoform engine. so the net outcome is the same, with one emrakul on the battlefield, one control+extra turn for target opponent."
+  },
+  {
+    "id": "deepseek-v3-2_B_r1:c014",
+    "verdict": "partial",
+    "note": "Partially correct, but it points to something we could add to the system prompt to make it better (the repo I shared from ChrisMiho should have a great system prompt hiding somewhere that we could use too). It incorrectly stated something about how discounts are applied. we should just teach it to count mana correctly in our system prompt.\n\nthis part is correct, but the parts before and after are wrong:\n\nHere's the reasoning: Awaken the Woods has a mana cost of {X}{G}{G}. When you cast it, you first choose a value for X. With X=0, the mana cost is {0}{G}{G}, which is {G}{G}. Your cost reduction effect makes your green spells cost {1} less. According to rule 118.7a, effects that reduce a cost by an amount of generic mana affect only the generic mana component. Since the mana cost {G}{G} has a generic mana component of {0}, the reduction has nothing to reduce. The total cost before Trinisphere is still {G}{G}. Trinisphere's effect then applies because the mana component of the cost ({G}{G}) is less than three mana. Trinisphere makes the spell cost three mana to cast. The cost becomes three mana, which must include the colored mana requirements. You must pay {G}{G} for the two green mana symbols, and you need one additional mana of any color or colorless to reach three total mana. Therefore, the total cost is {G}{G} plus one generic mana, which can be written as {1}{G}{G}. You pay this cost, and since X=0, you create zero 1/1 green Forest Dryad land creature tokens.\n\nTo get tokens, you must choose X=1 or more. If you choose X=1, the mana cost is {1}{G}{G}. Your cost reduction reduces the generic mana component by {1}, making it {0}{G}{G}. Trinisphere then checks the mana component, which is now {G}{G} (two mana), and increases it to three mana. The cost becomes {1}{G}{G} again. You would pay {1}{G}{G} and create one token. For any X >= 1, the cost reduction will first reduce the generic mana component (X) by 1, and then Trinisphere will ensure the total mana paid is at least three."
+  },
+  {
+    "id": "deepseek-v3-2_B_r2:c014",
+    "verdict": "correct",
+    "note": "this part is incorrect but the vast majority of this answer is correct:\n\n (or {2}{G} if you have a cost reduction).\n\nmy other point about teaching it how to calculate mana costs better applies here as well."
+  },
+  {
+    "id": "deepseek-v3-2_C_r1:c014",
+    "verdict": "wrong",
+    "note": "issues with notation of mana costs messes this up"
+  },
+  {
+    "id": "deepseek-v3-2_C_r2:c014",
+    "verdict": "wrong",
+    "note": "issues with notation of mana costs messes this up"
+  },
+  {
+    "id": "deepseek-v3-2_D_r1:c014",
+    "verdict": "wrong",
+    "note": "issues with notation of mana costs messes this up"
+  },
+  {
+    "id": "deepseek-v3-2_D_r2:c014",
+    "verdict": "wrong",
+    "note": "issues with notation of mana costs messes this up"
+  },
+  {
+    "id": "deepseek-v4-flash_B_r1:c014",
+    "verdict": "partial",
+    "note": "cut off, but it looks like it was on the right path."
+  },
+  {
+    "id": "deepseek-v4-flash_B_r2:c014",
+    "verdict": "correct",
+    "note": "technically its better to choose x=2 but its fine."
+  },
+  {
+    "id": "deepseek-v4-flash_C_r1:c014",
+    "verdict": "partial",
+    "note": "the reasoning is mostly right, it just adds the mana values wrong when applying trinisphere's rules. after trinisphere no longer applies, it works great on for example x=2 and x=3"
+  },
+  {
+    "id": "deepseek-v4-flash_C_r2:c014",
+    "verdict": "correct",
+    "note": ""
+  },
+  {
+    "id": "deepseek-v4-flash_D_r1:c014",
+    "verdict": "partial",
+    "note": "its doing the math on trinisphere correctly, but its not recommending the right thing. it should recommend x=2, which costs {1}{G}{G} after cost reduction and trinisphere."
+  },
+  {
+    "id": "deepseek-v4-flash_D_r2:c014",
+    "verdict": "wrong",
+    "note": "the problem here is that it doesn't actually know how to calculate mana values and what mana values mean in this notation. we probably need to add to our system prompt something to teach it how the notation works, and how to do math with mana."
+  },
+  {
+    "id": "gemini-flash-lite_B_r1:c014",
+    "verdict": "partial",
+    "note": "in one part of this, it applies cost reduction incorrectly, and it makes a notation mistake in that it says that trinisphere raises the cost to {3}, when it raises it to 3 (with no curly brackets). We need to teach in the system prompt how the notation works and how math works with mana symbols like for reduction."
+  },
+  {
+    "id": "gemini-flash-lite_B_r2:c014",
+    "verdict": "",
+    "note": ""
+  },
+  {
+    "id": "gpt-5-mini_B_r1:c014",
+    "verdict": "correct",
+    "note": ""
+  },
+  {
+    "id": "gpt-5-mini_B_r2:c014",
+    "verdict": "correct",
+    "note": ""
+  },
+  {
+    "id": "gpt-5-mini_C_r1:c014",
+    "verdict": "correct",
+    "note": ""
+  },
+  {
+    "id": "gpt-5-mini_C_r2:c014",
+    "verdict": "correct",
+    "note": ""
+  },
+  {
+    "id": "gemini-flash-lite_C_r1:c015",
+    "verdict": "partial",
+    "note": "it doesn't note that animate dead can't enchant the grist planeswalker once its on the battlefield, so it is put in the graveyard, which then triggers the ability of animate dead that makes you sacrifice grist."
+  },
+  {
+    "id": "gemini-flash-lite_C_r2:c015",
+    "verdict": "partial",
+    "note": "close, but doesn't mention that animate dead cannot be attached to to grist once he's on the battlefield, so it goes to the graveyard, and thn you have to sacrifice grist because animate dead went to the graveyard."
+  },
+  {
+    "id": "gemini-flash-lite_D_r1:c015",
+    "verdict": "wrong",
+    "note": "it says incorrectly that animate dead attaches to grist which it can't."
+  },
+  {
+    "id": "gemini-flash-lite_D_r2:c015",
+    "verdict": "wrong",
+    "note": "it says incorrectly that animate dead attaches to grist which it can't.\n\nthe ruling here:\nIf the creature put onto the battlefield has protection from black—or if the creature can’t legally be enchanted by Animate Dead for another reason—Animate Dead won’t be able to attach to it. It will be put into the graveyard as a state-based action, causing its delayed triggered ability to trigger. When the trigger resolves, if the creature’s still on the battlefield, its controller will sacrifice it.\n\nIt applies to the permanent, even if its not a creature once it enters the battlefield. its a weird interaction, which is the point of these tests."
+  },
+  {
+    "id": "gpt-5-mini_C_r1:c015",
+    "verdict": "wrong",
+    "note": "the sacrifice does apply to grist if its a planeswalker. its not stated clearly in the rulings though, and its also not in any official documentation anywhere, which is why our RAG is struggling here."
+  },
+  {
+    "id": "gpt-5-mini_C_r2:c015",
+    "verdict": "partial",
+    "note": "I'm going to mark this partial despite being a wrong ruling because it gets the closest, even though the wording changes. the wording from the actual rules. this is some reference material for OTHER situations that the rules don't cover, but it does not cover this one. https://www.reddit.com/r/mtgrules/comments/1387gzr/situations_the_rules_dont_cover/"
+  },
+  {
+    "id": "gemini-flash-lite_B_r1:c016",
+    "verdict": "wrong",
+    "note": ""
+  },
+  {
+    "id": "gemini-flash-lite_B_r2:c016",
+    "verdict": "wrong",
+    "note": ""
+  },
+  {
+    "id": "gemini-flash-lite_C_r1:c016",
+    "verdict": "wrong",
+    "note": ""
+  },
+  {
+    "id": "gemini-flash-lite_C_r2:c016",
+    "verdict": "wrong",
+    "note": ""
+  },
+  {
+    "id": "gemini-flash-lite_D_r1:c016",
+    "verdict": "wrong",
+    "note": ""
+  },
+  {
+    "id": "gemini-flash-lite_D_r2:c016",
+    "verdict": "wrong",
+    "note": ""
+  },
+  {
+    "id": "deepseek-v3-2_B_r1:c018",
+    "verdict": "wrong",
+    "note": "clones don't target, and you define what it enters as as it enters."
+  },
+  {
+    "id": "deepseek-v3-2_B_r2:c018",
+    "verdict": "wrong",
+    "note": ""
+  },
+  {
+    "id": "deepseek-v3-2_D_r1:c018",
+    "verdict": "wrong",
+    "note": ""
+  },
+  {
+    "id": "deepseek-v3-2_D_r2:c018",
+    "verdict": "wrong",
+    "note": ""
+  },
+  {
+    "id": "gemini-flash-lite_B_r1:c019",
+    "verdict": "wrong",
+    "note": ""
+  },
+  {
+    "id": "gemini-flash-lite_B_r2:c019",
+    "verdict": "wrong",
+    "note": ""
+  },
+  {
+    "id": "gemini-flash-lite_C_r1:c019",
+    "verdict": "wrong",
+    "note": ""
+  },
+  {
+    "id": "gemini-flash-lite_C_r2:c019",
+    "verdict": "wrong",
+    "note": "seems like a wording difference is causing the issue, or the fact that we're not referring to copying the ability specifically twice while its on the stack. that's something for our rewriter. additionally, this ruling is KIND OF correct in that you only get one land from this particular activation, but you copied the ability on the stack, so you will get multiple lands from the other activations when they resolve."
+  },
+  {
+    "id": "gemini-flash-lite_D_r1:c019",
+    "verdict": "partial",
+    "note": "this is closer, it does mention that there are multiple instances on the stack, but we need to probably consider more what the player probably intended to ask (how many lands do I get total after all the copies and the original finish resolving) more than the very literal definition taken here."
+  },
+  {
+    "id": "gemini-flash-lite_D_r2:c019",
+    "verdict": "partial",
+    "note": "this is closer, it does mention that there are multiple instances on the stack, but we need to probably consider more what the player probably intended to ask (how many lands do I get total after all the copies and the original finish resolving) more than the very literal definition taken here."
+  },
+  {
+    "id": "gemini-flash-lite_B_r1:q004",
+    "verdict": "wrong",
+    "note": ""
+  },
+  {
+    "id": "gemini-flash-lite_B_r2:q004",
+    "verdict": "wrong",
+    "note": ""
+  },
+  {
+    "id": "gemini-flash-lite_C_r1:q004",
+    "verdict": "wrong",
+    "note": ""
+  },
+  {
+    "id": "gemini-flash-lite_C_r2:q004",
+    "verdict": "wrong",
+    "note": ""
+  },
+  {
+    "id": "gemini-flash-lite_D_r1:q004",
+    "verdict": "wrong",
+    "note": ""
+  },
+  {
+    "id": "gemini-flash-lite_D_r2:q004",
+    "verdict": "wrong",
+    "note": ""
+  },
+  {
+    "id": "gemini-flash-lite_B_r1:q010",
+    "verdict": "wrong",
+    "note": ""
+  },
+  {
+    "id": "gemini-flash-lite_B_r2:q010",
+    "verdict": "wrong",
+    "note": ""
+  },
+  {
+    "id": "gemini-flash-lite_C_r1:q010",
+    "verdict": "wrong",
+    "note": ""
+  },
+  {
+    "id": "gemini-flash-lite_C_r2:q010",
+    "verdict": "correct",
+    "note": "it injects some irrelevant rulings here i think, but it is correct."
+  },
+  {
+    "id": "gpt-5-mini_B_r1:q012",
+    "verdict": "correct",
+    "note": ""
+  },
+  {
+    "id": "gpt-5-mini_B_r2:q012",
+    "verdict": "correct",
+    "note": ""
+  },
+  {
+    "id": "gpt-5-mini_C_r1:q012",
+    "verdict": "correct",
+    "note": ""
+  },
+  {
+    "id": "gpt-5-mini_C_r2:q012",
+    "verdict": "correct",
+    "note": ""
+  },
+  {
+    "id": "gpt-5-mini_D_r1:q012",
+    "verdict": "correct",
+    "note": ""
+  },
+  {
+    "id": "gpt-5-mini_D_r2:q012",
+    "verdict": "correct",
+    "note": ""
+  },
+  {
+    "id": "deepseek-v4-flash_C_r1:q013",
+    "verdict": "correct",
+    "note": ""
+  },
+  {
+    "id": "deepseek-v4-flash_C_r2:q013",
+    "verdict": "correct",
+    "note": ""
+  },
+  {
+    "id": "deepseek-v3-2_B_r1:q014",
+    "verdict": "correct",
+    "note": ""
+  },
+  {
+    "id": "deepseek-v3-2_B_r2:q014",
+    "verdict": "correct",
+    "note": ""
+  },
+  {
+    "id": "deepseek-v4-flash_B_r1:q014",
+    "verdict": "wrong",
+    "note": "we need to find the ruling that before moving from one step to another, each player receives priority in APNAP order and pull that more frequently."
+  },
+  {
+    "id": "deepseek-v4-flash_B_r2:q014",
+    "verdict": "wrong",
+    "note": "you receive priority many times before the end of combat as the defending player."
+  },
+  {
+    "id": "gemini-flash-lite_B_r1:q014",
+    "verdict": "wrong",
+    "note": "there's some correct things in here but it's not fully correct."
+  },
+  {
+    "id": "gemini-flash-lite_B_r2:q014",
+    "verdict": "wrong",
+    "note": ""
+  },
+  {
+    "id": "gemini-flash-lite_C_r1:q014",
+    "verdict": "wrong",
+    "note": ""
+  },
+  {
+    "id": "gemini-flash-lite_C_r2:q014",
+    "verdict": "wrong",
+    "note": ""
+  },
+  {
+    "id": "gemini-flash-lite_D_r1:q014",
+    "verdict": "wrong",
+    "note": ""
+  },
+  {
+    "id": "gemini-flash-lite_D_r2:q014",
+    "verdict": "wrong",
+    "note": ""
+  },
+  {
+    "id": "deepseek-v4-pro_B_r1:q016",
+    "verdict": "correct",
+    "note": ""
+  },
+  {
+    "id": "deepseek-v4-pro_B_r2:q016",
+    "verdict": "correct",
+    "note": ""
+  },
+  {
+    "id": "deepseek-v3-2_C_r1:q017",
+    "verdict": "correct",
+    "note": ""
+  },
+  {
+    "id": "deepseek-v3-2_C_r2:q017",
+    "verdict": "correct",
+    "note": ""
+  },
+  {
+    "id": "gemini-flash-lite_C_r1:q017",
+    "verdict": "correct",
+    "note": ""
+  },
+  {
+    "id": "gemini-flash-lite_C_r2:q017",
+    "verdict": "correct",
+    "note": ""
+  },
+  {
+    "id": "gpt-5-mini_C_r1:q017",
+    "verdict": "correct",
+    "note": ""
+  },
+  {
+    "id": "gpt-5-mini_C_r2:q017",
+    "verdict": "correct",
+    "note": ""
+  },
+  {
+    "id": "gpt-5-mini_B_r1:q019",
+    "verdict": "correct",
+    "note": ""
+  },
+  {
+    "id": "gpt-5-mini_B_r2:q019",
+    "verdict": "correct",
+    "note": ""
+  },
+  {
+    "id": "deepseek-v3-2_C_r1:q022",
+    "verdict": "correct",
+    "note": ""
+  },
+  {
+    "id": "deepseek-v3-2_C_r2:q022",
+    "verdict": "correct",
+    "note": ""
+  },
+  {
+    "id": "deepseek-v3-2_D_r1:q022",
+    "verdict": "correct",
+    "note": ""
+  },
+  {
+    "id": "deepseek-v3-2_D_r2:q022",
+    "verdict": "correct",
+    "note": ""
+  },
+  {
+    "id": "gemini-flash-lite_C_r1:q022",
+    "verdict": "correct",
+    "note": ""
+  },
+  {
+    "id": "gemini-flash-lite_C_r2:q022",
+    "verdict": "correct",
+    "note": ""
+  },
+  {
+    "id": "gemini-flash-lite_D_r1:q022",
+    "verdict": "correct",
+    "note": ""
+  },
+  {
+    "id": "gemini-flash-lite_D_r2:q022",
+    "verdict": "correct",
+    "note": ""
+  },
+  {
+    "id": "gpt-5-mini_D_r1:q022",
+    "verdict": "correct",
+    "note": ""
+  },
+  {
+    "id": "gpt-5-mini_D_r2:q022",
+    "verdict": "correct",
+    "note": ""
+  },
+  {
+    "id": "gemini-flash-lite_B_r1:q024",
+    "verdict": "correct",
+    "note": ""
+  },
+  {
+    "id": "gemini-flash-lite_B_r2:q024",
+    "verdict": "correct",
+    "note": ""
+  },
+  {
+    "id": "deepseek-v4-flash_C_r1:q025",
+    "verdict": "correct",
+    "note": ""
+  },
+  {
+    "id": "deepseek-v4-flash_C_r2:q025",
+    "verdict": "correct",
+    "note": ""
+  },
+  {
+    "id": "deepseek-v4-flash_D_r1:q025",
+    "verdict": "correct",
+    "note": ""
+  },
+  {
+    "id": "deepseek-v4-flash_D_r2:q025",
+    "verdict": "correct",
+    "note": ""
+  },
+  {
+    "id": "deepseek-v4-pro_B_r1:q025",
+    "verdict": "correct",
+    "note": ""
+  },
+  {
+    "id": "deepseek-v4-pro_B_r2:q025",
+    "verdict": "correct",
+    "note": ""
+  },
+  {
+    "id": "gemini-flash-lite_B_r1:q025",
+    "verdict": "correct",
+    "note": ""
+  },
+  {
+    "id": "gemini-flash-lite_B_r2:q025",
+    "verdict": "correct",
+    "note": ""
+  },
+  {
+    "id": "deepseek-v3-2_B_r1:q026",
+    "verdict": "correct",
+    "note": ""
+  },
+  {
+    "id": "deepseek-v3-2_B_r2:q026",
+    "verdict": "correct",
+    "note": ""
+  },
+  {
+    "id": "deepseek-v3-2_C_r1:q026",
+    "verdict": "correct",
+    "note": ""
+  },
+  {
+    "id": "deepseek-v3-2_C_r2:q026",
+    "verdict": "correct",
+    "note": ""
+  },
+  {
+    "id": "deepseek-v3-2_D_r1:q026",
+    "verdict": "correct",
+    "note": ""
+  },
+  {
+    "id": "deepseek-v3-2_D_r2:q026",
+    "verdict": "correct",
+    "note": ""
+  },
+  {
+    "id": "deepseek-v4-flash_B_r1:q026",
+    "verdict": "correct",
+    "note": ""
+  },
+  {
+    "id": "deepseek-v4-flash_B_r2:q026",
+    "verdict": "correct",
+    "note": ""
+  },
+  {
+    "id": "gemini-flash-lite_B_r1:q026",
+    "verdict": "correct",
+    "note": ""
+  },
+  {
+    "id": "gemini-flash-lite_B_r2:q026",
+    "verdict": "correct",
+    "note": ""
+  },
+  {
+    "id": "gemini-flash-lite_C_r1:q026",
+    "verdict": "correct",
+    "note": ""
+  },
+  {
+    "id": "gemini-flash-lite_C_r2:q026",
+    "verdict": "correct",
+    "note": ""
+  },
+  {
+    "id": "gemini-flash-lite_D_r1:q026",
+    "verdict": "correct",
+    "note": ""
+  },
+  {
+    "id": "gemini-flash-lite_D_r2:q026",
+    "verdict": "correct",
+    "note": ""
+  },
+  {
+    "id": "gemini-flash-lite_B_r1:q030",
+    "verdict": "correct",
+    "note": ""
+  },
+  {
+    "id": "gemini-flash-lite_B_r2:q030",
+    "verdict": "correct",
+    "note": ""
+  },
+  {
+    "id": "gemini-flash-lite_D_r1:q030",
+    "verdict": "correct",
+    "note": ""
+  },
+  {
+    "id": "gemini-flash-lite_D_r2:q030",
+    "verdict": "correct",
+    "note": ""
+  }
+]

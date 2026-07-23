@@ -205,6 +205,23 @@ weaker result than the framing implies — these are the two failures Jon
 specifically attributed to the rewriter, so they're the sharpest test of
 whether the hypothesis is right, not just whether some numbers moved.
 
+**Two more rewriter-attributed targets from the v3ab grading (added 2026-07-23,
+docs/grading-feedback-backlog.md):**
+- **c019** (Kicker/ability-copy land count): Jon's note — "seems like a wording
+  difference is causing the issue, or the fact that we're not referring to
+  copying the ability specifically twice while it's on the stack. that's
+  something for our rewriter." A rewriter that phrases the query around
+  "copies of an activated ability on the stack" is the hypothesis to test.
+- **q014 (APNAP priority frequency)**: Jon — "we need to find the ruling that
+  before moving from one step to another, each player receives priority in
+  APNAP order and pull that more frequently." The rewriter should surface the
+  priority-order rule (approx. 117.3/117.4) for multiplayer-combat questions,
+  not just the combat-damage rules. Complements the existing q014 802.2 target.
+
+These four (q016, q014-multiplayer, q014-APNAP, c019) are the phase-1
+hand-checked retrieval targets. All four are Jon-diagnosed rewriter/retrieval
+gaps, not guesses.
+
 ## Phase 2 — promotion criteria (generation A/B, conditional)
 
 Phase 2 (a generation A/B, following `plan-openrouter-models.md`'s existing
