@@ -578,3 +578,24 @@ capture" section for the trigger rules.
 - Grading session ready: evals/build_arm_review.py adapts arm outputs to
   the grading UI; six grading_<arm>.html files in data/parsed/, verdicts
   export to evals/verdicts_<arm>.json for the L2 roll-up.
+
+## 2026-07-23 — condition-E: live reasoning.effort verification (Claude)
+
+- Task 2 (docs/plan-v4e-execution-tasks.md), step 1: probed OpenRouter's
+  chat/completions endpoint directly with a deliberately invalid
+  reasoning.effort value on openai/gpt-5-mini. Verbatim 400 response body:
+  `{'message': 'reasoning.effort: Invalid option: expected one of
+  "max"|"xhigh"|"high"|"medium"|"low"|"minimal"|"none"', 'code': 400}`
+- Confirms plan-condition-e-reasoning.md Sec 3's flagged-unverified extras
+  (max/xhigh/minimal/none) are real, straight from the API's own validation,
+  not just the summarizing fetch tool.
+- Live low/medium calls (reasoning={"effort": "low"|"medium"}, max_tokens=32,
+  same "Reply with exactly the word OK" probe): medium ->
+  usage.completion_tokens_details.reasoning_tokens = 104, completion_tokens =
+  0 (all budget spent reasoning). low -> reasoning_tokens = 0,
+  completion_tokens = 3. Confirms reasoning-token counts land in
+  ORResult.usage with no schema change.
+- Separately confirmed effort="high" end-to-end at max_tokens=512: HTTP 200,
+  finish_reason "stop", content "OK", reasoning_details populated
+  (type: reasoning.encrypted -- OpenAI doesn't expose raw CoT text, only the
+  encrypted blob + the reasoning field itself null).

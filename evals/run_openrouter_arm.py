@@ -191,11 +191,14 @@ def _load_all_questions() -> dict[str, str]:
 
 
 def run_variance(store: VectorStore, model: str, rewrite_version: str = "v2",
-                 ruling_query_mode: str = "raw") -> dict:
+                 ruling_query_mode: str = "raw", reasoning: dict | None = None) -> dict:
     """Task 3: for q001/q014/c015, draw VARIANCE_DRAWS answers each from the
     SAME captured prompt and report whether the draws are byte-identical --
     the honest question for any temp=0 arm (temp=0 reduces draw variance, it
-    does not guarantee it -- same caveat openrouter_backend.py documents)."""
+    does not guarantee it -- same caveat openrouter_backend.py documents).
+
+    `reasoning`: same condition-E passthrough as the main loop (docs/
+    plan-condition-e-reasoning.md Sec 2); default None, unaffected."""
     all_q = _load_all_questions()
     out = {}
     for qid in VARIANCE_IDS:
@@ -207,7 +210,7 @@ def run_variance(store: VectorStore, model: str, rewrite_version: str = "v2",
                                        ruling_query_mode=ruling_query_mode)
         texts = []
         for draw in range(VARIANCE_DRAWS):
-            result = openrouter_backend.generate(system, user, model)
+            result = openrouter_backend.generate(system, user, model, reasoning=reasoning)
             text = result.answer.text if result.answer is not None else f"(ERROR: {result.error})"
             texts.append(text)
             print(f"    variance {qid} draw {draw + 1}/{VARIANCE_DRAWS} "
@@ -317,6 +320,39 @@ def ruling_query_report(mode: str) -> dict:
     return {"summary": summary, "rows": rows}
 
 
+_REASONING_SHORTHAND = {"low", "medium", "high"}
+
+# Sentinel distinguishing "--reasoning wasn't passed at all" from "--reasoning
+# was passed with a value" (fix-loop finding 1). Using None as the argparse
+# default would collide with a legitimately-parsed value of None (e.g. the
+# raw JSON literal "null"), which matters for --retry-errors: omitting the
+# flag must silently reuse the file's recorded reasoning (including when
+# that's null/None), while explicitly passing --reasoning must be compared
+# against the file's value and hard-error on any mismatch.
+_REASONING_NOT_PASSED = object()
+
+
+def _parse_reasoning(parser: argparse.ArgumentParser, raw: str | None) -> dict | None:
+    """--reasoning passthrough (docs/plan-condition-e-reasoning.md Sec 2):
+    low|medium|high shorthand -> {"effort": <value>}; anything else must be
+    valid JSON for an object, used verbatim as OpenRouter's `reasoning` dict.
+    Returns None when --reasoning wasn't given at all (the default, off)."""
+    if raw is None:
+        return None
+    if raw in _REASONING_SHORTHAND:
+        return {"effort": raw}
+    try:
+        parsed = json.loads(raw)
+    except json.JSONDecodeError as e:
+        parser.error(f"--reasoning {raw!r} is not low|medium|high and not valid JSON: {e}")
+        return None  # unreachable -- parser.error() raises SystemExit
+    if not isinstance(parsed, dict):
+        parser.error(f"--reasoning {raw!r} must be low|medium|high or a JSON object, "
+                     f"got {type(parsed).__name__}")
+        return None  # unreachable
+    return parsed
+
+
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--model", default=None,
@@ -350,6 +386,19 @@ def parse_args() -> argparse.Namespace:
         "--condition", default=None,
         help="prompt-v3 A/B condition label (e.g. B/C/D), stamped into the output payload's "
         "'condition' field for provenance -- purely informational, has no effect on the run",
+    )
+    p.add_argument(
+        "--reasoning", default=_REASONING_NOT_PASSED,
+        help="condition-E reasoning passthrough (docs/plan-condition-e-reasoning.md Sec 2): "
+        "either the shorthand low|medium|high (mapped to OpenRouter's "
+        "{\"effort\": \"<value>\"}), or a raw JSON object for anything else (e.g. "
+        "'{\"effort\": \"high\", \"exclude\": true}'). Passed straight through to "
+        "openrouter_backend.generate()'s reasoning= kwarg. Default: not passed -- omitted from "
+        "the request body entirely, so every run without this flag is unaffected. Recorded "
+        "verbatim into the output file's 'reasoning' metadata field alongside 'model' / "
+        "'rewrite_version' / 'ruling_query_mode' so a run file is self-describing. On "
+        "--retry-errors, this flag is OPTIONAL and, if given, must match the file's recorded "
+        "reasoning exactly -- a retry can't silently change the reasoning config it's patching.",
     )
     p.add_argument(
         "--run", type=int, default=None,
@@ -400,6 +449,9 @@ def parse_args() -> argparse.Namespace:
         "the whole 50-question cost.",
     )
     args = p.parse_args()
+    args.reasoning_passed = args.reasoning is not _REASONING_NOT_PASSED
+    args.reasoning_dict = (_parse_reasoning(p, args.reasoning)
+                          if args.reasoning_passed else None)
     if args.assemble_only:
         if args.prompts_cache is None:
             p.error("--assemble-only requires --prompts-cache PATH")
@@ -455,6 +507,31 @@ def main() -> None:
                   f"mix models")
             return
         rw_ver, rq_mode = data.get("rewrite_version"), data.get("ruling_query_mode")
+        # rewrite_version/ruling_query_mode above are read into locals purely
+        # for the log line below -- they are NOT enforced against --rewrite-
+        # version/--ruling-query-mode (this path takes no such flags at all),
+        # because retry always sources prompts from the file's own recorded
+        # prompts_cache, which makes those two settings inert here regardless
+        # of what produced the file.
+        #
+        # `reasoning` (docs/plan-condition-e-reasoning.md Sec 2) is different
+        # in kind: it's an ACTIVE inference-time parameter passed straight to
+        # generate() on every retried call, so it can't be silently ignored
+        # the way rewrite_version/ruling_query_mode are. Default (flag
+        # omitted): silently reuse the file's recorded value, including when
+        # that's null -- the normal, expected path. Flag explicitly passed:
+        # hard-error on any mismatch with the file's recorded value, the same
+        # loud-refusal convention the model guard above already uses --
+        # fixing the reasoning config for a run means starting a new run, not
+        # mutating a retry.
+        reasoning_from_file = data.get("reasoning")
+        if args.reasoning_passed and args.reasoning_dict != reasoning_from_file:
+            print(f"[ERROR] --retry-errors {path} was generated with "
+                  f"reasoning={reasoning_from_file!r}, but this invocation passed "
+                  f"--reasoning={args.reasoning!r} (resolved to {args.reasoning_dict!r}) -- "
+                  f"refusing to silently change the reasoning config on a retry; run a new "
+                  f"eval instead")
+            return
         cache_path_str = data.get("prompts_cache")
         prompts_cache = None
         if cache_path_str:
@@ -465,7 +542,7 @@ def main() -> None:
         err_ids = [r["id"] for r in results if r.get("error")]
         print(f"Retrying {len(err_ids)} errored rows in {path} | model={args.model} "
               f"| rewrite_version={rw_ver} | ruling_query_mode={rq_mode} "
-              f"| prompts_cache={cache_path_str}\n")
+              f"| reasoning={reasoning_from_file} | prompts_cache={cache_path_str}\n")
         for i, qid in enumerate(err_ids, 1):
             t0 = time.time()
             question = results[by_id[qid]]["question"]
@@ -474,7 +551,8 @@ def main() -> None:
             else:
                 print(f"[ERROR] {qid} not found in prompts cache {cache_path_str} -- skipping")
                 continue
-            result = openrouter_backend.generate(system, user, args.model)
+            result = openrouter_backend.generate(system, user, args.model,
+                                                 reasoning=reasoning_from_file)
             results[by_id[qid]] = _answer_row(qid, question, result)
             status = "ok" if result.answer is not None else f"FAIL ({result.error})"
             print(f"  [{i}/{len(err_ids)}] {qid} -> {status} ({time.time() - t0:.1f}s)")
@@ -552,7 +630,7 @@ def main() -> None:
     print(
         f"Generating {len(questions)} answers | model={args.model} | out={out_path} "
         f"| rewrite_version={args.rewrite_version} | ruling_query_mode={args.ruling_query_mode} "
-        f"| condition={args.condition} | run={args.run} "
+        f"| condition={args.condition} | run={args.run} | reasoning={args.reasoning_dict} "
         f"| prompts_cache={args.prompts_cache}\n"
     )
 
@@ -569,7 +647,8 @@ def main() -> None:
         else:
             system, user = _capture_prompt(store, q.question, rewrite_version=args.rewrite_version,
                                            ruling_query_mode=args.ruling_query_mode)
-        result = openrouter_backend.generate(system, user, args.model)
+        result = openrouter_backend.generate(system, user, args.model,
+                                             reasoning=args.reasoning_dict)
         results.append(_answer_row(q.id, q.question, result))
         status = "ok" if result.answer is not None else f"FAIL ({result.error})"
         print(f"  [{i}/{len(questions)}] {q.id} -> {status} ({time.time() - t0:.1f}s)")
@@ -582,7 +661,8 @@ def main() -> None:
     if args.variance:
         print("\nVariance spot-check (q001/q014/c015, 3 draws each):")
         variance = run_variance(store, args.model, rewrite_version=args.rewrite_version,
-                                ruling_query_mode=args.ruling_query_mode)
+                                ruling_query_mode=args.ruling_query_mode,
+                                reasoning=args.reasoning_dict)
 
     out_path.parent.mkdir(parents=True, exist_ok=True)
     payload = {
@@ -591,6 +671,12 @@ def main() -> None:
         "ruling_query_mode": args.ruling_query_mode,
         "condition": args.condition,
         "run": args.run,
+        # Condition-E passthrough (docs/plan-condition-e-reasoning.md Sec 2):
+        # the resolved dict actually sent (e.g. {"effort": "high"}), or None
+        # when --reasoning wasn't given -- so a run file is self-describing
+        # about which reasoning config produced it, same provenance role
+        # 'model'/'rewrite_version'/'ruling_query_mode' already play.
+        "reasoning": args.reasoning_dict,
         "prompts_cache": str(args.prompts_cache) if args.prompts_cache else None,
         "results": results,
         "summary": {

@@ -70,7 +70,8 @@ class ORResult:
 
 
 def generate(system: str, user: str, model: str,
-             timeout: float = 300.0) -> ORResult:
+             timeout: float = 300.0,
+             reasoning: dict | None = None) -> ORResult:
     """One answer from `model` for an already-assembled prompt pair.
 
     Retries two failure classes, both measured on the 2026-07-22 arm runs:
@@ -80,14 +81,20 @@ def generate(system: str, user: str, model: str,
     JSON with completion_tokens=0 as an HTTP 200) via up to two re-asks
     here. A model that GENUINELY can't follow the schema still surfaces:
     its parse failures are consistent, not stochastic, and the third
-    failure is recorded honestly with the raw text kept."""
+    failure is recorded honestly with the raw text kept.
+
+    `reasoning` (docs/plan-condition-e-reasoning.md Sec 2): optional
+    OpenRouter `reasoning` request-parameter dict, e.g. {"effort": "high"}.
+    Defaults to None -- omitted from the request body entirely, so every
+    call site that doesn't pass it (every past eval run) sends the exact
+    body it always has. Passed straight through to `_attempt()` unchanged."""
     key = os.environ.get("OPENROUTER_API_KEY")
     if not key:
         return ORResult(None, model, None, None, None, None,
                         error="OPENROUTER_API_KEY not set")
     result = None
     for _ in range(3):
-        result = _attempt(system, user, model, key, timeout)
+        result = _attempt(system, user, model, key, timeout, reasoning=reasoning)
         if result.answer is not None:
             return result
         if result.error and not result.error.startswith("parse"):
@@ -97,7 +104,7 @@ def generate(system: str, user: str, model: str,
 
 
 def _attempt(system: str, user: str, model: str, key: str,
-             timeout: float) -> ORResult:
+             timeout: float, reasoning: dict | None = None) -> ORResult:
 
     temperature = None if model in NO_TEMPERATURE else 0.0
     body = {
@@ -117,6 +124,12 @@ def _attempt(system: str, user: str, model: str, key: str,
     }
     if temperature is not None:
         body["temperature"] = temperature
+    if reasoning is not None:
+        # docs/plan-condition-e-reasoning.md Sec 2/Sec 3: OpenRouter's
+        # `reasoning` request parameter, e.g. {"effort": "high"}. Only added
+        # when explicitly requested -- default None keeps every past eval's
+        # request body byte-identical (nothing else here moves).
+        body["reasoning"] = reasoning
 
     # Transient upstream failures (429 from a pinned provider, 5xx) get a
     # bounded retry with backoff -- the v4-flash arm lost 31/50 questions to
