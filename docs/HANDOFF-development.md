@@ -79,10 +79,11 @@ decision must be explainable cold. End goal: public demo on Fly.io.
   scripted Anthropic API calls; API credits are for the product/eval arms
   only. (Also in workspace memory.)
 - **Plans APPROVED by Jon 2026-07-23, implementation pending:**
-  - docs/plan-q029-empty-answer-guard.md (BOTH slices + amendment: also
-    FLAG answered:true+zero-citations — surfaced, not retried; skip
-    PROMPT_VERSION bump; broad except with graceful degrade). Unblocked
-    the moment Task 3 lands (generation is done; only judging remains).
+  - docs/plan-q029-empty-answer-guard.md — **SHIPPED 2026-07-23**
+    (197ac79 + 390545b, review Approved, 152/152 tests): blank-text
+    degenerate guard, weak-fallback tightening, uncited-success flag
+    (Debug.uncited_success), unresolved-ref observability
+    (Debug.unresolved_card_refs, crash→graceful, warning-log audit).
   - docs/plan-scryfall-local-bulk.md (fully ruled: threshold 90 tunable,
     measure-first ambiguity guard, refresh window −8/+21 days around set
     release [prerelease = release−7, Jon], no_refresh stays documented
