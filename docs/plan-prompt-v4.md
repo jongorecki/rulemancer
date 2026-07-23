@@ -1,4 +1,13 @@
-**DRAFT under Rule 0 — DESIGN ONLY, no source changes made while writing this plan. Not yet reviewed or approved by Jon.**
+**DRAFT under Rule 0 — DESIGN ONLY. Jon's decisions on the open questions recorded below; not yet built.**
+
+**Jon's rulings (2026-07-23):**
+1. **Test set narrowed to gpt-5-mini vs sonnet only** — gemini (and the other cheap arms) are dropped from the decision loop. This MOOTS most of the plan's token-bloat risk section: that risk was about the *weakest* model (gemini) choking on added instructions; gpt-5-mini *gained* +3 from v3. The +12% token cost is a non-issue against a ~5-8x model-swap saving.
+2. **Keep the mana block ALWAYS-ON** (not gated to cost questions). No conditional rendering; preserves byte-identical-prompt A/B testing. Cost of always-on is negligible per #1.
+3. **Keep the mana worked example** (the ~210-token item) — retained; token cost accepted.
+4. **Redundant two-place assumption emphasis: yes** (Jon leans yes; keep the small optional emphasis clause).
+5. **Timing-assumption bullet (§1d): PENDING Jon's decision** — controller recommends MERGING §1d into the general assumption-disclosure bullet (4c), keeping the concrete timing example as the lead illustration so it still triggers reliably. Awaiting Jon's confirm.
+
+**Measured token budget (2026-07-23, corrects the estimates below):** current v3 SYSTEM = **5,189 chars ≈ ~1,300 tokens** (the "~3.1k" figure elsewhere in this plan was an overestimate). v4 adds ~360 → **~1,660 tokens**. Marginal cost of the +360 input tokens ≈ **$0.0007/query on sonnet**, negligible. Real per-query cost (cond C, measured): gpt-5-mini ~$0.0059 vs sonnet ~$0.048 std / ~$0.032 intro = **~8x / ~5x** cheaper.
 
 # Prompt-Tuning Plan v4: Mana Arithmetic + Multiplayer Refinement + Assumption Disclosure
 

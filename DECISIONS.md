@@ -1355,7 +1355,10 @@ was in progress), so the rules can't be bent to fit the results:
    instead of auto-shipping.
 3. **L2 generator decided from the v3 table:** best cheap arm within 1-2
    correct of sonnet's 46 → Jon reviews the actual flipped answers and
-   decides if the gap is livable at ~25-50x cheaper; gap ≥3 → sonnet stays
+   decides if the gap is livable at ~5-8x cheaper (MEASURED 2026-07-23 from
+   real OpenRouter usage: gpt-5-mini ~$0.0059/query vs sonnet ~$0.048 std /
+   ~$0.032 intro — the earlier "25-50x" was vs the reasoning-OFF deepseek
+   arms, not gpt-5-mini which reasons); gap ≥3 → sonnet stays
    pinned. Final call Jon's either way.
 4. **SSO timing: OIDC slice next** (after the v3/Part B/L2 calls settle,
    ahead of local-bulk and deploy; localhost callbacks). SAML + Jon-driven
