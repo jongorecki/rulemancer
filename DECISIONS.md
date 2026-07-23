@@ -1389,3 +1389,50 @@ plan's original checkpoint design); seeking an outside/legal opinion
 Scryfall or Wizards objecting directly; the product's shape changing into
 something closer to a card-database mirror (e.g., a card-lookup feature that
 just re-serves oracle text without the rules-answering layer).
+
+## 2026-07-24 — prompt-v4 and condition-E ship as ONE slice, measured by SYSTEM-swap
+
+**What:** v4 and the reasoning-effort experiment run on a single grid (sonnet/v4,
+gpt-5-mini/v4 default, gpt-5-mini/v4 effort=high; 2 runs each) and are graded in
+one session. The v4 arm's prompts are NOT freshly captured — they're derived from
+`evals/answers/_prompts_C.json` by replacing the `system` field and copying every
+`user` block byte for byte. Plan: docs/plan-v4e-execution-tasks.md.
+**Why:** Jon's grading time is the binding constraint, and condition-E's
+attribution is only clean if the prompt is fixed across its cells — so merging
+them costs nothing and saves a whole grading session. The swap works because the
+prompt cache stores `system` and `user` separately and v4 is a SYSTEM-string-only
+change (plan-prompt-v4.md §8): v3 and v4 then answer from *byte-identical*
+retrieval, which eliminates the 30-34% Voyage embedding nondeterminism from the
+comparison instead of merely controlling for it. It also means the v3 baselines
+(sonnet 46 / gpt-5-mini 45, condition C) need no re-run — six new runs, not twelve.
+**Alternatives rejected:** a fresh `_capture_prompt` pass for v4 (what
+plan-prompt-v4.md §5/§6 originally described) — closer to the letter of the v3
+methodology but re-draws retrieval, making some flips unattributable; running
+condition-E separately after v4 (a second grading session for one extra variable);
+adding a generation-side SYSTEM version selector (unnecessary — v3 survives inside
+the frozen capture file).
+**What would change my mind:** evidence that v4 changes anything upstream of the
+SYSTEM string (it doesn't, by its own non-goals), or a per-question byte-equality
+failure in the derived prompts file — which is exactly what the plan's Task 3
+verification checks and reports.
+
+## 2026-07-24 — groundedness follow-up does NOT enter prompt v4
+
+**What:** Jon read the 7 flagged groundedness instances and ruled v4 ships exactly
+as its six rulings specify — no groundedness-targeted bullet. The post-hoc
+citation-filter option stays queued as its own Rule 0 slice; pre-commitment #1
+(2026-07-23) is partially discharged, not dropped.
+**Why:** the evidence didn't support spending v4's prompt-change window on it.
+Only 4 of the 7 belong to arms still in the decision set, and they aren't one
+failure class: gpt-5-mini's q028 ×2 cited `601.2` when `601.2a/601.2f/601.2i` WERE
+in context (parent-vs-child granularity); sonnet's c016 cited `904.6d` alongside a
+real, in-context `704.6d` (one digit apart); sonnet's q012 appended `701.21` to a
+claim already grounded in the provided `Sacrifice` glossary entry. The only
+whole-cloth ungrounded citations (gemini's `702.7`/`702.4`, stable across both
+runs) belong to a dropped arm.
+**Alternatives rejected:** folding a bullet into v4 anyway (would aim a prompt fix
+at what looks partly like a citation-granularity artifact, and adds an unruled
+bullet to a fully-ruled plan); blocking v4 until a citation-filter plan exists.
+**What would change my mind:** the v4 run's tripwire spiking above the current
+level, or Jon's grading turning up an ungrounded citation that actually changed an
+answer's correctness rather than just its citation list.
