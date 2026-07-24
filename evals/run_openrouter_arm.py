@@ -117,7 +117,7 @@ class _RecordingClient:
 
 
 def _capture_prompt(store: VectorStore, question: str, rewrite_version: str = "v2",
-                    ruling_query_mode: str = "raw") -> tuple[str, str]:
+                    ruling_query_mode: str = "raw") -> tuple[str, str, list[str]]:
     """tests/test_prompt_identity.py's _capture() helper, verbatim pattern: a
     fresh RulesAgent + fresh recording client per question, so no state leaks
     between calls. Runs retrieval/rewrite/card-enrichment for real (warm
@@ -127,7 +127,13 @@ def _capture_prompt(store: VectorStore, question: str, rewrite_version: str = "v
 
     `rewrite_version`/`ruling_query_mode` (prompt-v3 A/B, docs/plan-v3-
     execution-tasks.md Task 2): threaded straight into RulesAgent so this
-    captures the exact condition-B/C/D prompt, not just the shipped default."""
+    captures the exact condition-B/C/D prompt, not just the shipped default.
+
+    Also returns the retrieved rule/glossary ids in RANK ORDER (Chunk.source_id
+    per hit off agent.last_retrieved, NOT rule_id -- Chunk has no such field),
+    read off the agent the instant before _Recorded unwinds it -- last_retrieved
+    is set earlier in answer() than the generation call this intercepts, so it's
+    always populated by the time control returns here."""
     client = _RecordingClient()
     agent = RulesAgent(store, client=client, card_no_refresh=True,
                        rewrite_version=rewrite_version, ruling_query_mode=ruling_query_mode)
@@ -141,14 +147,17 @@ def _capture_prompt(store: VectorStore, question: str, rewrite_version: str = "v
             "the recording client didn't intercept the generation call"
         )
     kw = client.kwargs
-    return kw["system"], kw["messages"][0]["content"]
+    retrieved_ids = ([r.chunk.source_id for r in agent.last_retrieved]
+                     if agent.last_retrieved is not None else [])
+    return kw["system"], kw["messages"][0]["content"], retrieved_ids
 
 
 def _slug_for(model: str) -> str:
     return model.replace("/", "-").replace(".", "-")
 
 
-def _answer_row(qid: str, question: str, result: openrouter_backend.ORResult) -> dict:
+def _answer_row(qid: str, question: str, result: openrouter_backend.ORResult,
+                retrieved_rule_ids: list[str] | None = None) -> dict:
     row = {
         "id": qid,
         "question": question,
@@ -157,6 +166,12 @@ def _answer_row(qid: str, question: str, result: openrouter_backend.ORResult) ->
         "temperature_sent": result.temperature_sent,
         "seed_sent": result.seed_sent,
         "usage": result.usage,
+        # New: retrieval's rank-ordered ids for this question (Chunk.source_id,
+        # not rule_id -- Chunk has no such field). [] when this row wasn't built
+        # from a live retrieval pass (the --retry-errors path re-generates from
+        # an already-assembled cached prompt, no retrieval re-run) -- an honest
+        # gap, default so every existing caller of _answer_row() is unaffected.
+        "retrieved_rule_ids": retrieved_rule_ids or [],
     }
     if result.answer is not None:
         row["answered"] = result.answer.answered
@@ -319,7 +334,7 @@ def run_variance(store: VectorStore, model: str, rewrite_version: str = "v2",
         if question is None:
             out[qid] = {"error": f"question id {qid!r} not found in questions.jsonl/cards.jsonl"}
             continue
-        system, user = _capture_prompt(store, question, rewrite_version=rewrite_version,
+        system, user, _retrieved_ids = _capture_prompt(store, question, rewrite_version=rewrite_version,
                                        ruling_query_mode=ruling_query_mode)
         texts = []
         for draw in range(VARIANCE_DRAWS):
@@ -707,7 +722,10 @@ def main() -> None:
         cache: dict[str, dict[str, str]] = {}
         t0 = time.time()
         for i, q in enumerate(all_q, 1):
-            system, user = _capture_prompt(store, q.question, rewrite_version=args.rewrite_version,
+            # Retrieved ids discarded here -- --assemble-only builds a
+            # {system, user} prompts-cache FILE for reuse across arms/runs
+            # (a different, unchanged schema), not a runner output row.
+            system, user, _retrieved_ids = _capture_prompt(store, q.question, rewrite_version=args.rewrite_version,
                                            ruling_query_mode=args.ruling_query_mode)
             cache[q.id] = {"system": system, "user": user}
             print(f"  [{i}/{len(all_q)}] {q.id} assembled")
@@ -797,12 +815,17 @@ def main() -> None:
                               f"the cache doesn't cover this question set")
                         return
                     system, user = prompts_cache[q.id]["system"], prompts_cache[q.id]["user"]
+                    # Reading a pre-assembled prompt skips retrieval entirely this
+                    # run -- honest gap, same treatment run_answer_eval.py gives
+                    # rewrite_queries/clarification on its own --prompts-cache path.
+                    retrieved_ids: list[str] = []
                 else:
-                    system, user = _capture_prompt(store, q.question, rewrite_version=args.rewrite_version,
-                                                   ruling_query_mode=args.ruling_query_mode)
+                    system, user, retrieved_ids = _capture_prompt(
+                        store, q.question, rewrite_version=args.rewrite_version,
+                        ruling_query_mode=args.ruling_query_mode)
                 result = openrouter_backend.generate(system, user, args.model,
                                                      reasoning=args.reasoning_dict)
-                row = _answer_row(q.id, q.question, result)
+                row = _answer_row(q.id, q.question, result, retrieved_rule_ids=retrieved_ids)
                 results.append(row)
                 status = "ok" if result.answer is not None else f"FAIL ({result.error})"
                 print(f"  [{i}/{len(questions)}] {q.id} -> {status} ({time.time() - t0:.1f}s)")
