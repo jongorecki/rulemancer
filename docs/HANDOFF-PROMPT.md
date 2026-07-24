@@ -9,7 +9,7 @@ We're continuing work on Rulemancer, the MTG rules RAG bot at D:\Job_hunt\mtg-ru
 
 First: read docs/HANDOFF-development.md in full — start with the "SESSION-END STATE — 2026-07-24" block at the top, which is authoritative and supersedes everything below it, including the 07-23 block. Follow its "Read these FIRST" list before doing anything.
 
-Where we are in one line: prompt v4 was planned, built, run and graded end to end — it **failed its own go criterion** (sonnet 46→46 with zero divergence, gpt-5-mini 45→43, and c014 never moved despite the whole notation legend being built for it) — condition E is closed on latency rather than accuracy, and a new four-slice plan is drafted and awaiting my review.
+Where we are in one line: prompt v4 was planned, built, run and graded end to end — it **failed its own go criterion** (sonnet 46→46 with zero divergence, gpt-5-mini 45→43, and c014 never moved despite the whole notation legend being built for it) — condition E is closed on latency rather than accuracy, and a new three-slice plan is drafted and awaiting my review.
 
 **The one open decision, and it blocks everything else:** master currently ships `PROMPT_VERSION = 4`, the failed candidate. It costs +1,215 tokens/query, buys the production model (sonnet) nothing, and drops gpt-5-mini to a 3-answer gap — which trips my own pre-commitment that a gap ≥3 pins sonnet and mothballs the ~8x cheaper generator. The controller's recommendation on record is to revert production to v3 and carry v4's content into the v5 candidate. I have not ruled.
 
