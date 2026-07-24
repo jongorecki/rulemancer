@@ -92,6 +92,14 @@ def main() -> None:
                     help="run just one question set")
     args = ap.parse_args()
 
+    # Create the log dir up front, not lazily in _run(). A caller redirecting
+    # this script's own stdout into LOG_DIR (the obvious way to run it
+    # unattended) fails before main() gets a chance to create it, and the
+    # shell reports that failure as the exit status of whatever ran last --
+    # so an 11-hour run "succeeds" in milliseconds having done nothing.
+    LOG_DIR.mkdir(parents=True, exist_ok=True)
+    ANSWERS.mkdir(parents=True, exist_ok=True)
+
     qids = ",".join(bucket_a_ids())
     arms = [args.only] if args.only else sorted(ARMS)
     sets = [args.sets] if args.sets else sorted(SETS)
