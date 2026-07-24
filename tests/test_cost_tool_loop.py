@@ -8,7 +8,7 @@
 # content blocks shaped like the real Anthropic SDK's (`.type`, `.id`,
 # `.name`, `.input`).
 
-from rulesagent.contracts import Answer
+from rulesagent.contracts import Answer, Card
 from rulesagent.generate import answer as ans
 
 
@@ -84,6 +84,83 @@ def test_trigger_does_not_fire_on_plain_question():
 def test_trigger_requires_both_x_and_cost_phrase():
     assert ans._needs_cost_tool("What is {X} in a mana cost?", []) is False
     assert ans._needs_cost_tool("This spell costs {1} less now.", []) is False
+
+
+# --- Change B: exclude mana-PRODUCTION questions (rg289 false positive,
+# docs/report-costtool-validation.md Stage 2) -- calculate_cost computes a
+# PAID cost via CR 601.2f, the wrong instrument for "how much mana does X
+# add." Converge/color-count questions (rg6636/rg6916 shape) are genuine
+# multi-modifier {X}-cost firings and must keep firing. ----------------------
+
+
+def test_trigger_excludes_mana_production_question():
+    # rg289 shape: Ice Cauldron's activation cost has {X}; Suppression Field
+    # increases activation costs by {2} -- both trip the old trigger, but the
+    # question asks how much mana an ability ADDS (produces), not what a
+    # spell/ability costs to pay.
+    cards = [
+        Card(
+            name="Ice Cauldron",
+            oracle_text=(
+                "{X}, {T}: You may exile a nonland card from your hand. You "
+                "may cast that card for as long as it remains exiled. Put a "
+                "charge counter on this artifact and note the type and "
+                "amount of mana spent to pay this activation cost.\n"
+                "{T}, Remove a charge counter from this artifact: Add this "
+                "artifact's last noted type and amount of mana."
+            ),
+            type_line="Artifact",
+            mana_cost="",
+            oracle_id="ice-cauldron",
+        ),
+        Card(
+            name="Suppression Field",
+            oracle_text=(
+                "Activated abilities cost {2} more to activate unless "
+                "they're mana abilities."
+            ),
+            type_line="Enchantment",
+            mana_cost="{2}",
+            oracle_id="suppression-field",
+        ),
+    ]
+    question = (
+        "Angelina activates Ice Cauldron's first ability with X=1, paying "
+        "{C}{C}{C}. On Angelina's next turn, they activate Ice Cauldron's "
+        "second ability. How much mana do they add?"
+    )
+    assert ans._needs_cost_tool(question, cards) is False
+
+
+def test_trigger_still_fires_on_genuine_converge_x_cost_question():
+    # rg6636 shape: Thalia taxes noncreature spells by {1}; Prismatic
+    # Ending's own cost is {X}{W} (Converge). A genuine multi-modifier
+    # {X}-cost question -- must keep firing, not get excluded by Change B.
+    cards = [
+        Card(
+            name="Thalia, Guardian of Thraben",
+            oracle_text="First strike\nNoncreature spells cost {1} more to cast.",
+            type_line="Legendary Creature -- Human Soldier",
+            mana_cost="{W}",
+            oracle_id="thalia",
+        ),
+        Card(
+            name="Prismatic Ending",
+            oracle_text=(
+                "Converge -- Exile target nonland permanent if its mana "
+                "value is less than or equal to the number of colors of "
+                "mana spent to cast this spell."
+            ),
+            type_line="Sorcery",
+            mana_cost="{X}{W}",
+            oracle_id="prismatic-ending",
+        ),
+    ]
+    question = (
+        "Nylah controls Thalia, Guardian of Thraben. If Ali wants to exile "
+        "it, how much mana do they need to pay for Prismatic Ending?"
+    )
+    assert ans._needs_cost_tool(question, cards) is True
 
 
 # --- Non-tool path stays byte-behaviour-identical ----------------------------
@@ -195,3 +272,73 @@ def test_round_cap_value_leaves_room_for_a_chained_call_plus_terminal_turn():
     # Guard the cap itself: must be >= 3 so a single chained tool call (spike
     # Case B's shape) still has a terminal turn available within the cap.
     assert ans.TOOL_ROUND_CAP >= 3
+
+
+# --- Final round forces tool_choice="none" (Phase 4 cap-exhaustion fix) ------
+#
+# Root cause (Phase 1 instrumented repro, prod claude-sonnet-5, 24
+# generations): 16 of 17 failing attempts were cap-exhaustion -- the model
+# kept emitting tool_use every round, so the for/else round-cap guard fired
+# and the generation degraded to the empty-output sentinel, never because of
+# truncation or payload size. The fix forbids tools on the LAST permitted
+# round only (tool_choice={"type": "none"}, tools left attached) so the
+# model must emit the terminal structured Answer instead of another tool
+# call.
+#
+# _ConditionalToolChoiceClient models a stubborn tool-calling model: it keeps
+# returning tool_use forever UNLESS the incoming call's tool_choice is
+# exactly {"type": "none"}, in which case it complies and answers. Fed
+# through the real loop, this reproduces the cap-exhaustion bug when no
+# round ever sends tool_choice="none" (today, pre-fix) and proves recovery
+# once the final round does (post-fix).
+
+
+class _ConditionalToolChoiceClient:
+    """Fake .messages.parse() client that only stops calling the tool when
+    THIS call's tool_choice is forced to "none" -- otherwise it always
+    returns another tool_use, no matter how many rounds have passed. Records
+    every call's full kwargs for inspection."""
+
+    def __init__(self):
+        self.messages = self
+        self.calls: list[dict] = []
+
+    def parse(self, **kwargs):
+        self.calls.append(kwargs)
+        if kwargs.get("tool_choice") == {"type": "none"}:
+            return _FakeResponse("end_turn", [], _REAL_ANSWER)
+        return _FakeResponse(
+            "tool_use",
+            [_FakeToolUseBlock("toolu_stubborn", "calculate_cost", {
+                "base_cost": {"generic": 1, "colored": {}, "x_coefficient": 0},
+                "modifiers": [],
+            })],
+            None,
+        )
+
+
+def test_final_round_forces_tool_choice_none_and_recovers_a_real_answer():
+    client = _ConditionalToolChoiceClient()
+    agent = ans.RulesAgent(_EmptyStore(), client=client, rewrite=False)
+    result = agent.answer(TRIGGER_QUESTION)
+
+    # Exactly TOOL_ROUND_CAP calls: the fix must recover within the first
+    # attempt's permitted rounds, not exhaust the cap and retry.
+    assert len(client.calls) == ans.TOOL_ROUND_CAP
+
+    # The final permitted round is forced to tool_choice="none" while tools
+    # stays attached -- forbidding further tool calls without dropping the
+    # tool definitions from the request.
+    last_call = client.calls[-1]
+    assert last_call["tool_choice"] == {"type": "none"}
+    assert last_call["tools"] == [ans.CALCULATE_COST_TOOL]
+
+    # Every earlier round is untouched: no tool_choice key at all (today's
+    # call shape, byte-identical).
+    for earlier_call in client.calls[:-1]:
+        assert "tool_choice" not in earlier_call
+
+    # Forced to answer, the stubborn model complies -- a real, non-empty
+    # answer, not the cap-exhaustion degraded sentinel.
+    assert result is _REAL_ANSWER
+    assert result.answered is True

@@ -847,6 +847,34 @@ TOOL_ROUND_CAP = 3
 
 _COST_TRIGGER_RE = re.compile(r"costs?\s*\{?\d+\}?\s*(less|more)\b", re.IGNORECASE)
 
+# Change B (docs/report-costtool-validation.md Stage 2, rg289): calculate_cost
+# computes a PAID cost via CR 601.2f -- the wrong instrument for a question
+# asking how much mana an ability ADDS (produces), e.g. Ice Cauldron's second
+# ability "Add this artifact's last noted type and amount of mana." rg289's
+# card text tripped the old trigger ({X} from Ice Cauldron's activation cost
+# + "cost {2} more" from Suppression Field), but the question itself is about
+# production, not payment. Scoped to the QUESTION text only, never card
+# oracle text -- oracle text routinely contains "Add {mana}" templating on
+# perfectly legitimate cost questions too (a mana rock's own line, alongside
+# an unrelated cost-modifier card), so scanning cards here would risk
+# excluding a real cost question. Narrow phrasing ("how much/many mana ...
+# add") rather than a bare "add" keyword, so it doesn't accidentally match
+# Converge/color-count questions (rg6636/rg6916), which never use "add" --
+# they ask what something COSTS or how much to PAY. A false negative here
+# just means the model does the arithmetic in prose as before (no
+# regression), so narrow is the safe direction per this trigger's own
+# docstring philosophy.
+_MANA_PRODUCTION_RE = re.compile(
+    r"how (?:much|many) mana\b.{0,60}?\badd(?:s|ed|ing)?\b", re.IGNORECASE | re.DOTALL
+)
+
+
+def _is_mana_production_question(question: str) -> bool:
+    """True for a "how much mana does X add" shape (rg289) -- see the
+    _MANA_PRODUCTION_RE comment above for why this is scoped to the
+    question text only and to this narrow phrasing."""
+    return bool(_MANA_PRODUCTION_RE.search(question))
+
 
 def _needs_cost_tool(question: str, cards: list[Card]) -> bool:
     """Deterministic v1 trigger: fires only when BOTH an {X} symbol AND a
@@ -859,11 +887,16 @@ def _needs_cost_tool(question: str, cards: list[Card]) -> bool:
     a false positive costs one extra system sentence + tool schema on that
     call. Reuses the same cards+question text _symbols_present already
     scans for symbol injection, so this never diverges from what the model
-    can already see."""
+    can already see. Additionally excludes mana-PRODUCTION questions (Change
+    B, rg289) -- see _is_mana_production_question. Converge/color-count
+    questions (rg6636/rg6916) are genuine multi-modifier {X}-cost firings
+    and are NOT excluded."""
     text = f"{_card_symbol_text(cards)} {question}"
     if "{X}" not in _symbols_present(text):
         return False
-    return bool(_COST_TRIGGER_RE.search(text))
+    if not _COST_TRIGGER_RE.search(text):
+        return False
+    return not _is_mana_production_question(question)
 
 
 def _run_calculate_cost(input_: dict) -> dict:
@@ -977,6 +1010,56 @@ def _degenerate(a: Answer) -> bool:
     # length threshold) so a legitimately short answered=True answer never
     # matches -- that's the only shape observed.
     return not a.text.strip()
+
+
+# --- malformed-answer guard (phase-1 cost-tool repro follow-up) -----------
+#
+# The terminal tool_choice=none fix (TOOL_ROUND_CAP loop above) eliminated
+# empty-output cap-exhaustion, but 7 of 24 phase-1 generations then shipped
+# `answered=True` GARBLED text instead -- a shape `_degenerate()` never
+# catches, since it only inspects blank/near-blank text. Confirmed real
+# examples, evals/_phase1_costtool_repro_AFTER.log (rg6636 rep0/1/2/3, rg897
+# rep2, rg6916 rep2): chat-template/scratchpad leakage
+# (".. assistantfinal{"), and bare fragments ("content", "Not needed", ",",
+# ",-.text field..{|answ|>"). Two of the seven (rg6636 rep2's "Cite
+# N-------A 27,]ards)..." word salad and c014 rep0's "with, X=0 t
+# m={0,..." word-salad-with-real-tokens) are deliberately left uncaught --
+# see the docstring below for why catching them risks a real-answer false
+# positive.
+_MALFORMED_MARKERS = (
+    "assistantfinal",
+    "the above thinking is chatter",
+    "now write final",
+    "actual final answer below",
+    "completed inline in json",
+)
+
+_MALFORMED_MIN_LEN = 30
+# High-precision bare-fragment threshold. Every fragment fixture above tops
+# out at 23 chars (",-.text field..{|answ|>"); every real (coherent) answer
+# observed across the whole eval history is 100+ chars -- the SYSTEM prompt
+# itself requires a direct answer plus reasoning/definitions/citations
+# whenever answered=True, so a genuine answer this short essentially never
+# occurs. 30 leaves 3x+ margin below the shortest real answer on record
+# while safely catching every known bare-fragment specimen.
+
+
+def _malformed(text: str) -> bool:
+    """High-precision detector for GARBLED (not merely blank) answer text:
+    chat-template/scratchpad leakage, or a bare fragment with no
+    substantive content. `text` is the RAW model draw -- callers must check
+    this BEFORE the Scryfall attribution is appended (RulesAgent.answer()
+    does). Deliberately narrow: word-salad that still contains real prose
+    tokens (rg6636 rep2, c014 rep0) is NOT matched here, since a length or
+    marker check loose enough to catch it risks matching a genuinely short
+    or terse-but-real answer instead -- see the guard's callsite comment in
+    RulesAgent.answer() for why a coherent-but-uncited answer must never
+    match this (that stays the separate last_uncited_success path)."""
+    stripped = text.strip()
+    lowered = stripped.lower()
+    if any(marker in lowered for marker in _MALFORMED_MARKERS):
+        return True
+    return len(stripped) < _MALFORMED_MIN_LEN
 
 
 def _face_block(f: CardFace, label: str = "") -> str:
@@ -1354,6 +1437,20 @@ class RulesAgent:
             attempt_tool_calls: list[dict] = []
             response = None
             for _round in range(TOOL_ROUND_CAP):
+                # Cap-exhaustion fix (Phase 1 instrumented repro: 16 of 17
+                # failing attempts were the model emitting tool_use on every
+                # round, never truncation or payload size): forbid tools on
+                # the LAST permitted round only, so the model must emit the
+                # terminal structured Answer instead of yet another tool
+                # call. `tools` stays attached -- only `tool_choice` narrows
+                # what's legal this turn -- and this is a per-round copy, so
+                # earlier rounds and the entire non-tool path keep issuing
+                # the exact same call shape as before (extra_kwargs itself
+                # is never mutated).
+                is_last_round = _round == TOOL_ROUND_CAP - 1
+                round_kwargs = extra_kwargs
+                if use_cost_tool and is_last_round:
+                    round_kwargs = {**extra_kwargs, "tool_choice": {"type": "none"}}
                 try:
                     response = self.client.messages.parse(
                         model=self.model,
@@ -1361,7 +1458,7 @@ class RulesAgent:
                         system=call_system,
                         messages=attempt_msgs,
                         output_format=Answer,
-                        **extra_kwargs,
+                        **round_kwargs,
                     )
                 except ValidationError:
                     # messages.parse RAISES on empty content rather than
@@ -1411,15 +1508,32 @@ class RulesAgent:
                 self.last_tool_calls = attempt_tool_calls
 
             parsed = response.parsed_output if response is not None else None
-            if parsed is not None and _degenerate(parsed):
-                # Parsed fine but it's a degenerate non-answer (answered=false,
-                # no citations, ~empty text) -- the weak-draw class the old
-                # retry couldn't see because it only caught parse FAILURES.
-                # Retry once, same budget as the parse-failure retry; keep the
-                # longer draw in case both come back degenerate. An honest
-                # decline explains what's missing (200+ chars in the eval
-                # history) so it doesn't match _degenerate and is never
-                # retried away.
+            # Malformed check runs alongside _degenerate, on the SAME draw,
+            # before anything else touches it -- specifically before the
+            # Scryfall attribution is appended below (that only happens to
+            # the FINAL returned parsed, never to an in-loop retry
+            # candidate), so _malformed always sees the raw model text.
+            # Scoped to answered=True (an answered=False draw already goes
+            # through _degenerate's own blank/near-blank check above; a
+            # non-blank answered=False decline is an honest decline, not
+            # something this guard should touch).
+            is_malformed_draw = (
+                parsed is not None and parsed.answered and _malformed(parsed.text)
+            )
+            if parsed is not None and (_degenerate(parsed) or is_malformed_draw):
+                # Parsed fine but it's either: a degenerate non-answer
+                # (answered=false, no citations, ~empty text), or -- new --
+                # answered=true with GARBLED text (chat-template leakage or a
+                # bare fragment; see _malformed's docstring). Both are the
+                # weak-draw class the old retry couldn't see because it only
+                # caught parse FAILURES. Retry once, same budget as the
+                # parse-failure retry; keep the longer draw in case both come
+                # back bad. A malformed answered=true draw is NEVER reused as
+                # `weak` below (that branch requires `not weak.answered`), so
+                # garbage is never shipped even as a fallback -- same shape as
+                # the q029 blank-answered-true case. An honest decline
+                # explains what's missing (200+ chars in the eval history) so
+                # it doesn't match either check and is never retried away.
                 if weak is None or len(parsed.text) > len(weak.text):
                     weak = parsed
                 parsed = None
