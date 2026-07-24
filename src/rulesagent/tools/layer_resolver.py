@@ -1,4 +1,4 @@
-"""Deterministic layer-system resolver -- Slice 1 (docs/plan-layer-system-tool.md).
+"""Deterministic layer-system resolver -- Slice 2 (docs/plan-layer-system-tool.md).
 
 Pure Python, no LLM, no I/O, no network, no card lookup -- the same discipline
 as tools/cost_calculator.py. Given a base characteristics object and a list of
@@ -8,68 +8,14 @@ per-step trace. This module never decides which layer an effect belongs to,
 never assigns a timestamp, and never decides whether a dependency exists --
 those are the CALLER's job (plan Sec 2).
 
-**Slice 1 scope only.** Layers 4 (type), 5 (colour) and 6 (abilities). Every
-CR quotation below is pasted verbatim from
-`data/raw/MagicCompRules 20260619.txt`, never retyped from memory -- a
-previous plan in this repo shipped three wrong CR citations that way.
+**Slice 2 adds** layer 2 (control) and layers 7a-7d (power/toughness) to
+Slice 1's layers 4/5/6, plus three load-bearing mechanisms:
 
-613.1, grounding the layer system itself:
-
-    613.1. The values of an object's characteristics are determined by
-    starting with the actual object. For a card, that means the values of
-    the characteristics printed on that card. For a token or a copy of a
-    spell or card, that means the values of the characteristics defined by
-    the effect that created it. Then all applicable continuous effects are
-    applied in a series of layers in the following order:
-
-    613.1a Layer 1: Rules and effects that modify copiable values are
-    applied.
-
-    613.1b Layer 2: Control-changing effects are applied.
-
-    613.1c Layer 3: Text-changing effects are applied. See rule 612,
-    "Text-Changing Effects."
-
-    613.1d Layer 4: Type-changing effects are applied. These include
-    effects that change an object's card type, subtype, and/or supertype.
-
-    613.1e Layer 5: Color-changing effects are applied.
-
-    613.1f Layer 6: Ability-adding effects, keyword counters,
-    ability-removing effects, and effects that say an object can't have an
-    ability are applied.
-
-    613.1g Layer 7: Power- and/or toughness-changing effects are applied.
-
-613.3, the within-layer ordering rule this module implements for layers 4-6:
-
-    613.3. Within layers 2-6, apply effects from characteristic-defining
-    abilities first (see rule 604.3), then all other effects in timestamp
-    order (see rule 613.7). Note that dependency may alter the order in
-    which effects are applied within a layer. (See rule 613.8.)
-
-613.7, the timestamp rule that breaks ties within each CDA/non-CDA group:
-
-    613.7. Within a layer or sublayer, determining which order effects are
-    applied in is usually done using a timestamp system. An effect with an
-    earlier timestamp is applied before an effect with a later timestamp.
-
-604.3a, quoted because `is_cda` is a caller-supplied boolean that feeds
-613.3's ordering directly -- this module does not run the five-criterion
-test itself, the caller does:
-
-    604.3a A static ability is a characteristic-defining ability if it
-    meets the following criteria: (1) It defines an object's colors,
-    subtypes, power, or toughness; (2) it is printed on the card it
-    affects, it was granted to the token it affects by the effect that
-    created the token, or it was acquired by the object it affects as the
-    result of a copy effect or text-changing effect; (3) it does not
-    directly affect the characteristics of any other objects; (4) it is not
-    an ability that an object grants to itself; and (5) it does not set the
-    values of such characteristics only if certain conditions are met.
-
-613.6 is quoted here for context on why layers 2 and 7a-7d are OUT of this
-slice (see below), even though this module does not implement it yet:
+1. The CR 613.6 `is_active` gate -- an ability whose effect has *started* to
+   apply keeps applying in later layers even after the ability generating it
+   is removed, but an ability that has *not yet* started never begins if it
+   is removed first. Grounding, pasted verbatim from
+   `data/raw/MagicCompRules 20260619.txt`:
 
     613.6. If an effect should be applied in different layers and/or
     sublayers, the parts of the effect each apply in their appropriate
@@ -78,30 +24,129 @@ slice (see below), even though this module does not implement it yet:
     applicable layer and/or sublayer, even if the ability generating the
     effect is removed during this process.
 
-**What this slice deliberately does NOT implement** (see plan Sec 9, Slice
-2/3):
+   Implemented exactly per plan Sec 3b:
 
-- Layer 2 (control) and layers 7a-7d (power/toughness). A part whose
-  `layer` names one of these is a known-but-unsupported layer token and is
-  refused, distinctly from an unknown layer token entirely -- see
-  `_KNOWN_LAYERS` / `_SUPPORTED_LAYERS` below.
-- The CR 613.6 `is_active` gate (an ability's effect continuing to apply in
-  a later layer/sublayer after the ability itself is removed). Slice 1's
-  layers (4, 5, 6) never need it in isolation -- 613.6 only matters when an
-  ability's parts span *multiple* layers and one of them is removed before
-  a later one runs, which requires 7a-7d to observe. It ships in Slice 2.
-- `applies_if` (CR 613.5 conditional effects, the Option-B predicate enum).
-  A part carrying a non-null `applies_if` is REFUSED in this slice with a
-  "not yet supported" error, rather than silently ignored -- silently
-  ignoring a predicate would produce a coherent, fully-traced, WRONG answer
-  for exactly the reason plan Sec 3a's silent-gating discussion warns
-  about. Ships in Slice 2.
-- CR 613.8 dependency ordering. A part carrying a non-empty `depends_on` is
-  likewise REFUSED rather than silently honoured or silently ignored, for
-  the same reason: this module cannot compute the CR 613.8b wait-until-after
-  ordering yet, and applying such a part in plain timestamp order instead
-  would be a silent wrong answer. `depends_on: null` / `[]` is accepted
-  (nothing to order). Grounding, so the choice is auditable:
+       def is_active(part, layer_index):
+           r = removed_at.get(part.source_id)
+           if r is None:            return True     # never removed
+           if r > layer_index:      return True     # removed later than now
+           s = started.get(part.source_id)
+           return s is not None and s <= r          # started before/at removal -> continues
+
+   The converse matters as much as the forward case: an ability whose only
+   part is in a later layer, whose source is removed earlier and never
+   started, correctly does NOT apply (`s is None` fails the final check).
+
+2. `applies_if` -- CR 613.5 conditional applicability, **option B** (Jon's
+   ruling, plan Sec 8.1): a closed six-predicate enum, evaluated against LIVE
+   state at the moment of application, no expression language, no nesting:
+   `has_no_abilities`, `has_ability`, `has_color`, `has_type`, `has_subtype`,
+   `power_gte`.
+
+3. The four anti-silent-gating mechanisms (plan Sec 3a), shipped in this same
+   slice alongside the predicates rather than as later hardening:
+   (a) the trace records every non-application, with the evaluated reason
+       and the state checked against; (b) a top-level `skipped_count` /
+   `skipped` list, so a nested trace entry cannot be skimmed past;
+   (c) an `expect` boolean on `applies_if` -- engine/model disagreement
+       produces a **warning**, not a refusal, because the engine's
+       computation is correct and it is the model's expectation that was
+       wrong; (d) the return dict carries `warnings` / `skipped_count` /
+       `skipped` at the top level so a caller (`answer.py`, Slice 4) can log
+       them -- this module does not itself do any logging or telemetry.
+
+613.1g, extending Slice 1's 613.1 quotation to the layer this slice adds:
+
+    613.1g Layer 7: Power- and/or toughness-changing effects are applied.
+
+613.4, the sublayer-and-ordering rule for layer 7 (mirrors 613.3's role for
+layers 2-6, quoted in the Slice 1 docstring below):
+
+    613.4. Within layer 7, apply effects in a series of sublayers in the
+    order described below. Within each sublayer, apply effects in
+    timestamp order. (See rule 613.7.) Note that dependency may alter the
+    order in which effects are applied within a sublayer. (See rule
+    613.8.)
+
+    613.4a Layer 7a: Effects from characteristic-defining abilities that
+    define power and/or toughness are applied. See rule 604.3.
+
+    613.4b Layer 7b: Effects that set power and/or toughness to a specific
+    number or value are applied. Effects that refer to the base power
+    and/or toughness of a creature apply in this layer.
+
+    613.4c Layer 7c: Effects and counters that modify power and/or
+    toughness (but don't set power and/or toughness to a specific number
+    or value) are applied.
+
+    613.4d Layer 7d: Effects that switch a creature's power and toughness
+    are applied. Such effects take the value of power and apply it to the
+    creature's toughness, and take the value of toughness and apply it to
+    the creature's power.
+    Example: A 1/3 creature is given +0/+1 by an effect. Then another
+    effect switches the creature's power and toughness. Its new power and
+    toughness is 4/1. A new effect gives the creature +5/+0. Its
+    "unswitched" power and toughness would be 6/4, so its actual power and
+    toughness is 4/6.
+    Example: A 1/3 creature is given +0/+1 by an effect. Then another
+    effect switches the creature's power and toughness. Its new power and
+    toughness is 4/1. If the +0/+1 effect ends before the switch effect
+    ends, the creature becomes 3/1.
+    Example: A 1/3 creature is given +0/+1 by an effect. Then another
+    effect switches the creature's power and toughness. Then another
+    effect switches its power and toughness again. The two switches
+    essentially cancel each other, and the creature becomes 1/4.
+
+613.5, two worked examples this module is checked against directly (the
+Honor of the Pure example is CR 613.5's own canonical `applies_if` shape --
+`{"has_color": "W"}` -- and the Gray Ogre example proves 7b always applies
+before 7c regardless of relative timestamp/resolution order):
+
+    613.5. The application of continuous effects as described by the
+    layer system is continually and automatically performed by the game.
+    All resulting changes to an object's characteristics are
+    instantaneous.
+    Example: Honor of the Pure is an enchantment that reads "White
+    creatures you control get +1/+1." Honor of the Pure and a 2/2 black
+    creature are on the battlefield under your control. If an effect then
+    turns the creature white (layer 5), it gets +1/+1 from Honor of the
+    Pure (layer 7c), becoming 3/3. If the creature's color is later
+    changed to red (layer 5), Honor of the Pure's effect stops applying to
+    it, and it will return to being 2/2.
+    Example: Gray Ogre, a 2/2 creature, is on the battlefield. An effect
+    puts a +1/+1 counter on it (layer 7c), making it 3/3. A spell
+    targeting it that says "Target creature gets +4/+4 until end of turn"
+    resolves (layer 7c), making it 7/7. An enchantment that says
+    "Creatures you control get +0/+2" enters the battlefield (layer 7c),
+    making it 7/9. An effect that says "Target creature becomes 0/1 until
+    end of turn" is applied to it (layer 7b), making it 5/8 (0/1, with
+    +4/+4 from the resolved spell, +0/+2 from the enchantment, and +1/+1
+    from the counter).
+
+**Ability-source bookkeeping for the 613.6 gate.** To know whether a
+source's ability was "removed" (for the purposes of `is_active`), this
+module tracks which currently-present ability TEXT was contributed by which
+`source_id` -- populated whenever an `add_abilities` part actually adds new
+text, and (so an ability printed on the object itself, not granted by any
+part in this call, can also be tracked as "removed") pre-seeded at
+initialisation as `{text: text for text in base.abilities}`. That pre-seed
+is inert unless a part's `source_id` is deliberately written to match one of
+the object's own printed ability strings -- the natural convention for "this
+part comes from the same printed ability that also grants this text".
+When a `remove_abilities` / `remove_all_abilities` / `cant_have_abilities`
+part applies, every currently-tracked source whose text is stripped gets
+`removed_at[source] = this layer's index`. A source that never contributes
+(or is never pre-seeded with) any tracked ability text -- e.g. Muraganda
+Petroglyphs' land-based static ability in rg3868 -- is never marked
+"removed"; its conditional applicability is governed entirely by
+`applies_if`, which is the correct CR reading (that ability was never one of
+the creature's own abilities to begin with, so nothing ever strips it).
+
+**Still out of Slice 2** (see plan Sec 9, Slice 3): CR 613.8 dependency
+ordering. A part carrying a non-empty `depends_on` is still refused, for the
+same reason as Slice 1 -- this module cannot yet compute the CR 613.8b
+wait-until-after ordering, and applying such a part in plain timestamp order
+instead would be a silent wrong answer.
 
     613.8a An effect is said to "depend on" another if (a) it's applied in
     the same layer (and, if applicable, sublayer) as the other effect; (b)
@@ -112,61 +157,56 @@ slice (see below), even though this module does not implement it yet:
     Otherwise, the effect is considered to be independent of the other
     effect.
 
-    613.8b An effect dependent on one or more other effects waits to apply
-    until just after all of those effects have been applied. If multiple
-    dependent effects would apply simultaneously in this way, they're
-    applied in timestamp order relative to each other. If several
-    dependent effects form a dependency loop, then this rule is ignored and
-    the effects in the dependency loop are applied in timestamp order.
-
-  Ships in Slice 3. The top-level `dependencies_declared` field is computed
-  honestly regardless -- see `resolve_layers`'s docstring -- but because a
-  truthy declaration is refused outright in this slice, it is always
-  `False` on any `ok: True` result for now.
-- `cant_have_abilities` (in scope for this slice, but the plan's own
-  operation table gives it no `value` field, unlike `add_abilities` /
-  `remove_abilities`). This module treats it as CR 113.11's general form --
-  the object can't have ANY ability, not a single named one:
-
-    113.11. Effects can stop an object from having a specified ability.
-    These effects say that the object "can't have" that ability. If the
-    object has that ability, it loses it. It's also impossible for an
-    effect or keyword counter to add that ability to the object. ...
-
-  Applying it clears the object's current abilities and blocks every later
-  `add_abilities` part in the same layer-6 pass of this call from adding
-  anything (matching "it's also impossible ... to add that ability"). A
-  targeted single-ability variant (e.g. "can't have flying" specifically)
-  would need a `value` field the plan's schema does not give this
-  operation kind in v1; that is a real limitation, not an oversight, and
-  is left for a later slice if the corpus ever needs it.
-
-Refuses rather than guesses: malformed/missing `base`, an unknown or
-not-yet-supported layer token, an `operation.kind` illegal for its declared
-layer, a non-integer timestamp (bool is explicitly rejected -- same
-strictness as cost_calculator's `_is_nonneg_int`), two parts in the same
-layer sharing a timestamp (never tie-broken), a duplicate part `id`, an
-unknown colour token, and a present-and-non-empty `applies_if` or
-`depends_on` (Slice 2 / Slice 3 features). All of these return
-`{"ok": False, "error": "..."}` -- this module never raises for an
-input-shape problem and never produces a best-effort characteristics object
-it can't stand behind.
+Refuses rather than guesses: malformed/missing `base`, an unknown layer
+token, an `operation.kind` illegal for its declared layer, a non-integer
+timestamp (bool is explicitly rejected), two parts in the same layer sharing
+a timestamp (never tie-broken), a duplicate part `id`, an unknown colour
+token, a malformed `applies_if` (wrong shape, unknown predicate key, wrong
+value type for its predicate), and a present-and-non-empty `depends_on`
+(Slice 3 feature). All of these return `{"ok": False, "error": "..."}` --
+this module never raises for an input-shape problem and never produces a
+best-effort characteristics object it can't stand behind.
 """
 
 from __future__ import annotations
 
+import json
+
 _VALID_COLORS = ("W", "U", "B", "R", "G")
 
-# The full CR 613.1 layer enum, vs. the subset this slice actually resolves.
-_KNOWN_LAYERS = ("2", "4", "5", "6", "7a", "7b", "7c", "7d")
-_SUPPORTED_LAYERS = ("4", "5", "6")
-_LAYER_ORDER = ["4", "5", "6"]  # processing order for this slice
+# The full CR 613.1 layer enum. Slice 2 resolves all of them.
+_LAYER_ORDER = ["2", "4", "5", "6", "7a", "7b", "7c", "7d"]
+_KNOWN_LAYERS = tuple(_LAYER_ORDER)
+_LAYER_INDEX = {layer: i for i, layer in enumerate(_LAYER_ORDER)}
 
 _LAYER_OPERATION_KINDS = {
+    "2": {"set_controller"},
     "4": {"set_types", "add_types", "remove_types"},
     "5": {"set_colors", "add_colors"},
     "6": {"add_abilities", "remove_abilities", "remove_all_abilities", "cant_have_abilities"},
+    "7a": {"cda_pt"},
+    "7b": {"set_pt"},
+    "7c": {"modify_pt"},
+    "7d": {"switch_pt"},
 }
+
+# Ability-removing operation kinds that feed the CR 613.6 removed_at
+# bookkeeping. cant_have_abilities is included alongside the plan's named
+# pair (remove_all_abilities, remove_abilities) because it clears the
+# object's abilities exactly like remove_all_abilities does (Slice 1
+# docstring, CR 113.11) -- an ability wiped by "can't have abilities" must
+# gate later-layer continuations the same way an ability wiped by
+# "remove all abilities" does, or 613.6 would silently not apply to it.
+_ABILITY_REMOVING_KINDS = ("remove_abilities", "remove_all_abilities", "cant_have_abilities")
+
+_PREDICATE_KINDS = (
+    "has_no_abilities",
+    "has_ability",
+    "has_color",
+    "has_type",
+    "has_subtype",
+    "power_gte",
+)
 
 _TYPE_CATEGORY_FIELDS = ("card_types", "subtypes", "supertypes")
 
@@ -175,6 +215,10 @@ _BASE_LIST_FIELDS = ("card_types", "supertypes", "subtypes", "abilities")
 
 def _is_nonneg_int(v: object) -> bool:
     return isinstance(v, int) and not isinstance(v, bool) and v >= 0
+
+
+def _is_int(v: object) -> bool:
+    return isinstance(v, int) and not isinstance(v, bool)
 
 
 def _is_str_list(v: object) -> bool:
@@ -238,7 +282,65 @@ def _validate_operation(layer: str, operation: object) -> str | None:
             return f"operation.value must be a list of strings, got {value!r}"
         return None
 
-    # remove_all_abilities / cant_have_abilities: no further fields required.
+    if kind == "set_controller":
+        value = operation.get("value")
+        if not isinstance(value, str) or not value:
+            return f"operation.value must be a non-empty string, got {value!r}"
+        return None
+
+    if kind in ("cda_pt", "set_pt", "modify_pt"):
+        for field in ("power", "toughness"):
+            v = operation.get(field)
+            if not _is_int(v):
+                return f"operation.{field} must be an integer, got {v!r}"
+        return None
+
+    # remove_all_abilities / cant_have_abilities / switch_pt: no further
+    # fields required.
+    return None
+
+
+def _validate_applies_if(applies_if: object) -> str | None:
+    """Returns an error string, or None if applies_if is well-formed.
+    `None` (omitted / null) is always well-formed -- it means no predicate."""
+    if applies_if is None:
+        return None
+    if not isinstance(applies_if, dict):
+        return f"applies_if must be an object, got {type(applies_if).__name__}"
+
+    if "expect" in applies_if:
+        expect = applies_if["expect"]
+        if not isinstance(expect, bool):
+            return f"applies_if.expect must be a boolean, got {expect!r}"
+
+    predicate_keys = [k for k in applies_if if k != "expect"]
+    if len(predicate_keys) != 1:
+        return (
+            f"applies_if must have exactly one predicate key (one of "
+            f"{_PREDICATE_KINDS}), got {predicate_keys!r}"
+        )
+    key = predicate_keys[0]
+    if key not in _PREDICATE_KINDS:
+        return (
+            f"applies_if has an unknown predicate key {key!r} (expected one "
+            f"of {_PREDICATE_KINDS})"
+        )
+    value = applies_if[key]
+    if key == "has_no_abilities":
+        if not isinstance(value, bool):
+            return f"applies_if.has_no_abilities must be a boolean, got {value!r}"
+    elif key in ("has_ability", "has_type", "has_subtype"):
+        if not isinstance(value, str) or not value:
+            return f"applies_if.{key} must be a non-empty string, got {value!r}"
+    elif key == "has_color":
+        if value not in _VALID_COLORS:
+            return (
+                f"applies_if.has_color has an unknown color token {value!r} "
+                f"(expected one of {_VALID_COLORS})"
+            )
+    elif key == "power_gte":
+        if not _is_int(value):
+            return f"applies_if.power_gte must be an integer, got {value!r}"
     return None
 
 
@@ -257,11 +359,6 @@ def _validate_part(p: object) -> str | None:
     layer = p.get("layer")
     if layer not in _KNOWN_LAYERS:
         return f"part {part_id!r}: unknown layer token {layer!r} (expected one of {_KNOWN_LAYERS})"
-    if layer not in _SUPPORTED_LAYERS:
-        return (
-            f"part {part_id!r}: layer {layer!r} is not yet supported -- Slice 1 only "
-            f"resolves layers {_SUPPORTED_LAYERS} (see docs/plan-layer-system-tool.md Sec 9)"
-        )
 
     timestamp = p.get("timestamp")
     if not _is_nonneg_int(timestamp):
@@ -271,20 +368,16 @@ def _validate_part(p: object) -> str | None:
     if not isinstance(is_cda, bool):
         return f"part {part_id!r}: is_cda must be a boolean, got {is_cda!r}"
 
-    applies_if = p.get("applies_if")
-    if applies_if:
-        return (
-            f"part {part_id!r}: applies_if is not yet supported -- Slice 1 does not "
-            f"implement CR 613.5 conditional predicates (see docs/plan-layer-system-tool.md "
-            f"Sec 9, Slice 2). Omit it or set it to null for this slice."
-        )
+    applies_if_err = _validate_applies_if(p.get("applies_if"))
+    if applies_if_err:
+        return f"part {part_id!r}: {applies_if_err}"
 
     depends_on = p.get("depends_on")
     if depends_on:
         if not isinstance(depends_on, list) or not all(isinstance(x, str) for x in depends_on):
             return f"part {part_id!r}: depends_on must be a list of part ids, got {depends_on!r}"
         return (
-            f"part {part_id!r}: depends_on is not yet supported -- Slice 1 does not "
+            f"part {part_id!r}: depends_on is not yet supported -- Slice 2 does not "
             f"implement CR 613.8b dependency ordering (see docs/plan-layer-system-tool.md "
             f"Sec 9, Slice 3). Leave depends_on empty/null for this slice."
         )
@@ -344,35 +437,108 @@ def _apply_ability_op(state: dict, operation: dict, blocked: list[bool]) -> None
         blocked[0] = True
 
 
+def _apply_control_op(state: dict, operation: dict) -> None:
+    state["controller"] = operation["value"]
+
+
+def _apply_pt_op(state: dict, operation: dict) -> None:
+    kind = operation["kind"]
+    if kind in ("cda_pt", "set_pt"):
+        state["power"] = operation["power"]
+        state["toughness"] = operation["toughness"]
+    elif kind == "modify_pt":
+        state["power"] = (state["power"] or 0) + operation["power"]
+        state["toughness"] = (state["toughness"] or 0) + operation["toughness"]
+    elif kind == "switch_pt":
+        state["power"], state["toughness"] = (state["toughness"] or 0), (state["power"] or 0)
+
+
 def _order_parts(parts: list[dict]) -> list[dict]:
-    """CR 613.3: characteristic-defining abilities first, then everything
-    else, each group in CR 613.7 timestamp order."""
+    """CR 613.3/613.4: characteristic-defining abilities first, then
+    everything else, each group in CR 613.7 timestamp order."""
     cdas = sorted((p for p in parts if p.get("is_cda", False)), key=lambda p: p["timestamp"])
     others = sorted((p for p in parts if not p.get("is_cda", False)), key=lambda p: p["timestamp"])
     return cdas + others
 
 
+def _is_active(source_id: str, layer_index: int, started: dict, removed_at: dict) -> bool:
+    """CR 613.6 gate -- plan Sec 3b, pasted through unchanged from the
+    approved pseudocode (renamed to take source_id/layer_index directly
+    rather than a whole part, since that is all it needs)."""
+    r = removed_at.get(source_id)
+    if r is None:
+        return True  # never removed
+    if r > layer_index:
+        return True  # removed later than now
+    s = started.get(source_id)
+    return s is not None and s <= r  # started before/at removal -> continues
+
+
+def _predicate_kind_and_value(applies_if: dict) -> tuple[str, object]:
+    key = next(k for k in applies_if if k != "expect")
+    return key, applies_if[key]
+
+
+def _predicate_holds(applies_if: dict | None, state: dict) -> bool:
+    if applies_if is None:
+        return True
+    key, value = _predicate_kind_and_value(applies_if)
+    if key == "has_no_abilities":
+        return (len(state["abilities"]) == 0) == value
+    if key == "has_ability":
+        return value in state["abilities"]
+    if key == "has_color":
+        return value in state["colors"]
+    if key == "has_type":
+        return value in state["card_types"]
+    if key == "has_subtype":
+        return value in state["subtypes"]
+    if key == "power_gte":
+        return state["power"] is not None and state["power"] >= value
+    raise AssertionError(f"unreachable predicate kind {key!r} -- should have been refused by _validate_applies_if")
+
+
+def _predicate_repr(applies_if: dict) -> str:
+    key, value = _predicate_kind_and_value(applies_if)
+    return json.dumps({key: value})
+
+
+def _predicate_state_snapshot(applies_if: dict, state: dict) -> dict:
+    key, _ = _predicate_kind_and_value(applies_if)
+    if key in ("has_no_abilities", "has_ability"):
+        return {"abilities": list(state["abilities"])}
+    if key == "has_color":
+        return {"colors": list(state["colors"])}
+    if key == "has_type":
+        return {"card_types": list(state["card_types"])}
+    if key == "has_subtype":
+        return {"subtypes": list(state["subtypes"])}
+    if key == "power_gte":
+        return {"power": state["power"]}
+    raise AssertionError(f"unreachable predicate kind {key!r} -- should have been refused by _validate_applies_if")
+
+
 def resolve_layers(base: dict | None, effects: list[dict] | None = None) -> dict:
     """Apply a list of caller-classified, caller-layer-assigned continuous
-    effect parts to `base` in CR 613 order, for layers 4 (type), 5 (colour)
-    and 6 (abilities) only -- see the module docstring for the full Slice 1
-    boundary. Never raises on bad input; returns
-    {"ok": False, "error": "..."} instead.
+    effect parts to `base` in CR 613 order, for all eight layers/sublayers
+    (2, 4, 5, 6, 7a, 7b, 7c, 7d -- see the module docstring for the Slice 2
+    boundary: CR 613.8 dependency ordering is still Slice 3). Never raises on
+    bad input; returns {"ok": False, "error": "..."} instead.
 
     base: {"name": str, "card_types": [str], "supertypes": [str],
            "subtypes": [str], "colors": [str], "abilities": [str],
            "power": int|None, "toughness": int|None, "controller": str|None}
           -- the object's copiable values, post-layer-1 (plan Sec 3a).
-          `power`/`toughness`/`controller`/`name` pass through untouched in
-          this slice; no layer 7 or layer 2 operations exist yet to touch
-          them.
     effects: flat list of effect parts (plan Sec 3a table):
-          {"id": str, "source_id": str, "layer": "4"|"5"|"6",
+          {"id": str, "source_id": str,
+           "layer": "2"|"4"|"5"|"6"|"7a"|"7b"|"7c"|"7d",
            "timestamp": int (>=0), "is_cda": bool,
            "depends_on": list[str]|None, "dependency_reason": str|None,
-           "operation": {...}, "applies_if": None, "cite": str}
-          `applies_if` and a non-empty `depends_on` are refused in this
-          slice (see module docstring). `None`/omitted is treated as [].
+           "operation": {...},
+           "applies_if": {<one of the six predicate keys>: ..., "expect": bool|None}|None,
+           "cite": str}
+          A non-empty `depends_on` is refused in this slice (Slice 3
+          feature). `None`/omitted is treated as [].
 
     Returns on success:
       {"ok": True,
@@ -381,6 +547,9 @@ def resolve_layers(base: dict | None, effects: list[dict] | None = None) -> dict
                    "power": ..., "toughness": ..., "controller": ...},
        "trace": [{"layer": str, "applied": part_id, "source_id": str,
                    "why": str, "state_after": {...}}, ...],
+       "warnings": [str, ...],
+       "skipped_count": int,
+       "skipped": [{"id": part_id, "layer": str, "why": str}, ...],
        "dependencies_declared": bool}
     and on any malformed input: {"ok": False, "error": "..."}.
     """
@@ -393,7 +562,7 @@ def resolve_layers(base: dict | None, effects: list[dict] | None = None) -> dict
         return {"ok": False, "error": f"effects must be a list, got {type(effects).__name__}"}
 
     # dependencies_declared would flag any part that named a dependency, but
-    # _validate_part below refuses any non-empty depends_on outright (Slice 1
+    # _validate_part below refuses any non-empty depends_on outright (Slice 2
     # does not implement CR 613.8b ordering), so a truthy declaration never
     # reaches a successful return in this slice. Always False for now;
     # Slice 3 makes this field meaningful.
@@ -408,9 +577,9 @@ def resolve_layers(base: dict | None, effects: list[dict] | None = None) -> dict
             return {"ok": False, "error": f"duplicate part id: {part_id!r}"}
         seen_ids.add(part_id)
 
-    # CR 613.3 refusal: two parts in the same layer sharing a timestamp are
-    # never tie-broken.
-    for layer in _SUPPORTED_LAYERS:
+    # CR 613.7 refusal: two parts in the same layer/sublayer sharing a
+    # timestamp are never tie-broken.
+    for layer in _LAYER_ORDER:
         parts_in_layer = [p for p in effects if p["layer"] == layer]
         seen_ts: dict[int, str] = {}
         for p in parts_in_layer:
@@ -438,31 +607,120 @@ def resolve_layers(base: dict | None, effects: list[dict] | None = None) -> dict
     }
 
     trace: list[dict] = []
+    warnings: list[str] = []
+    skipped: list[dict] = []
     abilities_blocked = [False]  # mutable cell for CR 113.11 cant_have_abilities
 
+    # CR 613.6 bookkeeping.
+    started: dict[str, int] = {}          # source_id -> earliest layer index it applied at
+    removed_at: dict[str, int] = {}       # source_id -> layer index its ability was stripped at
+    # Which source_id contributed which currently-present ability text.
+    # Pre-seeded from base so a part whose source_id matches one of the
+    # object's own printed abilities is trackable even though nothing in
+    # `effects` ever "added" that text (see module docstring).
+    ability_source: dict[str, str] = {text: text for text in state["abilities"]}
+
     for layer in _LAYER_ORDER:
+        idx = _LAYER_INDEX[layer]
         parts_in_layer = [p for p in effects if p["layer"] == layer]
         ordered = _order_parts(parts_in_layer)
         for p in ordered:
+            part_id = p["id"]
+            source_id = p["source_id"]
             operation = p["operation"]
-            if layer == "4":
+
+            if not _is_active(source_id, idx, started, removed_at):
+                why = (
+                    f"CR 613.6 gate: source ability {source_id!r} was removed at layer "
+                    f"{_LAYER_ORDER[removed_at[source_id]]!r} and had not started applying "
+                    f"at any earlier layer, so it does not begin applying here"
+                )
+                trace.append({
+                    "layer": layer, "skipped": part_id, "source_id": source_id,
+                    "why": why,
+                    "state_checked": {k: (list(v) if isinstance(v, list) else v) for k, v in state.items()},
+                })
+                skipped.append({"id": part_id, "layer": layer, "why": why})
+                continue
+
+            applies_if = p.get("applies_if")
+            predicate_result = _predicate_holds(applies_if, state)
+
+            if applies_if is not None:
+                expect = applies_if.get("expect")
+                if expect is not None and expect != predicate_result:
+                    warnings.append(
+                        f"{part_id}: expected applies_if {_predicate_repr(applies_if)} to "
+                        f"evaluate to {expect}, but at layer {layer!r} it evaluated to "
+                        f"{predicate_result} against live state"
+                    )
+
+            if not predicate_result:
+                why = f"applies_if {_predicate_repr(applies_if)} evaluated FALSE"
+                trace.append({
+                    "layer": layer, "skipped": part_id, "source_id": source_id,
+                    "why": why,
+                    "state_checked": _predicate_state_snapshot(applies_if, state),
+                })
+                skipped.append({"id": part_id, "layer": layer, "why": why})
+                continue
+
+            if layer == "2":
+                _apply_control_op(state, operation)
+                state_after = {"controller": state["controller"]}
+            elif layer == "4":
                 _apply_type_op(state, operation)
                 state_after = {k: list(state[k]) for k in _TYPE_CATEGORY_FIELDS}
             elif layer == "5":
                 _apply_color_op(state, operation)
                 state_after = {"colors": list(state["colors"])}
-            else:  # layer == "6"
-                _apply_ability_op(state, operation, abilities_blocked)
+            elif layer == "6":
+                kind = operation["kind"]
+                if kind in _ABILITY_REMOVING_KINDS:
+                    if kind == "remove_abilities":
+                        remove_set = set(operation["value"])
+                        removed_texts = [a for a in state["abilities"] if a in remove_set]
+                    else:  # remove_all_abilities / cant_have_abilities
+                        removed_texts = list(state["abilities"])
+                    _apply_ability_op(state, operation, abilities_blocked)
+                    for text in removed_texts:
+                        src = ability_source.pop(text, None)
+                        if src is not None:
+                            removed_at.setdefault(src, idx)
+                else:  # add_abilities
+                    before = set(state["abilities"])
+                    _apply_ability_op(state, operation, abilities_blocked)
+                    for a in state["abilities"]:
+                        if a not in before:
+                            ability_source[a] = source_id
                 state_after = {"abilities": list(state["abilities"])}
+            else:  # 7a / 7b / 7c / 7d
+                _apply_pt_op(state, operation)
+                state_after = {"power": state["power"], "toughness": state["toughness"]}
 
-            why = f"CDA (CR 613.3), timestamp {p['timestamp']}" if p.get("is_cda") else f"timestamp {p['timestamp']}"
+            r = removed_at.get(source_id)
+            if r is not None:
+                why = (
+                    f"CR 613.6 -- source ability {source_id!r} was removed at layer "
+                    f"{_LAYER_ORDER[r]!r} but had already applied at layer "
+                    f"{_LAYER_ORDER[started[source_id]]!r}, so it continues "
+                    f"(timestamp {p['timestamp']})"
+                )
+            elif p.get("is_cda"):
+                why = f"CDA (CR 613.3), timestamp {p['timestamp']}"
+            else:
+                why = f"timestamp {p['timestamp']}"
+            if applies_if is not None:
+                why += f"; applies_if {_predicate_repr(applies_if)} evaluated TRUE"
+
             trace.append({
                 "layer": layer,
-                "applied": p["id"],
-                "source_id": p["source_id"],
+                "applied": part_id,
+                "source_id": source_id,
                 "why": why,
                 "state_after": state_after,
             })
+            started.setdefault(source_id, idx)
 
     result = {
         "card_types": state["card_types"],
@@ -479,5 +737,8 @@ def resolve_layers(base: dict | None, effects: list[dict] | None = None) -> dict
         "ok": True,
         "result": result,
         "trace": trace,
+        "warnings": warnings,
+        "skipped_count": len(skipped),
+        "skipped": skipped,
         "dependencies_declared": dependencies_declared,
     }
