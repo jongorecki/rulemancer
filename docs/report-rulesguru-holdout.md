@@ -22,6 +22,32 @@ Monotonic across difficulty for both — which validates the difficulty labels a
 the judge at once. Sonnet wins every tier; 3:1 pairwise (33 sonnet-right/mini-
 wrong vs 11 the other way).
 
+## Corrected accuracy — Jon's manual regrade of the 42 misses (2026-07-24)
+
+The 72% above is the raw frozen-judge number. Jon then hand-regraded all **42
+sonnet misses** the judge flagged
+(`data/parsed/rulesguru_disagreement_verdicts.json`), and the judge was wrong on
+some of them:
+
+- **2 actually correct** (judge/RulesGuru wrong): rg3717, rg1718.
+- **6 partial** (right on the main point, but each carries an incorrect claim or a
+  missed sub-point): rg6583, rg6743, rg6725, rg1268, rg899, rg279.
+- **34 confirmed wrong.**
+
+Folding those in at **half-credit for partials** (Jon's call): numerator
+108 + 2 + 6×0.5 = **113 -> 75.3% (113/150)**, up from the raw 72%.
+
+Equivalently, as a **win / draw / loss record: 110 W / 6 D / 34 L** (correct = win,
+partial = draw, wrong = loss). The half-credit 75.3% is just that record scored as
+points — W=1, D=1/2, L=0 -> 113/150 — so the two framings are the same number, and
+the W/D/L form avoids having to price a partial at all.
+
+**This correction is upward-only and not a full re-grade:** only the 42
+judge-flagged *misses* were audited (recovering the judge's false-negatives); the
+108 the judge marked *correct* were not re-reviewed for false-positives. So 75.3%
+is "72% plus recovered judge errors," and this pass alone cannot pull the figure
+below the raw 72%.
+
 ## Premise 1 OVERTURNED — retrieval "is a ranking problem, coverage is solved"
 
 The shipped retrieval (`vec+rw1-haiku`), held-out vs the tuned 31-set:
