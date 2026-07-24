@@ -1582,9 +1582,15 @@ Jon kept it running rather than deleting it.
 ids) and all 150 human-written `answer_gold` reference answers are accepted as
 **canonical gold, equal in status to Jon's own encoded gold** — not merely
 advisory. This is an explicit, deliberate exception to the standing "gold is
-Jon's alone to encode" rule, made because RulesGuru is judge-curated by the
-site's rules authorities and Jon chose to trust that curation rather than
-re-encode 134 questions by hand.
+Jon's alone to encode" rule.
+
+**The reason, stated precisely (Jon, 2026-07-23):** RulesGuru's questions and
+answers are written by **certified MTG tournament judges.** Jon knows the rules
+very well but is **not** a certified judge, so on fine points of rules
+interpretation the RulesGuru authors carry *at least as much* authority as he
+does — the gold ranks equal-or-above his own, not merely "trusted enough to
+skip re-encoding." Where the two would ever conflict on a fine point, do not
+assume Jon's is authoritative; surface it.
 
 **Verified before acceptance:** all 219 gold ids resolve against the repo's own
 parsed CR corpus (`{c.source_id for c in chunk_rules(...)}`), 219/219, zero
