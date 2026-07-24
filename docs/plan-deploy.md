@@ -34,12 +34,15 @@ considered and dropped (sleep-on-idle wrong for sharing with testers).
   locally — a naive `COPY . .` Dockerfile would bake it into an image layer
   regardless of git status. `.dockerignore` has to exclude it explicitly;
   git status alone doesn't protect the image.
-- **Card/ruling data has nothing baked in today either** — `tools/scryfall.py`
-  hits the live Scryfall API per-request and caches results in `cache.db`
-  (an L3 SQLite cache, not a bulk snapshot). The local-bulk snapshot
-  (docs/plan-scryfall-local-bulk.md) is a separate, not-yet-implemented
-  slice — today's deploy has nothing extra to protect on the card side
-  beyond the CR text.
+- **UPDATED (post-implementation, docs/plan-scryfall-local-bulk.md is now
+  shipped):** `tools/scryfall.py` is LOCAL-FIRST against `data/scryfall.db`
+  (built by `scripts/refresh_scryfall_bulk.py`), not live-per-request
+  anymore. It's a self-contained SQLite file (like `cache.db`) that also
+  belongs on the mounted volume — see the new deploy-step note in §4 below.
+  It self-heals if the volume doesn't have it yet (falls back to a single
+  live Scryfall fetch per lookup + a background bulk refresh), so this is
+  NOT a hard boot-time dependency the way the vector store is, but running
+  the refresh as part of deploy avoids that degraded window entirely.
 - **Path resolution is already REPO-relative, which matters for the volume
   design below:** `main.py`'s `REPO = Path(__file__).parent.parent.parent.parent`
   and `cache.py`'s `DEFAULT_DB = Path(__file__).parent.parent.parent /
@@ -246,6 +249,24 @@ first time; recommending the simpler one to ship first:
   seeding at all; `cache.py`'s `KVCache._connect()` already does `mkdir
   (parents=True, exist_ok=True)` + `CREATE TABLE IF NOT EXISTS`, so it
   self-creates empty on the volume the first time anything writes to it.
+  **Scryfall bulk snapshot — add as a deploy step (documentation only, no
+  config change here — Jon owns the actual Fly.io steps):** run `uv run
+  python scripts/refresh_scryfall_bulk.py` once against the attached volume
+  (same seeding mechanism as (a) above — `flyctl ssh console` on a Machine
+  with the volume mounted, or seed it locally and push `data/scryfall.db`
+  the same way `data/raw/`/`data/parsed/` get pushed) so `data/scryfall.db`
+  is present before the first real visitor. **Not a hard requirement,
+  unlike the vector store above** — `tools/scryfall.py`'s `get_card()` is
+  self-healing: if `data/scryfall.db` is missing or empty on the volume, it
+  falls back to a live per-card Scryfall fetch (rate-limited) for whatever
+  card a question actually references, AND kicks off a non-blocking
+  background bulk refresh (build-to-temp + atomic swap, same
+  `refresh_scryfall_bulk.refresh()` this manual step would run) so the
+  snapshot repairs itself within the first ~180 MB download's worth of
+  time. Running the refresh as an explicit deploy step just avoids that
+  degraded window (per-card live latency, one background download) on the
+  very first requests after a fresh volume — running it is the better
+  default, but skipping it is not a broken deploy, just a slower warm-up.
 - **(b) Boot-time auto-build (nicer, but new code — a follow-on, not
   blocking first deploy):** an idempotent bootstrap step before `uvicorn`
   starts: if `/app/data/parsed/vector_voyage-4-large.pkl` is already on the
@@ -354,11 +375,13 @@ typed into a committed file per `.env.example`'s existing discipline).
 ## 7. Sequencing + interplay with other tracks
 
 **Dependency on Scryfall local-bulk (docs/plan-scryfall-local-bulk.md):**
-NONE, blocking. Today's card path hits live Scryfall per-request and
-caches in `cache.db` (§0) — that already works standalone on a deployed
-host exactly as it does locally, no bulk snapshot required. Local-bulk is
-a quality/latency upgrade for LATER, addable to the same volume without
-touching the deploy shape.
+STILL none, blocking — UPDATED now that it's shipped rather than pending.
+`data/scryfall.db` belongs on the same mounted volume as the vector store
+(§4's manual seed step now includes it), but `get_card()`'s self-healing
+live-fallback (§0, §4) means a volume without it yet is a degraded first
+boot, not a broken one — so this remains fully addable/seedable without
+touching the deploy shape, same conclusion as before, now for a slightly
+different reason (self-healing, not "doesn't exist yet").
 
 **Interplay with the SSO track (TODO-SSO.md):** no code overlap today —
 there is no admin endpoint yet for SSO to protect (grepped `src/` for

@@ -103,9 +103,7 @@ def connect(db_path: Path = DEFAULT_DB) -> sqlite3.Connection:
     in place. Deliberately neutral: a missing file just gets an empty schema
     created, never raises -- this is the seam `build_store()` connects
     through mid-import, while the store is legitimately still empty, and
-    must keep working unconditionally. Callers on the READ path (get_card)
-    must call `assert_populated()` themselves right after connecting; this
-    function does not enforce that on their behalf."""
+    must keep working unconditionally."""
     db_path.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(db_path)
     for stmt in SCHEMA_STATEMENTS:
@@ -114,18 +112,26 @@ def connect(db_path: Path = DEFAULT_DB) -> sqlite3.Connection:
     return conn
 
 
+def is_populated(conn: sqlite3.Connection) -> bool:
+    """True iff the store has at least one card. The single source of truth
+    for "is this store usable" -- used by scryfall.get_card() to decide
+    local-first (populated) vs. live-fallback + self-heal (missing/empty),
+    and by assert_populated() below for tooling that wants a hard failure
+    instead."""
+    return conn.execute("SELECT COUNT(*) FROM cards").fetchone()[0] > 0
+
+
 class ScryfallStoreEmptyError(RuntimeError):
     """Raised by `assert_populated()` when the store is missing or has zero
-    cards -- a hard misconfiguration (no snapshot has ever been built), NOT
-    a per-card miss. The local-bulk design has no live fallback (plan Sec
-    10: "the whole point is zero network calls at answer time"), so a
-    missing/empty store silently serving None for every single lookup would
-    blind the whole bot to card oracle text with no error anywhere -- a
-    catastrophic, quiet failure. This makes that failure loud and
-    unmissable instead. Subclasses RuntimeError so a caller with only a
-    broad `except Exception`/`except RuntimeError` still sees it -- it just
-    won't be confused with an ordinary genuine card miss (which is `None`,
-    never an exception)."""
+    cards. NOTE (design history): get_card() itself no longer raises this --
+    an earlier revision of this fix made a missing/empty store a hard
+    failure on the read path, but Jon's ruling replaced that with graceful
+    local-first / live-fallback / self-healing behavior (scryfall.py:
+    get_card() falls back to a live Scryfall fetch and kicks off a
+    background bulk refresh instead of raising). `assert_populated()` is
+    kept for tooling that DOES want a hard failure -- a future readiness/
+    health-check endpoint, a CLI sanity command -- not for the request
+    path."""
 
 
 def assert_populated(conn: sqlite3.Connection, db_path: Path) -> None:
@@ -135,13 +141,11 @@ def assert_populated(conn: sqlite3.Connection, db_path: Path) -> None:
     Intentionally NOT called from connect() or build_store(): build_store's
     own internal connect() happens on a fresh, legitimately-empty db mid-
     import (Sec 5's temp-file-then-swap design), and calling this there
-    would make every import fail before it could insert a single row. This
-    is opt-in, called ONLY by the read path (scryfall.get_card), right
-    after connecting and before any lookup tier runs -- a real per-card
-    miss on an otherwise-populated store must still return a quiet `None`,
-    completely unaffected by this guard."""
-    count = conn.execute("SELECT COUNT(*) FROM cards").fetchone()[0]
-    if count == 0:
+    would make every import fail before it could insert a single row. NOT
+    called from get_card() either (see ScryfallStoreEmptyError's docstring)
+    -- kept purely for tooling that wants a hard failure instead of the
+    request path's graceful live-fallback self-heal."""
+    if not is_populated(conn):
         raise ScryfallStoreEmptyError(
             f"Scryfall snapshot not found / empty at {db_path}; "
             "run scripts/refresh_scryfall_bulk.py to build it."
