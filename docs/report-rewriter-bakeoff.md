@@ -83,6 +83,41 @@ at default sampling. The code comment states the measured consequence:
 the control arm is variance-suppressed while both candidate arms are single
 draws from a distribution roughly as wide as the differences being reported.
 
+### Correction: gpt-5-mini is not "unstabilised", it is UNSTABILISABLE
+
+A first pass at this section said gpt-5-mini runs at "default sampling". That
+was wrong. `call_structured` sends `"seed": SEED` with `SEED = 42` fixed across
+all arms, so the three arms use three different regimes:
+
+| arm | temperature | seed |
+|---|---|---|
+| haiku (control) | **0** | none — Anthropic has no seed parameter |
+| gpt-5-mini | rejected (reasoning model) | **42** |
+| sonnet | rejected | none |
+
+**Sonnet is the only wholly unconstrained arm**, which makes its 77% the least
+trustworthy figure in the table rather than the most interesting one.
+
+Whether a fixed seed actually buys determinism was **measured, not assumed** —
+three identical `call_structured` invocations, cache bypassed, same system/user/
+schema/seed:
+
+```
+call 1: "...cascade is a triggered ability put on the stack when the spell is c..."
+call 2: "...the cascade triggered ability triggers and, on resolution, exiles cards..."
+call 3: "...the cascade triggered ability is put on the stack above that spell; w..."
+
+all three identical: False
+distinct outputs: 3
+```
+
+**Three for three distinct.** There is no parameter available that stabilises
+gpt-5-mini in this role: temperature is refused, and seed is accepted, sent, and
+does not deliver determinism. Consequently **multi-pass averaging is not an
+improvement to this experiment, it is the only way to get a meaningful number
+out of this candidate** — which makes the cache-key change in "What would settle
+this" a prerequisite rather than a nicety.
+
 This is not a defect introduced by the new OpenRouter path — it is forced, since
 those models reject the parameter. But it means:
 
