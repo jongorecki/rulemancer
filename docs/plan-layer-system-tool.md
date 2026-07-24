@@ -689,11 +689,10 @@ finding 1), and a *sequentially dependent* layers→cost chain is not a shape I 
 construct — layers resolves characteristics, cost resolves 601.2f mana, and neither
 needs the other's output.
 
-**Recommendation: leave `TOOL_ROUND_CAP` at 3 for v1.** Raising it is not free — it
-raises the worst-case round count on *every* tool-triggered question, cost and
-latency included. If Slice 5's live validation shows layers calls actually chaining,
-raise it then, with the measurement in hand. Flagged for Jon in §8.3 because it
-contradicts the handoff.
+I recommended leaving it at 3 for v1. **Jon ruled to raise it to 4 (§8.3)** — that
+is the number to build. Rounds 0–2 become tool-capable and round 3 is the
+forced-answer round. Slice 4 makes the change; Slice 5 measures whether the extra
+round is used.
 
 ---
 
@@ -859,11 +858,9 @@ use `PYTHONUNBUFFERED=1` plus a log file, never `| tail` (it masks the exit code
 
 ## 8. What Jon rules on
 
-**8.1. `applies_if` — option A (static boolean) or B (six-predicate enum)?**
-I recommend **B**. It is what makes rg3868's Muraganda and CR 613.5's Honor of the
-Pure correct by construction rather than by the model guessing ahead. Cost: six more
-validated fields and a new silent-gating failure mode. A is a legitimate smaller v1
-and §9 is sequenced so B can land later without a schema reshape.
+**8.1. `applies_if` — RULED (Jon, 2026-07-24): option B**, the six-predicate enum,
+with the four anti-silent-gating mechanisms from §3a shipping alongside it in Slice
+2. Option A is off the table. Nothing further to rule on here.
 
 **8.2. Control arm — RULED (Jon, 2026-07-24): tie or beat.** The tool must match or
 exceed the §6.1 prompt-bullet arm, not strictly beat it, because the prompt bullet is
@@ -871,9 +868,25 @@ a global change with its own regression exposure while the tool's blast radius i
 bounded to triggered questions. Both arms now carry a regression measurement (§6.1,
 §6.2). Nothing further to rule on here.
 
-**8.3. `TOOL_ROUND_CAP` — I recommend leaving it at 3**, against the handoff's
-"likely needs raising." Reasoning and the combat contrast are in §3d. Flagging
-explicitly because it contradicts a written instruction.
+**8.3. `TOOL_ROUND_CAP` — RULED (Jon, 2026-07-24): raise it to 4.** I had
+recommended leaving it at 3 (reasoning and the combat contrast in §3d); Jon ruled to
+raise it. Proceeding with 4.
+
+At 4 the loop runs rounds 0–3, giving **3 tool-capable rounds plus a forced-answer
+round** (round 3 is `is_last_round` and carries `tool_choice: {"type": "none"}`).
+For layers that is one call plus two rounds of slack — headroom for a self-correcting
+re-call after reading the trace, and for a layers/cost sequential chain if one ever
+turns out to exist. The cost is the one named in §3d: a pathological loop burns one
+more full API call — the most expensive one, since the message list has grown — before
+the forced round stops it.
+
+The `1dfe6d4` cap-exhaustion guard is unaffected by the change: the forced-answer
+round is keyed to `TOOL_ROUND_CAP - 1`, so it moves with the cap rather than being
+pinned to round 2. Raising the number does not reopen that bug.
+
+**Slice 5's round-usage histogram is the retrospective check** — if the extra round
+goes unused across the 51-row run, that is evidence for dropping back to 3 later; if
+it gets consumed, the ruling was right and there is data saying so.
 
 **8.4. The base-rate gate is CLEARED.** I set the threshold at ~15 COMPUTE-bucket
 questions before the count landed, specifically so it could not be rationalised
@@ -950,10 +963,8 @@ Slices 1–4 are fully unblocked by the API cap. Slices 0 and 5 are not.
    in §3c (≥60% recall, <10% false firing). Blocks Slice 4, not Slice 1. This is now
    the most likely place the plan fails, since §3c's finding removed the obvious
    signal.
-3. **`applies_if` fork** — **the only design question still open.** Jon rules
-   (§8.1). Recommendation is option B *plus* the four anti-silent-gating mechanisms;
-   the silent-gating objection is answered, and answering it is what makes B the
-   safer option rather than the riskier one.
+3. ~~`applies_if` fork~~ — **RULED: option B** with the four anti-silent-gating
+   mechanisms (§8.1). Lands in Slice 2.
 4. ~~Does the tool have to beat the control arm?~~ — **RULED: tie or beat** (§8.2).
    Both arms now carry a regression measurement. The control-arm *result* is still
    blocked on the API cap.
