@@ -79,21 +79,56 @@ ANSWERS_DIR = Path(__file__).parent / "answers"
 # name ruling numbers for MULTIPLE cards in one paragraph and an automated
 # attribution step risks assigning a ruling to the wrong card. This is the
 # measurement's ground truth for "did the load-bearing ruling make the cut."
+# ⚠️ RE-DERIVED 2026-07-24 — every index below was stale.
+#
+# These are POSITIONS in each card's Scryfall rulings list. The Scryfall
+# local-bulk merge changed that list's ORDER, which silently invalidated the
+# whole dict: all 14 questions pointed at the wrong ruling text. (Same root
+# cause as the ruling_emb cache corruption -- see DECISIONS.md 2026-07-24 and
+# the hazard note in tools/ruling_retrieval.py. That cache got the durable fix,
+# a content-derived ruling_id(); this dict did not, and should be re-keyed to
+# ruling_id() rather than indices so it cannot rot the same way again.)
+#
+# Re-derivation method: each entry was matched back to the PROSE DESCRIPTION in
+# its own cards.jsonl `note` field -- Jon's descriptions survived the reorder
+# even though the numbers didn't -- then confirmed against the current ruling
+# text. Only c014 (Trinisphere #0) still pointed at the right ruling.
 LOAD_BEARING_RULINGS = {
-    "c006": {"Fork": [8]},
-    "c007": {"Mimic Vat": [0]},
-    "c008": {"Lithoform Engine": [4]},
-    "c009": {"Teferi's Protection": [21]},
-    "c010": {"Emrakul, the Promised End": [2, 3]},
-    "c011": {"Valki, God of Lies": [17]},
-    "c012": {"Lithoform Engine": [6, 7, 14], "Emrakul, the Promised End": [14]},
-    "c013": {"Mimic Vat": [4], "Lithoform Engine": [6, 7]},
-    "c014": {"Trinisphere": [0]},
-    "c015": {"Grist, the Hunger Tide": [1], "Animate Dead": [1, 4]},
-    "c016": {"Skullbriar, the Walking Grave": [2]},
-    "c017": {"Sundial of the Infinite": [1, 4]},
-    "c018": {"Clone": [0]},
-    "c019": {"Gogo, Master of Mimicry": [2, 10, 12]},
+    "c006": {"Fork": [0]},                     # was [8]  -> copy has no card to give back for buyback
+    "c007": {"Mimic Vat": [13]},               # was [0]  -> can't token-copy a nonpermanent card
+    "c008": {"Lithoform Engine": [2]},         # was [4]  -> copies of a linked ability stay linked
+    "c009": {"Teferi's Protection": [3]},      # was [21] -> "until it leaves the battlefield" doesn't fire on phase-out
+    "c010": {"Emrakul, the Promised End": [8, 4]},   # was [2, 3] -> protection only on battlefield; cast trigger resolves even if countered
+    "c011": {"Valki, God of Lies": [3]},       # was [17] -> judge legality by the face you're playing only
+    "c012": {"Lithoform Engine": [8, 0, 9], "Emrakul, the Promised End": [12]},
+    # was [6,7,14] / [14] -> copy isn't "cast" (no second cast trigger); permanent-spell
+    # copy becomes a token; copy resolves first. Emrakul: control effects overwrite.
+    "c013": {"Mimic Vat": [9], "Lithoform Engine": [8, 9]},
+    # was [4] / [6,7] -> token copies whatever is exiled AT RESOLUTION; copy made on
+    # the stack and resolves before the original.
+    "c014": {"Trinisphere": [0]},              # unchanged -- the only entry that survived the reorder
+    "c015": {"Grist, the Hunger Tide": [3], "Animate Dead": [1, 0]},
+    # was [1] / [1,4] -> Grist is a creature ONLY outside the battlefield; Animate Dead
+    # returns the card, then can't legally enchant it.
+    # ⚠️ Jon 2026-07-24: this question is genuinely hard and NOT exactly handled by the
+    # rules -- the Aura-attaching-to-an-illegal-object sequence is settled by rulings and
+    # SBA reasoning rather than by a clean CR passage. Treat a miss here as weak evidence
+    # about retrieval, and do not tune anything on c015 alone.
+    "c016": {"Skullbriar, the Walking Grave": [0]},   # was [2] -> persisting counters aren't "placed", so Doubling Season misses them
+    "c017": {"Sundial of the Infinite": [2, 3]},      # was [1, 4] -> end step skipped so its triggers never trigger; ending the turn exiles the stack
+    "c018": {"Clone": [6, 3]},
+    # was [0]. #6 = "Clone's ability doesn't target the chosen creature."
+    # #3 ADDED per Jon 2026-07-24: he wanted the as-it-enters timing represented. Clone
+    # reads "You may have this creature enter as a copy ...", which CR 614.1c makes a
+    # REPLACEMENT effect ("[This permanent] enters as ..."), resolved as it enters
+    # (CR 616.1c orders competing enter-as-a-copy replacements). No Scryfall ruling states
+    # the timing outright; #3 is the closest, showing it by consequence -- a creature
+    # entering SIMULTANEOUSLY can't be chosen, only one already on the battlefield.
+    # The difference from copying at some other time is real: as a replacement effect it
+    # never uses the stack, doesn't target, and gives no priority window; a later copy
+    # ability (e.g. Vesuvan Doppelganger's upkeep trigger, quoted in the CR under 707.2)
+    # uses the stack, TARGETS, can be responded to, and can fizzle.
+    "c019": {"Gogo, Master of Mimicry": [6, 11, 8]},  # was [2,10,12] -> copies don't pay activation costs; resolve before the original; a copy isn't "activated"
 }
 
 VARIANCE_IDS = ("q001", "q014", "c015")  # the plan's task-3 spot-check set
