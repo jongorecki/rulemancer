@@ -7,83 +7,253 @@
     {
       "id": "pr001",
       "source_qid": "rg5800",
-      "source_gold_rules": ["613.1d", "613.4b", "613.7"],
+      "source_gold_rules": [
+        "613.1d",
+        "613.4b",
+        "613.7"
+      ],
       "source_question": "Alex controls [Karametra, God of Harvests], and then casts [Opalescence]. Their devotion to white is 2. Is Karametra, God of Harvests a creature? If so, what is its power and toughness?",
       "source_gold": "Karametra, God of Harvests is a creature with power and toughness equal to its mana value. In the type layer, there are 2 effects that impact Karametra's type. They are applied in timestamp order, so first Karametra's effect causes it to not be a creature, then Opalescence's ability causes it to become a creature. In the power/toughness setting layer, Opalescence's effect sets its power and toughness equal to its mana value.",
       "proposed_question": "A permanent is an enchantment with a static ability saying it isn't a creature as long as your devotion to its color is less than five, and your devotion is currently two. A second enchantment then resolves whose static ability says every non-Aura enchantment you control is a creature with power and toughness each equal to its mana value. Is the first permanent a creature, and if so what are its power and toughness?",
       "proposed_gold": "Yes, it is a creature, and its power and toughness are each equal to its mana value. Both type-changing effects apply in layer 4 and neither depends on the other, so they are applied in timestamp order (CR 613.1d, 613.7): the permanent's own effect removes the creature type first, then the later effect makes it a creature. The power/toughness-setting effect applies in layer 7b (CR 613.4b), after the type has already been settled.",
       "tests": "Layer 4 timestamp ordering; layer 7b setting effect; later effect wins within a layer.",
-      "note": "rg87 is the same interaction with different cards (Iroas + Starfield of Nyx) and was dropped as a near-duplicate rather than drafted twice."
+      "note": "rg87 is the same interaction with different cards (Iroas + Starfield of Nyx) and was dropped as a near-duplicate rather than drafted twice.",
+      "source_cards": [
+        {
+          "name": "Karametra, God of Harvests",
+          "type_line": "Legendary Enchantment Creature — God",
+          "pt": null,
+          "oracle_text": "Indestructible\nAs long as your devotion to green and white is less than seven, Karametra isn't a creature.\nWhenever you cast a creature spell, you may search your library for a Forest or Plains card, put it onto the battlefield tapped, then shuffle."
+        },
+        {
+          "name": "Opalescence",
+          "type_line": "Enchantment",
+          "pt": null,
+          "oracle_text": "Each other non-Aura enchantment is a creature in addition to its other types and has base power and base toughness each equal to its mana value."
+        }
+      ]
     },
     {
       "id": "pr002",
       "source_qid": "rg115",
-      "source_gold_rules": ["113.11", "113.12", "613.1f", "613.8a"],
+      "source_gold_rules": [
+        "113.11",
+        "113.12",
+        "613.1f",
+        "613.8a"
+      ],
       "source_question": "Nathanael controls [Grizzly Bears] and [Muraganda Petroglyphs]. They cast and resolve [Crowd's Favor], targeting Grizzly Bears. Amia then casts [Archetype of Courage]. After it resolves, what are the power and toughness of Grizzly Bears?",
       "source_gold": "5/4. In layer 6, Archetype of Courage makes Crowd's Favor unable to grant first strike to Grizzly Bears. Archetype of Courage isn't granting any abilities to Grizzly Bears itself, so in layer 7 Grizzly Bears has no abilities and gets +2/+2 from Muraganda Petroglyphs and +1/+0 from Crowd's Favor.",
       "proposed_question": "You control a 2/2 creature with no abilities, and a permanent whose static ability says creatures with no abilities get +2/+2. A spell resolves giving that creature +1/+0 and first strike until end of turn. An opponent then resolves a permanent whose static ability says creatures they control have first strike and creatures you control can't have first strike. What are your creature's final power and toughness?",
       "proposed_gold": "5/4. In layer 6, the opponent's can't-have-first-strike effect prevents the spell from granting first strike to your creature (CR 613.1f), and the opponent's permanent grants your creature nothing, so your creature ends layer 6 with no abilities. In layer 7c it therefore receives +2/+2 from the no-abilities effect, and it still receives +1/+0 from the spell, because that spell's power/toughness part applies in layer 7c independently of whether its ability-granting part took effect.",
-      "tests": "CR 613.1f 'can't have an ability' beating a grant in layer 6; conditional applicability evaluated after layer 6; one effect split across layers 6 and 7c."
+      "tests": "CR 613.1f 'can't have an ability' beating a grant in layer 6; conditional applicability evaluated after layer 6; one effect split across layers 6 and 7c.",
+      "source_cards": [
+        {
+          "name": "Grizzly Bears",
+          "type_line": "Creature — Bear",
+          "pt": null,
+          "oracle_text": ""
+        },
+        {
+          "name": "Muraganda Petroglyphs",
+          "type_line": "Enchantment",
+          "pt": null,
+          "oracle_text": "Creatures with no abilities get +2/+2."
+        },
+        {
+          "name": "Crowd's Favor",
+          "type_line": "Instant",
+          "pt": null,
+          "oracle_text": "Convoke (Your creatures can help cast this spell. Each creature you tap while casting this spell pays for {1} or one mana of that creature's color.)\nTarget creature gets +1/+0 and gains first strike until end of turn. (It deals combat damage before creatures without first strike.)"
+        },
+        {
+          "name": "Archetype of Courage",
+          "type_line": "Enchantment Creature — Human Soldier",
+          "pt": null,
+          "oracle_text": "Creatures you control have first strike.\nCreatures your opponents control lose first strike and can't have or gain first strike."
+        }
+      ]
     },
     {
       "id": "pr003",
       "source_qid": "rg222",
-      "source_gold_rules": ["305.6", "613.1f"],
+      "source_gold_rules": [
+        "305.6",
+        "613.1f"
+      ],
       "source_question": "Nickolas controls [Dryad Arbor]. Aniya casts [Overwhelming Splendor], enchanting Nickolas. After it resolves, can Nickolas tap the Dryad Arbor for {G}?",
       "source_gold": "No. It has the ability to tap for {G} due to its basic land subtype, and it loses it in layer 6.",
       "proposed_question": "You control a permanent that is both a land with a basic land type and a creature. An opponent resolves an effect saying creatures you control lose all abilities and have base power and toughness 1/1. Can you still tap that permanent for mana of the color its basic land type produces?",
       "proposed_gold": "No. The mana ability is intrinsic to the basic land type rather than printed on the permanent (CR 305.6), but it is still an ability, so the lose-all-abilities effect removes it in layer 6 (CR 613.1f).",
-      "tests": "Intrinsic abilities from land types are still abilities; layer 6 removal reaches them."
+      "tests": "Intrinsic abilities from land types are still abilities; layer 6 removal reaches them.",
+      "source_cards": [
+        {
+          "name": "Dryad Arbor",
+          "type_line": "Land Creature — Forest Dryad",
+          "pt": null,
+          "oracle_text": "(This land isn't a spell, it's affected by summoning sickness, and it has \"{T}: Add {G}.\")"
+        },
+        {
+          "name": "Overwhelming Splendor",
+          "type_line": "Enchantment — Aura Curse",
+          "pt": null,
+          "oracle_text": "Enchant player\nCreatures enchanted player controls lose all abilities and have base power and toughness 1/1.\nEnchanted player can't activate abilities that aren't mana abilities or loyalty abilities."
+        }
+      ]
     },
     {
       "id": "pr004",
       "source_qid": "rg1264",
-      "source_gold_rules": ["613.1d", "707.9b"],
+      "source_gold_rules": [
+        "613.1d",
+        "707.9b"
+      ],
       "source_question": "Ainsley controls [Leyline of Singularity] and [Awoken Demon] equipped with [Helm of the Host]. When the trigger from Helm of the Host resolves, will the created token be legendary?",
       "source_gold": "Yes. When Helm of the Host goes to create the token of Awoken Demon it will see that it is legendary, and create a token that does not have the legendary supertype. However Leyline of Singularity is generating a continuous effect in layer 4, which will overwrite the base characteristics of any object on the battlefield, regardless of when it entered, making it legendary.",
       "proposed_question": "A continuous effect from a static ability says all nonland permanents are legendary. An effect then creates a token that is a copy of a legendary creature on the battlefield, and that copy effect specifies the token is not legendary. Once the token is on the battlefield, is it legendary?",
       "proposed_gold": "Yes. The copy effect determines the token's copiable values, so the token is created without the legendary supertype. But the 'all nonland permanents are legendary' effect applies in layer 4 to every applicable object on the battlefield regardless of when that object entered (CR 613.1d), so it is applied on top of the copiable values and makes the token legendary.",
-      "tests": "Copiable values (layer 1) versus a layer 4 type-changing effect; continuous effects from static abilities are not locked in at the time an object enters."
+      "tests": "Copiable values (layer 1) versus a layer 4 type-changing effect; continuous effects from static abilities are not locked in at the time an object enters.",
+      "source_cards": [
+        {
+          "name": "Leyline of Singularity",
+          "type_line": "Enchantment",
+          "pt": null,
+          "oracle_text": "If this card is in your opening hand, you may begin the game with it on the battlefield.\nAll nonland permanents are legendary."
+        },
+        {
+          "name": "Ecstatic Awakener // Awoken Demon",
+          "type_line": "Creature — Human Wizard // Creature — Demon",
+          "pt": null,
+          "oracle_text": "{2}{B}, Sacrifice another creature: Draw a card, then transform this creature. Activate only once each turn.\n//\n"
+        },
+        {
+          "name": "Helm of the Host",
+          "type_line": "Legendary Artifact — Equipment",
+          "pt": null,
+          "oracle_text": "At the beginning of combat on your turn, create a token that's a copy of equipped creature, except the token isn't legendary. That token gains haste.\nEquip {5}"
+        }
+      ]
     },
     {
       "id": "pr005",
       "source_qid": "rg1932",
-      "source_gold_rules": ["613.1f", "613.7c"],
+      "source_gold_rules": [
+        "613.1f",
+        "613.7c"
+      ],
       "source_question": "April casts [Spontaneous Flight] targeting their [Mist Dragon]. After that resolves April then activates its 'lose flying' ability. They cast another Spontaneous Flight targeting Mist Dragon. After that resolves they then use [Hex Parasite] to remove one flying counter. Does Mist Dragon have flying?",
       "source_gold": "Yes. Keyword counters and ability-removing effects all apply in layer 6 in timestamp order. However when April put the second flying counter on Mist Dragon all flying counters on Mist Dragon had their timestamps updated to match the most recent counter. Meaning that the remaining flying counter on Mist Dragon has a newer timestamp than the activation of the ability that causes it to lose flying.",
       "proposed_question": "A creature receives a flying counter. Later, an ability resolves that makes it lose flying for as long as that effect lasts. Later still, the creature receives a second flying counter. Then one of the two flying counters is removed from it. Does the creature have flying?",
       "proposed_gold": "Yes. Keyword counters and ability-removing effects both apply in layer 6 and are applied in timestamp order (CR 613.1f). When the second flying counter was put on the creature, every flying counter already on it received a new timestamp identical to the new counter's (CR 613.7c), so the one remaining counter has a later timestamp than the lose-flying effect and is applied after it.",
-      "tests": "CR 613.7c counter-timestamp refresh, a rule almost no eval covers; keyword counters ordering against ability removal in layer 6."
+      "tests": "CR 613.7c counter-timestamp refresh, a rule almost no eval covers; keyword counters ordering against ability removal in layer 6.",
+      "source_cards": [
+        {
+          "name": "Spontaneous Flight",
+          "type_line": "Instant",
+          "pt": null,
+          "oracle_text": "Target creature gets +2/+2 until end of turn. Put a flying counter on it."
+        },
+        {
+          "name": "Mist Dragon",
+          "type_line": "Creature — Dragon",
+          "pt": null,
+          "oracle_text": "{0}: This creature gains flying. (This effect lasts indefinitely.)\n{0}: This creature loses flying. (This effect lasts indefinitely.)\n{3}{U}{U}: This creature phases out. (While it's phased out, it's treated as though it doesn't exist. It phases in before you untap during your next untap step.)"
+        },
+        {
+          "name": "Hex Parasite",
+          "type_line": "Artifact Creature — Phyrexian Insect",
+          "pt": null,
+          "oracle_text": "{X}{B/P}: Remove up to X counters from target permanent. For each counter removed this way, this creature gets +1/+0 until end of turn. ({B/P} can be paid with either {B} or 2 life.)"
+        }
+      ]
     },
     {
       "id": "pr006",
       "source_qid": "rg2966",
-      "source_gold_rules": ["613.3", "613.7e"],
+      "source_gold_rules": [
+        "613.3",
+        "613.7e"
+      ],
       "source_question": "Ashley equips [Colossus Hammer] to [Ogre Warrior], then enchants it with [Phantom Wings]. Does Ogre Warrior have flying?",
       "source_gold": "Yes. The effects from Colossus Hammer and Phantom Wings apply in the same layer, and Phantom Wings has the more recent timestamp.",
       "proposed_question": "An Equipment is attached to a creature, and its static ability says the equipped creature loses flying. An Aura is then attached to that same creature, and its static ability says the enchanted creature has flying. Does the creature have flying?",
       "proposed_gold": "Yes. Both effects apply in layer 6, and neither changes what the other applies to or does, so there is no dependency and they are applied in timestamp order (CR 613.3, 613.7). An Aura or Equipment receives a new timestamp each time it becomes attached (CR 613.7e), and the Aura was attached later, so its effect is applied last and wins.",
-      "tests": "Independence versus dependency in layer 6; CR 613.7e attachment timestamps. This mirrors CR 613.9's own worked example, so it is a useful validity check on the set."
+      "tests": "Independence versus dependency in layer 6; CR 613.7e attachment timestamps. This mirrors CR 613.9's own worked example, so it is a useful validity check on the set.",
+      "source_cards": [
+        {
+          "name": "Colossus Hammer",
+          "type_line": "Artifact — Equipment",
+          "pt": null,
+          "oracle_text": "Equipped creature gets +10/+10 and loses flying.\nEquip {8} ({8}: Attach to target creature you control. Equip only as a sorcery.)"
+        },
+        {
+          "name": "Ogre Warrior",
+          "type_line": "Creature — Ogre Warrior",
+          "pt": null,
+          "oracle_text": ""
+        },
+        {
+          "name": "Phantom Wings",
+          "type_line": "Enchantment — Aura",
+          "pt": null,
+          "oracle_text": "Enchant creature\nEnchanted creature has flying.\nSacrifice this Aura: Return enchanted creature to its owner's hand."
+        }
+      ]
     },
     {
       "id": "pr007",
       "source_qid": "rg4985",
-      "source_gold_rules": ["613.1f", "613.7"],
+      "source_gold_rules": [
+        "613.1f",
+        "613.7"
+      ],
       "source_question": "Nico controls [Humility]. Aitana casts [Finale of Devastation] with X = 10. Will the creature they find have haste?",
       "source_gold": "Yes. Both effects apply in layer 6, and are applied in timestamp order. Since Finale of Devastation's effect has the most recent timestamp, it's applied last.",
       "proposed_question": "A permanent's static ability says all creatures lose all abilities and have base power and toughness 1/1. A spell then resolves that puts a creature onto the battlefield and gives that creature haste until end of turn. Does that creature have haste?",
       "proposed_gold": "Yes. Both effects apply in layer 6 and are applied in timestamp order (CR 613.1f, 613.7). The spell's effect was created when it resolved, so it has the later timestamp and is applied after the lose-all-abilities effect, which means the granted haste is not stripped.",
-      "tests": "Layer 6 timestamp ordering where the later effect grants rather than removes; a resolving spell's effect timestamped at creation (CR 613.7b)."
+      "tests": "Layer 6 timestamp ordering where the later effect grants rather than removes; a resolving spell's effect timestamped at creation (CR 613.7b).",
+      "source_cards": [
+        {
+          "name": "Humility",
+          "type_line": "Enchantment",
+          "pt": null,
+          "oracle_text": "All creatures lose all abilities and have base power and toughness 1/1."
+        },
+        {
+          "name": "Finale of Devastation",
+          "type_line": "Sorcery",
+          "pt": null,
+          "oracle_text": "Search your library and/or graveyard for a creature card with mana value X or less and put it onto the battlefield. If you search your library this way, shuffle. If X is 10 or more, creatures you control get +X/+X and gain haste until end of turn."
+        }
+      ]
     },
     {
       "id": "pr008",
       "source_qid": "rg6682",
-      "source_gold_rules": ["613.1", "613.1e", "613.1f"],
+      "source_gold_rules": [
+        "613.1",
+        "613.1e",
+        "613.1f"
+      ],
       "source_question": "Ariana controls [Painter's Servant] naming \"blue.\" Nico casts [Dress Down]. What color are Painter's Servant and Dress Down?",
       "source_gold": "They will both be blue. Painter's Servant's color-changing effect is applied in layer 5 and Dress Down's ability-removing effect is applied later in layer 6, so Painter's Servant's ability has already been applied to the game state by the time its removed.",
       "proposed_question": "A creature has a static ability making all cards and permanents a single chosen color. An opponent then resolves an enchantment whose static ability says all creatures lose all abilities. What color is the creature, and what color is the opponent's enchantment?",
       "proposed_gold": "Both are the chosen color. The color-changing effect applies in layer 5 and the ability-removing effect applies in layer 6 (CR 613.1e, 613.1f). Because layer 5 is applied before layer 6, the color-changing effect has already been applied by the time the ability generating it is removed, and it continues to apply. The effect applies to all permanents, so the opponent's enchantment is that color too.",
-      "tests": "The core CR 613.6 principle: an effect that has started to apply keeps applying after its source ability is removed. This is the exact rule the production model broke on three of the four regrade misses, so it belongs in any pure-rules set."
+      "tests": "The core CR 613.6 principle: an effect that has started to apply keeps applying after its source ability is removed. This is the exact rule the production model broke on three of the four regrade misses, so it belongs in any pure-rules set.",
+      "source_cards": [
+        {
+          "name": "Painter's Servant",
+          "type_line": "Artifact Creature — Scarecrow",
+          "pt": null,
+          "oracle_text": "As this creature enters, choose a color.\nAll cards that aren't on the battlefield, spells, and permanents are the chosen color in addition to their other colors."
+        },
+        {
+          "name": "Dress Down",
+          "type_line": "Enchantment",
+          "pt": null,
+          "oracle_text": "Flash\nWhen this enchantment enters, draw a card.\nCreatures lose all abilities.\nAt the beginning of the end step, sacrifice this enchantment."
+        }
+      ]
     }
   ],
   "deliberately_excluded": [

@@ -88,6 +88,13 @@ TEMPLATE = r"""<!doctype html>
   details[open] summary::before{transform:rotate(90deg)}
   summary:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:4px}
   .orig{color:var(--muted);font-size:13.5px;margin-top:8px}
+  .cards{margin-top:14px}
+  .card-x{background:var(--panel2);border:1px solid var(--line);border-radius:7px;
+    padding:10px 12px;margin-bottom:8px}
+  .card-x b{font-size:13.5px}
+  .card-t{color:var(--muted);font-size:12.5px;margin-left:8px}
+  .card-o{white-space:pre-wrap;font-size:13px;margin-top:5px;color:var(--text)}
+  .card-err{color:var(--wrong);font-size:12.5px;margin-left:8px}
   .why{color:var(--muted);font-size:13px;margin-top:10px;font-style:italic}
   .acts{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
   button{background:var(--panel2);color:var(--text);border:1px solid var(--line);
@@ -152,6 +159,23 @@ function entry(id){
   return state[id];
 }
 
+// Oracle text for every card the ORIGINAL question referenced, so checking a
+// generalization doesn't mean looking cards up by hand. A card that failed to
+// resolve renders its error rather than an empty text box, so a lookup failure
+// can't be mistaken for a card with no rules text.
+function cardsHtml(cards){
+  if(!cards || !cards.length) return "";
+  const rows = cards.map(c => {
+    if(c.error) return `<div class="card-x"><b>${esc(c.name)}</b>
+      <span class="card-err">could not load — ${esc(c.error)}</span></div>`;
+    const pt = c.pt ? ` &nbsp;${esc(c.pt)}` : "";
+    return `<div class="card-x"><b>${esc(c.name)}</b>
+      <span class="card-t">${esc(c.type_line||"")}${pt}</span>
+      <div class="card-o">${esc(c.oracle_text||"(no rules text)")}</div></div>`;
+  }).join("");
+  return `<div class="cards"><h3>Cards in the original</h3>${rows}</div>`;
+}
+
 function render(){
   const list = document.getElementById("list");
   const cands = DATA.candidates || [];
@@ -181,9 +205,10 @@ function render(){
       <div class="body" data-f="g">${esc(g)}</div>
       <p class="why">Tests: ${esc(c.tests||"")}</p>
       <details>
-        <summary>Show the original card question and its judge-authored gold</summary>
+        <summary>Show the original card question, its cards, and its judge-authored gold</summary>
         <div class="orig"><b>Original:</b> ${esc(c.source_question)}</div>
         <div class="orig"><b>Original gold:</b> ${esc(c.source_gold)}</div>
+        ${cardsHtml(c.source_cards)}
         ${c.note?`<div class="orig"><b>Note:</b> ${esc(c.note)}</div>`:""}
       </details>
       <div class="acts">
