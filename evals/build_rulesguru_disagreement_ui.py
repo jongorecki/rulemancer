@@ -96,6 +96,18 @@ _TEMPLATE = r"""<!doctype html>
   .col h3{font-size:12px;text-transform:uppercase;letter-spacing:.05em;
     margin:0 0 8px;display:flex;align-items:center;gap:6px}
   .col .body{white-space:pre-wrap;font-size:13.5px;max-height:420px;overflow-y:auto;padding-right:4px}
+  .cards-ref{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:6px 12px 10px;margin:0 0 16px}
+  .cards-ref>summary{cursor:pointer;color:var(--muted);font-size:11.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;user-select:none;padding:4px 0}
+  .cards-ref>summary:hover{color:var(--text)}
+  .carditem{border-top:1px solid var(--line);padding:8px 0 4px}
+  .carditem:first-of-type{border-top:0}
+  .cardhdr{display:flex;justify-content:space-between;gap:12px;align-items:baseline}
+  .cardname{font-weight:600;font-size:13.5px}
+  .cardcost{font-family:ui-monospace,monospace;color:var(--accent);font-size:12.5px;white-space:nowrap}
+  .cardtype{color:var(--muted);font-size:12px;font-style:italic;margin:2px 0}
+  .cardtext{white-space:pre-wrap;font-size:12.5px;color:var(--text);margin-top:3px}
+  .facesep{color:var(--muted);font-family:monospace;margin:5px 0}
+  .carderr{color:var(--muted);font-style:italic;font-size:12px}
   .col.gold{background:rgba(227,179,65,.08);border:1px solid rgba(227,179,65,.35)}
   .col.gold h3{color:var(--gold)}
   .col.mine{background:rgba(110,168,254,.08);border:1px solid rgba(110,168,254,.35)}
@@ -148,6 +160,17 @@ const KEY = "rulesguru_disagreement_grading_v1";
 let state = JSON.parse(localStorage.getItem(KEY) || "{}");
 
 function esc(s){return (s||"").replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
+function faceBlock(f){
+  return `<div class="cardhdr"><span class="cardname">${esc(f.name)}</span>`
+    + (f.mana_cost?`<span class="cardcost">${esc(f.mana_cost)}</span>`:``) + `</div>`
+    + (f.type_line?`<div class="cardtype">${esc(f.type_line)}</div>`:``)
+    + (f.oracle_text?`<div class="cardtext">${esc(f.oracle_text)}</div>`:``);
+}
+function cardBlock(c){
+  if(c.error){return `<div class="carditem"><span class="cardname">${esc(c.name)}</span> <span class="carderr">(${esc(c.error)})</span></div>`;}
+  if(c.faces&&c.faces.length){return `<div class="carditem">`+c.faces.map(faceBlock).join(`<div class="facesep">//</div>`)+`</div>`;}
+  return `<div class="carditem">`+faceBlock(c)+`</div>`;
+}
 
 const list = document.getElementById('list');
 if(!DATA.length){
@@ -169,6 +192,7 @@ DATA.forEach(r=>{
     ${tags?`<div class="tags">${tags}</div>`:''}
     ${goldIds}
     <div class="q">${esc(r.question)}</div>
+    ${(r.cards_data||[]).length?`<details class="cards-ref" open><summary>Cards referenced (${r.cards_data.length})</summary>${r.cards_data.map(cardBlock).join('')}</details>`:''}
     <div class="cols">
       <div class="col gold"><h3>Reference ruling &mdash; RulesGuru (certified judge)</h3>
         <div class="body">${esc(r.answer_gold)}</div></div>
