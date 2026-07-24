@@ -27,6 +27,7 @@ sys.path.insert(0, str(Path(__file__).parent))  # so `from run_eval import ...` 
 # rulesagent package, it's a scripts directory, so it needs to be on
 # sys.path explicitly rather than relying on script-directory auto-insertion.
 
+from progress import Heartbeat, atomic_write_json  # noqa: E402
 from run_eval import CR_PATH, PARSED_DIR, VECTOR_MODEL, load_questions  # noqa: E402
 
 from rulesagent.contracts import Answer  # noqa: E402
@@ -57,6 +58,44 @@ def load_answer_gold(path: Path) -> dict[str, str]:
         if row.get("answer_gold"):
             out[row["id"]] = row["answer_gold"]
     return out
+
+
+def _load_resumable(out_path: Path, args: argparse.Namespace) -> dict[str, dict]:
+    """qid -> already-written row, read off an existing output file at
+    `out_path` from a prior (possibly killed) invocation of this exact
+    command (docs/plan-run-progress.md Sec 4). This runner's output file is
+    a plain JSON list (no top-level model/config wrapper the way
+    run_openrouter_arm.py's is), so the only run-defining fields available
+    to sanity-check against are the ones actually stamped onto each row:
+    rewrite_version/ruling_query_mode/show_rewrite/condition/run. There is
+    no per-row `model` field in this schema (a pre-existing gap, out of
+    scope to add -- it would change the row shape), so a resume across two
+    different --model values with everything else identical can't be
+    detected here; --out naming this by model (the default) avoids that in
+    practice. Missing file, unparseable JSON, an empty list, or a config
+    mismatch all return {} and the run proceeds fresh, same as before this
+    feature existed."""
+    if not out_path.exists():
+        return {}
+    try:
+        data = json.loads(out_path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return {}
+    if not isinstance(data, list) or not data:
+        return {}
+    first = data[0]
+    if (first.get("rewrite_version") != args.rewrite_version
+            or first.get("ruling_query_mode") != args.ruling_query_mode
+            or first.get("show_rewrite") != args.show_rewrite
+            or first.get("condition") != args.condition
+            or first.get("run") != args.run):
+        print(f"[resume] {out_path} exists but was generated with a different config "
+              f"-- starting fresh rather than resuming from it")
+        return {}
+    by_id = {r["id"]: r for r in data if isinstance(r, dict) and "id" in r}
+    if by_id:
+        print(f"[resume] {out_path} has {len(by_id)} row(s) already -- skipping those qids")
+    return by_id
 
 
 def _answer_from_frozen_prompt(client, model: str, system: str, user: str) -> Answer:
@@ -229,61 +268,90 @@ def main() -> None:
         f"| questions={args.questions.name}\n"
     )
 
+    args.out.parent.mkdir(parents=True, exist_ok=True)
+
+    # Resume (docs/plan-run-progress.md Sec 4): qids already written by a
+    # prior (possibly killed) invocation at this exact --out, under a
+    # matching config -- skipped below rather than regenerated.
+    resumable = _load_resumable(args.out, args)
+
     results = []
     start = time.time()
-    for i, q in enumerate(questions, 1):
-        t0 = time.time()
-        if prompts_cache is not None:
-            if q.id not in prompts_cache:
-                print(f"[ERROR] question id {q.id!r} not found in {args.prompts_cache} -- "
-                      f"the cache doesn't cover this question set")
-                return
-            ans = _answer_from_frozen_prompt(
-                agent.client, args.model,
-                prompts_cache[q.id]["system"], prompts_cache[q.id]["user"],
-            )
-        else:
-            ans = agent.answer(q.question)
-        rewritten = agent.last_rewritten  # None when --no-rewrite, or when using --prompts-cache
+    hb = Heartbeat(run=args.out.stem, model=args.model, variant=args.condition,
+                   n_total=len(questions))
+    success = False
+    try:
+        for i, q in enumerate(questions, 1):
+            t0 = time.time()
+            if q.id in resumable:
+                row = resumable[q.id]
+                results.append(row)
+                print(f"  [{i}/{len(questions)}] {q.id} -> resumed (already in {args.out.name})")
+            else:
+                if prompts_cache is not None:
+                    if q.id not in prompts_cache:
+                        print(f"[ERROR] question id {q.id!r} not found in {args.prompts_cache} -- "
+                              f"the cache doesn't cover this question set")
+                        return
+                    ans = _answer_from_frozen_prompt(
+                        agent.client, args.model,
+                        prompts_cache[q.id]["system"], prompts_cache[q.id]["user"],
+                    )
+                else:
+                    ans = agent.answer(q.question)
+                rewritten = agent.last_rewritten  # None when --no-rewrite, or when using --prompts-cache
 
-        gold_text = {g: chunk_map[g].text for g in q.gold if g in chunk_map}
-        cited_text = {c: chunk_map[c].text for c in ans.citations if c in chunk_map}
+                gold_text = {g: chunk_map[g].text for g in q.gold if g in chunk_map}
+                cited_text = {c: chunk_map[c].text for c in ans.citations if c in chunk_map}
 
-        row = {
-            "id": q.id,
-            "question": q.question,
-            "match": q.match,
-            "kind": q.kind,
-            "show_rewrite": args.show_rewrite,
-            "rewrite_version": args.rewrite_version,
-            "ruling_query_mode": args.ruling_query_mode,
-            "condition": args.condition,
-            "run": args.run,
-            "answered": ans.answered,
-            "answer": ans.text,
-            "citations": ans.citations,
-            "gold": q.gold,
-            "gold_text": gold_text,
-            "cited_text": cited_text,
-            # New in plan #3a: what the rewriter actually did for this
-            # question, so a reviewer can see whether an answer change
-            # traces back to a different rewrite. None/[] when
-            # --no-rewrite so the two arms stay visibly distinguishable
-            # in the output, not just via a side channel.
-            "rewrite_queries": rewritten.queries if rewritten else [],
-            "clarification": rewritten.clarification if rewritten else None,
-        }
-        if q.id in answer_gold:
-            # Carried through only for questions that have it (RulesGuru
-            # rows) -- judge_rulesguru.py reads it straight off this row
-            # rather than re-joining against the source jsonl.
-            row["answer_gold"] = answer_gold[q.id]
-        results.append(row)
-        print(f"  [{i}/{len(questions)}] {q.id} ({time.time() - t0:.1f}s)")
+                row = {
+                    "id": q.id,
+                    "question": q.question,
+                    "match": q.match,
+                    "kind": q.kind,
+                    "show_rewrite": args.show_rewrite,
+                    "rewrite_version": args.rewrite_version,
+                    "ruling_query_mode": args.ruling_query_mode,
+                    "condition": args.condition,
+                    "run": args.run,
+                    "answered": ans.answered,
+                    "answer": ans.text,
+                    "citations": ans.citations,
+                    "gold": q.gold,
+                    "gold_text": gold_text,
+                    "cited_text": cited_text,
+                    # New in plan #3a: what the rewriter actually did for this
+                    # question, so a reviewer can see whether an answer change
+                    # traces back to a different rewrite. None/[] when
+                    # --no-rewrite so the two arms stay visibly distinguishable
+                    # in the output, not just via a side channel.
+                    "rewrite_queries": rewritten.queries if rewritten else [],
+                    "clarification": rewritten.clarification if rewritten else None,
+                }
+                if q.id in answer_gold:
+                    # Carried through only for questions that have it (RulesGuru
+                    # rows) -- judge_rulesguru.py reads it straight off this row
+                    # rather than re-joining against the source jsonl.
+                    row["answer_gold"] = answer_gold[q.id]
+                results.append(row)
+                print(f"  [{i}/{len(questions)}] {q.id} ({time.time() - t0:.1f}s)")
 
-    args.out.parent.mkdir(parents=True, exist_ok=True)
-    with open(args.out, "w", encoding="utf-8") as f:
-        json.dump(results, f, indent=2, ensure_ascii=False)
+            # Incremental write (Sec 4): this runner's output file is a
+            # plain list (unlike run_openrouter_arm.py's dict-with-summary),
+            # so the partial write is just the results-so-far list, same
+            # shape the final write below produces with fewer elements.
+            atomic_write_json(args.out, results)
+            # No per-row error concept in this schema (unlike the OR arm's
+            # row["error"]) and no usage/cost field on the sonnet path
+            # (plan Sec 2) -- errored stays False and cost_delta stays
+            # unpassed, so cost_so_far renders null rather than a fake 0.
+            hb.tick(q.id, errored=False)
+
+        success = True
+    finally:
+        hb.finish(success)
+
+    atomic_write_json(args.out, results)
 
     # Objective health checks so the show_rewrite A/B and the decline behavior
     # don't need eyeballing all 31 answers to summarize.

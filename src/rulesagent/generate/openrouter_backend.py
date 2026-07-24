@@ -175,6 +175,18 @@ def _attempt(system: str, user: str, model: str, key: str,
         except httpx.HTTPError as e:  # timeouts, connection failures
             last_err = f"http: {e}"
             time.sleep(2.0 * (2 ** attempt) + random.uniform(0, 1))
+        except json.JSONDecodeError as e:
+            # A malformed/truncated HTTP 200 body (docs/plan-run-progress.md
+            # Sec 4 -- the bug that crashed the first default r2: Google
+            # aborting gemini-flash-lite generations mid-stream still
+            # returns a 200, so r.raise_for_status() never fires and the
+            # decode error used to escape this loop entirely, uncaught,
+            # killing the whole run with zero rows saved). Treated exactly
+            # like a transient HTTP failure -- bounded retry with backoff,
+            # not a fatal exception -- so a re-ask has a real chance of
+            # getting a complete body next time.
+            last_err = f"json: {e}"
+            time.sleep(2.0 * (2 ** attempt) + random.uniform(0, 1))
     if data is None:
         return ORResult(None, model, None, None, temperature, SEED,
                         error=last_err or "http: exhausted retries")

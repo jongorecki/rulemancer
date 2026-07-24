@@ -55,6 +55,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))  # so `from run_eval import ...` resolves
 # regardless of the caller's cwd -- same reasoning as run_answer_eval.py's identical line.
 
+from progress import Heartbeat, atomic_write_json  # noqa: E402
 from run_eval import CR_PATH, PARSED_DIR, VECTOR_MODEL, load_questions  # noqa: E402
 
 from rulesagent.generate import openrouter_backend  # noqa: E402
@@ -169,6 +170,70 @@ def _answer_row(qid: str, question: str, result: openrouter_backend.ORResult) ->
         row["error"] = result.error
         row["raw_text"] = result.raw_text
     return row
+
+
+def _build_payload(args: argparse.Namespace, results: list[dict],
+                   variance: dict | None) -> dict:
+    """The exact output-file shape main()'s final write has always produced
+    (docs/plan-run-progress.md Sec 4 hard requirement: schema stays byte-
+    identical). Used for BOTH the final write and every incremental write
+    during the loop -- the only thing that varies between calls is which
+    prefix of `results` has been filled in so far and whether `variance` is
+    known yet (None until the loop + variance pass finish), never the shape
+    itself."""
+    answered = sum(1 for r in results if r["answered"] is True)
+    parse_failures = sum(1 for r in results if r["text"] is None)
+    total_cost = sum((r["usage"] or {}).get("cost", 0) or 0 for r in results)
+    return {
+        "model": args.model,
+        "rewrite_version": args.rewrite_version,
+        "ruling_query_mode": args.ruling_query_mode,
+        "condition": args.condition,
+        "run": args.run,
+        "reasoning": args.reasoning_dict,
+        "prompts_cache": str(args.prompts_cache) if args.prompts_cache else None,
+        "results": results,
+        "summary": {
+            "n_questions": len(results),
+            "answered": answered,
+            "parse_failures": parse_failures,
+            "total_cost": total_cost,
+        },
+        "variance": variance,
+    }
+
+
+def _load_resumable(out_path: Path, args: argparse.Namespace) -> dict[str, dict]:
+    """qid -> already-written row, read off an existing output file at
+    `out_path` from a prior (possibly killed) invocation of this exact
+    command -- so a restarted run can skip regenerating them (docs/plan-run-
+    progress.md Sec 4). Only trusted when the file's own recorded run-
+    defining config (model/rewrite_version/ruling_query_mode/reasoning --
+    the same fields --retry-errors already guards on) matches this
+    invocation's args; anything else (missing file, unparseable JSON, a
+    config mismatch) returns {} and the run proceeds exactly as a fresh one,
+    the same as before this feature existed. A config mismatch is reported
+    but does not error out -- unlike --retry-errors's hard refusal, this
+    path runs unattended and a stale/unrelated file at the same --out
+    shouldn't block a legitimate fresh run from proceeding."""
+    if not out_path.exists():
+        return {}
+    try:
+        data = json.loads(out_path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return {}
+    if (data.get("model") != args.model
+            or data.get("rewrite_version") != args.rewrite_version
+            or data.get("ruling_query_mode") != args.ruling_query_mode
+            or data.get("reasoning") != args.reasoning_dict):
+        print(f"[resume] {out_path} exists but was generated with a different config "
+              f"-- starting fresh rather than resuming from it")
+        return {}
+    results = data.get("results") or []
+    by_id = {r["id"]: r for r in results if isinstance(r, dict) and "id" in r}
+    if by_id:
+        print(f"[resume] {out_path} has {len(by_id)} row(s) already -- skipping those qids")
+    return by_id
 
 
 def _first_diff(a: str, b: str) -> int | None:
@@ -634,65 +699,68 @@ def main() -> None:
         f"| prompts_cache={args.prompts_cache}\n"
     )
 
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+
+    # Resume (docs/plan-run-progress.md Sec 4): qids already written by a
+    # prior (possibly killed) invocation at this exact --out, under a
+    # matching config -- skipped below rather than regenerated.
+    resumable = _load_resumable(out_path, args)
+
     results = []
     start = time.time()
-    for i, q in enumerate(questions, 1):
-        t0 = time.time()
-        if prompts_cache is not None:
-            if q.id not in prompts_cache:
-                print(f"[ERROR] question id {q.id!r} not found in {args.prompts_cache} -- "
-                      f"the cache doesn't cover this question set")
-                return
-            system, user = prompts_cache[q.id]["system"], prompts_cache[q.id]["user"]
-        else:
-            system, user = _capture_prompt(store, q.question, rewrite_version=args.rewrite_version,
-                                           ruling_query_mode=args.ruling_query_mode)
-        result = openrouter_backend.generate(system, user, args.model,
-                                             reasoning=args.reasoning_dict)
-        results.append(_answer_row(q.id, q.question, result))
-        status = "ok" if result.answer is not None else f"FAIL ({result.error})"
-        print(f"  [{i}/{len(questions)}] {q.id} -> {status} ({time.time() - t0:.1f}s)")
+    hb = Heartbeat(run=out_path.stem, model=args.model, variant=args.condition,
+                   n_total=len(questions))
+    success = False
+    try:
+        for i, q in enumerate(questions, 1):
+            t0 = time.time()
+            if q.id in resumable:
+                row = resumable[q.id]
+                results.append(row)
+                print(f"  [{i}/{len(questions)}] {q.id} -> resumed (already in {out_path.name})")
+            else:
+                if prompts_cache is not None:
+                    if q.id not in prompts_cache:
+                        print(f"[ERROR] question id {q.id!r} not found in {args.prompts_cache} -- "
+                              f"the cache doesn't cover this question set")
+                        return
+                    system, user = prompts_cache[q.id]["system"], prompts_cache[q.id]["user"]
+                else:
+                    system, user = _capture_prompt(store, q.question, rewrite_version=args.rewrite_version,
+                                                   ruling_query_mode=args.ruling_query_mode)
+                result = openrouter_backend.generate(system, user, args.model,
+                                                     reasoning=args.reasoning_dict)
+                row = _answer_row(q.id, q.question, result)
+                results.append(row)
+                status = "ok" if result.answer is not None else f"FAIL ({result.error})"
+                print(f"  [{i}/{len(questions)}] {q.id} -> {status} ({time.time() - t0:.1f}s)")
 
-    answered = sum(1 for r in results if r["answered"] is True)
-    parse_failures = sum(1 for r in results if r["text"] is None)
-    total_cost = sum((r["usage"] or {}).get("cost", 0) or 0 for r in results)
+            # Incremental write (Sec 4): the SAME payload shape the final
+            # write below produces, just with a shorter `results` prefix and
+            # `variance` not known yet -- so a crash keeps every row
+            # completed so far, and a resumed run reads them back out.
+            atomic_write_json(out_path, _build_payload(args, results, None))
+            cost_delta = (row["usage"] or {}).get("cost", 0) or 0
+            hb.tick(q.id, errored=bool(row.get("error")), cost_delta=cost_delta)
 
-    variance = None
-    if args.variance:
-        print("\nVariance spot-check (q001/q014/c015, 3 draws each):")
-        variance = run_variance(store, args.model, rewrite_version=args.rewrite_version,
-                                ruling_query_mode=args.ruling_query_mode,
-                                reasoning=args.reasoning_dict)
+        variance = None
+        if args.variance:
+            print("\nVariance spot-check (q001/q014/c015, 3 draws each):")
+            variance = run_variance(store, args.model, rewrite_version=args.rewrite_version,
+                                    ruling_query_mode=args.ruling_query_mode,
+                                    reasoning=args.reasoning_dict)
 
-    out_path.parent.mkdir(parents=True, exist_ok=True)
-    payload = {
-        "model": args.model,
-        "rewrite_version": args.rewrite_version,
-        "ruling_query_mode": args.ruling_query_mode,
-        "condition": args.condition,
-        "run": args.run,
-        # Condition-E passthrough (docs/plan-condition-e-reasoning.md Sec 2):
-        # the resolved dict actually sent (e.g. {"effort": "high"}), or None
-        # when --reasoning wasn't given -- so a run file is self-describing
-        # about which reasoning config produced it, same provenance role
-        # 'model'/'rewrite_version'/'ruling_query_mode' already play.
-        "reasoning": args.reasoning_dict,
-        "prompts_cache": str(args.prompts_cache) if args.prompts_cache else None,
-        "results": results,
-        "summary": {
-            "n_questions": len(results),
-            "answered": answered,
-            "parse_failures": parse_failures,
-            "total_cost": total_cost,
-        },
-        "variance": variance,
-    }
-    with open(out_path, "w", encoding="utf-8") as f:
-        json.dump(payload, f, indent=2, ensure_ascii=False)
+        payload = _build_payload(args, results, variance)
+        atomic_write_json(out_path, payload)
+        success = True
+    finally:
+        hb.finish(success)
 
+    answered = payload["summary"]["answered"]
+    total_cost = payload["summary"]["total_cost"]
     print(f"\nWrote {len(results)} answers -> {out_path} in {time.time() - start:.1f}s")
     print(f"  answered:       {answered}/{len(results)}")
-    print(f"  parse failures: {parse_failures}/{len(results)}")
+    print(f"  parse failures: {payload['summary']['parse_failures']}/{len(results)}")
     print(f"  total cost:     ${total_cost:.4f}")
 
 
