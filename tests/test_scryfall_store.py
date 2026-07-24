@@ -454,3 +454,58 @@ def test_connect_creates_schema_on_missing_file(tmp_path):
         conn.close()
     assert row[0] == 0
     assert db_path.exists()
+
+
+# --- merge-safety guard: a missing/empty store must fail LOUD on the read
+# path, never silently return None for every lookup (a store swap with no
+# live fallback means a silently-empty store blinds the bot to all card
+# oracle text with zero error -- this must be impossible to miss). connect()
+# and build_store() stay untouched/neutral -- they legitimately create an
+# empty schema mid-import. assert_populated() is the opt-in guard the READ
+# path (get_card) calls; nothing on the write path calls it.
+
+
+def test_assert_populated_raises_on_missing_db(tmp_path):
+    missing_path = tmp_path / "never_built.db"
+    conn = scryfall_store.connect(missing_path)  # legitimately creates an empty schema
+    try:
+        with pytest.raises(scryfall_store.ScryfallStoreEmptyError) as exc_info:
+            scryfall_store.assert_populated(conn, missing_path)
+    finally:
+        conn.close()
+    assert str(missing_path) in str(exc_info.value)
+    assert "refresh_scryfall_bulk.py" in str(exc_info.value)
+
+
+def test_assert_populated_raises_on_empty_but_existing_db(tmp_path):
+    db_path = _build(tmp_path, [])  # a real file on disk, zero cards
+    conn = scryfall_store.connect(db_path)
+    try:
+        with pytest.raises(scryfall_store.ScryfallStoreEmptyError):
+            scryfall_store.assert_populated(conn, db_path)
+    finally:
+        conn.close()
+
+
+def test_assert_populated_does_not_raise_on_populated_db(tmp_path):
+    db_path = _build(tmp_path, [BOLT, COUNTERSPELL])
+    conn = scryfall_store.connect(db_path)
+    try:
+        scryfall_store.assert_populated(conn, db_path)  # must not raise
+    finally:
+        conn.close()
+
+
+def test_build_store_never_trips_the_guard_while_legitimately_empty(tmp_path):
+    # build_store()'s internal connect() call happens on a fresh 0-row db
+    # mid-import (rows are inserted into that same connection afterward) --
+    # this must keep succeeding exactly as before. The guard is opt-in at
+    # the caller (get_card's read path), never baked into connect()/
+    # build_store() themselves.
+    db_path = _build(tmp_path, [])
+    assert db_path.exists()
+    conn = scryfall_store.connect(db_path)
+    try:
+        assert conn.execute("SELECT COUNT(*) FROM cards").fetchone()[0] == 0
+    finally:
+        conn.close()

@@ -322,10 +322,38 @@ def test_no_refresh_flag_does_not_change_result(_store):
 # --- store not yet built (fresh checkout) ---------------------------------
 
 
-def test_missing_store_file_is_a_clean_miss(tmp_path, monkeypatch):
-    monkeypatch.setattr(scryfall, "DB_PATH", tmp_path / "never_built.db")
+# --- merge-safety guard: missing/empty store fails LOUD, not a silent None
+# (superseding the old "missing store is a clean miss" behavior -- with no
+# live fallback left, a silently-empty store would blind the bot to every
+# card's oracle text with zero error, which is a catastrophic quiet failure
+# the old per-card-miss semantics were never designed to signal).
 
-    assert scryfall.get_card("Lightning Bolt") is None
+
+def test_get_card_raises_when_store_file_does_not_exist(tmp_path, monkeypatch):
+    missing_path = tmp_path / "never_built.db"
+    monkeypatch.setattr(scryfall, "DB_PATH", missing_path)
+
+    with pytest.raises(scryfall_store.ScryfallStoreEmptyError) as exc_info:
+        scryfall.get_card("Lightning Bolt")
+    assert str(missing_path) in str(exc_info.value)
+    assert "refresh_scryfall_bulk.py" in str(exc_info.value)
+
+
+def test_get_card_raises_when_store_exists_but_is_empty(_store):
+    _store([])  # a real, built store -- zero cards
+
+    with pytest.raises(scryfall_store.ScryfallStoreEmptyError):
+        scryfall.get_card("Lightning Bolt")
+
+
+def test_get_card_populated_store_missing_card_still_returns_none(_store):
+    # Regression: a genuinely populated store that just doesn't have this
+    # one card must still behave exactly as before -- a quiet None, not the
+    # new guard. The guard is ONLY for "the whole store is unusable," never
+    # for an ordinary per-card miss.
+    _store([BOLT, DOVINS_VETO])
+
+    assert scryfall.get_card("Definitely Not A Real Card Xyz") is None
     assert scryfall.pop_fuzzy_fallbacks() == []
 
 

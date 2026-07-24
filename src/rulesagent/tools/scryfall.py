@@ -102,9 +102,21 @@ def get_card(ref: str, no_refresh: bool = False) -> Card | None:
     refresh_scryfall_bulk.py) -- so there is nothing left for it to gate.
     Kept for zero call-site churn (answer.py, eval scripts all still pass
     it); scheduled for removal in a later cleanup slice.
+
+    Raises `scryfall_store.ScryfallStoreEmptyError` if `DB_PATH` is missing
+    or has zero cards (merge-safety guard, added post-approval): this
+    design has no live fallback, so a missing/never-refreshed store would
+    otherwise silently return None for every single lookup -- the bot would
+    look "fine" while being blind to all card oracle text, with no error
+    anywhere. That is a hard misconfiguration, not a per-card miss, so it
+    fails loud instead. A genuinely populated store that simply lacks the
+    requested card is completely unaffected -- that is still a quiet
+    `None`, exactly as before.
     """
     conn = scryfall_store.connect(DB_PATH)
     try:
+        scryfall_store.assert_populated(conn, DB_PATH)
+
         if _UUID_RE.fullmatch(ref):
             # A UUID ref that misses is a confirmed miss -- fuzzy-matching a
             # UUID string against card NAMES makes no sense, so this never

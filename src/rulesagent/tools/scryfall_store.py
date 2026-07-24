@@ -100,15 +100,52 @@ def normalize_name(name: str) -> str:
 
 def connect(db_path: Path = DEFAULT_DB) -> sqlite3.Connection:
     """Open (creating if missing) a scryfall.db connection with the schema
-    in place. A missing/never-refreshed store behaves as "zero cards, every
-    lookup is a clean miss" rather than crashing -- reasonable for a fresh
-    checkout that hasn't run the import script yet."""
+    in place. Deliberately neutral: a missing file just gets an empty schema
+    created, never raises -- this is the seam `build_store()` connects
+    through mid-import, while the store is legitimately still empty, and
+    must keep working unconditionally. Callers on the READ path (get_card)
+    must call `assert_populated()` themselves right after connecting; this
+    function does not enforce that on their behalf."""
     db_path.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(db_path)
     for stmt in SCHEMA_STATEMENTS:
         conn.execute(stmt)
     conn.commit()
     return conn
+
+
+class ScryfallStoreEmptyError(RuntimeError):
+    """Raised by `assert_populated()` when the store is missing or has zero
+    cards -- a hard misconfiguration (no snapshot has ever been built), NOT
+    a per-card miss. The local-bulk design has no live fallback (plan Sec
+    10: "the whole point is zero network calls at answer time"), so a
+    missing/empty store silently serving None for every single lookup would
+    blind the whole bot to card oracle text with no error anywhere -- a
+    catastrophic, quiet failure. This makes that failure loud and
+    unmissable instead. Subclasses RuntimeError so a caller with only a
+    broad `except Exception`/`except RuntimeError` still sees it -- it just
+    won't be confused with an ordinary genuine card miss (which is `None`,
+    never an exception)."""
+
+
+def assert_populated(conn: sqlite3.Connection, db_path: Path) -> None:
+    """Raise ScryfallStoreEmptyError if the store has zero rows in `cards`
+    -- covers BOTH a missing file (connect() creates an empty schema, 0
+    rows) and an existing-but-never-imported-into file, with one check.
+    Intentionally NOT called from connect() or build_store(): build_store's
+    own internal connect() happens on a fresh, legitimately-empty db mid-
+    import (Sec 5's temp-file-then-swap design), and calling this there
+    would make every import fail before it could insert a single row. This
+    is opt-in, called ONLY by the read path (scryfall.get_card), right
+    after connecting and before any lookup tier runs -- a real per-card
+    miss on an otherwise-populated store must still return a quiet `None`,
+    completely unaffected by this guard."""
+    count = conn.execute("SELECT COUNT(*) FROM cards").fetchone()[0]
+    if count == 0:
+        raise ScryfallStoreEmptyError(
+            f"Scryfall snapshot not found / empty at {db_path}; "
+            "run scripts/refresh_scryfall_bulk.py to build it."
+        )
 
 
 def get_meta(conn: sqlite3.Connection, key: str) -> str | None:
