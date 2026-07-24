@@ -1473,3 +1473,105 @@ bullet to a fully-ruled plan); blocking v4 until a citation-filter plan exists.
 **What would change my mind:** the v4 run's tripwire spiking above the current
 level, or Jon's grading turning up an ungrounded citation that actually changed an
 answer's correctness rather than just its citation list.
+
+## 2026-07-25 — prompt v4 is NO-GO; production reverts to v3 by version-selecting
+
+**What:** Jon ruled v4 out of production. `PROMPT_VERSION` 4 -> 3. v4 is not
+deleted — both SYSTEM texts now live in `answer.py`'s `SYSTEM_VERSIONS` registry
+and `PROMPT_VERSION` selects which one ships, mirroring how `rewrite.py` has kept
+rw-v1 runnable alongside rw-v2 since the v3 A/B needed it.
+
+**Why:** v4 failed its own go criterion. On the production model it is a measured
+no-op, not a small win: **sonnet 46 -> 46 with zero judge-detectable divergence
+across all 50 questions and both runs** — and because the A/B used the SYSTEM-swap
+on a frozen capture, retrieval was byte-identical, so this is a real null result
+and not noise hiding a signal. For that it costs ~+1,215 tokens on every query.
+That cost is paid in full: **no prompt caching exists on either the eval path or
+the production path** (`grep -rn "cache_control\|ephemeral" src/` is empty;
+`answer.py:700` sends a bare `system=system`), so plan-v4e's "the legend sits in
+the cacheable system prefix" mitigation is currently vacuous. v4 also never moved
+**c014**, the mana-arithmetic failure the entire notation legend was built for —
+it got the model to *state* the cost breakdown correctly and still conclude wrong,
+which points at multi-step reasoning about cost modification rather than notation.
+The one win, groundedness 2 -> 0, does not carry the decision: n is 200 answered
+rows against the v3 batch's 900, only 2 of 6 arms, and v4 deliberately contains no
+groundedness bullet (ruling #4 below), so it is an unattributed drop on a small
+sample against a level already signed off as acceptable.
+
+**Why version-selecting rather than `git revert`:** the v5 grid generates from v4
+(cell C is v4-minus-legend; Slice A reuses v4's per-symbol definitions verbatim
+rather than re-deriving them). A history-only revert would push the v5 candidate's
+own baseline into archaeology. The registry also decouples the eval instrument
+from what production ships — `build_prompts_v4.py` imported `SYSTEM` from
+`answer.py`, which is precisely how a future A/B silently measures against the
+wrong baseline.
+
+**Evidence on record (Slice 1, commit edea4a4):** the restored v3 renders to 5,189
+chars with sha256 `25aa69e1...06cc`, byte-identical to the `V3_SYSTEM_SHA256` the
+frozen condition-C capture was verified against — so this is provably the v3 that
+produced the 46/45 baselines, not a reconstruction. v4 still renders to 10,045.
+The identity fixture required only its `system` field swapped, with `messages`
+untouched and `test_prompt_identity` still green, which demonstrates rather than
+assumes that the revert is SYSTEM-only. 184 tests pass.
+
+**Alternatives rejected:** keeping v4 while v5 is built (it would ship a known
+no-op at full token cost for weeks, and nothing forced it — v3 is a fully tested
+prompt); plain `git revert` (see above); treating the REFERENCE tier as
+deploy-insurance worth keeping (nothing is deployed, and Slice A restores that
+coverage on demand at zero cost for questions that do not need it).
+
+**What would change my mind:** prompt caching landing on the production path, which
+would change the cost side of the argument (though not the zero-benefit side); or
+v5 measurements showing v4's non-legend bullets carry a benefit that the static
+legend was masking.
+
+## 2026-07-25 — c002 is excluded from scoring; c020 is added rather than replacing it
+
+**What:** Jon's ruling: "stop considering c002 in the results... even if we keep
+running it to see if it ever flips c002 in the future." c002 becomes a **monitored,
+non-scoring** row — it runs, the frozen judge routes it, a flip surfaces under its
+own heading, and it never enters a correct-count or a go/no-go delta. Separately,
+Jon rewrote the question; the rewrite is filed as **c020**, a new id. Old c002 stays
+frozen exactly as it is.
+
+**Why exclude:** c002 is a weak instrument, on two independent findings. Its own
+`ablation` field already records *"sanity FAILED -- trample/deathtouch are common
+enough that the model answers from the keyword oracle text alone; retrieved rules
+redundant. Weak RULES-RAG test."* And the question grants an ability its card does
+not have: **Charging Rhino** (`{3}{G}{G}`) reads only "This creature can't be blocked
+by more than one creature" — no trample (verified against the repo's own Scryfall
+cache). That also killed the planned de-keywording arm, which required both keywords
+to be supplied by card text; c002 failed the same way c011 ("cascade", no card
+supplies it) and c014 (matched the card *name* `[Awaken the Woods]`) already had, so
+no miss qualified and the arm was dropped.
+
+**THE CONSEQUENCE, recorded because it changes a prior conclusion:** c002 was one of
+v4's two stable flips. Excluding it moves gpt-5-mini's v4 regression from **-2 to -1**
+and the sonnet/gpt-5-mini gap from **3 to 2** — *out* of the band where 2026-07-23
+pre-commitment #3 auto-pins sonnet, and back into the band where Jon reviews the
+flipped answers and decides whether the gap is livable at ~8x cheaper. **The v4 no-go
+above still stands, but no longer on the pre-commitment argument** — it stands on
+sonnet's zero divergence at +1,215 tokens/query, which is untouched. Under v3 with
+c002 excluded, gpt-5-mini sits at a **1-answer gap**, the most favourable that
+comparison has ever looked; the L2 generator question is live again.
+
+**Bookkeeping:** historical figures stay as written — 46/50, 45/50 cond-C, 43/50 v4
+are what the verdict files record and what this document, `report-v4e.md` and the
+handoff already say. Recomputing history is worse than a footnote; the verdicts are
+evidence. Forward counts are quoted **/49** with the exclusion stated inline.
+
+**Why c020 is a new id, not a rewrite of c002:** c002 is in the v5 grid *because* it
+is one of the two v4 regressions, and that question only means something against the
+text that produced the regression. Reusing the id would also desync
+`_prompts_C.json` (which holds the old user block) from `cards.jsonl`, and would make
+`verdicts_v3ab.json`, `verdicts_v4e.json` and `verdicts_gpt-5-mini_final.json`
+silently describe different text. Jon's replacement card, **Stampeding Rhino**
+(`{4}{G}`), does carry "Trample (This creature can deal excess combat damage to the
+player or planeswalker it's attacking.)" — verified via `rulesagent.tools.scryfall`
+— so c020 is well-formed where c002 was not. Honest caveat carried into its report:
+both abilities now ship with full reminder text in the card data, so c020 is arguably
+a *weaker* retrieval test than c002, not a stronger one.
+
+**What would change my mind:** c002 flipping under a future prompt would be
+informative about that prompt even though it does not score — which is exactly why
+Jon kept it running rather than deleting it.
