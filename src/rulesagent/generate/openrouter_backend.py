@@ -43,16 +43,25 @@ NO_TEMPERATURE = {"openai/gpt-5-mini"}
 SEED = 42  # fixed across all arms; recorded in the result for the writeup
 
 
-def _answer_schema() -> dict:
-    """Answer's JSON schema in the strict shape OpenRouter requires
-    (additionalProperties: false, every property required)."""
-    schema = Answer.model_json_schema()
+def build_strict_schema(schema: dict) -> dict:
+    """Turn a pydantic `.model_json_schema()` dict into OpenRouter's strict
+    json_schema shape: no top-level title, additionalProperties: False,
+    every property required, no per-property title. Shared by
+    `_answer_schema()` (Answer, used by generate()/_attempt()) and the
+    OpenRouter rewrite arm's `_Rewrites` schema (rewrite.py) so both follow
+    identical strict-schema rules instead of two copies of this logic."""
     schema.pop("title", None)
     schema["additionalProperties"] = False
     schema["required"] = list(schema["properties"].keys())
     for prop in schema["properties"].values():
         prop.pop("title", None)
     return schema
+
+
+def _answer_schema() -> dict:
+    """Answer's JSON schema in the strict shape OpenRouter requires
+    (additionalProperties: false, every property required)."""
+    return build_strict_schema(Answer.model_json_schema())
 
 
 @dataclass
@@ -103,48 +112,27 @@ def generate(system: str, user: str, model: str,
     return result
 
 
-def _attempt(system: str, user: str, model: str, key: str,
-             timeout: float, reasoning: dict | None = None) -> ORResult:
+def _post_with_retries(body: dict, key: str, timeout: float) -> tuple[dict | None, str | None]:
+    """POST `body` to OpenRouter with the same bounded-retry policy
+    `_attempt()` has always used, extracted here so a second caller
+    (`call_structured()` below) gets identical retry behavior without
+    duplicating it. Returns (parsed_response_json, None) on success, or
+    (None, last_error_string) if every attempt failed.
 
-    temperature = None if model in NO_TEMPERATURE else 0.0
-    body = {
-        "model": model,
-        "messages": [
-            {"role": "system", "content": system},
-            {"role": "user", "content": user},
-        ],
-        "provider": {"allow_fallbacks": False},
-        "seed": SEED,
-        "response_format": {
-            "type": "json_schema",
-            "json_schema": {"name": "answer", "strict": True,
-                            "schema": _answer_schema()},
-        },
-        "max_tokens": 16384,
-    }
-    if temperature is not None:
-        body["temperature"] = temperature
-    if reasoning is not None:
-        # docs/plan-condition-e-reasoning.md Sec 2/Sec 3: OpenRouter's
-        # `reasoning` request parameter, e.g. {"effort": "high"}. Only added
-        # when explicitly requested -- default None keeps every past eval's
-        # request body byte-identical (nothing else here moves).
-        body["reasoning"] = reasoning
+    Transient upstream failures (429 from a pinned provider, 5xx) get a
+    bounded retry with backoff -- the v4-flash arm lost 31/50 questions to
+    DeepInfra 429s on the first full run (2026-07-22), which is a provider
+    traffic condition, not a model answer. Anything else still fails fast
+    and is recorded honestly. Retry-After is honored when present.
 
-    # Transient upstream failures (429 from a pinned provider, 5xx) get a
-    # bounded retry with backoff -- the v4-flash arm lost 31/50 questions to
-    # DeepInfra 429s on the first full run (2026-07-22), which is a provider
-    # traffic condition, not a model answer. Anything else still fails fast
-    # and is recorded honestly. Retry-After is honored when present.
-    #
-    # One additional case added 2026-07-23 (docs/plan-v3-execution-tasks.md
-    # Task 2 content-completeness gap-fill): a 400 whose OpenRouter error body
-    # carries provider_error_code "400001" / "This response_format type is
-    # unavailable now" -- confirmed by direct testing to be a StreamLake
-    # (deepseek-v4-pro's provider) capacity condition, not a malformed
-    # request: identical requests succeeded on a plain retry, no request
-    # change. A real malformed-request 400 (bad schema, bad model id) still
-    # fails fast -- this only widens retry for this one detected body shape.
+    One additional case added 2026-07-23 (docs/plan-v3-execution-tasks.md
+    Task 2 content-completeness gap-fill): a 400 whose OpenRouter error body
+    carries provider_error_code "400001" / "This response_format type is
+    unavailable now" -- confirmed by direct testing to be a StreamLake
+    (deepseek-v4-pro's provider) capacity condition, not a malformed
+    request: identical requests succeeded on a plain retry, no request
+    change. A real malformed-request 400 (bad schema, bad model id) still
+    fails fast -- this only widens retry for this one detected body shape."""
     data = None
     last_err = None
     for attempt in range(5):
@@ -187,6 +175,91 @@ def _attempt(system: str, user: str, model: str, key: str,
             # getting a complete body next time.
             last_err = f"json: {e}"
             time.sleep(2.0 * (2 ** attempt) + random.uniform(0, 1))
+    return data, last_err
+
+
+def call_structured(system: str, user: str, model: str, schema: dict,
+                     schema_name: str = "output", timeout: float = 300.0) -> dict | None:
+    """Generic structured-output call: send `system`/`user` to `model` via
+    OpenRouter, constrained to `schema` (already strict-shaped -- see
+    `build_strict_schema()`), and return the parsed JSON dict, or None if
+    the call failed for any reason (no API key, HTTP failure/exhausted
+    retries, an OpenRouter-reported error, or a response that isn't valid
+    JSON matching the requested shape).
+
+    This is the minimal shared primitive for non-Answer structured-output
+    callers -- currently the rewrite arm's `_Rewrites` schema
+    (rulesagent/retrieve/rewrite.py). It reuses `_post_with_retries()` for
+    HTTP-level retry (same policy as `_attempt()`), but -- unlike
+    `generate()` -- does not add a second retry-on-parse-failure layer:
+    callers here (rewrite_query()) already have their own broad
+    never-raise/fallback discipline, so a bare best-effort call is enough.
+
+    Same temperature gating as `_attempt()` (:109/:125-126): a model in
+    NO_TEMPERATURE gets the key omitted entirely rather than sent as 0 or
+    null -- gpt-5-mini (a reasoning model) rejects `temperature` outright."""
+    key = os.environ.get("OPENROUTER_API_KEY")
+    if not key:
+        return None
+
+    temperature = None if model in NO_TEMPERATURE else 0.0
+    body = {
+        "model": model,
+        "messages": [
+            {"role": "system", "content": system},
+            {"role": "user", "content": user},
+        ],
+        "provider": {"allow_fallbacks": False},
+        "seed": SEED,
+        "response_format": {
+            "type": "json_schema",
+            "json_schema": {"name": schema_name, "strict": True, "schema": schema},
+        },
+        "max_tokens": 16384,
+    }
+    if temperature is not None:
+        body["temperature"] = temperature
+
+    data, _last_err = _post_with_retries(body, key, timeout)
+    if data is None or "error" in data:
+        return None
+
+    try:
+        text = data["choices"][0]["message"]["content"]
+        return json.loads(text)
+    except (KeyError, IndexError, TypeError, json.JSONDecodeError):
+        return None
+
+
+def _attempt(system: str, user: str, model: str, key: str,
+             timeout: float, reasoning: dict | None = None) -> ORResult:
+
+    temperature = None if model in NO_TEMPERATURE else 0.0
+    body = {
+        "model": model,
+        "messages": [
+            {"role": "system", "content": system},
+            {"role": "user", "content": user},
+        ],
+        "provider": {"allow_fallbacks": False},
+        "seed": SEED,
+        "response_format": {
+            "type": "json_schema",
+            "json_schema": {"name": "answer", "strict": True,
+                            "schema": _answer_schema()},
+        },
+        "max_tokens": 16384,
+    }
+    if temperature is not None:
+        body["temperature"] = temperature
+    if reasoning is not None:
+        # docs/plan-condition-e-reasoning.md Sec 2/Sec 3: OpenRouter's
+        # `reasoning` request parameter, e.g. {"effort": "high"}. Only added
+        # when explicitly requested -- default None keeps every past eval's
+        # request body byte-identical (nothing else here moves).
+        body["reasoning"] = reasoning
+
+    data, last_err = _post_with_retries(body, key, timeout)
     if data is None:
         return ORResult(None, model, None, None, temperature, SEED,
                         error=last_err or "http: exhausted retries")

@@ -42,9 +42,26 @@ RERANK_MODELS = ("rerank-2.5", "rerank-2.5-lite")
 
 # Plan #3a: rewrite arms. label -> model, so arm names read "vec+rw{n}-{label}"
 # matching the plan's 2x2 grid (rewrite count x rewriter model). Dict order
-# (haiku then sonnet) fixes the row order everywhere below.
-REWRITE_MODELS = {"haiku": "claude-haiku-4-5", "sonnet": "claude-sonnet-5"}
+# (haiku then sonnet then gpt5mini) fixes the row order everywhere below.
+# "gpt5mini" (openai/gpt-5-mini, via OpenRouter) is the label rather than the
+# raw model id "openai/gpt-5-mini" because rewrite_arm_name() below
+# interpolates the label into arm-name strings used as dict keys throughout
+# the report code -- a "/" in an arm name would corrupt those keys.
+REWRITE_MODELS = {
+    "haiku": "claude-haiku-4-5",
+    "sonnet": "claude-sonnet-5",
+    "gpt5mini": "openai/gpt-5-mini",
+}
 REWRITE_NS = (1, 3)
+
+
+def rewrite_backend_for_model(model: str) -> str:
+    """Which rewrite_query() `backend` a REWRITE_MODELS model id needs.
+    Anthropic model ids (claude-haiku-4-5, claude-sonnet-5, ...) never
+    contain "/"; OpenRouter model ids always do (provider/model, e.g.
+    "openai/gpt-5-mini") -- so backend selection follows directly from the
+    id string, with no separate per-label mapping to keep in sync."""
+    return "openrouter" if "/" in model else "anthropic"
 
 
 _KNOWN_KINDS = {"rule", "glossary", "interaction", "other", "card-interaction"}
@@ -207,7 +224,11 @@ def main() -> None:
     for q in questions:
         for label, model in REWRITE_MODELS.items():
             for n_rw in REWRITE_NS:
-                rw = rewrite_query(q.question, model, n_rw)
+                # backend follows the model id (see rewrite_backend_for_model):
+                # "/" in the id means OpenRouter (e.g. gpt5mini ->
+                # "openai/gpt-5-mini"), otherwise Anthropic, same as always.
+                rw = rewrite_query(q.question, model, n_rw,
+                                   backend=rewrite_backend_for_model(model))
                 rewrites[(q.id, label, n_rw)] = rw
                 rewrite_texts.update(rw.queries)
 

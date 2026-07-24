@@ -23,6 +23,7 @@ from pydantic import BaseModel
 
 from rulesagent.cache import KVCache
 from rulesagent.contracts import RewrittenQuery
+from rulesagent.generate import openrouter_backend
 
 load_dotenv()
 
@@ -144,6 +145,7 @@ def rewrite_query(
     client: anthropic.Anthropic | None = None,
     context: str | None = None,
     version: str = PROMPT_VERSION,
+    backend: str = "anthropic",
 ) -> RewrittenQuery:
     """Rewrite `question` into `n` Comprehensive-Rules-vocabulary rewrites.
 
@@ -173,6 +175,18 @@ def rewrite_query(
     with keys the eval never uses. The evals are single-turn (context=None),
     so their cache behavior is byte-identical to before this parameter.
 
+    `backend` (default "anthropic") selects which API the call actually goes
+    through: "anthropic" (default, byte-for-byte unchanged -- the shipped
+    control arm) uses `client` (an anthropic.Anthropic, constructed here if
+    not passed) and `client.messages.parse()`, same as always. "openrouter"
+    routes through `openrouter_backend.call_structured()` instead -- used for
+    non-Anthropic rewriter arms (e.g. openai/gpt-5-mini via OpenRouter) in
+    the eval's rewrite-model comparison. Both backends build the exact same
+    system/user content (see the content-building block below, shared by
+    both) and land on the same `_Rewrites` schema and fallback behavior;
+    only the transport differs. `client` is ignored when backend is not
+    "anthropic".
+
     Never raises and never returns an empty `queries` list: a failed or
     unparseable response (refusal, truncation, network error) falls back to
     RewrittenQuery(original, [original], None) so retrieval always has
@@ -190,53 +204,82 @@ def rewrite_query(
         # perform the expensive rewrite call; last write wins and duplicate work
         # is accepted by design. Per-key SQLite writes prevent corruption.
 
-    client = client or anthropic.Anthropic()
     parsed = None
-    # temperature=0 cuts (does not eliminate) the run-to-run variance in the
-    # rewrites -- measured: without it, rw1-haiku recall@5 swung 68-77% across
-    # clean re-runs because each run drew different rewrites. But sampling
-    # params are REJECTED (400) on claude-sonnet-5 / Opus 4.7+ / Fable, and
-    # ACCEPTED on Haiku 4.5 (an older tier). We ship Haiku, so this stabilizes
-    # the shipped path; the eval's sonnet arms stay at default sampling and are
-    # only used for comparison. Gate by model rather than pass it blindly.
-    extra = {"temperature": 0} if model in TEMPERATURE_OK else {}
-    try:
-        # 2048: smaller than answer.py's 4096 since there's no retrieved-rules
-        # context to read here, just the bare question -- but still enough
-        # headroom that claude-sonnet-5's default adaptive thinking doesn't
-        # eat the whole budget and truncate the structured output to nothing
-        # (the same failure mode answer.py's max_tokens comment documents).
-        content = question
-        if context is not None:
-            # Contextualize a conversational follow-up: the rewrites must stand
-            # alone (retrieval sees only the rewrite string, never the thread).
-            content = (
-                "Conversation so far, for context only:\n"
-                f"{context}\n\n"
-                "Rewrite ONLY this final follow-up question. Use the "
-                "conversation above ONLY to resolve pronouns and references "
-                "(\"it\", \"that card\", \"the trigger\") into their concrete "
-                "names -- do NOT import earlier turns' topics. The rewrites "
-                "must target what THIS question asks about; if it shifts to a "
-                "new topic, follow the shift and drop the old topic entirely. "
-                "Each rewrite must be fully standalone:\n"
-                f"{question}"
-            )
-        response = client.messages.parse(
-            model=model,
-            max_tokens=2048,
-            system=system_text.format(n=n),
-            messages=[{"role": "user", "content": content}],
-            **extra,
-            output_format=_Rewrites,
+
+    # Content-building is backend-agnostic -- built ONCE here and reused by
+    # both the Anthropic and OpenRouter branches below, so the two backends
+    # can never drift apart on what they actually ask the model.
+    content = question
+    if context is not None:
+        # Contextualize a conversational follow-up: the rewrites must stand
+        # alone (retrieval sees only the rewrite string, never the thread).
+        content = (
+            "Conversation so far, for context only:\n"
+            f"{context}\n\n"
+            "Rewrite ONLY this final follow-up question. Use the "
+            "conversation above ONLY to resolve pronouns and references "
+            "(\"it\", \"that card\", \"the trigger\") into their concrete "
+            "names -- do NOT import earlier turns' topics. The rewrites "
+            "must target what THIS question asks about; if it shifts to a "
+            "new topic, follow the shift and drop the old topic entirely. "
+            "Each rewrite must be fully standalone:\n"
+            f"{question}"
         )
-        parsed = response.parsed_output
-    except Exception:
-        # Broad on purpose: any failure here (API error, network error,
-        # refusal, malformed output) degrades to the fallback below rather
-        # than propagating -- a rewriter outage must never take retrieval
-        # down with it.
-        parsed = None
+
+    if backend == "openrouter":
+        # OpenRouter branch (eval-only rewriter arms, e.g. openai/gpt-5-mini).
+        # Temperature gating (omit the key entirely for NO_TEMPERATURE models
+        # like gpt-5-mini, which rejects it outright) lives in
+        # openrouter_backend.call_structured() itself, mirroring _attempt()
+        # -- NOT duplicated here.
+        try:
+            schema = openrouter_backend.build_strict_schema(_Rewrites.model_json_schema())
+            raw = openrouter_backend.call_structured(
+                system=system_text.format(n=n),
+                user=content,
+                model=model,
+                schema=schema,
+                schema_name="rewrites",
+            )
+            parsed = _Rewrites.model_validate(raw) if raw is not None else None
+        except Exception:
+            # Broad on purpose, same discipline as the Anthropic branch below:
+            # any failure (HTTP error, malformed output, schema mismatch)
+            # degrades to the fallback rather than propagating.
+            parsed = None
+    else:
+        client = client or anthropic.Anthropic()
+        # temperature=0 cuts (does not eliminate) the run-to-run variance in
+        # the rewrites -- measured: without it, rw1-haiku recall@5 swung
+        # 68-77% across clean re-runs because each run drew different
+        # rewrites. But sampling params are REJECTED (400) on
+        # claude-sonnet-5 / Opus 4.7+ / Fable, and ACCEPTED on Haiku 4.5 (an
+        # older tier). We ship Haiku, so this stabilizes the shipped path;
+        # the eval's sonnet arms stay at default sampling and are only used
+        # for comparison. Gate by model rather than pass it blindly.
+        extra = {"temperature": 0} if model in TEMPERATURE_OK else {}
+        try:
+            # 2048: smaller than answer.py's 4096 since there's no
+            # retrieved-rules context to read here, just the bare question --
+            # but still enough headroom that claude-sonnet-5's default
+            # adaptive thinking doesn't eat the whole budget and truncate the
+            # structured output to nothing (the same failure mode answer.py's
+            # max_tokens comment documents).
+            response = client.messages.parse(
+                model=model,
+                max_tokens=2048,
+                system=system_text.format(n=n),
+                messages=[{"role": "user", "content": content}],
+                **extra,
+                output_format=_Rewrites,
+            )
+            parsed = response.parsed_output
+        except Exception:
+            # Broad on purpose: any failure here (API error, network error,
+            # refusal, malformed output) degrades to the fallback below
+            # rather than propagating -- a rewriter outage must never take
+            # retrieval down with it.
+            parsed = None
 
     if parsed is None or not parsed.queries:
         # NOT cached, deliberately. Caching a fallback would freeze a transient
