@@ -8,6 +8,8 @@
 # content blocks shaped like the real Anthropic SDK's (`.type`, `.id`,
 # `.name`, `.input`).
 
+import json
+
 from rulesagent.contracts import Answer, Card
 from rulesagent.generate import answer as ans
 
@@ -237,8 +239,59 @@ def test_triggered_question_chains_two_tool_calls():
     agent = ans.RulesAgent(_EmptyStore(), client=client, rewrite=False)
     result = agent.answer(TRIGGER_QUESTION)
     assert result is _REAL_ANSWER
-    assert len(client.calls) == 3  # within TOOL_ROUND_CAP == 3
+    assert len(client.calls) == 3  # within TOOL_ROUND_CAP (== 4)
     assert len(agent.last_tool_calls) == 2
+
+
+# --- Name-routed dispatch (docs/plan-layer-system-tool.md Sec 3d must-fix 4)
+#
+# Before this fix the dispatch loop called _run_calculate_cost
+# unconditionally on ANY tool_use block, regardless of block.name, because
+# there had only ever been one registered tool. This is must-fix 4 and the
+# whole reason the generalisation work exists: once a second tool is
+# registered, a tool_use block for it must never be fed to the cost
+# calculator's handler.
+
+
+def test_unrecognized_tool_name_returns_unknown_tool_error_and_skips_calculate_cost(monkeypatch):
+    # Swap in a spy for the exact handler registered under "calculate_cost"
+    # in _TOOL_DISPATCH -- the real call site the dispatch loop uses. If a
+    # mismatched block.name were ever routed to it, this spy would record
+    # the call, so an empty `calls` list is positive proof it was never
+    # reached (not just an inference from the returned error string).
+    calls = []
+
+    def _spy_calculate_cost(input_):
+        calls.append(input_)
+        return {"ok": True, "results": []}
+
+    monkeypatch.setitem(ans._TOOL_DISPATCH, "calculate_cost", _spy_calculate_cost)
+
+    bogus_block = _FakeToolUseBlock("toolu_bogus", "resolve_layers", {"some": "input"})
+    client = _ScriptedToolClient([
+        _FakeResponse("tool_use", [bogus_block], None),
+        _FakeResponse("end_turn", [], _REAL_ANSWER),
+    ])
+    agent = ans.RulesAgent(_EmptyStore(), client=client, rewrite=False)
+    result = agent.answer(TRIGGER_QUESTION)
+
+    assert result is _REAL_ANSWER
+    # The registered calculate_cost handler (now a spy) never fired for a
+    # tool_use block named "resolve_layers".
+    assert calls == []
+
+    # The tool_result sent back to the model carries the explicit
+    # unknown-tool error, not a calculate_cost-shaped payload.
+    tool_result_msg = client.calls[1]["messages"][2]["content"][0]
+    assert tool_result_msg["tool_use_id"] == "toolu_bogus"
+    result_payload = json.loads(tool_result_msg["content"])
+    assert result_payload["ok"] is False
+    assert "unknown tool" in result_payload["error"]
+    assert "resolve_layers" in result_payload["error"]
+
+    # Telemetry still records the call, with the real (error) result.
+    assert agent.last_tool_calls[0]["name"] == "resolve_layers"
+    assert agent.last_tool_calls[0]["result"]["ok"] is False
 
 
 # --- Round cap fires on a pathological loop ----------------------------------
@@ -269,9 +322,11 @@ def test_round_cap_fires_on_never_ending_tool_use():
 
 
 def test_round_cap_value_leaves_room_for_a_chained_call_plus_terminal_turn():
-    # Guard the cap itself: must be >= 3 so a single chained tool call (spike
-    # Case B's shape) still has a terminal turn available within the cap.
-    assert ans.TOOL_ROUND_CAP >= 3
+    # Guard the cap itself: docs/plan-layer-system-tool.md Sec 8.3 (Jon's
+    # ruling) raised it from 3 to 4 -- rounds 0-2 tool-capable (room for a
+    # chained pair of tool calls, spike Case B's shape, or a self-correcting
+    # second call) plus round 3 as the terminal forced-answer turn.
+    assert ans.TOOL_ROUND_CAP == 4
 
 
 # --- Final round forces tool_choice="none" (Phase 4 cap-exhaustion fix) ------
@@ -337,6 +392,35 @@ def test_final_round_forces_tool_choice_none_and_recovers_a_real_answer():
     # call shape, byte-identical).
     for earlier_call in client.calls[:-1]:
         assert "tool_choice" not in earlier_call
+
+
+# --- Cap semantics pinned at the new value (docs/plan-layer-system-tool.md
+# Sec 8.3, Jon's ruling): raised from 3 to 4. Rounds 0-2 are tool-capable
+# (no tool_choice restriction) and round 3 is the forced-answer round
+# (tool_choice={"type": "none"}). Pinned explicitly, on top of the generic
+# ans.TOOL_ROUND_CAP-relative assertions above, so a future accidental cap
+# change is caught even if someone "fixes" this test to match instead of
+# noticing the regression.
+
+
+def test_tool_round_cap_is_four_with_three_tool_capable_rounds_then_forced_answer():
+    assert ans.TOOL_ROUND_CAP == 4
+
+    client = _ConditionalToolChoiceClient()
+    agent = ans.RulesAgent(_EmptyStore(), client=client, rewrite=False)
+    result = agent.answer(TRIGGER_QUESTION)
+
+    assert len(client.calls) == 4
+    tool_capable_rounds = client.calls[:3]
+    forced_answer_round = client.calls[3]
+    for call in tool_capable_rounds:
+        assert "tool_choice" not in call
+        assert call["tools"] == [ans.CALCULATE_COST_TOOL]
+    assert forced_answer_round["tool_choice"] == {"type": "none"}
+    assert forced_answer_round["tools"] == [ans.CALCULATE_COST_TOOL]
+
+    assert result is _REAL_ANSWER
+    assert result.answered is True
 
     # Forced to answer, the stubborn model complies -- a real, non-empty
     # answer, not the cap-exhaustion degraded sentinel.

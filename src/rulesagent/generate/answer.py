@@ -837,13 +837,18 @@ TOOL_TRIGGER_SENTENCE = (
     "arithmetic yourself."
 )
 
-TOOL_ROUND_CAP = 3
+TOOL_ROUND_CAP = 4
 # Guard against a confused model looping (plan Sec 3d / spike Sec 3): round
 # trips = tool calls + 1, and the spike observed clean 2-3-round convergence
-# on a toy tool. 3 covers one chained pair of tool calls (spike Case B)
-# plus the terminal structured-Answer turn; calculate_cost's real use case
-# (one call per question) converges in 2. Not measured at production
-# complexity -- see the report's "if messier than the spike" note.
+# on a toy tool. Raised from 3 to 4 per docs/plan-layer-system-tool.md Sec
+# 8.3 (Jon's ruling): rounds 0-2 are tool-capable and round 3 is the
+# forced-answer round (is_last_round = TOOL_ROUND_CAP - 1, so the
+# cap-exhaustion guard below moves with the cap instead of being pinned to
+# round 2). 4 covers one chained pair of tool calls (spike Case B) plus the
+# terminal structured-Answer turn, with headroom for a resolve_layers
+# self-correcting second call; calculate_cost's real use case (one call per
+# question) converges in 2. Not measured at production complexity -- see
+# the report's "if messier than the spike" note.
 
 _COST_TRIGGER_RE = re.compile(r"costs?\s*\{?\d+\}?\s*(less|more)\b", re.IGNORECASE)
 
@@ -915,6 +920,25 @@ def _run_calculate_cost(input_: dict) -> dict:
         )
     except Exception as e:  # pragma: no cover - defensive
         return {"ok": False, "error": f"calculate_cost failed on malformed input: {e!r}"}
+
+
+# Name-routed tool dispatch (docs/plan-layer-system-tool.md Sec 3d must-fix
+# 4): the dispatch loop below used to call _run_calculate_cost
+# unconditionally on any tool_use block, which was safe only because there
+# had ever been exactly one registered tool. Routing by block.name means a
+# second tool can be registered here later without touching the loop, and an
+# unrecognized name gets an explicit {"ok": False, ...} tool_result instead
+# of silently being fed to the wrong handler.
+_TOOL_DISPATCH = {
+    "calculate_cost": _run_calculate_cost,
+}
+
+
+def _dispatch_tool_call(name: str, input_: dict) -> dict:
+    handler = _TOOL_DISPATCH.get(name)
+    if handler is None:
+        return {"ok": False, "error": f"unknown tool: {name!r}"}
+    return handler(input_)
 
 
 def _format_context(retrieved: list[Retrieved]) -> str:
@@ -1423,11 +1447,24 @@ class RulesAgent:
         # are completely untouched either way, so build_prompt's own output
         # (and every existing test/fixture that checks it) is unaffected.
         use_cost_tool = _needs_cost_tool(question, cards)
+        # use_any_tool generalises the three round-loop gates below so they
+        # aren't hardcoded to calculate_cost (docs/plan-layer-system-tool.md
+        # Sec 3d must-fixes 1-3). Only one trigger exists today, so this is
+        # `= use_cost_tool`; a second tool's trigger gets OR'd in here
+        # without touching the gates themselves. use_cost_tool is kept
+        # separate because it still (and only it) controls whether the cost
+        # tool's own schema and TOOL_TRIGGER_SENTENCE get attached -- a
+        # future layers-only question must not inherit the cost tool's
+        # instruction sentence.
+        use_any_tool = use_cost_tool
         call_system = system
         extra_kwargs: dict = {}
+        tools: list = []
         if use_cost_tool:
             call_system = system + "\n" + TOOL_TRIGGER_SENTENCE
-            extra_kwargs["tools"] = [CALCULATE_COST_TOOL]
+            tools.append(CALCULATE_COST_TOOL)
+        if tools:
+            extra_kwargs["tools"] = tools
         base_msgs: list[dict] = [{"role": "user", "content": user}]
         self.last_tool_calls = None
         parsed, response = None, None
@@ -1449,7 +1486,7 @@ class RulesAgent:
                 # is never mutated).
                 is_last_round = _round == TOOL_ROUND_CAP - 1
                 round_kwargs = extra_kwargs
-                if use_cost_tool and is_last_round:
+                if use_any_tool and is_last_round:
                     round_kwargs = {**extra_kwargs, "tool_choice": {"type": "none"}}
                 try:
                     response = self.client.messages.parse(
@@ -1472,12 +1509,12 @@ class RulesAgent:
                 # attribute at all (byte-identical old behavior; also means
                 # a bare fake response stub with no .stop_reason, as several
                 # existing tests use, keeps working unchanged).
-                if use_cost_tool and getattr(response, "stop_reason", None) == "tool_use":
+                if use_any_tool and getattr(response, "stop_reason", None) == "tool_use":
                     # Tool round trip (spike-verified shape, docs/spike-
                     # tool-use-findings.md Sec 2): append the assistant's
                     # tool_use turn, execute every tool call locally, append
                     # the tool_result turn, and reissue the SAME call shape.
-                    # Never reached when use_cost_tool is False -- no tools
+                    # Never reached when use_any_tool is False -- no tools
                     # are attached, so the model can't return "tool_use".
                     attempt_msgs = attempt_msgs + [
                         {"role": "assistant", "content": response.content}
@@ -1485,7 +1522,13 @@ class RulesAgent:
                     tool_results = []
                     for block in response.content:
                         if getattr(block, "type", None) == "tool_use":
-                            result = _run_calculate_cost(block.input)
+                            # Name-routed dispatch (docs/plan-layer-system-
+                            # tool.md Sec 3d must-fix 4): _dispatch_tool_call
+                            # only calls _run_calculate_cost for
+                            # block.name == "calculate_cost"; an unregistered
+                            # name gets an explicit unknown-tool error
+                            # instead of being fed to the wrong handler.
+                            result = _dispatch_tool_call(block.name, block.input)
                             attempt_tool_calls.append(
                                 {"name": block.name, "input": block.input, "result": result}
                             )
@@ -1504,7 +1547,7 @@ class RulesAgent:
                 # further or returning an unpopulated response.
                 response = None
 
-            if use_cost_tool:
+            if use_any_tool:
                 self.last_tool_calls = attempt_tool_calls
 
             parsed = response.parsed_output if response is not None else None
