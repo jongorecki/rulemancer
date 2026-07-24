@@ -608,6 +608,56 @@ def test_layers_round_trip_returns_engine_result_to_model(monkeypatch):
     assert agent.last_tool_calls[0]["result"]["ok"] is True
 
 
+# --- layers-tool suppression switch (docs/spec-slice0-harness.md Task 1) ---
+#
+# A Slice 0 control-arm run needs to guarantee NEITHER tool is attached, so
+# the comparison against the base arm is meaningful. The cost tool has no
+# such switch by design (spec: it stays at its production default in every
+# arm so it can't confound the comparison) -- only resolve_layers gets one.
+
+
+def test_layers_tool_false_suppresses_tool_and_trigger_sentence_on_firing_question(monkeypatch):
+    monkeypatch.setattr(ans, "get_card", lambda ref, no_refresh=False: _HONOR_OF_THE_PURE)
+    client = _ScriptedToolClient([_FakeResponse("end_turn", [], _REAL_ANSWER)])
+    agent = ans.RulesAgent(_EmptyStore(), client=client, rewrite=False, layers_tool=False)
+    result = agent.answer(LAYERS_TRIGGER_QUESTION)
+
+    assert result is _REAL_ANSWER
+    assert len(client.calls) == 1
+    # No tools at all -- this question doesn't trip the (untouched) cost
+    # trigger either, so with layers suppressed the call is fully bare.
+    assert "tools" not in client.calls[0]
+    assert client.calls[0]["system"] == ans.SYSTEM
+    assert ans.LAYERS_TRIGGER_SENTENCE not in client.calls[0]["system"]
+    assert agent.last_tool_calls is None
+
+
+def test_layers_tool_false_does_not_disturb_cost_tool_on_its_own_trigger():
+    client = _ScriptedToolClient([_FakeResponse("end_turn", [], _REAL_ANSWER)])
+    agent = ans.RulesAgent(_EmptyStore(), client=client, rewrite=False, layers_tool=False)
+    result = agent.answer(TRIGGER_QUESTION)
+
+    assert result is _REAL_ANSWER
+    assert client.calls[0]["tools"] == [ans.CALCULATE_COST_TOOL]
+    assert client.calls[0]["system"] == ans.SYSTEM + "\n" + ans.TOOL_TRIGGER_SENTENCE
+
+
+def test_layers_tool_default_true_is_unchanged_on_firing_question(monkeypatch):
+    monkeypatch.setattr(ans, "get_card", lambda ref, no_refresh=False: _HONOR_OF_THE_PURE)
+    tool_block = _FakeToolUseBlock("toolu_layers3", "resolve_layers", _LAYERS_TOOL_INPUT)
+    client = _ScriptedToolClient([
+        _FakeResponse("tool_use", [tool_block], None),
+        _FakeResponse("end_turn", [], _REAL_ANSWER),
+    ])
+    agent = ans.RulesAgent(_EmptyStore(), client=client, rewrite=False)  # layers_tool default
+    result = agent.answer(LAYERS_TRIGGER_QUESTION)
+
+    assert agent.layers_tool is True
+    assert result is _REAL_ANSWER
+    assert client.calls[0]["tools"] == [ans.RESOLVE_LAYERS_TOOL]
+    assert client.calls[0]["system"] == ans.SYSTEM + "\n" + ans.LAYERS_TRIGGER_SENTENCE
+
+
 def test_unknown_tool_name_still_produces_unknown_tool_error_not_a_crash(monkeypatch):
     # Sanity re-check with resolve_layers now registered alongside
     # calculate_cost: a THIRD, still-unregistered name must still refuse
