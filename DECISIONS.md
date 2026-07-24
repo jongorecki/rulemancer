@@ -1756,3 +1756,45 @@ a supervised example of good rewriting. The set is therefore both the measuring
 instrument for the rewriter lever AND potential training signal for it. A set built
 only to measure would stop earlier than one meant to also teach. Nothing should be
 built on this until it is much larger than 8 pairs.
+
+## 2026-07-24 — Layers trigger: calibration FAILED as specified, ruled to threshold 1
+
+The `_needs_layers_tool` trigger proposed in `plan-layer-system-tool.md` §3c was
+measured against its own build gate (≥60% bucket-A recall, <10% non-layers firing)
+and **failed at 20.4% recall**. Three causes, measured separately:
+
+1. **`get\s*[+-]\d+/[+-]\d+` never matched singular `"gets +N/+N"`** — a
+   one-character bug. Written against Muraganda Petroglyphs (plural "get"), never
+   tested against a single-object pump, so it missed **Wayward Angel**, a card in the
+   plan's own hand-traced seeds. Worth 11 points.
+2. **Land-type-changing effects were invisible** — the pattern required a type word
+   (creature/land/artifact/enchantment) *after* are/is/becomes, but these effects name
+   basic land **subtypes**: "Nonbasic lands are Mountains." That excluded **Blood
+   Moon** and **Magus of the Moon** (the most common layer cards in the corpus,
+   present in ~10 of the 43 misses) and their blue analogues **Harbinger of the
+   Seas**, **Stormtide Leviathan**, **Khod, Etlan Shiis Envoy**. Worth 22 points.
+3. **The `>= 2` loaded-cards threshold was structurally wrong.** Bucket A's dominant
+   shape is one continuous effect plus the object it modifies, and that object is
+   usually a vanilla target with no continuous-effect text (Dryad Arbor, Skeletal
+   Snake, Inkmoth Nexus). Fixing 1 and 2 alone still failed at 53.7%, so this was the
+   binding constraint.
+
+**Jon's ruling:** *"relax the threshold to 1 because it can still matter (like dryad
+arbor and blood moon, there's a blue version too on a creature that makes all
+nonbasic lands islands but I can't remember the name. we just need to make sure we're
+handling that too). classification is more durable and something we should do when it
+makes sense."* The card is **Harbinger of the Seas**, confirmed against the local
+Scryfall store, and it is covered.
+
+**Result: 77.8% bucket-A recall (42/54) at 5.1% firing over the full 1,341-row
+non-layers pool — PASS.** All four §3b.5 seeds fire. Slice 4 unblocked.
+
+**Roadmap item 5 (question classification) remains the durable answer**, deferred by
+Jon to "when it makes sense" — this trigger is the ship-now mechanism, not a claim
+that regexes are the right end state.
+
+**Method note worth keeping:** the original trigger's 0% false-positive rate was the
+diagnostic tell, not a success. Near-zero firing alongside low recall means a pattern
+is failing to match text it was written to match. Buckets are now persisted to
+`evals/_layers_buckets.json` (A=54, B=1, C=13) so the denominator never has to be
+re-derived by hand again.

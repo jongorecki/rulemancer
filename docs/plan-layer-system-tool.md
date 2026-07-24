@@ -590,36 +590,92 @@ _LAYERS_READOUT_RE = re.compile(
     re.IGNORECASE | re.DOTALL,
 )
 
-# Conjunct 2: at least two loaded cards carry continuous-effect-shaped static text.
+# Conjunct 2: at least ONE loaded card carries continuous-effect-shaped static
+# text. (Threshold was >= 2 as originally proposed; RULED down to >= 1 by Jon
+# 2026-07-24 after calibration -- see "CALIBRATION RESULT" below.)
 _CONTINUOUS_EFFECT_RE = re.compile(
-    r"get\s*[+-]\d+/[+-]\d+"
+    r"gets?\s*[+-]\d+/[+-]\d+"
     r"|\b(?:base power and toughness|loses? all abilities|can't have)\b"
     r"|\b(?:becomes?|are|is)\b.{0,30}?\b(?:creature|land|artifact|enchantment)s?\b"
-    r"|\bhave\b.{0,20}?\bbase\b",
+    r"|\bhave\b.{0,20}?\bbase\b"
+    r"|\b(?:are|becomes?|is)\b.{0,30}?\b(?:Mountains?|Islands?|Swamps?|Forests?|Plains)\b",
     re.IGNORECASE | re.DOTALL,
 )
 
 def _needs_layers_tool(question: str, cards: list[Card]) -> bool:
     if not _LAYERS_READOUT_RE.search(question):
         return False
-    hits = sum(1 for c in cards if _CONTINUOUS_EFFECT_RE.search(c.oracle_text or ""))
-    return hits >= 2
+    hits = sum(1 for c in cards if _CONTINUOUS_EFFECT_RE.search(_oracle_all_faces(c)))
+    return hits >= 1
 ```
 
 Conjunct 2 is doing the real work. Conjunct 1 alone is far too wide — *"does X have
 flying"* is an ordinary Magic question shape that appears constantly in questions
-with no continuous effects in them at all. Requiring **two** cards with
-continuous-effect-shaped text is what makes this a layers detector rather than a
-"characteristics" detector, and it is available at trigger time because the loaded
-oracle text is already in hand (`_needs_cost_tool` scans it the same way).
+with no continuous effects in them at all. Conjunct 2 is what makes this a layers
+detector rather than a "characteristics" detector, and it is available at trigger
+time because the loaded oracle text is already in hand (`_needs_cost_tool` scans it
+the same way).
 
-**Calibration is a build gate, with a stated bar.** Before this ships, measure it
-against (a) the 51 bucket-A questions and (b) the 16 bucket-C rows plus a random
-100-row non-layers sample. Bar: **≥60% recall on bucket A with <10% firing on the
-non-layers sample.** If conjunct 2 cannot hit that, the trigger is the blocker, not
-the engine, and that is worth knowing before Slice 4 rather than after. A false
-negative remains a non-regression (the model answers in prose as it does today), so
-narrow stays the safe direction.
+### CALIBRATION RESULT (measured 2026-07-24) — the original proposal FAILED
+
+Measured against the bar this section set (**≥60% bucket-A recall, <10% non-layers
+firing**). Buckets re-derived and persisted this time, to
+`evals/_layers_buckets.json` (A=54, B=1, C=13; the earlier hand-count was
+51/1/16 — the A set here is slightly *more* inclusive, so recall is measured against
+a marginally harder denominator, not a flattering one). Script:
+`evals/calibrate_layers_trigger.py`. False-positive rates below are over the **full**
+1,341-row non-layers pool, not a 100-row sample.
+
+| Variant | Bucket-A recall | Non-layers firing | Bar |
+|---|---|---|---|
+| As originally written above | 11/54 = **20.4%** | 0% | **FAIL** |
+| + `gets?` typo fix | 17/54 = 31.5% | 0% | FAIL |
+| + land-subtype alternative | 29/54 = 53.7% | ~0% | FAIL |
+| **+ threshold `>= 1` (SHIPPED)** | **42/54 = 77.8%** | **5.1%** (adversarial 5.3%) | **PASS** |
+
+Three distinct causes, and only the third was a design question:
+
+1. **`get\s*` never matched singular `"gets +N/+N"`** — a one-character bug. The
+   pattern was written against Muraganda Petroglyphs (*"Creatures with no abilities
+   get +2/+2"*, plural) and never tested against a single-object pump. It therefore
+   missed **Wayward Angel**, a card in this document's own §3b.5 hand-traces. Worth
+   11 points. Fixed above.
+2. **Land-type-changing effects were invisible.** The type alternation required
+   `are`/`is`/`becomes` *followed* by creature/land/artifact/enchantment, but these
+   effects name basic land **subtypes**: *"Nonbasic lands are Mountains."* That
+   silently excluded **Blood Moon** and **Magus of the Moon**, which between them
+   appear in roughly ten of the 43 original misses and are the most common layer
+   cards in the corpus — plus the blue analogues **Harbinger of the Seas** (*"Nonbasic
+   lands are Islands"*), **Stormtide Leviathan** and **Khod, Etlan Shiis Envoy**
+   (*"All lands are Islands"*). Grounded against the local Scryfall store: 226 cards
+   carry land-type-changing text and the added alternative covers all real
+   type-changers (the only non-matches are Domain cards that *count* basic land types
+   rather than change them). Worth another 22 points. Fixed above.
+3. **The `>= 2` threshold was structurally wrong for bucket A.** Its dominant shape is
+   *one* continuous effect plus the object it modifies, and that object is usually a
+   vanilla target with no continuous-effect text at all — Dryad Arbor, Skeletal Snake,
+   Raugrin Triome, Inkmoth Nexus. Requiring two loaded modifier cards excluded them by
+   construction. **Fixing causes 1 and 2 alone still failed at 53.7%**, so this was
+   the binding constraint, not the regex quality.
+
+**Jon's ruling (2026-07-24): relax the threshold to `>= 1`.** His reasoning: a single
+continuous effect can still produce a genuine layer interaction against the object's
+own characteristics (Dryad Arbor under a type-changer; the Blood Moon family). He
+also directed that the blue *"nonbasic lands are Islands"* family be covered, which
+cause 2 above does. On the pre-named fallback: *"classification is more durable and
+something we should do when it makes sense"* — so **roadmap item 5 (question
+classification) stays the intended long-term answer**, and this trigger is the
+shipping-now mechanism, not a claim that regexes are the right end state.
+
+The cost asymmetry supports the looser threshold: a false negative is a
+non-regression (the model answers in prose as it does today), while a false positive
+costs one tool round trip and a refusal the model can ignore. At 5.1% measured over
+the whole corpus, that is cheap.
+
+**Note for Slice 4:** the pseudocode above reads `_oracle_all_faces(c)`, not
+`c.oracle_text`. Oracle text on this project's `Card` contract is per-face
+(`Card.faces[i].oracle_text`); the top-level field happens to carry a joined value
+today, but the faces union is the contract-correct read and is what was measured.
 
 ### 3d. Wiring into `answer.py` — four must-fixes, not three
 
@@ -959,10 +1015,14 @@ Slices 1–4 are fully unblocked by the API cap. Slices 0 and 5 are not.
 ## 10. Open items
 
 1. ~~COMPUTE-bucket classification~~ — **DONE.** 51 of 68 (§1.4). Gate cleared (§8.4).
-2. **Trigger calibration** against the 51 plus a non-layers sample, to the bar stated
-   in §3c (≥60% recall, <10% false firing). Blocks Slice 4, not Slice 1. This is now
-   the most likely place the plan fails, since §3c's finding removed the obvious
-   signal.
+2. ~~Trigger calibration~~ — **DONE, and it initially FAILED.** The trigger as
+   originally written scored **20.4%** bucket-A recall against a 60% bar. Two pattern
+   defects (`gets?`, land subtypes) and **Jon's ruling to relax the threshold to
+   `>= 1`** bring it to **77.8% recall at 5.1% firing over the full 1,341-row
+   non-layers pool — PASS**. Full table, causes and ruling in §3c "CALIBRATION
+   RESULT". Buckets persisted to `evals/_layers_buckets.json` so this never has to be
+   re-derived. **Slice 4 is unblocked.** Roadmap item 5 (question classification)
+   remains the durable answer per Jon, to be done when it makes sense.
 3. ~~`applies_if` fork~~ — **RULED: option B** with the four anti-silent-gating
    mechanisms (§8.1). Lands in Slice 2.
 4. ~~Does the tool have to beat the control arm?~~ — **RULED: tie or beat** (§8.2).
