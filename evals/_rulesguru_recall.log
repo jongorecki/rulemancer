@@ -1,0 +1,668 @@
+
+3617 chunks | 150 questions (16 empty-gold, excluded from recall denominator) | vector=voyage-4-large | rerank pool=50
+
+retriever           recall@1    recall@5    recall@10   recall@20   recall@50   
+--------------------------------------------------------------------------------
+BM25                     7%       16%       20%       27%       38%   
+voyage-4-large          15%       31%       40%       47%       57%   
+hybrid-RRF              12%       25%       37%       43%       54%   
+hybrid-wt0.5            13%       30%       34%       43%       55%   
+rerank:rerank-2.5        9%       31%       40%       50%       57%   
+rerank:rerank-2.5-lite    10%       28%       40%       49%       57%   
+vec+rw1-haiku           12%       35%       43%       51%       63%   
+vec+rw3-haiku           14%       29%       43%       49%       69%   
+vec+rw1-sonnet          16%       41%       56%       62%       75%   
+vec+rw3-sonnet          18%       44%       52%       63%       74%   
+vec+rw1-gpt5mini        19%       34%       43%       55%       67%   
+vec+rw3-gpt5mini        19%       38%       50%       60%       70%   
+vec+rw3-sonnet+orig     18%       38%       49%       62%       77%   
+
+weighted-fusion alpha sweep (recall@5, alpha = vector weight):
+  a=0.3: 22%   a=0.5: 30%   a=0.7: 32%
+
+--match-both: recall@k under FORCED any vs FORCED all (ignores each question's own `match` field):
+retriever           any@1  /all@1  any@5  /all@5  any@10 /all@10 any@20 /all@20 any@50 /all@50 
+-----------------------------------------------------------------------------------------------
+BM25                    7%/3%       16%/8%       20%/10%      27%/13%      38%/20%   
+voyage-4-large         15%/5%       31%/11%      40%/16%      47%/21%      57%/26%   
+hybrid-RRF             12%/4%       25%/9%       37%/15%      43%/19%      54%/28%   
+hybrid-wt0.5           13%/4%       30%/10%      34%/13%      43%/20%      55%/28%   
+rerank:rerank-2.5       9%/4%       31%/12%      40%/16%      50%/21%      57%/26%   
+rerank:rerank-2.5-lite   10%/4%       28%/12%      40%/16%      49%/22%      57%/26%   
+vec+rw1-haiku          12%/3%       35%/13%      43%/18%      51%/22%      63%/32%   
+vec+rw3-haiku          14%/3%       29%/13%      43%/16%      49%/21%      69%/36%   
+vec+rw1-sonnet         16%/4%       41%/16%      56%/21%      62%/25%      75%/39%   
+vec+rw3-sonnet         18%/5%       44%/16%      52%/22%      63%/30%      74%/40%   
+vec+rw1-gpt5mini       19%/5%       34%/15%      43%/18%      55%/23%      67%/31%   
+vec+rw3-gpt5mini       19%/7%       38%/16%      50%/19%      60%/23%      70%/33%   
+vec+rw3-sonnet+orig    18%/7%       38%/16%      49%/19%      62%/28%      77%/39%   
+
+Per-question hit@5 (Y=hit, .=miss):
+qid   match BM25              voyage-4-large    rerank:rerank-2.  rerank:rerank-2.  vec+rw1-haiku     vec+rw3-haiku     vec+rw1-sonnet    vec+rw3-sonnet    vec+rw1-gpt5mini  vec+rw3-gpt5mini  vec+rw3-sonnet+o  question
+rg6328any   .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 Ari has searched their library this turn wit
+rg6563any   .                 .                 Y                 .                 .                 .                 .                 .                 .                 .                 .                 In a game of Two-Headed Giant, Antonio activ
+rg64  any   Y                 .                 .                 .                 .                 .                 Y                 Y                 .                 Y                 Y                 Avalyn has no cards in their library and con
+rg6583any   .                 .                 .                 Y                 .                 .                 Y                 Y                 .                 .                 Y                 Abdullah casts [Telemin Performance] targeti
+rg6743any   .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 Athena controls [Teferi, Time Raveler] and N
+rg5643any   Y                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 In a Two-Headed Giant game, how much life do
+rg3509any   .                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 Aldo casts [Lumithread Field] for its morph 
+rg1836any   Y                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 Alexis would like to choose colorless for [R
+rg328 any   .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 Alfonso controls [Cyclops of One-Eyed Pass] 
+rg6507any   .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 Ainsley casts [Tandem Takedown], granting th
+rg708 any   .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 Aaden has 3 [Witch's Familiar] in their grav
+rg1344any   .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 Atlas casts [Piracy] and would like to tap a
+rg1753any   .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 Annie controls [Heliod, Sun-Crowned] and cas
+rg7400any   .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 Aleah casts [Clash of Titans], can Aleah cho
+rg6360any   .                 .                 Y                 Y                 Y                 Y                 .                 .                 .                 .                 .                 Alejandro controls [Vorinclex, Monstrous Rai
+rg2871any   .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 Andre casts [Abrupt Decay] targeting Nico's 
+rg615 any   .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 Arabella controls [Yixlid Jailer] and casts 
+rg6332any   .                 .                 .                 .                 .                 .                 .                 Y                 .                 .                 .                 Nicholas controls [Solitary Confinement]. Ad
+rg101 any   .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 Armani casts [Hangarback Walker] with X = 3.
+rg93  any   .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 Avery casts [Sram's Expertise]. As it resolv
+rg3910any   .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 Nikolas controls [Mindcrank]. Ari casts [Vam
+rg6578any   .                 .                 .                 .                 .                 .                 .                 Y                 .                 Y                 .                 Does Nicole have a chance to cast [Surgical 
+rg3452any   .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 Ashley controls [Frogtosser Banneret]. Will 
+rg7282any   .                 .                 .                 .                 .                 .                 .                 Y                 .                 .                 .                 Amir casts [Archon of Cruelty], and before i
+rg1835any   .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 Adelynn controls [Clockwork Beast] which has
+rg6907any   .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 Naomi has 7 life and controls two [Death's S
+rg4028any   .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 Aniyah currently controls Nico's commander. 
+rg3327any   .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 Nia controls [Hollowhenge Huntmaster]. Ander
+rg6697any   .                 .                 .                 .                 .                 .                 Y                 .                 .                 Y                 .                 Ada casts [Shaman of the Pack]. In response 
+rg5482any   Y                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 In a Commander game, how much life does each
+rg935 any   .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 Amina attacks with [Retaliation]. Nico decla
+rg6725any   .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 Ariel controls [Rest in Peace] and targets N
+rg6032any   Y                 Y                 Y                 Y                 .                 .                 Y                 Y                 Y                 Y                 Y                 Ainsley and Noor are starting a two-player g
+rg6885any   .                 .                 .                 .                 .                 .                 Y                 Y                 .                 .                 Y                 Anahi casts [Aura Mutation] targeting Nehemi
+rg6684any   .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 Ari controls [Omnath, Locus of Creation] and
+rg862 any   Y                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 Amiya controls [Fetid Gargantua] with two +1
+rg1702any   .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 Ari controls [Emeria Shepherd]. They play [S
+rg6834any   .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 Ainsley controls [General Ferrous Rokiric]. 
+rg7012any   .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 Aydan casts [Kellan, the Fae-Blooded], and N
+rg1784any   .                 Y                 Y                 .                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 Can Nicolas cast [Memory Lapse] targeting Au
+rg1215any   .                 .                 .                 .                 Y                 .                 .                 .                 .                 .                 .                 Ariyah has [Guardian Naga] in their graveyar
+rg2543any   .                 Y                 Y                 Y                 .                 Y                 Y                 Y                 .                 Y                 Y                 Ace controls [Sarkhan, the Dragonspeaker] an
+rg4936any   .                 .                 .                 .                 .                 .                 .                 .                 .                 Y                 .                 Ainsley controls [Reconnaissance] and attack
+rg3126any   .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 Arjun controls [Thermopod] and has no cards 
+rg2242any   .                 .                 .                 .                 .                 .                 Y                 Y                 .                 .                 Y                 Can Ashley pay {B}{B}{B}{B}{B}{B} to cast [B
+rg5598any   .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 Arielle has [Blessed Hippogriff] in their gr
+rg2154any   .                 Y                 .                 .                 Y                 Y                 Y                 Y                 Y                 .                 Y                 Neriah controls [Cliffhaven Sell-Sword]. Ari
+rg1191any   .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 Nico controls [Lazav, the Multifarious], whi
+rg1232any   .                 .                 .                 .                 .                 .                 Y                 .                 .                 .                 .                 Alivia has [Road // Ruin] in their graveyard
+rg5006any   .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 Alvaro controls [Draugr Thought-Thief] and [
+rg1259any   .                 .                 .                 .                 .                 .                 .                 Y                 .                 .                 .                 Adriel controls [Oko, Thief of Crowns], [Gil
+rg137 any   .                 Y                 .                 .                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 Natasha controls a [Lifeline] and 2 [Scarwoo
+rg6667any   .                 .                 Y                 Y                 .                 .                 Y                 Y                 Y                 Y                 Y                 Alfred casts [Stream of Thought], replicatin
+rg7413any   .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 Adrienne attacks with [Sporeweb Weaver], and
+rg3717any   .                 .                 .                 .                 Y                 .                 .                 .                 Y                 Y                 .                 Autumn controls [Captain Mar-Vell, Space-Bor
+rg2507any   .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 Amelia casts [Aminatou's Augury] exiling an 
+rg1182any   .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 Agustin casts [Seasoned Pyromancer] and has 
+rg84  any   .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 Aranza controls a [Welding Jar] enchanted by
+rg33  any   .                 .                 .                 Y                 .                 Y                 Y                 Y                 Y                 Y                 Y                 Alina controls a [Valakut, the Molten Pinnac
+rg6425any   .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 Arely equips [Barbed Batterfist] onto [Champ
+rg144 any   .                 Y                 .                 .                 .                 .                 Y                 Y                 Y                 Y                 Y                 Aviana controls a [Meng Huo's Horde] and a [
+rg554 any   .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 Amos casts [Rise from the Grave] targeting [
+rg1069any   .                 .                 Y                 .                 Y                 .                 Y                 Y                 Y                 Y                 Y                 Ava controls [Undead Minotaur] enchanted wit
+rg3868any   .                 Y                 Y                 .                 .                 .                 Y                 Y                 Y                 Y                 Y                 Amara controls [Muraganda Petroglyphs] and [
+rg3518any   .                 .                 Y                 Y                 Y                 .                 Y                 Y                 .                 Y                 Y                 Nayeli controls [Trinisphere]. Ainsley casts
+rg3391any   .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 Anakin controls [Mycosynth Lattice], an [Ani
+rg1943any   Y                 Y                 .                 .                 Y                 Y                 .                 .                 Y                 Y                 Y                 Amare casts [Insatiable Hemophage] targeting
+rg1268any   .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 Amirah controls Azors Gateway with 4 differe
+rg241 any   .                 .                 Y                 Y                 .                 .                 .                 .                 .                 .                 .                 Aryana controls [Ascended Lawmage] and [Ceme
+rg963 any   .                 .                 .                 .                 .                 .                 .                 .                 Y                 .                 .                 Amaris controls [Eruth, Tormented Prophet] a
+rg2163any   Y                 Y                 Y                 Y                 Y                 Y                 Y                 .                 Y                 Y                 .                 Nicole controls [Oraxid]. Can Austin cast [F
+rg31  any   .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 Aubrey controls [Gisa and Geralf] and has ca
+rg3188any   Y                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 .                 Y                 Y                 In a game of commander, Natasha has shuffled
+rg234 any   .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 Nico controls [Lion's Eye Diamond]. Addison 
+rg347 any   .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 Avah controls [Dakmor Scorpion] and [Winding
+rg1660any   .                 .                 .                 .                 .                 Y                 .                 Y                 .                 .                 .                 Alex controls [Rhythm of the Wild], [Grumgul
+rg7092any   .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 Ann has a [Sphere of Resistance], a Plains a
+rg1652any   Y                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 Abram attacks with [Robber of the Rich], exi
+rg1239any   .                 Y                 .                 .                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 Aspen controls [Haakon, Stromgald Scourge] a
+rg606 any   .                 .                 .                 .                 .                 .                 Y                 .                 .                 .                 .                 Ayaan controls [Essence of the Wild] and cas
+rg2029any   .                 .                 Y                 Y                 .                 .                 Y                 Y                 .                 .                 Y                 Alex controls [Obosh, the Preypiercer] and c
+rg97  any   .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 Alessandro activates [Inkmoth Nexus] to turn
+rg5242any   Y                 Y                 Y                 Y                 Y                 Y                 .                 Y                 .                 Y                 Y                 Alex controls [Extus, Oriq Overlord] and use
+rg79  any   .                 .                 .                 .                 .                 .                 Y                 .                 .                 .                 .                 Autumn controls [Jibbirik Omnivore], a token
+rg7215any   .                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 Ayla controls [Living Plane] and plays [Mina
+rg633 any   .                 .                 .                 .                 .                 .                 .                 .                 .                 Y                 .                 Andy controls [Badlands] and [Conversion]. A
+rg85  any   .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 Amy controls a [Trigon of Corruption] enchan
+rg679 any   .                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 Nico controls [Blind Obedience]. Adonis's de
+rg463 any   .                 .                 .                 .                 .                 .                 .                 Y                 .                 .                 .                 Alex casts [Brainstorm] using the ability of
+rg6475any   .                 .                 .                 .                 .                 .                 .                 .                 .                 Y                 .                 Nathalia controls [Welding Jar] and [Duskwor
+rg1280any   Y                 Y                 Y                 .                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 Armando controls [Mana Reflection] and taps 
+rg1024any   Y                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 Alden controls [Spark Double] and casts [Clo
+rg113 any   .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 Ahmed casts [Bitter Ordeal], targeting Nico.
+rg2599any   .                 Y                 Y                 .                 Y                 Y                 .                 .                 .                 .                 .                 Autumn restarts the game with [Karn Liberate
+rg3370any   Y                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 Abel plays [Exotic Orchard]. What can it tap
+rg202 any   .                 .                 .                 .                 .                 .                 .                 Y                 .                 .                 .                 Abraham controls [Drought] and [Derelor]. Ho
+rg127 any   .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 Abram controls a [Blood Moon], a [Life and L
+rg494 any   .                 Y                 Y                 Y                 .                 .                 .                 .                 .                 .                 .                 Nixon has a [Southern Elephant] and a [Skull
+rg117 any   Y                 Y                 Y                 Y                 Y                 Y                 .                 Y                 Y                 .                 Y                 Asa casts [Chatterstorm]. In response, Nico 
+rg543 any   .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 Aaliyah controls a [Squandered Resources] an
+rg899 any   Y                 .                 .                 .                 Y                 Y                 .                 Y                 .                 .                 Y                 Neil controls [Willow Elf] enchanted with [F
+rg713 any   .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 Asa controls [Library of Leng] and is discar
+rg608 any   .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 Noah controls [Compost]. Ainsley controls [D
+rg306 any   .                 Y                 .                 .                 .                 Y                 Y                 Y                 Y                 Y                 Y                 Noor controls [Rhystic Study]. Alex casts [M
+rg272 any   .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 Allison controls [Leyline of Anticipation]. 
+rg559 any   .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 Albert, Brielle, and Campbell are playing a 
+rg1095any   .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 Abdullah controls [Primal Vigor] and casts [
+rg4256any   Y                 .                 Y                 Y                 Y                 .                 Y                 Y                 .                 Y                 Y                 Arturo uses [Vengeful Ancestor] to goad [Cra
+rg247 any   Y                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 Arabella controls [Sylvok Explorer]. Nolan c
+rg1355any   .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 Addisyn casts [Read the Runes] for X=2 and c
+rg3947any   .                 .                 .                 .                 .                 .                 Y                 .                 .                 .                 .                 Addison has six cards in their graveyard and
+rg1953any   .                 .                 .                 .                 .                 .                 Y                 .                 Y                 .                 .                 Anson controls [Zirda, the Dawnwaker], [Sund
+rg549 any   Y                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 Anderson controls [Quirion Explorer]. Nico c
+rg1718any   .                 .                 .                 .                 .                 .                 Y                 Y                 .                 .                 .                 Andi controls [Karn Liberated], which has ex
+rg204 any   .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 Nico controls [Drought]. How many Swamps wou
+rg1124any   .                 .                 .                 .                 Y                 .                 .                 Y                 .                 .                 Y                 Nico controls [Solemnity]. Aimee controls [V
+rg528 any   .                 Y                 .                 .                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 Aislinn controls [Anointed Procession] and a
+rg725 any   .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 Bailey controls [Pandemonium]. Anderson cast
+rg129 any   .                 .                 .                 .                 Y                 .                 .                 .                 .                 .                 .                 Alice controls a [Life and Limb], a [Blood M
+rg517 any   .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 Anson controls [Mana Reflection] and [Deathr
+rg5193any   .                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 Alfredo controls [Magnetic Web] and is attac
+rg6556any   Y                 .                 .                 .                 Y                 Y                 .                 .                 Y                 Y                 .                 At the beginning of the game, Alianna announ
+rg851 any   .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 Amos controls [March of the Machines] and [M
+rg807 any   .                 .                 .                 .                 Y                 .                 Y                 Y                 Y                 Y                 Y                 Avery controls [Wayward Angel] and has 7 car
+rg475 any   .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 Aubrey casts [Shahrazad]. As the subgame beg
+rg1454any   .                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 Ainsley's [Morality Shift] resolves, in what
+rg470 any   .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 Autumn, Bethany, and Chaim started playing a
+rg282 any   .                 Y                 .                 .                 .                 .                 Y                 .                 Y                 .                 Y                 Addison casts [Virulent Wound], targeting Na
+rg466 any   .                 .                 Y                 Y                 Y                 Y                 Y                 Y                 .                 .                 Y                 Amaris, Blaine, and Clyde begin a multiplaye
+rg289 any   .                 .                 .                 .                 .                 .                 .                 Y                 .                 .                 .                 Allyson controls [Ice Cauldron]. Nico contro
+rg338 any   Y                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 Anya activates [Deceptive Landscape]. Before
+rg811 any   .                 .                 .                 .                 .                 .                 Y                 Y                 Y                 .                 .                 Aimee controls a manifested [Wayward Angel] 
+rg60  any   .                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 Bobbie has 1 life and controls a phased-out 
+rg1208any   .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 Aubrey controls [Mycosynth Lattice]. Natalia
+rg5768any   .                 .                 .                 Y                 .                 .                 .                 .                 .                 .                 .                 Alaia controls [Panharmonicon] and [Mycosynt
+rg100 any   .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 Adelaide casts a [Keldon Champion]. In respo
+rg5863any   .                 .                 Y                 Y                 Y                 .                 Y                 Y                 Y                 Y                 Y                 Amelia attacks with [Wildfire Eternal], whic
+rg6530any   .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 Andrew attacks with [Raiyuu, Storm's Edge], 
+rg1933any   .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 Ariel controls [Soul Seizer] (back face [Gha
+rg659 any   .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 Ainsley controls [Back from the Brink] and h
+rg72  any   .                 .                 .                 .                 Y                 .                 .                 .                 .                 .                 .                 Nadia has cast a [Gather Specimens] earlier 
+rg5539any   .                 Y                 Y                 Y                 Y                 .                 Y                 Y                 Y                 Y                 Y                 Aubrey controls a [Gaea's Liege], [Rhonas th
+rg279 any   .                 Y                 .                 .                 .                 .                 Y                 .                 .                 .                 .                 Ariyah casts [Stonewood Invocation] targetin
+rg5876any   .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 Ariel casts [Prismari Command], with both mo
+rg1014any   .                 .                 .                 .                 Y                 .                 .                 .                 .                 Y                 .                 Alejandra owns a face-down [Progenitus] in e
+rg5785any   .                 Y                 Y                 .                 Y                 Y                 .                 Y                 Y                 Y                 Y                 Aurora controls a [Gaea's Liege] and 3 [Snow
+rg238 any   .                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 Ari controls [Village Survivors] and [Vodali
+rg1555any   .                 Y                 .                 .                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 Amari has [Phyrexian Hulk] and [The Mimeopla
+rg842 any   Y                 Y                 Y                 Y                 .                 .                 .                 .                 Y                 Y                 .                 Autumn casts [Time Stretch]. Can they choose
+rg625 any   .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 Averie attacks with [Pristine Angel]. While 
+
+Retrieved-set churn (voyage-4-large top-15 vs vec+rw3-sonnet top-15):
+  rg6328  Ari has searched their library this turn with [Bog
+    dropped: ['701.23g', '118.12b', '118.8c', '701.23f', '701.23j', '702.187c', '701.23b', '400.7h', '701.59b', 'Search', '406.3b', 'Retrace']
+    added:   ['118.12', '118.9b', '601.3c', '702.187b', '702.34a', '113.2b', '702.138a', '702.137a', '601.3b', '702.180a', '307.5a', '702.185a']
+  rg6563  In a game of Two-Headed Giant, Antonio activates t
+    dropped: ['808.3a', '901.12c', '702.124e', '102.4', '702.194c', '805.1']
+    added:   ['601.2d', '608.2d', '115.7f', '602.3', '508.7c', '508.7e']
+  rg64  Avalyn has no cards in their library and controls 
+    dropped: ['703.4d', '701.24e', '901.9a', '901.9b', '106.5', '603.2b']
+    added:   ['104.3c', '727.3', '729.3', '121.3a', '704.7', '704.4']
+  rg6583  Abdullah casts [Telemin Performance] targeting Nic
+    dropped: ['602.3b', '701.50f', '616.1g', '607.5a', '702.47c', '613.9', '613.1a', '702.61c', '732.3', '701.55d', '609.4a', '608.2p', '701.30c']
+    added:   ['608.2b', '608.3b', '702.47d', '601.2e', '601.6', '601.7', '115.9', '707.10c', '707.10e', '807.5b', '115.5', '608.2c', '115.9b']
+  rg6743  Athena controls [Teferi, Time Raveler] and Nichola
+    dropped: ['117.1b', '602.5a', '702.10c', '602.5c', '603.2a']
+    added:   ['602.3b', '606.2', '602.3', '307.5', '703.2']
+  rg5643  In a Two-Headed Giant game, how much life does eac
+    dropped: ['119.1c']
+    added:   ['810.8']
+  rg3509  Aldo casts [Lumithread Field] for its morph cost. 
+    dropped: ['Mana Value', '202.3g', '118.8d', '107.3d']
+    added:   ['702.37c', '702.37b', '702.37a', '718.3b']
+  rg1836  Alexis would like to choose colorless for [Regicid
+    dropped: ['903.4f', '903.4', '903.12e', '201.4a', '903.4b', '202.2', '801.5b']
+    added:   ['202.2e', '105.3', 'Color', '105.5', '702.114a', '607.5a', '105.2']
+  rg328  Alfonso controls [Cyclops of One-Eyed Pass] equipp
+    dropped: ['702.111c', '702.20c', '701.60c', '702.108b', 'Menace', '702.111b', 'Vigilance', '702.20a', '702.20b', 'Melee', '702.111a', '702.72b', '702.7d', '702.23c', '702.121b']
+    added:   ['113.12', '611.3b', '208.2a', '611.3a', '603.6b', '702.1c', '611.2b', '801.11', '113.3d', '604.2', '208.3a', '611.2c', '613.8a', '725.5', '607.2p']
+  rg6507  Ainsley casts [Tandem Takedown], granting their tw
+    dropped: ['802.3b', '702.121b', '701.15c', '508.1b', '808.3a', '702.22g', '802.1', '702.130b', '508.1c', '702.22d', '510.1c', '802.3a', '702.134b', '804.2']
+    added:   ['115.3', '707.10d', '601.2c', '601.7a', '601.2d', '508.5a', '115.7f', '700.2d', '801.5a', '608.2f', '115.4', '602.3a', '115.7e', '115.7']
+  rg708  Aaden has 3 [Witch's Familiar] in their graveyard 
+    dropped: ['701.36b', '111.12', 'X', '701.59a', '704.8', '700.11', '111.11', '701.59b', '701.63b', '111.5', '702.128a', '702.128b', '607.2a', '724.1a']
+    added:   ['603.10a', '801.7a', '704.4', '610.3d', '608.2h', '610.3b', '603.2c', '614.13a', '603.7c', '603.10', '616.1f', '702.69a', '113.6k', '610.3a']
+  rg1344  Atlas casts [Piracy] and would like to tap all of 
+    dropped: ['601.3', '305.3', '307.5', '602.5', '118.3c', '304.5', '305.2b', '723.5a', '505.6b', '723.5b', '614.17b', '801.6', '305.1']
+    added:   ['608.2d', '601.7b', '601.5', '118.12', '601.2c', '608.2g', '608.2f', '707.12a', '118.12a', '601.7', '601.7a', '608.2e', '701.55b']
+  rg1753  Annie controls [Heliod, Sun-Crowned] and casts [Es
+    dropped: ['Endure', '701.41a', '303.4f', '701.47c', '701.63a', 'Support', '122.9']
+    added:   ['702.15e', '122.8', '614.13a', '603.10a', '613.7c', '400.6', '701.7b']
+  rg7400  Aleah casts [Clash of Titans], can Aleah choose Ni
+    dropped: ['801.5a', '801.5b', '508.7c', '707.10c', 'Any Target']
+    added:   ['601.7a', '115.8', '700.2c', '601.7', '115.7b']
+  rg6360  Alejandro controls [Vorinclex, Monstrous Raider] a
+    dropped: ['702.164b', '702.70b', 'Poisoned', '702.130b', 'Poisonous', 'X', 'Toxic']
+    added:   ['810.10', '614.5', '810.10c', '810.10d', '702.90b', '904.13c', '810.10b']
+  rg2871  Andre casts [Abrupt Decay] targeting Nico's 5/5 Ho
+    dropped: ['613.9', '704.4', '104.3f', '702.36c', '702.147a', '724.2c', '724.1c', '701.12a', 'Decayed', '400.6', '104.4c', '117.4', '120.4d', '118.12a']
+    added:   ['113.6g', '113.9', '608.2c', '603.1a', '701.6a', '801.13a', '603.10e', '113.11', '113.6i', '608.2b', 'Counter', '707.10e', '506.3g', '801.13b']
+  rg615  Arabella controls [Yixlid Jailer] and casts [Ever 
+    dropped: ['702.138c', '712.21c', '702.135b', '707.9e', '614.13b', '702.104b', '122.1h', 'Devour', 'Finality Counter', '702.93a', '614.13c']
+    added:   ['603.6b', '614.13a', '613.6', '113.6m', '611.3b', '611.3c', '712.21d', '611.3d', '201.5a', '609.2', '613.1f']
+  rg6332  Nicholas controls [Solitary Confinement]. Addilyn 
+    dropped: ['120.4c', '120.3a', 'Crime', '810.9h', '801.13a', '119.8', '119.2', '119.7', '104.3e', '119.3', '119.4b', 'Afflict', '810.9e', '403.2', '702.15c']
+    added:   ['615.12', '615.12a', '120.4d', '615.7', '615.10', '801.13b', '615.8', '615.3', '615.2', '615.9', '615.1a', '615.11', '609.7', '615.6', '609.7b']
+  rg101  Armani casts [Hangarback Walker] with X = 3. Can N
+    dropped: ['702.21b', '614.17b', '607.2m', '601.3e', '118.12', '702.62c', '603.1a', '701.54c', 'Waterbend', '702.166d']
+    added:   ['202.3e', '107.3e', '107.3h', '107.3f', '107.3m', '611.2d', '107.3b', '202.3f', '107.3n', '202.3d']
+  rg93  Avery casts [Sram's Expertise]. As it resolves, th
+    dropped: ['707.10e', '616.1g', '605.3c', '702.50b', '605.4a', '707.12a', '608.2g', '609.4a', '614.12b', '614.13b', '106.6', '400.7g']
+    added:   ['602.5a', '302.6', '702.51a', '508.1f', '702.51c', '702.51b', '107.5', '107.6', '702.10c', '702.78a', 'Summoning Sickness Rule', '118.12']
+  rg3910  Nikolas controls [Mindcrank]. Ari casts [Vampiric 
+    dropped: ['702.52b', '701.17b', 'Mill', '701.17a', '121.6a', '121.6c', '614.11']
+    added:   ['701.24b', '701.24g', '701.24c', '504.1', '701.22c', '727.4', '724.2f']
+  rg6578  Does Nicole have a chance to cast [Surgical Extrac
+    dropped: ['504.1', '500.12', '307.5a', '614.11a', '121.7', '703.3', '121.6c', '116.2e', '121.3a']
+    added:   ['504.2', '503.1', '514.3a', '502.4', '507.2', '509.2', '508.2', '510.3', '513.1']
+  rg3452  Ashley controls [Frogtosser Banneret]. Will it aff
+    dropped: ['602.4', '113.2b', '702.166b', '113.6d', '614.13c', '118.6a', '118.4']
+    added:   ['601.2f', '118.7b', 'Total Cost', '702.51b', '601.2h', '118.7e', '118.7c']
+  rg7282  Amir casts [Archon of Cruelty], and before it reso
+    dropped: ['400.6', '704.4', '707.10e', '724.1c', '724.2c', '608.2f', '702.131d', '120.4d', '616.1f', '616.1e', '118.12', '700.5a', '613.9', '602.3b', '101.4']
+    added:   ['603.1a', '608.2b', '603.3d', '724.1a', '724.2a', '724.2f', '610.5', '608.3g', '608.2p', '702.16b', '510.3a', '601.2i', '607.5a', '608.3b', '615.11']
+  rg1835  Adelynn controls [Clockwork Beast] which has one +
+    dropped: ['107.1c', '702.184c', '606.6', '122.4', '704.5r', '721.2a', '702.191b', '721.2b']
+    added:   ['107.3d', '107.3a', '107.3f', '107.3g', '107.3e', '611.2d', '107.3m', '107.3h']
+  rg6907  Naomi has 7 life and controls two [Death's Shadow]
+    dropped: ['724.1c', '724.2c', '702.28c', '724.1b', '724.2b', '700.4', '704.7', 'Dies', '730.3b', '610.3d']
+    added:   ['603.7c', '607.3', '712.21c', '603.10a', '800.4d', '701.12g', '704.4', '730.3c', '800.4c', '607.2a']
+  rg4028  Aniyah currently controls Nico's commander. Can An
+    dropped: ['118.9a', '118.9b', '601.3b', 'Alternative Cost', '118.6a', '113.6d', '118.9d', '118.9', '702.103a', '118.7a']
+    added:   ['723.5a', '118.12', '601.7', '903.3d', '601.3e', '700.2e', '723.3', '608.2i', '110.2b', '307.5a']
+  rg3327  Nia controls [Hollowhenge Huntmaster]. Anders cast
+    dropped: ['712.21b', '607.5a', '707.6', '616.1f', '702.28c', '608.3e', '110.5c', '707.14', '707.9a', '707.9d', '707.5', '707.9f', '707.9c']
+    added:   ['707.10d', '602.3a', '601.7a', '112.2a', '700.2e', '700.2g', '707.10c', '707.10b', '707.10', '110.2b', '707.2', '602.3', '801.5b']
+  rg6697  Ada casts [Shaman of the Pack]. In response to its
+    dropped: ['X', '120.3a', '120.4c', '119.2', '701.14c', '702.130b', '904.5', '810.9d', '702.2f', '702.36c', '119.3', '702.28c', '810.4', '120.4d', '118.3b']
+    added:   ['113.7a', '704.4', '603.10a', '704.8', '603.7c', '724.1a', '724.2a', '801.7a', '702.15c', '800.4d', '608.2h', '603.7a', '604.7', '610.3b', '702.2e']
+  rg5482  In a Commander game, how much life does each playe
+    dropped: ['103.4b']
+    added:   ['119.1a']
+  rg935  Amina attacks with [Retaliation]. Nico declares no
+    dropped: ['508.3', '509.3', '603.2g', 'Attacks and Isn’t Blocked', '508.1m', '508.3b', '509.1i', '603.10e', '609.7b', '506.7a']
+    added:   ['115.1d', '115.10', '115.1a', '115.9', '115.10a', '508.2a', '115.1c', '115.1', '608.2b', '115.6']
+  rg6725  Ariel controls [Rest in Peace] and targets Nataly'
+    dropped: ['304.2', '724.1c', '724.2c', '608.2n', 'Dies', '307.2', '700.4', '400.4a', '120.4d', 'Destroy', '702.80b']
+    added:   ['400.6', '616.1f', '122.1h', '704.7', '614.13a', '614.9', '701.8b', '609.7c', '120.4a', '120.6', '302.7']
+  rg6032  Ainsley and Noor are starting a two-player game. A
+    dropped: ['723.5b', '121.3a', '723.8']
+    added:   ['103.8c', '101.4e', '905.2a']
+  rg6885  Anahi casts [Aura Mutation] targeting Nehemiah's [
+    dropped: ['712.21d', '704.5m', '303.4c', '303.4i', '400.7f', '303.4g', '603.6e', '400.7e', '801.8', '400.4a']
+    added:   ['715.3d', '724.1b', '724.2b', '720.3d', '707.10a', '704.5e', '702.127a', '800.4d', '608.2m', '607.2q']
+  rg6684  Ari controls [Omnath, Locus of Creation] and [Eles
+    dropped: ['106.7', '712.5f', '106.5', 'Mountain', '305.7', '607.5a', '111.11', '613.6', '106.12b']
+    added:   ['614.12c', '603.2c', '614.5', '700.2d', '603.12a', '603.3c', '614.12b', '702.116b', '700.2b']
+  rg862  Amiya controls [Fetid Gargantua] with two +1/+1 co
+    dropped: ['702.130b', 'Intervening “If” Clause', '120.4c', '611.3a', '702.135b', '702.58b', '616.1e', '702.115b', '615.12a', '702.125c', '702.100d', '603.2h']
+    added:   ['704.8', '122.3', '704.5q', '122.4', '704.7', '707.9e', '704.5r', '107.1b', '613.7c', '702.80a', '122.9', '122.8']
+  rg1702  Ari controls [Emeria Shepherd]. They play [Sacred 
+    dropped: ['400.3', '712.5f', '608.3a', '702.84a', '400.4a', '712.21d', '717.6', '701.24c', '400.7j', '702.167c', '712.13a', '702.167b', '309.2b']
+    added:   ['113.7a', '608.2b', '603.6b', '608.2h', '611.2e', '603.7c', '704.4', '400.7e', '610.3b', '616.1f', '613.6', '603.10', '614.12']
+  rg6834  Ainsley controls [General Ferrous Rokiric]. What h
+    dropped: ['616.1f', '201.5b', '712.13a', '702.168e', '113.12', '506.3g', '801.7', '702.60a', '707.9d', '611.3a', '702.1b', '707.9e', '601.3b', '702.168b', '702.168a']
+    added:   ['611.2e', '611.2c', '400.7a', '603.6b', '611.2f', '112.4', '613.1d', '609.2', '611.3c', '610.5', '601.3e', '709.5i', '613.6', '400.7h', '400.7g']
+  rg7012  Aydan casts [Kellan, the Fae-Blooded], and Nico an
+    dropped: ['702.88b', '722.5', '610.3c', '702.174m', '702.85b', '701.38b', '607.5a', '308.1', '616.1e']
+    added:   ['607.2q', '406.3b', '601.3f', '701.65a', '607.3', '607.2a', '614.14', '702.170d', '112.2a']
+  rg1784  Can Nicolas cast [Memory Lapse] targeting Aubriann
+    dropped: ['113.6m', '400.7e', 'Crime', '400.11c', '702.55c', 'Retrace', 'Flashback', '702.138d', '113.6k', '113.6j', '603.10f', '701.59b']
+    added:   ['601.3e', '400.7h', '115.5', '406.3b', '702.34a', '115.9c', '601.3f', '707.10c', '601.7', '715.3d', '700.13', '707.10d']
+  rg1215  Ariyah has [Guardian Naga] in their graveyard. Can
+    dropped: ['715.5', '601.3b', '601.3d', '601.3c', '201.4f', '702.8a']
+    added:   ['601.3e', '715.3c', '702.127a', 'Aftermath', '702.133a', 'Adventurer Card']
+  rg2543  Ace controls [Sarkhan, the Dragonspeaker] and acti
+    dropped: ['704.5y', '702.61c', '704.4', '309.3', '608.3e', '702.36c', '702.51d', '702.28c', '712.13a']
+    added:   ['306.4', '205.4d', '710.2', '506.4e', '613.2a', '506.4d', '306.5b', '704.5k', '312.7']
+  rg4936  Ainsley controls [Reconnaissance] and attacks Nanc
+    dropped: ['508.7c', '502.4', '701.43b', '117.1b', '606.3', '509.1e', '703.4c', '801.6', '508.7e', '502.3']
+    added:   ['724.2d', '506.4a', '702.7c', '510.2', 'Remove from Combat', '702.4c', '724.2e', '500.5a', '703.4k', '113.7a']
+  rg3126  Arjun controls [Thermopod] and has no cards in the
+    dropped: ['602.5', '106.5', '118.3c', '702.52b', '801.6', 'Forage', '605.5', '118.6', '605.2', '119.4b']
+    added:   ['702.1a', '702.128a', '118.12', '702.97a', '702.138a', '702.180a', '702.59a', '702.84a', '702.187c', '702.187b']
+  rg2242  Can Ashley pay {B}{B}{B}{B}{B}{B} to cast [Beseech
+    dropped: ['118.8a', '601.2h', '118.3', '118.3a', '508.1j', '509.1f', '701.67b', '118.13c', '118.13', '118.13b', '118.14']
+    added:   ['107.3a', '601.2b', '107.3b', '107.3d', '118.9c', '107.3e', '107.3h', '118.6a', '118.9d', 'Alternative Cost', '107.3f']
+  rg5598  Arielle has [Blessed Hippogriff] in their graveyar
+    dropped: ['201.4f', '702.103d', '715.3', '722.5', '601.3b']
+    added:   ['702.127a', '702.133a', 'Aftermath', '702.167b', '702.34a']
+  rg2154  Neriah controls [Cliffhaven Sell-Sword]. Ari casts
+    dropped: ['703.4b', '702.26m', '703.4c']
+    added:   ['712.21c', '702.26e', '702.26p']
+  rg1191  Nico controls [Lazav, the Multifarious], which is 
+    dropped: ['613.1a', 'Transfigure', '201.4g', '702.36c', '712.21b', '702.28c', '213.1d']
+    added:   ['707.14', '707.9c', '707.10b', '201.5', '707.9d', '708.10', '613.2c']
+  rg1232  Alivia has [Road // Ruin] in their graveyard. Aliv
+    dropped: ['807.2b', '702.187c', '601.3e', '702.146b', '709.5d', 'Mayhem', '720.5', '715.5', '712.19']
+    added:   ['702.127a', '709.4', '709.4c', '709.2', '709.3c', '709.5a', '702.1b', '702.102a', '709.5']
+  rg5006  Alvaro controls [Draugr Thought-Thief] and [Lotusg
+    dropped: ['601.5', '118.7f', '702.66b', '702.166d', '118.11']
+    added:   ['Total Cost', '602.1e', '118.6a', '107.3b', '118.8a']
+  rg1259  Adriel controls [Oko, Thief of Crowns], [Gilded Go
+    dropped: ['Food Token', '111.10b', 'Forage', 'Exploit', '701.21a', '702.110a', '701.61a', 'Sacrifice', '614.13b', '702.82b', 'Map', '702.174f', 'Gold Token']
+    added:   ['205.1b', '613.1d', '205.1a', '205.2b', '205.4b', '613.6', '611.2e', '300.2', 'Type-Changing Effect', '613.1', '613.5', '702.48c', '709.5i']
+  rg137  Natasha controls a [Lifeline] and 2 [Scarwood Gobl
+    dropped: ['702.15c', '704.8', '702.135b', '701.68d', '702.90d', '603.7c', '800.4d', '603.10f', '702.15d', '702.15e', '603.10d', '608.2k', '500.4']
+    added:   ['510.3a', '704.4', '610.3d', '724.1c', '704.3', '724.2c', '724.2f', '117.2d', '603.2c', '616.1f', '117.5', '514.3a', '405.6f']
+  rg6667  Alfred casts [Stream of Thought], replicating it t
+    dropped: ['613.1a', '616.1g', '607.5a', '702.56b', '702.61c', '702.60b', '707.9e', '702.40b', '603.12a', '614.5', '613.1b', '701.6b', '702.85c', '702.175b']
+    added:   ['707.10', '707.12', '112.1b', '707.12a', '720.3c', '707.10d', '722.3d', '718.3c', '702.56a', '111.13', '707.10b', '112.2a', '807.5b', '702.144a']
+  rg7413  Adrienne attacks with [Sporeweb Weaver], and Nicol
+    dropped: ['608.2k', 'Web-slinging', '506.3e', 'Provoke', '509.1g', '509.1d', '506.3g', '509.1e']
+    added:   ['509.3e', '801.7', '509.3d', '509.3c', '509.2a', '509.3g', '700.1', '805.10c']
+  rg3717  Autumn controls [Captain Mar-Vell, Space-Born] and
+    dropped: ['707.10e', '616.1f', '118.12', 'Mobilize', '801.13a', '712.13a', '702.136b', '614.6', '727.4', '616.1g', '601.4', '726.5', '400.4a', '614.13c']
+    added:   ['723.1a', '110.2b', '723.3', '400.7a', '613.6', '800.4a', '723.1', '603.10d', '613.1b', '701.12a', '601.7', '701.12b', '707.10c', '611.2c']
+  rg2507  Amelia casts [Aminatou's Augury] exiling an artifa
+    dropped: ['304.1', '702.126c', '117.1a', '406.3b', '702.133a', '304.5', '118.8c', '610.3d', '702.66c']
+    added:   ['607.2q', '614.14', '112.2a', '400.7g', '807.5b', '715.3d', '602.5c', '400.7h', '701.65a']
+  rg1182  Agustin casts [Seasoned Pyromancer] and has two ot
+    dropped: ['X', '701.36b', '700.8a', '106.5', '111.5', '107.1c', '801.10', '701.23d', '722.2c', '701.63b', '800.4b', '202.1b', '609.3', '702.125b']
+    added:   ['614.16', '730.3e', '607.3', '712.21d', '607.2b', '614.13b', '614.13c', '701.7b', '616.1f', '614.13a', '614.14', '603.7f', '614.12', '111.12']
+  rg84  Aranza controls a [Welding Jar] enchanted by Nico'
+    dropped: ['301.2', '701.64a', '611.2b', '613.1b', '732.5', '602.5b', '118.12', '603.10c', '616.1f', '901.9b', '616.1b']
+    added:   ['400.7a', '109.4b', '110.2b', '603.3a', '113.8', '603.7f', '405.4', '303.4m', '109.5', '603.6e', '400.7f']
+  rg33  Alina controls a [Valakut, the Molten Pinnacle] an
+    dropped: ['120.4c', '120.4b', '801.13a', '510.3a', '120.4d', '510.2', '702.153b', '603.2g', '120.9', '605.4a', '614.5', '724.1c', '724.2c', '120.10']
+    added:   ['113.7a', '608.2m', '704.4', '603.2c', '608.2b', '724.1a', '609.7a', '724.2a', '120.7', '603.7c', '603.3d', '603.3', '113.7', '608.2p']
+  rg6425  Arely equips [Barbed Batterfist] onto [Champion of
+    dropped: ['702.80b', '120.4c', '702.2e', '704.5n', '120.4d', '702.16d']
+    added:   ['704.4', '107.1b', '208.2a', '301.5c', '701.10c', '120.6']
+  rg144  Aviana controls a [Meng Huo's Horde] and a [Deathr
+    dropped: ['508.4c', '701.43d', '802.3a', '614.17b', '506.3b', '302.6', '802.3b', '808.3a', '506.6']
+    added:   ['118.2', '508.1i', '601.2g', '117.1d', '605.3a', '118.13a', '118.13c', 'Declare Attackers', '118.8a']
+  rg554  Amos casts [Rise from the Grave] targeting [Rhizom
+    dropped: ['X', '701.47c', 'Scavenge', '702.97a', 'Bloodthirst', '716.2d', 'Devour', 'Adapt', '704.5q', '807.2a', '701.46a', '702.191b', 'Incubate', 'Amplify']
+    added:   ['614.13a', '122.8', '608.2h', '712.21c', '700.11', '603.10a', '616.1f', '801.7a', '701.24g', '611.3c', '702.93a', '208.2a', '614.13b', '702.138c']
+  rg1069  Ava controls [Undead Minotaur] enchanted with [Sha
+    dropped: ['702.135b', '610.3c', '704.5p', '614.13', '730.3', 'Undying', '730.3c', '704.5m']
+    added:   ['603.10a', '400.7e', '801.7a', '610.3d', '603.7c', '603.6c', '800.4d', '303.4c']
+  rg3868  Amara controls [Muraganda Petroglyphs] and [Waywar
+    dropped: ['702.111c', '722.4', 'Rules Text', '613.2c', '109.3', '110.3', '208.2a', '208.2b', '208.4']
+    added:   ['613.6', '613.3', '613.4d', '613.5', '208.4b', '613.2a', '613.1', '613.1a', '603.6b']
+  rg3518  Nayeli controls [Trinisphere]. Ainsley casts [Noxi
+    dropped: ['X', 'Mana Value', '118.4', '202.3', 'Hybrid Phyrexian Mana Symbols', '202.1a']
+    added:   ['601.2b', '118.6a', '118.7', '602.1e', '118.3b', '118.9d']
+  rg3391  Anakin controls [Mycosynth Lattice], an [Animate D
+    dropped: ['201.5b', '110.5c', '607.5a', '712.13a', '707.11', '613.6', '712.21b', '201.5a']
+    added:   ['613.2a', '730.2a', '707.2a', '707.9d', '707.9e', '707.5', '614.12', '707.6']
+  rg1943  Amare casts [Insatiable Hemophage] targeting [Cana
+    dropped: ['701.68b', '118.12', '701.6b', '601.3b', '702.130b', '614.17b', '603.1a', '702.90e', '601.3a', 'Mutate']
+    added:   ['702.140c', '702.140f', '115.1e', '608.3b', '702.47d', '608.2c', '702.140e', '730.1', '601.7', '601.3e']
+  rg1268  Amirah controls Azors Gateway with 4 different CMC
+    dropped: ['722.2', '720.2', '715.2', '718.3b', '712.5f', '707.9b', '702.167a', '701.27e', 'Craft', '613.2a', '109.3', '712.8', '702.44c']
+    added:   ['701.27g', '707.10g', '730.2j', '712.9', '708.10', '707.8a', '730.2i', '110.5c', '707.8', '707.3', '712.8d', '712.20', '701.27f']
+  rg241  Aryana controls [Ascended Lawmage] and [Cemetery G
+    dropped: ['616.1e', '201.4a', '508.7c', '701.50b', '603.7c', '601.7a', '614.13a', '616.1b', '400.3']
+    added:   ['303.4c', '303.4g', '303.4d', '702.26i', '704.5m', '400.7e', '712.21c', '702.103f', '400.6']
+  rg963  Amaris controls [Eruth, Tormented Prophet] and, du
+    dropped: ['Dredge', '701.62a', '609.3', '701.62b', '121.3', '701.59b', '614.13c']
+    added:   ['121.7', '614.11a', '121.5', '121.6b', '121.6', '121.2a', '616.2']
+  rg2163  Nicole controls [Oraxid]. Can Austin cast [First V
+    dropped: ['601.3a', '702.47a', '702.47e', '601.3b', '201.5b', '720.3a', '303.4a', '612.10', '702.61c', 'In Response To', '609.4a', 'Splice']
+    added:   ['115.4', '115.9c', '508.7c', '601.2c', '115.1', '608.2b', '805.10e', '601.2b', '802.2a', '115.9a', '702.16b', '115.3']
+  rg31  Aubrey controls [Gisa and Geralf] and has cast a s
+    dropped: ['702.133a', 'Harmonize', '702.127a', '702.187c', '702.138b', 'Jump-Start', 'Aftermath', 'Escape', '715.3d', 'Retrace', 'Mayhem', '601.3e']
+    added:   ['603.2h', '602.5c', '615.3', '602.5b', '614.3', '603.7h', '118.10', '113.6m', '700.11', '700.10', '121.2b', '603.2c']
+  rg3188  In a game of commander, Natasha has shuffled their
+    dropped: ['313.2', '400.4b', '103.2c', '717.3']
+    added:   ['712.21d', '400.6', '730.3d', '801.13a']
+  rg234  Nico controls [Lion's Eye Diamond]. Addison casts 
+    dropped: ['605.3b', 'Respond', 'In Response To', '606.3', '509.1e', '602.5', '702.61b', '614.4', '116.2e']
+    added:   ['601.5', '701.2a', '118.12', '113.7a', '113.3b', '602.2', '118.10', '118.2', '608.2g']
+  rg347  Avah controls [Dakmor Scorpion] and [Winding Const
+    dropped: ['Devour', 'X', '702.82c', '702.82a', 'Adapt', '704.5q', 'Scavenge', '702.115b', 'Monstrosity', '701.46a', '702.191b', '701.10e', '702.100b', 'Bloodthirst']
+    added:   ['614.5', '614.16', '730.3d', '616.1f', '400.6', '122.8', '730.3e', '616.1g', '614.13c', '122.1h', '712.21c', '707.9g', '730.3c', '616.1']
+  rg1660  Alex controls [Rhythm of the Wild], [Grumgully, th
+    dropped: ['X', 'Amplify', 'Graft', '701.46a', '702.104a', 'Training', 'Adapt', '701.41a', '310.4b', '702.149a', '702.136a']
+    added:   ['616.1g', '614.5', '707.9e', '616.1f', '614.12b', '614.16', '611.3c', '614.12', '616.1', '613.2a', '122.6a']
+  rg7092  Ann has a [Sphere of Resistance], a Plains and a S
+    dropped: ['601.3', '614.17b', '508.7c', '801.4', '702.62c', 'Any Target', '115.4', '601.3e', '113.6f', '115.2', 'Crime', '118.13c', '115.6', '602.5']
+    added:   ['118.8d', '601.2f', '118.6a', '601.2b', '700.2h', '702.48c', '118.9d', '202.4', '118.7c', '118.8a', '702.193b', '118.14', '118.7b', '118.7a']
+  rg1652  Abram attacks with [Robber of the Rich], exiling [
+    dropped: ['118.13c', '601.2h', 'Spectacle', '113.6j', '118.3', '509.1f', '508.1j', '614.17b', '118.13b', '118.13a', '702.173a', '118.13', '509.1e']
+    added:   ['118.6a', '118.9c', '118.9b', '702.162a', 'Alternative Cost', '702.188a', '118.9', '118.7b', '118.9d', '702.48c', '118.14', '702.187b', '702.193b']
+  rg1239  Aspen controls [Haakon, Stromgald Scourge] and has
+    dropped: ['702.187c', 'Escape', 'Harmonize', '113.6m', '113.6j', '309.2c', '702.55c']
+    added:   ['715.3c', 'Adventurer Card', '702.103d', '201.4f', '702.167b', '400.7h', '715.3']
+  rg606  Ayaan controls [Essence of the Wild] and casts [Ev
+    dropped: ['607.5a', '707.6', '707.9a', '608.3e', '201.5b', '707.9b', '707.4', '707.3', '707.5', '712.9']
+    added:   ['616.1g', '614.12b', '614.12a', '614.12', '616.1b', '614.12c', '616.1', '613.2a', '614.13a', '400.6']
+  rg2029  Alex controls [Obosh, the Preypiercer] and casts t
+    dropped: ['119.2', '120.2a', '120.3a', '120.1a', 'X', '120.4d', 'Source of Damage', '810.9', 'Excess Damage', 'Assign Combat Damage', '120.3', '120.1', 'Deal']
+    added:   ['614.5', '701.10g', '704.4', '614.7a', '120.10', '609.7a', '120.8', '609.7b', '115.9c', '701.10a', '120.4b', '614.2', '608.2h']
+  rg97  Alessandro activates [Inkmoth Nexus] to turn it in
+    dropped: ['510.2', '120.4c', '120.4d', '120.4b', '702.90e', '724.1c', '724.2c', '508.8', '802.5', '510.4']
+    added:   ['508.4d', '506.3d', '508.4', 'Assign Combat Damage', '506.3c', '510.1', '509.3g', '508.4a', '506.3f', 'Unblocked Creature']
+  rg5242  Alex controls [Extus, Oriq Overlord] and uses [Ill
+    dropped: ['701.28d', '118.12', '701.58f', '701.40f', '701.27d', '708.11', '708.7', '708.3']
+    added:   ['712.15', '730.2i', '712.14a', '712.8d', '730.2f', '701.28c', '712.14b', '712.13a']
+  rg79  Autumn controls [Jibbirik Omnivore], a token copy 
+    dropped: ['701.42c', '712.5a', '702.86b', '712.21c', '614.13b', '120.5', '704.5p', '115.4', '730.3e', '206.3c', '111.11', 'Destroy']
+    added:   ['607.3', '707.10d', '115.9a', '707.10', '202.3c', '608.2f', '202.3b', '607.5a', '730.3c', '712.8g', '712.8e', '122.8']
+  rg7215  Ayla controls [Living Plane] and plays [Minas Tiri
+    dropped: ['110.5b', 'Untapped', '702.190b', 'Tapped', '701.26a', '613.7h', '502.3', '701.26b', '702.75b', '701.43b', '603.6b', '508.1f']
+    added:   ['614.12b', '614.17d', '614.12a', '614.13c', '614.13b', '614.12c', '616.1b', '616.1', '614.1d', '701.7b', '616.1d', '616.1c']
+  rg633  Andy controls [Badlands] and [Conversion]. Andy th
+    dropped: ['Monocolored Hybrid Mana Symbols', 'Basic Landcycling', '106.10', '106.11', '202.2b', 'Color', 'Mountain', 'Colorless', 'Swamp', '106.9', '305.6', 'Monocolored']
+    added:   ['613.6', '603.6b', '707.9f', '700.5a', '205.1b', '205.4b', '613.5', '611.2e', '613.1d', '613.1', '613.1a', '113.12']
+  rg85  Amy controls a [Trigon of Corruption] enchanted by
+    dropped: ['702.48b', '607.2m', '607.2d', '607.2f', '201.5a', '701.38b', '614.12c', '303.4k', '712.21d', '303.4a', '702.119c', '303.4f']
+    added:   ['603.7c', '608.2h', '113.7a', '603.6e', '603.10c', '700.7', '611.3a', '610.3b', '301.5f', '604.4', '608.2k', '603.10']
+  rg679  Nico controls [Blind Obedience]. Adonis's devotion
+    dropped: ['110.5b', '708.3', '702.190b', '603.2e', '707.5', '702.104b', '702.146b', '607.2g', '303.4h']
+    added:   ['611.2e', '614.17d', '603.6b', '611.3c', '208.2b', '613.2a', '614.13c', '614.12a', '614.1d']
+  rg463  Alex casts [Brainstorm] using the ability of [Jace
+    dropped: ['400.4a', '608.2n', '702.47e', '304.2', '720.3d', '704.5e', '724.1b', '724.2b', '404.1', '717.6a', '307.2', '707.10a', '701.6b', 'Discard']
+    added:   ['608.2c', '616.1e', '400.6', '616.1a', '712.21d', '616.1f', '616.1b', '614.3', '122.1h', '614.15', '614.16', '704.7', '614.13c', '801.13']
+  rg6475  Nathalia controls [Welding Jar] and [Duskworker]. 
+    dropped: ['712.21d', '702.80d', '120.4c', '616.1e', '801.13a', '400.6', '730.3d', '702.80b', '712.21c', '614.5', '616.1f', '702.26h', '701.42c', '704.7', '613.9']
+    added:   ['608.2b', '115.9c', '608.3b', '115.7a', '700.2c', '115.9a', '115.9', '115.9b', '115.7d', '700.2f', '603.3c', '115.8', '700.2a', '702.47d', '707.10e']
+  rg1280  Armando controls [Mana Reflection] and taps [Pyrom
+    dropped: ['702.60b', '702.61c', '707.10e', '106.13', '613.1a', '603.12a', '707.12a', '201.5b', '707.10d', '702.47c', '707.10b', '702.88c', '702.56b']
+    added:   ['106.6a', '605.4a', '106.12b', '405.6c', '106.12a', '106.3', '605.2', '701.10f', '400.7d', '605.3c', '616.1g', '106.7', '605.4']
+  rg1024  Alden controls [Spark Double] and casts [Clone]. A
+    dropped: ['701.10e', 'X', '702.191b', '613.7c', '702.38a', '614.13b', '701.10a', '702.175b']
+    added:   ['616.1f', '616.1c', '613.2c', '707.5', '613.1', '707.9b', '707.4', '614.12']
+  rg113  Ahmed casts [Bitter Ordeal], targeting Nico. At th
+    dropped: ['X', '701.23d', 'Forage', '701.59a', '107.1c', '701.59b', 'Fateseal', 'Ingest', '701.29a', '811.2a', '807.2a', '701.61a']
+    added:   ['608.2d', '608.2f', '732.5', '118.10', '702.48b', '701.23b', '701.23h', '701.23c', '118.12', '702.85b', '614.13c', '701.17d']
+  rg2599  Autumn restarts the game with [Karn Liberated]'s l
+    dropped: ['702.10b', 'Summoning Sickness Rule', '602.5a', '508.1a', '703.4i', '508.3a', '508.4d', 'Boast', '702.10c', '508.3b']
+    added:   ['727.4', '508.4a', '727.7', '727.1a', '801.17', '727.2', '727.5', '727.1', '104.6', '508.1k']
+  rg3370  Abel plays [Exotic Orchard]. What can it tap for i
+    dropped: ['Forage', '702.184a', 'Station', '106.12a', '106.12b', '106.12', '701.61a', '701.38b', '111.10h', 'Forest']
+    added:   ['607.5a', '202.2b', '106.9', '106.11', '105.4', 'Colorless', '903.4f', '202.2', '903.12e', '105.2']
+  rg202  Abraham controls [Drought] and [Derelor]. How many
+    dropped: ['X', 'Forage', 'Swamp', '702.48b', '702.66c', '701.68b', '702.80d', '702.130b', '702.51b', '702.54c', 'Exploit', '702.1a', '701.61a', '702.110b', 'Swampwalk']
+    added:   ['601.2f', '118.9d', '118.8a', '700.2h', '118.8d', '601.2h', '118.9a', '601.2b', '702.48c', '202.4', '118.6a', '607.2j', '602.1e', '601.4', 'Total Cost']
+  rg127  Abram controls a [Blood Moon], a [Life and Limb], 
+    dropped: ['Creature', 'Land', 'Nonbasic Land', '305.8', 'Awaken', 'Islandhome (Obsolete)', '205.4c', 'Land Type', 'Island', '205.3i', '305.9', 'Basic Land Type', 'Artifact Land']
+    added:   ['613.6', '613.1d', '613.3', '613.5', '205.1b', '613.1', '613.4a', '613.10', '613.2a', '305.7', '700.5a', '707.9f', '611.2e']
+  rg494  Nixon has a [Southern Elephant] and a [Skullbriar,
+    dropped: ['700.3c', '122.8', '122.2', '700.3a', '122.6a', '613.7c', '730.3a', '701.47c', '701.24g', '701.62a', '122.9', '707.14', '701.68c', '201.2b']
+    added:   ['708.8', '707.3', '708.12', '723.4', '701.40f', '701.40h', '708.2', '712.15', '701.40a', '613.2b', '708.9', '701.58h', '708.5', '701.40g']
+  rg117  Asa casts [Chatterstorm]. In response, Nico casts 
+    dropped: ['118.12', '302.2', '113.8', '601.7a', '603.7f', '201.5a', '602.3a', '901.6', '109.4a']
+    added:   ['603.10d', '109.4b', '701.7b', '110.2', '800.4a', '110.2a', '723.3', '613.7m', '616.1g']
+  rg543  Aaliyah controls a [Squandered Resources] and a [G
+    dropped: ['Monocolored Hybrid Mana Symbols', 'Source of Mana', 'Snow', 'Swamp', 'Plains', 'Basic Landcycling', '107.4h', 'Colorless', 'Basic Land Type']
+    added:   ['702.48c', '305.7', '605.4a', '106.12b', '106.6', '106.9', '609.4b', '605.2', '106.12a']
+  rg899  Neil controls [Willow Elf] enchanted with [Felidar
+    dropped: ['712.5f', '120.4c', '704.5m', '702.130b', '120.4d', '724.1c', '724.2c', '303.4i', '616.1f', '303.4c', '608.3c', '704.5f', '303.4g']
+    added:   ['702.16n', '120.5', '120.4a', '702.16p', '400.6', '120.6', '701.19b', 'Totem Armor (Obsolete)', '615.10', '701.8b', '704.5g', '120.10', '704.5h']
+  rg713  Asa controls [Library of Leng] and is discarding a
+    dropped: ['401.7', '401.4', '730.3a', '609.3', '121.3a', '720.3d', '701.25b', '702.85b', '701.23f', '701.30a', '121.3']
+    added:   ['400.6', '616.2', '712.21d', '616.1f', '701.9c', '616.1e', '704.7', '717.6', '400.3', '614.11', '701.9b']
+  rg608  Noah controls [Compost]. Ainsley controls [Dune Be
+    dropped: ['201.5a', '702.46b', '702.175b', '702.191b', '702.123b', '702.134b', '616.1f', '701.24f', '702.116b']
+    added:   ['614.13a', '610.3d', '603.6c', '801.7a', '805.4d', '712.21', '702.86b', '603.12', '610.4d']
+  rg306  Noor controls [Rhystic Study]. Alex casts [Mishra'
+    dropped: ['504.1', '121.3a', '509.2', '507.2', '508.2', '504.2', '601.7a', '510.3']
+    added:   ['509.1e', '118.12a', '601.5', '118.13b', '118.13c', '118.2', '602.3a', '508.1i']
+  rg272  Allison controls [Leyline of Anticipation]. In the
+    dropped: ['504.1', '603.5', '121.7', '605.4a', '601.2i', '702.131d', '704.4', '613.1b', '714.3b', '503.1a', '505.5', '508.2b', '714.3c', '611.2f']
+    added:   ['307.5', '307.1', '307.5a', '117.1a', '602.5d', '609.4a', '601.3c', '304.5', '505.6a', '117.1c', '601.3d', '608.2g', '601.6a', '503.2']
+  rg559  Albert, Brielle, and Campbell are playing a multip
+    dropped: ['601.7a', '801.2b', '703.2', '805.9', '801.5b', '315.7']
+    added:   ['723.9', '700.2e', '723.5', 'Control Another Player', '602.3', '603.3a']
+  rg1095  Abdullah controls [Primal Vigor] and casts [Rescue
+    dropped: ['X', '701.41a', 'Increment', 'Devour', 'Support', 'Backup', 'Sunburst', 'Amplify', 'Reinforce', '701.46a', 'Endure', '702.77a', '702.82c', 'Adapt']
+    added:   ['122.8', '616.1g', '614.5', '712.21c', '614.16', '701.10e', '707.9g', '614.13b', '616.1f', '730.3d', '122.9', '614.12b', '707.10e', '707.9e']
+  rg4256  Arturo uses [Vengeful Ancestor] to goad [Craw Wurm
+    dropped: ['508.7c', '508.8', '724.2d', '302.5', '508.1a', '508.1g', '801.3', '702.26b', 'Remove from Combat', '508.1b']
+    added:   ['Goaded', '508.1d', '702.26n', '508.1k', '508.4b', '506.3c', '610.4a', 'Requirement', '702.26c', '610.4']
+  rg247  Arabella controls [Sylvok Explorer]. Nolan control
+    dropped: ['Forest', 'Monocolored Hybrid Mana Symbols', '305.6', 'Basic Landcycling', 'Forestwalk', 'Mountain', 'Plains', 'Basic Land Type', 'Swamp', 'Plainswalk', 'Basic']
+    added:   ['109.4a', '805.9', '106.12b', '603.7g', '106.12', '109.5', '400.7d', '608.2h', '804.2', '403.2', '602.5a']
+  rg1355  Addisyn casts [Read the Runes] for X=2 and chooses
+    dropped: ['116.2e', '702.29d', '702.29c', 'Sacrifice', '702.46b', 'Exploit', '701.22d', '603.10c', '701.9b']
+    added:   ['704.4', '603.2c', '701.21a', '113.7a', '608.2p', '712.21', '702.48c', '118.12', '608.2n']
+  rg3947  Addison has six cards in their graveyard and casts
+    dropped: ['400.4a', '701.62b', '724.2b', '724.1b', '504.1', '702.50b', '724.1c', '724.2c', '400.12', '304.2', '701.24c', '701.24d', '701.6b', '106.13']
+    added:   ['704.4', '608.2f', '608.1', '117.7', '401.5', '405.5', 'Resolve', '807.5b', '608.2g', '117.4', '701.17d', '514.3a', '601.2a', '405.2']
+  rg1953  Anson controls [Zirda, the Dawnwaker], [Sundial, D
+    dropped: ['X', '602.1a', '118.5', 'Activation Cost', '118.7f', '118.3', '118.13c', '107.4b', '107.4f', 'Power-up', '107.4d', 'Pay']
+    added:   ['602.1e', '118.7a', '118.7c', '118.7b', '601.2f', '118.7d', '702.48c', '118.7e', '602.4', '701.67b', '118.9d', '118.7g']
+  rg549  Anderson controls [Quirion Explorer]. Nico control
+    dropped: ['Forest', 'Monocolored Hybrid Mana Symbols', 'Basic Landcycling', 'Forestwalk', 'Mountain', 'Plains', 'Basic Land Type', 'Mountainwalk', 'Swamp', '712.5f', 'Forage', 'Basic']
+    added:   ['109.4a', '605.2', '605.4a', 'Source of Mana', '804.2', '106.6', '106.9', '106.10', '106.12a', '106.13', '106.12b', '609.4b']
+  rg1718  Andi controls [Karn Liberated], which has exiled a
+    dropped: ['727.1', '104.6', '727.2', 'X', '902.5a', '902.5', '607.2n', '727.7', '313.6', '727.1a']
+    added:   ['103.8c', '103.8a', '800.7', '810.6', '103.8b', '703.4d', '103.8', '103.2', '901.5', '103.6']
+  rg204  Nico controls [Drought]. How many Swamps would Ava
+    dropped: ['X', '702.48b', '118.3', 'Forage', 'Swamp', 'Waterbend', '614.17b', '118.10', '701.68b', '702.66c', '701.67b', '118.3c', '608.2d', '702.51d']
+    added:   ['118.8d', '118.9d', '202.4', '601.2f', '118.8a', '700.2h', '118.6a', '601.2h', '602.1e', '118.8', 'Additional Cost', '702.48c', '118.9c', 'Total Cost']
+  rg1124  Nico controls [Solemnity]. Aimee controls [Vizier 
+    dropped: ['605.2', '502.4', '502.3', '801.6', '701.43b', '405.6d', '118.12a', '603.2a', '107.6']
+    added:   ['122.9', '113.11', '122.5', '119.7', '119.8', '702.176a', '118.10', '606.4', '704.5r']
+  rg528  Aislinn controls [Anointed Procession] and a [Skul
+    dropped: ['616.1e', '616.2', '616.1a', '614.13c', '712.21d', '616.1d']
+    added:   ['614.12b', '616.1b', '707.9e', '614.5', '614.12a', '614.12']
+  rg725  Bailey controls [Pandemonium]. Anderson casts [Gra
+    dropped: ['104.3e', '704.5f', '120.5', '104.3f', '603.10f', '801.14', '704.5v', '724.1a', '120.4c']
+    added:   ['800.4b', '800.4d', '603.9', '104.5', '405.6h', '800.4j', '901.10', '901.14b', '800.4g']
+  rg129  Alice controls a [Life and Limb], a [Blood Moon], 
+    dropped: ['111.3', 'Forest', '111.10b', 'Food Token', 'Plains', 'Mountain', 'Swamp', 'Awaken', 'Basic', 'Nonbasic Land', 'Land', 'Creature', 'Basic Landcycling', 'Snow']
+    added:   ['613.6', '613.1d', '613.5', '613.3', '613.2', '613.4', '205.1b', '613.9', '613.4d', '613.1b', 'Layer', '613.2a', 'Dependency', '603.6b']
+  rg517  Anson controls [Mana Reflection] and [Deathrite Sh
+    dropped: ['Source of Mana', '701.59a', '106.11', '202.3b', '106.13', 'Mana Value']
+    added:   ['614.5', '605.4a', '616.1g', '605.2', '106.12a', '607.3']
+  rg5193  Alfredo controls [Magnetic Web] and is attacking w
+    dropped: ['802.4a', '310.8c', '702.22h', '508.7c', 'Block Alone', '302.5', 'Block']
+    added:   ['805.10c', '602.3a', 'Requirement', '508.1d', '802.4', '509.4b', '510.1c']
+  rg6556  At the beginning of the game, Alianna announced [Z
+    dropped: ['727.5a', '103.2b', '702.139c', '309.2b', '729.5a', '702.139d', '116.2g']
+    added:   ['801.17', '727.7', '729.4a', '103.2a', '729.2', '727.1a', '400.11a']
+  rg851  Amos controls [March of the Machines] and [Mycosyn
+    dropped: ['Mobilize', '702.163a', 'For Mirrodin!', '702.181a', 'Living Weapon', '702.92a', '616.1f', '804.2', '712.5d', '712.13a', '702.116a', '702.154a', '702.191b', '702.58b']
+    added:   ['611.2c', '608.2i', '603.6b', '112.4', '613.1', '609.2', '700.7', '115.9', '608.2h', '205.1b', '611.2e', '608.2b', '613.2c', '112.3']
+  rg807  Avery controls [Wayward Angel] and has 7 cards in 
+    dropped: ['613.2c', '707.3', '708.2a', '200.2', '708.2', '707.9d', 'Morph', 'Changeling', '702.36c', '111.10q', '722.4', '613.2b', '709.3b']
+    added:   ['613.6', '208.4b', '613.4d', '613.4a', '208.2a', '208.2b', '613.2a', '613.4c', '208.4a', '613.5', '113.12', '611.3b', 'Base Power, Base Toughness']
+  rg475  Aubrey casts [Shahrazad]. As the subgame begins, A
+    dropped: ['101.4b', '801.5b', '723.5b', '729.1', '700.2e', '723.8', '121.3a', '601.7', '601.7a', '602.3a', '732.2b', '601.7b', '602.3b']
+    added:   ['103.1', '103.2', '727.6', '727.1a', '729.2a', '101.4e', '103.1b', '103.3', '729.1b', '315.5a', '904.6', '805.3', '103.8']
+  rg1454  Ainsley's [Morality Shift] resolves, in what order
+    dropped: ['701.25b', '701.24c', '700.3a', '404.1']
+    added:   ['701.30c', '400.12', '608.2f', '701.22c']
+  rg470  Autumn, Bethany, and Chaim started playing a multi
+    dropped: ['504.1', '703.4d', '729.3']
+    added:   ['729.2', '727.5a', '101.4e']
+  rg282  Addison casts [Virulent Wound], targeting Natalee'
+    dropped: ['702.130b', '120.4c', '724.1c', '724.2c', '500.4', '712.21c', '702.80b', '702.80d', '702.39b', '702.36c', '704.8']
+    added:   ['613.9', '613.6', '613.5', '608.2b', '700.7', '616.1f', '514.3a', '608.2c', '608.2i', '613.4d', '704.3']
+  rg466  Amaris, Blaine, and Clyde begin a multiplayer game
+    dropped: ['104.3h', '104.4e', '724.2c', '724.1c', '121.7', '801.14']
+    added:   ['800.4j', '703.4d', '805.4b', '800.4h', '901.10', '800.4f']
+  rg289  Allyson controls [Ice Cauldron]. Nico controls [Su
+    dropped: ['X', '106.11', '106.10', '701.10f', '106.9', '118.7g', '106.5', '613.1a', '106.12b', 'Source of Mana', '106.4a', '709.4b', '118.7c', '118.7f']
+    added:   ['702.193b', '602.4', '605.3', '118.8d', '602.1a', '605.2', '106.7', '107.3k', '602.1e', '113.2b', '605.5a', '113.6j', '602.5c', '605.3b']
+  rg338  Anya activates [Deceptive Landscape]. Before that 
+    dropped: ['614.13c', '400.7i', '601.3a', '601.3', '118.12', '113.6f', '201.4a', '702.62c']
+    added:   ['401.5', '701.23g', '118.12b', '701.23b', '701.23e', '614.3', '608.2c', '701.24b']
+  rg811  Aimee controls a manifested [Wayward Angel] and ha
+    dropped: ['708.2', '708.2a', '613.1g', '722.4', '613.2b', '712.8b', '200.2', '613.1a', '701.40h', 'Megamorph']
+    added:   ['613.2a', '613.6', '613.1', '730.2e', '708.12', '613.4d', '708.11', '730.2j', '613.5', '707.2']
+  rg60  Bobbie has 1 life and controls a phased-out [Angel
+    dropped: ['400.6', '603.10f', '704.5f', '724.1c', '724.2c', '303.4c', '104.3e']
+    added:   ['800.4c', '800.4b', 'Leaves the Battlefield', '800.4n', '729.5', '603.6c', '901.10b']
+  rg1208  Aubrey controls [Mycosynth Lattice]. Natalia contr
+    dropped: ['616.1f', '613.1b', '613.9', '702.131d', '603.10c', '608.3c', '603.10d', '201.5b', '702.110b', '702.130b', '901.9b', '613.8c']
+    added:   ['704.5m', '801.8', '400.7f', '303.4c', '303.4j', '303.4d', '603.6e', '303.4i', '800.4a', '303.4e', '303.4g', '400.7e']
+  rg5768  Alaia controls [Panharmonicon] and [Mycosynth Latt
+    dropped: ['608.3e', '614.13b', '614.13c', '707.5', '701.24g', '616.1c']
+    added:   ['611.2e', '712.21', '603.10a', '702.116b', '400.7f', '603.6e']
+  rg100  Adelaide casts a [Keldon Champion]. In response, N
+    dropped: ['Prevent', '615.6', '609.7b', '615.12a', '702.16e', '615.12', '615.9', '615.1a', '801.13b', '603.2g', '615.2', '609.7', '120.4d', '400.7c', '615.8']
+    added:   ['608.2b', '115.9c', '115.9b', '115.9a', '115.9', '608.3b', '115.10', '609.7a', '115.1', '115.2', '608.2i', '601.2c', '707.10d', '115.10a', '115.5']
+  rg5863  Amelia attacks with [Wildfire Eternal], which isn'
+    dropped: ['702.61b', '724.2f', '117.2e', '514.3', '603.3c', '614.17b', '702.189a', '603.2a']
+    added:   ['400.7h', '601.3b', '702.170d', '701.65a', '304.5', '112.1b', '601.3e', '400.7g']
+  rg6530  Andrew attacks with [Raiyuu, Storm's Edge], then a
+    dropped: ['702.45b', '701.43d', '702.4e', '508.3', '702.136b', '508.2a', '702.154b', '806.2b', '811.2b']
+    added:   ['508.1d', '603.7h', '602.5c', '603.12a', '602.5b', '805.4d', '508.7a', '509.3a', '702.116b']
+  rg1933  Ariel controls [Soul Seizer] (back face [Ghastly H
+    dropped: ['701.27d', '712.10', '701.27f', '616.1d', '730.3e', '712.18', '701.27e']
+    added:   ['712.9', '701.27g', '712.21b', '702.140b', '712.14a', '712.21c', '730.3b']
+  rg659  Ainsley controls [Back from the Brink] and has [Ph
+    dropped: ['702.97a', '113.6m', '701.53b', 'Incubator Token', '702.187c', 'Scavenge', '111.10v', 'Compleated', '702.107a', '702.138c', 'Endure']
+    added:   ['111.3', '614.12', '201.5a', '111.4', '616.1f', '707.9d', '707.5', '707.6', '111.12', '111.11', 'Offspring']
+  rg72  Nadia has cast a [Gather Specimens] earlier in the
+    dropped: ['707.2a', '722.3c', '613.1a', '707.11']
+    added:   ['707.5', '614.12', '611.2e', '616.1f']
+  rg5539  Aubrey controls a [Gaea's Liege], [Rhonas the Indo
+    dropped: ['508.1g', '702.22c', '508.1f', '302.5', '310.5', '508.1a', '802.3b', '702.22g', '506.5']
+    added:   ['802.2a', '508.6', '802.3a', '508.1k', '506.6', '208.2a', '702.3b', '509.1c', '113.12']
+  rg279  Ariyah casts [Stonewood Invocation] targeting [Ske
+    dropped: ['702.90e', '702.90d', '724.1c', '724.2c', '704.4', '702.90b', '613.6', '702.130b', '616.1f']
+    added:   ['302.7', '120.6', '704.5g', '120.4a', '702.2b', '702.80a', '701.19b', '120.3e', '614.8']
+  rg5876  Ariel casts [Prismari Command], with both modes ta
+    dropped: ['801.5b', '700.2c', '707.12a', '707.10b', '702.124e']
+    added:   ['601.7', '601.7a', '707.10e', '115.7d', '115.7c']
+  rg1014  Alejandra owns a face-down [Progenitus] in exile. 
+    dropped: ['Dies', '406.7', '700.4', '400.8', '701.13a', 'Graveyard', '901.7a', '311.6', '717.6a', '404.1', '406.8', 'Destroy', '406.1']
+    added:   ['701.24c', '712.13a', '712.21d', '701.24g', '400.6', '607.2b', '717.6', '614.14', '708.2', '708.12', '406.3a', '616.1f', '712.8a']
+  rg5785  Aurora controls a [Gaea's Liege] and 3 [Snow-Cover
+    dropped: ['702.14d', 'Forest', '302.5', '801.3', '310.5', '506.3a', '702.14c', '802.2a', '701.15c', 'Attack Alone', '702.3b']
+    added:   ['508.1f', '508.1d', '508.1h', '509.1c', 'Declare Attackers', '509.1e', 'Attacking Creature', '805.10b', '509.1d', '508.3d', '508.1m']
+  rg238  Ari controls [Village Survivors] and [Vodalian Sol
+    dropped: ['Life Modifier', '808.3a', '119.4b', '508.1m', '120.4d', '702.154b', '508.3']
+    added:   ['508.1d', 'Declare Attackers', 'Attacking Creature', '508.1a', '508.4c', '508.1c', '508.1k']
+  rg1555  Amari has [Phyrexian Hulk] and [The Mimeoplasm] in
+    dropped: ['707.14', '707.9d', '707.3', '701.42c', '608.3e', '707.2', '111.12', '201.5a', '607.5a', '712.13a']
+    added:   ['614.12b', '614.12', '707.5', '614.13b', '616.1g', '610.3d', '707.9e', '607.3', '707.4', '614.13']
+  rg842  Autumn casts [Time Stretch]. Can they choose to sk
+    dropped: ['724.1e', '702.26m', '500.12']
+    added:   ['807.4i', 'Extra Turn', '702.174g']
+  rg625  Averie attacks with [Pristine Angel]. While it's t
+    dropped: ['602.5', '701.15d', '303.4a', '701.15a', '302.6', '602.5a', '303.4j', '508.7c', '607.2m', '603.1a', '702.5d', '702.95c', '101.2a']
+    added:   ['603.2h', '700.10', '115.9c', '115.3', '603.7h', '805.4d', '603.2e', '115.9a', '709.5i', '603.2c', '602.5b', '601.2c', '700.2d']
+
+  mean chunks changed per question: 9.9 / 15
+  unchanged questions: 0/150
+
+Regressions vs pure-vector baseline (hit@5, baseline='voyage-4-large'):
+  BM25: ['rg3509', 'rg1784', 'rg2543', 'rg2154', 'rg137', 'rg144', 'rg3868', 'rg1239', 'rg7215', 'rg679', 'rg2599', 'rg494', 'rg306', 'rg528', 'rg5193', 'rg1454', 'rg282', 'rg60', 'rg5539', 'rg279', 'rg5785', 'rg238', 'rg1555']
+  hybrid-RRF: ['rg3509', 'rg1784', 'rg2543', 'rg2154', 'rg3868', 'rg1239', 'rg7215', 'rg494', 'rg528', 'rg1454', 'rg279', 'rg238']
+  hybrid-wt0.5: ['rg1784', 'rg2154', 'rg3868', 'rg7215', 'rg494', 'rg528']
+  rerank:rerank-2.5: ['rg2154', 'rg137', 'rg144', 'rg1943', 'rg1239', 'rg306', 'rg528', 'rg282', 'rg279', 'rg1555']
+  rerank:rerank-2.5-lite: ['rg1784', 'rg2154', 'rg137', 'rg144', 'rg3868', 'rg1943', 'rg1239', 'rg1280', 'rg2599', 'rg306', 'rg528', 'rg282', 'rg279', 'rg5785', 'rg1555']
+  vec+rw1-haiku: ['rg6032', 'rg2543', 'rg144', 'rg3868', 'rg494', 'rg306', 'rg282', 'rg279', 'rg842']
+  vec+rw3-haiku: ['rg6032', 'rg144', 'rg3868', 'rg494', 'rg282', 'rg5539', 'rg279', 'rg842']
+  vec+rw1-sonnet: ['rg1943', 'rg5242', 'rg2599', 'rg494', 'rg117', 'rg5785', 'rg842']
+  vec+rw3-sonnet: ['rg1943', 'rg2163', 'rg2599', 'rg494', 'rg282', 'rg279', 'rg842']
+  vec+rw1-gpt5mini: ['rg2543', 'rg3188', 'rg5242', 'rg2599', 'rg494', 'rg279']
+  vec+rw3-gpt5mini: ['rg2154', 'rg2599', 'rg494', 'rg117', 'rg282', 'rg279']
+  vec+rw3-sonnet+orig: ['rg2163', 'rg2599', 'rg494', 'rg279', 'rg842']
+
+Clarification report (non-null clarification; bar: <= 5 of 150):
+  vec+rw1-haiku   : 1/150 -> ['rg1836']
+  vec+rw3-haiku   : 7/150 -> ['rg6563', 'rg1836', 'rg1344', 'rg4028', 'rg6834', 'rg85', 'rg470']
+  vec+rw1-sonnet  : 1/150 -> ['rg117']
+  vec+rw3-sonnet  : 2/150 -> ['rg1943', 'rg60']
+  vec+rw1-gpt5mini: 6/150 -> ['rg6583', 'rg6032', 'rg3717', 'rg633', 'rg4256', 'rg5785']
+  vec+rw3-gpt5mini: 3/150 -> ['rg5482', 'rg85', 'rg1208']
