@@ -10,7 +10,9 @@
 # _RecordingClient pattern already used by tests/test_prompt_identity.py and
 # evals/run_openrouter_arm.py.
 
+import inspect
 import json
+from unittest.mock import patch
 
 import pytest
 
@@ -149,3 +151,186 @@ def test_rewrite_query_still_works_with_no_version_kwarg_at_all():
     result = rw.rewrite_query("what does trample do", "test-model", 1, client, context=None)
     assert result.queries == ["a rewrite"]
     assert client.messages.calls[0]["system"] == rw.SYSTEM_VERSIONS["v2"].format(n=1)
+
+
+# --- backend seam: OpenRouter (gpt5mini) rewriter arm ------------------------
+# TDD for the gpt5mini rewriter-arm spec: rewrite_query() gains a
+# `backend: str = "anthropic"` kwarg. Default behavior (no `backend` passed,
+# or `backend="anthropic"` explicitly) must stay byte-for-byte identical to
+# today -- that's the control arm and any drift invalidates the comparison.
+# The new "openrouter" branch reuses the SAME content-building logic as the
+# Anthropic branch and routes through openrouter_backend.call_structured()
+# instead of anthropic.Anthropic().messages.parse().
+
+
+def test_backend_param_defaults_to_anthropic():
+    sig = inspect.signature(rw.rewrite_query)
+    assert sig.parameters["backend"].default == "anthropic"
+
+
+def test_backend_anthropic_explicit_matches_omitted_default():
+    """Passing backend='anthropic' explicitly must behave identically to
+    omitting it -- both must call the Anthropic client the same way. Two
+    distinct questions are used so the second call is never a cache hit for
+    the first (which would mean the Anthropic client is never touched at
+    all, telling us nothing) -- what's compared is the SHAPE of the call
+    (everything but the question-derived content), which must match."""
+    client_default = _FakeClient(queries=["r1"])
+    rw.rewrite_query("what does trample do", "test-model", 1, client_default)
+
+    client_explicit = _FakeClient(queries=["r1"])
+    rw.rewrite_query(
+        "what does deathtouch do", "test-model", 1, client_explicit, backend="anthropic"
+    )
+
+    call_default = client_default.messages.calls[0]
+    call_explicit = client_explicit.messages.calls[0]
+    assert call_default["model"] == call_explicit["model"]
+    assert call_default["max_tokens"] == call_explicit["max_tokens"]
+    assert call_default["system"] == call_explicit["system"]
+    assert call_default["output_format"] == call_explicit["output_format"]
+
+
+def test_openrouter_backend_never_constructs_anthropic_client():
+    """backend='openrouter' must never touch anthropic.Anthropic, even with
+    client=None (the default construction path for the Anthropic branch)."""
+    with patch("rulesagent.retrieve.rewrite.anthropic.Anthropic") as mock_anthropic, \
+         patch.object(rw.openrouter_backend, "call_structured",
+                      return_value={"queries": ["x"], "clarification": None}):
+        rw.rewrite_query("what does trample do", "openai/gpt-5-mini", 1, None, backend="openrouter")
+    mock_anthropic.assert_not_called()
+
+
+def test_openrouter_backend_builds_same_content_as_anthropic_for_same_inputs():
+    """The content-building logic (question, or the context-resolution
+    wrapper) must be REUSED identically by both branches -- same question +
+    same context must produce the exact same system/user text regardless of
+    backend."""
+    client = _FakeClient(queries=["anthropic rewrite"])
+    rw.rewrite_query(
+        "what if it's phased out", "test-model", 1, client,
+        context="Earlier turn about creatures.",
+    )
+    anthropic_system = client.messages.calls[0]["system"]
+    anthropic_content = client.messages.calls[0]["messages"][0]["content"]
+
+    captured = {}
+
+    def fake_call_structured(system, user, model, schema, schema_name="output", timeout=300.0):
+        captured["system"] = system
+        captured["user"] = user
+        return {"queries": ["openrouter rewrite"], "clarification": None}
+
+    with patch.object(rw.openrouter_backend, "call_structured", side_effect=fake_call_structured):
+        rw.rewrite_query(
+            "what if it's phased out", "test-model", 1, None,
+            context="Earlier turn about creatures.", backend="openrouter",
+        )
+
+    assert captured["system"] == anthropic_system
+    assert captured["user"] == anthropic_content
+
+
+def test_openrouter_backend_returns_rewritten_query_from_parsed_json():
+    def fake_call_structured(system, user, model, schema, schema_name="output", timeout=300.0):
+        return {"queries": ["a", "b"], "clarification": "which creature?"}
+
+    with patch.object(rw.openrouter_backend, "call_structured", side_effect=fake_call_structured):
+        result = rw.rewrite_query(
+            "what does trample do", "openai/gpt-5-mini", 2, None, backend="openrouter"
+        )
+
+    assert result.queries == ["a", "b"]
+    assert result.clarification == "which creature?"
+    assert result.original == "what does trample do"
+
+
+def test_openrouter_backend_falls_back_on_none_from_call_structured():
+    with patch.object(rw.openrouter_backend, "call_structured", return_value=None):
+        result = rw.rewrite_query(
+            "what does trample do", "openai/gpt-5-mini", 1, None, backend="openrouter"
+        )
+    assert result.queries == ["what does trample do"]
+    assert result.clarification is None
+
+
+def test_openrouter_backend_falls_back_on_call_structured_raising():
+    """Same broad-except discipline as the Anthropic branch: any exception
+    from the OpenRouter call degrades to the fallback, never propagates."""
+    with patch.object(rw.openrouter_backend, "call_structured", side_effect=RuntimeError("boom")):
+        result = rw.rewrite_query(
+            "what does trample do", "openai/gpt-5-mini", 1, None, backend="openrouter"
+        )
+    assert result.queries == ["what does trample do"]
+    assert result.clarification is None
+
+
+def test_openrouter_backend_passes_strict_schema_for_rewrites():
+    captured = {}
+
+    def fake_call_structured(system, user, model, schema, schema_name="output", timeout=300.0):
+        captured["schema"] = schema
+        return {"queries": ["x"], "clarification": None}
+
+    with patch.object(rw.openrouter_backend, "call_structured", side_effect=fake_call_structured):
+        rw.rewrite_query("what does trample do", "openai/gpt-5-mini", 1, None, backend="openrouter")
+
+    schema = captured["schema"]
+    assert schema["additionalProperties"] is False
+    assert "title" not in schema
+    assert set(schema["required"]) == set(schema["properties"].keys())
+
+
+def test_openrouter_backend_result_is_cached_same_as_anthropic():
+    """The cache key (model, version, n, question) is untouched -- a second
+    call with identical inputs must be a cache hit, zero further calls to
+    call_structured, same discipline as the Anthropic branch."""
+    call_count = {"n": 0}
+
+    def fake_call_structured(system, user, model, schema, schema_name="output", timeout=300.0):
+        call_count["n"] += 1
+        return {"queries": ["cached rewrite"], "clarification": None}
+
+    with patch.object(rw.openrouter_backend, "call_structured", side_effect=fake_call_structured):
+        first = rw.rewrite_query("what does trample do", "openai/gpt-5-mini", 1, None, backend="openrouter")
+        second = rw.rewrite_query("what does trample do", "openai/gpt-5-mini", 1, None, backend="openrouter")
+
+    assert call_count["n"] == 1
+    assert first.queries == second.queries == ["cached rewrite"]
+
+
+def test_openrouter_backend_temperature_key_absent_for_no_temperature_model_end_to_end():
+    """End-to-end (no mocking of call_structured itself, only the HTTP layer)
+    -- gpt-5-mini's request body must omit `temperature` entirely, and a
+    model outside NO_TEMPERATURE must send temperature: 0."""
+    from unittest.mock import MagicMock
+
+    from rulesagent.generate import openrouter_backend as orb
+
+    def _ok(content):
+        resp = MagicMock()
+        resp.raise_for_status.return_value = None
+        resp.json.return_value = {
+            "model": "openai/gpt-5-mini", "provider": "OpenAI",
+            "usage": {}, "choices": [{"message": {"content": content}}],
+        }
+        return resp
+
+    captured = {}
+
+    def fake_post(url, json=None, timeout=None, headers=None):
+        captured["body"] = json
+        return _ok('{"queries": ["x"], "clarification": null}')
+
+    with patch.object(orb.httpx, "post", side_effect=fake_post), \
+         patch.dict("os.environ", {"OPENROUTER_API_KEY": "fake-key"}):
+        rw.rewrite_query("what does trample do", "openai/gpt-5-mini", 1, None, backend="openrouter")
+
+    assert "temperature" not in captured["body"]
+
+    captured.clear()
+    with patch.object(orb.httpx, "post", side_effect=fake_post), \
+         patch.dict("os.environ", {"OPENROUTER_API_KEY": "fake-key"}):
+        rw.rewrite_query("some/other-model question", "some/other-model", 1, None, backend="openrouter")
+
+    assert captured["body"]["temperature"] == 0.0
