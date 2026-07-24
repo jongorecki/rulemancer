@@ -64,6 +64,18 @@ def rewrite_backend_for_model(model: str) -> str:
     return "openrouter" if "/" in model else "anthropic"
 
 
+def _clean_queries(queries: list[str], fallback: str) -> list[str]:
+    """Drop empty/whitespace rewrite queries and fall back to `fallback` (the
+    original question) if nothing survives. A rewriter can emit an empty query
+    (gpt5mini did on rg5193); Voyage's embed rejects empty strings, so a single
+    unfiltered empty aborts the whole retrieval eval. Dropping an empty query is
+    strictly correct -- an empty string retrieves nothing and contributes
+    nothing to fusion -- and the fallback mirrors rewrite_query's own
+    never-return-empty contract, so a real arm's recall is unchanged."""
+    clean = [x for x in queries if x and x.strip()]
+    return clean or [fallback]
+
+
 _KNOWN_KINDS = {"rule", "glossary", "interaction", "other", "card-interaction"}
 # EvalQuestion.kind (src/rulesagent/contracts.py) is a closed Literal that
 # predates external question sources like RulesGuru ("kind": "rulesguru").
@@ -229,6 +241,15 @@ def main() -> None:
                 # "openai/gpt-5-mini"), otherwise Anthropic, same as always.
                 rw = rewrite_query(q.question, model, n_rw,
                                    backend=rewrite_backend_for_model(model))
+                # Robustness: a rewriter can emit an empty/whitespace query
+                # (observed 2026-07-24: gpt5mini on rg5193). embed_query rejects
+                # empty strings, so an unfiltered empty crashes the ENTIRE pass
+                # at the Voyage call -- and it did. Drop empties at the source so
+                # both consumers below (rewrite_texts and rewrite_rankings' per-
+                # query search) only ever see real queries.
+                cleaned = _clean_queries(list(rw.queries), q.question)
+                if cleaned != list(rw.queries):
+                    rw = rw.model_copy(update={"queries": cleaned})
                 rewrites[(q.id, label, n_rw)] = rw
                 rewrite_texts.update(rw.queries)
 
