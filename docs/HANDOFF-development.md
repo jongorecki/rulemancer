@@ -128,12 +128,29 @@ differential checks verify reality.
 
 ## HELD, NOT DONE — needs your decision
 
-- **Scryfall local-bulk** (`worktree-agent-a818653b08eb516a4`, 5 commits, NOT
-  merged). Fully built + tested, but the equivalence check caught a real
-  regression: **`Valki, God of Lies` resolves today and misses under local
-  bulk** (art-series decoy + "Loki" outscoring it inside the ambiguity margin;
-  the guard correctly refuses). Needs a per-face-name lookup tier — a decision,
-  in `docs/OVERNIGHT-STATUS.md`. Master is verified clean of this branch.
+- **Scryfall local-bulk** (`worktree-agent-a818653b08eb516a4`, 7 commits, NOT
+  merged). Fully built + tested. The Valki regression is FIXED (per-face-name
+  lookup tier, Jon-approved; equivalence check now 29/29, only Valki changed
+  miss→hit, both DFC faces intact). Master is verified clean of this branch.
+  **PRE-MERGE CHECKLIST — this is a production get_card backend swap, do NOT
+  merge without all of these:**
+  1. **Build `data/scryfall.db` on master first.** New get_card resolves ONLY
+     against the local snapshot (no live fallback). A missing db means
+     `connect()` silently CREATE-TABLE-IF-NOT-EXISTS makes an empty one. A
+     fail-loud guard was added (`assert_populated()` raises
+     `ScryfallStoreEmptyError`), so it's no longer silent — BUT see #2.
+  2. **The guard is swallowed by answer.py's per-ref `try/except Exception`**
+     (the c012 handler). So on an empty db it currently logs an error per card
+     ref per request (degraded+noisy) rather than hard-failing at startup. FIX
+     at merge time: make that handler re-raise `ScryfallStoreEmptyError` (it's a
+     config error, not a per-card miss), or add a startup populated-check in
+     `RulesAgent.__init__`. Deferred because **the cost-calculator agent is also
+     editing answer.py** — reconcile both in one answer.py merge pass.
+  3. **Deploy implication:** production/Fly.io deploy needs a db-build step
+     (`scripts/refresh_scryfall_bulk.py`, downloads ~180MB Scryfall bulk).
+     Jon's call — this changes the deploy process.
+  4. Reconcile answer.py: both this branch (fuzzy_fallbacks debug wiring) and
+     the cost-calc branch touch answer.py; expect a conflict, merge carefully.
 - **c020 phase 2** — its capture correctly contains injection (production is now
   cell B), so `build_prompts_variant.py` gate 3 rightly refused a clean v3
   derivation. c020 is now a cell-B-vs-D comparison; its derivation must be
