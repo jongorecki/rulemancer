@@ -55,7 +55,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))  # so `from run_eval import ...` resolves
 # regardless of the caller's cwd -- same reasoning as run_answer_eval.py's identical line.
 
-from progress import Heartbeat, atomic_write_json  # noqa: E402
+from progress import Heartbeat, atomic_write_json, prompts_cache_sha256  # noqa: E402
 from run_eval import CR_PATH, PARSED_DIR, VECTOR_MODEL, load_questions  # noqa: E402
 
 from rulesagent.generate import openrouter_backend  # noqa: E402
@@ -172,15 +172,18 @@ def _answer_row(qid: str, question: str, result: openrouter_backend.ORResult) ->
     return row
 
 
-def _build_payload(args: argparse.Namespace, results: list[dict],
-                   variance: dict | None) -> dict:
-    """The exact output-file shape main()'s final write has always produced
-    (docs/plan-run-progress.md Sec 4 hard requirement: schema stays byte-
-    identical). Used for BOTH the final write and every incremental write
-    during the loop -- the only thing that varies between calls is which
-    prefix of `results` has been filled in so far and whether `variance` is
-    known yet (None until the loop + variance pass finish), never the shape
-    itself."""
+def _build_payload(args: argparse.Namespace, results: list[dict], variance: dict | None,
+                   prompts_cache_digest: str | None) -> dict:
+    """The output-file shape main()'s final write produces. Prior to the
+    resume-safety fix below, this was byte-identical to what the pre-
+    incremental-writes runner produced (docs/plan-run-progress.md Sec 4
+    hard requirement); `summary.prompts_cache` / `summary.prompts_cache_sha256`
+    are a deliberate, documented ONE-TIME schema addition on top of that --
+    see _load_resumable()'s docstring for why. Used for BOTH the final write
+    and every incremental write during the loop -- the only thing that
+    varies between calls is which prefix of `results` has been filled in so
+    far and whether `variance` is known yet (None until the loop + variance
+    pass finish), never the shape itself."""
     answered = sum(1 for r in results if r["answered"] is True)
     parse_failures = sum(1 for r in results if r["text"] is None)
     total_cost = sum((r["usage"] or {}).get("cost", 0) or 0 for r in results)
@@ -198,30 +201,74 @@ def _build_payload(args: argparse.Namespace, results: list[dict],
             "answered": answered,
             "parse_failures": parse_failures,
             "total_cost": total_cost,
+            # Resume-safety fix (coordinator review, on top of the original
+            # plan): mirrors the top-level `prompts_cache` path plus a
+            # content digest, so _load_resumable() can tell two prompt
+            # variants apart even when model/rewrite_version/
+            # ruling_query_mode/reasoning are all identical -- exactly the
+            # v5 2x2 grid's four cells. See prompts_cache_sha256()'s
+            # docstring (evals/progress.py) for why this is computed
+            # ourselves rather than trusted from the cache file.
+            "prompts_cache": str(args.prompts_cache) if args.prompts_cache else None,
+            "prompts_cache_sha256": prompts_cache_digest,
         },
         "variance": variance,
     }
 
 
-def _load_resumable(out_path: Path, args: argparse.Namespace) -> dict[str, dict]:
+def _load_resumable(out_path: Path, args: argparse.Namespace,
+                    prompts_cache_digest: str | None) -> dict[str, dict]:
     """qid -> already-written row, read off an existing output file at
     `out_path` from a prior (possibly killed) invocation of this exact
     command -- so a restarted run can skip regenerating them (docs/plan-run-
-    progress.md Sec 4). Only trusted when the file's own recorded run-
-    defining config (model/rewrite_version/ruling_query_mode/reasoning --
-    the same fields --retry-errors already guards on) matches this
-    invocation's args; anything else (missing file, unparseable JSON, a
-    config mismatch) returns {} and the run proceeds exactly as a fresh one,
-    the same as before this feature existed. A config mismatch is reported
-    but does not error out -- unlike --retry-errors's hard refusal, this
-    path runs unattended and a stale/unrelated file at the same --out
-    shouldn't block a legitimate fresh run from proceeding."""
+    progress.md Sec 4).
+
+    Two different kinds of mismatch are handled differently on purpose:
+
+    - model / rewrite_version / ruling_query_mode / reasoning differ: SAFE
+      to fall back to a fresh run (return {} -- every question gets
+      regenerated and the file is fully overwritten as the loop proceeds),
+      because a mismatch on any of these means resumable would have been {}
+      anyway, so old rows never get mixed into the new file. This wastes
+      money on a path collision but never produces wrong data -- the
+      original, pre-resume-feature failure mode, unchanged.
+    - prompts_cache identity (path + content digest, see
+      prompts_cache_sha256()) differs: NOT safe to fall back silently. The
+      v5 2x2 symbol-injection grid (docs/plan-v5-symbol-injection.md Sec 3)
+      runs four cells sharing model/rewrite_version/ruling_query_mode/
+      reasoning and differing ONLY in which prompts file they read -- so
+      for that grid, every other field already "matches" and the old code
+      would resume, silently keeping rows generated from a DIFFERENT
+      prompt in a file that looks complete and consistent. This is strictly
+      worse than a wasted-money collision: it produces silently wrong data,
+      the exact failure class this project has been burned by before. So
+      this specific mismatch HARD ERRORS (prints and sys.exit(1)) rather
+      than resuming OR regenerating -- same "loud refusal on an explicit
+      mismatch" convention --retry-errors already uses for model/reasoning,
+      just applied here to the field that was actually missing a check.
+
+    Missing file / unparseable JSON: returns {}, proceeds as a fresh run,
+    same as before this feature existed."""
     if not out_path.exists():
         return {}
     try:
         data = json.loads(out_path.read_text(encoding="utf-8"))
     except (json.JSONDecodeError, OSError):
         return {}
+
+    current_cache_path = str(args.prompts_cache) if args.prompts_cache else None
+    recorded_cache_path = data.get("prompts_cache")
+    recorded_cache_digest = (data.get("summary") or {}).get("prompts_cache_sha256")
+    if recorded_cache_path != current_cache_path or recorded_cache_digest != prompts_cache_digest:
+        print(f"[ERROR] {out_path} exists and was generated with prompts_cache="
+              f"{recorded_cache_path!r} (sha256={recorded_cache_digest!r}), but this "
+              f"invocation is using prompts_cache={current_cache_path!r} "
+              f"(sha256={prompts_cache_digest!r}) -- refusing to silently resume from it "
+              f"OR regenerate over it: these look like two different experiments aimed at "
+              f"the same --out. Point --out somewhere else, or confirm this really is the "
+              f"same prompts file and (if it predates this check) start a fresh --out once.")
+        sys.exit(1)
+
     if (data.get("model") != args.model
             or data.get("rewrite_version") != args.rewrite_version
             or data.get("ruling_query_mode") != args.ruling_query_mode
@@ -673,6 +720,7 @@ def main() -> None:
     out_path = args.out or (ANSWERS_DIR / f"openrouter_{_slug_for(args.model)}.json")
 
     prompts_cache = None
+    prompts_cache_digest = None
     if args.prompts_cache is not None:
         if not args.prompts_cache.exists():
             print(f"[ERROR] --prompts-cache {args.prompts_cache} does not exist -- "
@@ -687,6 +735,11 @@ def main() -> None:
                   f"{args.ruling_query_mode!r} -- refusing to silently mix configs")
             return
         prompts_cache = cached["prompts"]
+        # Resume-safety fix: the content-derived identity of THIS cache,
+        # recorded in the output and checked in _load_resumable() so two
+        # cells that share every other flag (the v5 grid) can't silently
+        # resume/mix rows from a different prompts file at the same --out.
+        prompts_cache_digest = prompts_cache_sha256(prompts_cache)
 
     questions = load_questions(args.questions) + load_questions(args.cards)
     if args.limit is not None:
@@ -703,8 +756,10 @@ def main() -> None:
 
     # Resume (docs/plan-run-progress.md Sec 4): qids already written by a
     # prior (possibly killed) invocation at this exact --out, under a
-    # matching config -- skipped below rather than regenerated.
-    resumable = _load_resumable(out_path, args)
+    # matching config -- skipped below rather than regenerated. Hard-errors
+    # (sys.exit(1)) instead of returning on a prompts-cache identity
+    # mismatch -- see _load_resumable()'s docstring.
+    resumable = _load_resumable(out_path, args, prompts_cache_digest)
 
     results = []
     start = time.time()
@@ -739,7 +794,7 @@ def main() -> None:
             # write below produces, just with a shorter `results` prefix and
             # `variance` not known yet -- so a crash keeps every row
             # completed so far, and a resumed run reads them back out.
-            atomic_write_json(out_path, _build_payload(args, results, None))
+            atomic_write_json(out_path, _build_payload(args, results, None, prompts_cache_digest))
             cost_delta = (row["usage"] or {}).get("cost", 0) or 0
             hb.tick(q.id, errored=bool(row.get("error")), cost_delta=cost_delta)
 
@@ -750,7 +805,7 @@ def main() -> None:
                                     ruling_query_mode=args.ruling_query_mode,
                                     reasoning=args.reasoning_dict)
 
-        payload = _build_payload(args, results, variance)
+        payload = _build_payload(args, results, variance, prompts_cache_digest)
         atomic_write_json(out_path, payload)
         success = True
     finally:

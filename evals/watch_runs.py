@@ -22,6 +22,7 @@ import json
 import os
 import sys
 import time
+from collections import Counter
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))  # so `from progress import ...` resolves
@@ -93,8 +94,35 @@ def _bar(n_done: int, n_total: int, width: int = BAR_WIDTH) -> str:
     return "[" + ("#" * filled) + ("-" * (width - filled)) + "]"
 
 
+def _pct(n_done: int, n_total: int) -> int:
+    if n_total <= 0:
+        return 0
+    return round(100 * min(n_done, n_total) / n_total)
+
+
+def _pct_col(n_done: int, n_total: int) -> str:
+    return f"{_pct(n_done, n_total)}%".rjust(4)
+
+
 def _fmt_cost(cost: float | None) -> str:
     return f"${cost:.4f}" if cost is not None else "$--"
+
+
+def _effective_status(hb: dict, now: float, stale_after: float) -> str:
+    """The status a run actually reads as, once STALLED/DEAD are folded in
+    on top of the raw `status` field -- Jon asked to visually monitor
+    exactly this, and both the per-run line and the grand-total breakdown
+    need the same classification, so it's one function instead of two
+    copies of the same "is this run actually alive" logic drifting apart."""
+    status = hb.get("status", "?")
+    if status != "running":
+        return status  # "done" or "failed" (or an unrecognized value, passed through as-is)
+    updated_at = _parse_iso(hb.get("updated_at"))
+    if updated_at is not None and (now - updated_at) > stale_after:
+        return "stalled"
+    if not _pid_alive(hb.get("pid")):
+        return "dead"
+    return "running"
 
 
 def load_heartbeats(progress_dir: Path) -> list[dict]:
@@ -120,30 +148,49 @@ def render_line(hb: dict, now: float, stale_after: float) -> str:
     run = str(hb.get("run", "?"))
     n_done = hb.get("n_done", 0)
     n_total = hb.get("n_total", 0)
-    status = hb.get("status", "?")
     pid = hb.get("pid")
     updated_at = _parse_iso(hb.get("updated_at"))
     started_at = _parse_iso(hb.get("started_at"))
 
     name_col = run.ljust(18)
     bar_col = _bar(n_done, n_total)
+    pct_col = _pct_col(n_done, n_total)
     frac_col = f"{n_done}/{n_total}".rjust(6)
+    eff_status = _effective_status(hb, now, stale_after)
 
-    if status == "running" and updated_at is not None and (now - updated_at) > stale_after:
-        age = _fmt_elapsed(now - updated_at)
-        return f"{name_col} {bar_col} {frac_col}   STALLED (no heartbeat {age})"
-
-    if status == "running" and not _pid_alive(pid):
+    if eff_status == "stalled":
         age = _fmt_elapsed(now - updated_at) if updated_at is not None else "?"
-        return f"{name_col} {bar_col} {frac_col}   DEAD (pid {pid} gone, last heartbeat {age} ago)"
+        return f"{name_col} {bar_col} {pct_col} {frac_col}   STALLED (no heartbeat {age})"
+
+    if eff_status == "dead":
+        age = _fmt_elapsed(now - updated_at) if updated_at is not None else "?"
+        return f"{name_col} {bar_col} {pct_col} {frac_col}   DEAD (pid {pid} gone, last heartbeat {age} ago)"
 
     last_qid = hb.get("last_qid") or "--"
-    qid_col = ("done" if status == "done" else
-              "failed" if status == "failed" else
+    qid_col = ("done" if eff_status == "done" else
+              "failed" if eff_status == "failed" else
               str(last_qid)).ljust(8)
     elapsed = _fmt_elapsed((updated_at or now) - started_at) if started_at is not None else "?"
     cost_col = _fmt_cost(hb.get("cost_so_far"))
-    return f"{name_col} {bar_col} {frac_col}   {qid_col} {elapsed.rjust(7)}   {cost_col}"
+    return f"{name_col} {bar_col} {pct_col} {frac_col}   {qid_col} {elapsed.rjust(7)}   {cost_col}"
+
+
+def render_total(heartbeats: list[dict], now: float, stale_after: float) -> str:
+    """Combined done/total + percentage across every run in the directory,
+    so a multi-cell grid (e.g. the v5 2x2 x 2-run grid) reads as one number
+    without mental arithmetic, plus a status breakdown using the exact same
+    STALLED/DEAD classification each per-run line uses."""
+    total_done = sum(hb.get("n_done", 0) for hb in heartbeats)
+    total_n = sum(hb.get("n_total", 0) for hb in heartbeats)
+    name_col = "TOTAL".ljust(18)
+    bar_col = _bar(total_done, total_n)
+    pct_col = _pct_col(total_done, total_n)
+    frac_col = f"{total_done}/{total_n}".rjust(6)
+
+    counts = Counter(_effective_status(hb, now, stale_after) for hb in heartbeats)
+    order = ["running", "done", "failed", "stalled", "dead"]
+    breakdown = ", ".join(f"{counts[s]} {s}" for s in order if counts.get(s))
+    return f"{name_col} {bar_col} {pct_col} {frac_col}   ({len(heartbeats)} runs: {breakdown})"
 
 
 def render(progress_dir: Path, stale_after: float) -> str:
@@ -151,7 +198,10 @@ def render(progress_dir: Path, stale_after: float) -> str:
     if not heartbeats:
         return f"(no runs -- nothing in {progress_dir})"
     now = time.time()
-    return "\n".join(render_line(hb, now, stale_after) for hb in heartbeats)
+    lines = [render_line(hb, now, stale_after) for hb in heartbeats]
+    lines.append("-" * 60)
+    lines.append(render_total(heartbeats, now, stale_after))
+    return "\n".join(lines)
 
 
 def parse_args() -> argparse.Namespace:
@@ -173,12 +223,30 @@ def main() -> None:
     if not args.watch:
         print(render(args.dir, args.stale_after))
         return
+    # --watch redraw strategy: a full-screen clear (`cls`/`clear`) before
+    # each reprint, not raw ANSI cursor-control (move-up N lines + clear-
+    # to-end). ANSI VT sequences aren't guaranteed to be interpreted in
+    # every Windows console a user might be running this from (legacy
+    # conhost needs ENABLE_VIRTUAL_TERMINAL_PROCESSING explicitly turned on
+    # via a SetConsoleMode call before it honors them at all -- Windows
+    # Terminal / recent PowerShell usually already have it on, but "usually"
+    # isn't "reliably", and there is no way to verify from here which
+    # terminal this actually runs in). Get it wrong and cursor-control turns
+    # into literal `\x1b[2K` garbage printed on screen every cycle, which is
+    # worse than the plain reprint it was trying to improve on. `cls`/
+    # `clear` is a single OS-level call that has worked in every Windows
+    # console type for decades, with no detection/mode-setting needed --
+    # the tradeoff is one full-screen clear per refresh (a brief blank
+    # flash) instead of an in-place line-diff redraw, but it never scroll-
+    # spams (each cycle replaces the visible screen, nothing accumulates in
+    # scrollback) and can't render as broken escape-code text.
+    clear_cmd = "cls" if os.name == "nt" else "clear"
     try:
         while True:
+            os.system(clear_cmd)
             print(render(args.dir, args.stale_after))
             print(f"\n(refreshing every {args.interval:.0f}s -- Ctrl+C to stop)")
             time.sleep(args.interval)
-            print()
     except KeyboardInterrupt:
         pass
 

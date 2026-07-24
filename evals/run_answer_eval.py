@@ -27,7 +27,7 @@ sys.path.insert(0, str(Path(__file__).parent))  # so `from run_eval import ...` 
 # rulesagent package, it's a scripts directory, so it needs to be on
 # sys.path explicitly rather than relying on script-directory auto-insertion.
 
-from progress import Heartbeat, atomic_write_json  # noqa: E402
+from progress import Heartbeat, atomic_write_json, prompts_cache_sha256  # noqa: E402
 from run_eval import CR_PATH, PARSED_DIR, VECTOR_MODEL, load_questions  # noqa: E402
 
 from rulesagent.contracts import Answer  # noqa: E402
@@ -60,21 +60,36 @@ def load_answer_gold(path: Path) -> dict[str, str]:
     return out
 
 
-def _load_resumable(out_path: Path, args: argparse.Namespace) -> dict[str, dict]:
+def _load_resumable(out_path: Path, args: argparse.Namespace,
+                    prompts_cache_digest: str | None) -> dict[str, dict]:
     """qid -> already-written row, read off an existing output file at
     `out_path` from a prior (possibly killed) invocation of this exact
     command (docs/plan-run-progress.md Sec 4). This runner's output file is
     a plain JSON list (no top-level model/config wrapper the way
-    run_openrouter_arm.py's is), so the only run-defining fields available
-    to sanity-check against are the ones actually stamped onto each row:
-    rewrite_version/ruling_query_mode/show_rewrite/condition/run. There is
-    no per-row `model` field in this schema (a pre-existing gap, out of
-    scope to add -- it would change the row shape), so a resume across two
-    different --model values with everything else identical can't be
-    detected here; --out naming this by model (the default) avoids that in
-    practice. Missing file, unparseable JSON, an empty list, or a config
-    mismatch all return {} and the run proceeds fresh, same as before this
-    feature existed."""
+    run_openrouter_arm.py's is), so the run-defining fields to sanity-check
+    against are the ones stamped onto each row.
+
+    Coordinator-review fix, on top of the original plan: this previously
+    checked rewrite_version/ruling_query_mode/show_rewrite/condition/run
+    but NOT model (there was no per-row `model` field at all -- a real gap,
+    now closed by stamping one below) and NOT prompts-cache identity (the
+    dangerous one: docs/plan-v5-symbol-injection.md Sec 3's four-cell grid
+    can share every one of those fields and differ ONLY in which prompts
+    file it reads, so the old guard would have silently resumed across
+    prompt variants). Two different kinds of mismatch, handled differently
+    on purpose -- see run_openrouter_arm.py's _load_resumable() for the
+    full reasoning, identical here:
+
+    - model / rewrite_version / ruling_query_mode / show_rewrite /
+      condition / run differ: SAFE to fall back to a fresh run (return {}),
+      because resumable={} means every row gets regenerated and the file is
+      fully overwritten -- old rows never mix into the new file.
+    - prompts_cache identity (path + content digest) differs: HARD ERRORS
+      (prints and sys.exit(1)) rather than silently resuming or
+      regenerating over it -- the same reasoning as the OR arm.
+
+    Missing file, unparseable JSON, or an empty list return {} and the run
+    proceeds fresh, same as before this feature existed."""
     if not out_path.exists():
         return {}
     try:
@@ -84,7 +99,22 @@ def _load_resumable(out_path: Path, args: argparse.Namespace) -> dict[str, dict]
     if not isinstance(data, list) or not data:
         return {}
     first = data[0]
-    if (first.get("rewrite_version") != args.rewrite_version
+
+    current_cache_path = str(args.prompts_cache) if args.prompts_cache else None
+    recorded_cache_path = first.get("prompts_cache")
+    recorded_cache_digest = first.get("prompts_cache_sha256")
+    if recorded_cache_path != current_cache_path or recorded_cache_digest != prompts_cache_digest:
+        print(f"[ERROR] {out_path} exists and was generated with prompts_cache="
+              f"{recorded_cache_path!r} (sha256={recorded_cache_digest!r}), but this "
+              f"invocation is using prompts_cache={current_cache_path!r} "
+              f"(sha256={prompts_cache_digest!r}) -- refusing to silently resume from it "
+              f"OR regenerate over it: these look like two different experiments aimed at "
+              f"the same --out. Point --out somewhere else, or confirm this really is the "
+              f"same prompts file and (if it predates this check) start a fresh --out once.")
+        sys.exit(1)
+
+    if (first.get("model") != args.model
+            or first.get("rewrite_version") != args.rewrite_version
             or first.get("ruling_query_mode") != args.ruling_query_mode
             or first.get("show_rewrite") != args.show_rewrite
             or first.get("condition") != args.condition
@@ -240,6 +270,7 @@ def main() -> None:
     )
 
     prompts_cache = None
+    prompts_cache_digest = None
     if args.prompts_cache is not None:
         if not args.prompts_cache.exists():
             print(f"[ERROR] --prompts-cache {args.prompts_cache} does not exist -- "
@@ -254,6 +285,10 @@ def main() -> None:
                   f"{args.ruling_query_mode!r} -- refusing to silently mix configs")
             return
         prompts_cache = cached["prompts"]
+        # Resume-safety fix (same as run_openrouter_arm.py): the
+        # content-derived identity of THIS cache, stamped onto every row
+        # below and checked in _load_resumable().
+        prompts_cache_digest = prompts_cache_sha256(prompts_cache)
 
     questions = load_questions(args.questions)
     answer_gold = load_answer_gold(args.questions)
@@ -272,8 +307,10 @@ def main() -> None:
 
     # Resume (docs/plan-run-progress.md Sec 4): qids already written by a
     # prior (possibly killed) invocation at this exact --out, under a
-    # matching config -- skipped below rather than regenerated.
-    resumable = _load_resumable(args.out, args)
+    # matching config -- skipped below rather than regenerated. Hard-errors
+    # (sys.exit(1)) instead of returning on a prompts-cache identity
+    # mismatch -- see _load_resumable()'s docstring.
+    resumable = _load_resumable(args.out, args, prompts_cache_digest)
 
     results = []
     start = time.time()
@@ -314,6 +351,15 @@ def main() -> None:
                     "ruling_query_mode": args.ruling_query_mode,
                     "condition": args.condition,
                     "run": args.run,
+                    # Resume-safety fix (coordinator review, on top of the
+                    # original plan): this schema previously had no per-row
+                    # `model` field at all, and no prompts-cache identity
+                    # -- both needed so _load_resumable() can actually tell
+                    # two different experiments apart at the same --out.
+                    # See its docstring for the full reasoning.
+                    "model": args.model,
+                    "prompts_cache": str(args.prompts_cache) if args.prompts_cache else None,
+                    "prompts_cache_sha256": prompts_cache_digest,
                     "answered": ans.answered,
                     "answer": ans.text,
                     "citations": ans.citations,

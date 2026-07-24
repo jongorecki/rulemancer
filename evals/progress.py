@@ -5,7 +5,7 @@ run_answer_eval.py) so a detached/backgrounded run's progress is a
 falsifiable filesystem fact -- evals/watch_runs.py reads it -- rather than
 something someone has to remember to go check stdout for.
 
-Two independent pieces:
+Three independent pieces:
 
 - `atomic_write_json()` -- temp file in the SAME directory + os.replace, so
   a reader (the watcher, or a resuming run) never catches a half-write.
@@ -15,8 +15,22 @@ Two independent pieces:
   evals/answers/_progress/{run}.json, updated after every question. Status
   is written in a `finally` at the call site (see `Heartbeat.finish()`) so a
   crash still records "failed" instead of leaving "running" forever.
+- `prompts_cache_sha256()` -- the resume-safety fix for a real defect a
+  coordinator review caught: the v5 2x2 symbol-injection grid
+  (docs/plan-v5-symbol-injection.md Sec 3) runs four cells that share
+  model/rewrite_version/ruling_query_mode/reasoning and differ ONLY in
+  which derived prompts file they read. The original resume guard didn't
+  compare prompts-cache identity at all, so an --out path collision between
+  two cells (an easy slip with four similar commands) would have resume
+  silently keep rows generated from a DIFFERENT prompt -- strictly worse
+  than the pre-resume behavior (a collision used to just waste money by
+  regenerating everything; it would now serve silently wrong data). Both
+  runners record this digest (+ the --prompts-cache path) in their output
+  and hard-error on a mismatch rather than resuming or regenerating over it
+  -- see each runner's `_load_resumable()`.
 """
 
+import hashlib
 import json
 import os
 import tempfile
@@ -28,6 +42,25 @@ PROGRESS_DIR = Path(__file__).parent / "answers" / "_progress"
 
 def _now_iso() -> str:
     return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+
+
+def prompts_cache_sha256(prompts: dict) -> str:
+    """sha256 over the exact {qid: {system, user}} content of a prompts
+    cache -- the "prompt identity" fingerprint recorded in a run's output
+    and compared on resume. Computed directly from the cache's own content
+    rather than trusting an author-declared digest field a particular
+    build script happens to write (evals/build_prompts_v4.py writes
+    system_sha256_v4/system_sha256_v3; a forthcoming build_prompts_variant
+    .py will presumably write something analogous for the v5 grid's four
+    cells) -- nothing guarantees every derived-prompts script uses the same
+    field name, or that a recorded value can't go stale relative to the
+    file's actual `prompts` content. Hashing the content itself can't be
+    wrong or missing for any cache file, and it's exactly the bytes that
+    determine what gets generated -- the thing resume safety actually
+    depends on. `json.dumps(..., sort_keys=True)` makes this independent of
+    the source file's own key order."""
+    canonical = json.dumps(prompts, sort_keys=True, ensure_ascii=False)
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
 
 def atomic_write_json(path: Path, payload: dict, indent: int = 2,
