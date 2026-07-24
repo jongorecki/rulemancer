@@ -58,6 +58,45 @@ about exactly this outcome: *"rewriting is not a reasoning task, it's a
 translation task"*, and a reasoning model *"asked to 'rewrite this into CR
 vocabulary' may over-think."* The measurement is consistent with that warning.
 
+## THE CONFOUND — the control is variance-stabilised and the candidates are not
+
+Raised by Jon, 2026-07-23: *"are we using the same prompt between haiku and
+gpt-5-mini for the rewriter? it could impact data."*
+
+**The prompt is identical** — verified in code, not assumed. `system_text` and
+the user `content` are both built ONCE before the backend branch in
+`rewrite.py`, and both branches consume them; both land on the same `_Rewrites`
+schema; nothing extra is appended on the OpenRouter path (unlike
+`judge_bakeoff.py`, which had to add a one-word-verdict instruction for
+OpenRouter judges). Same prompt, same `n`, same schema.
+
+**But the sampling is not identical, and this is the bigger issue.**
+`rewrite.py:33` — `TEMPERATURE_OK = {"claude-haiku-4-5"}`. Only haiku gets
+`temperature=0`. Sonnet and gpt-5-mini both reject sampling params, so both run
+at default sampling. The code comment states the measured consequence:
+
+> "temperature=0 cuts (does not eliminate) the run-to-run variance in the
+> rewrites -- **measured: without it, rw1-haiku recall@5 swung 68-77% across
+> clean re-runs** because each run drew different rewrites."
+
+**68-77% is the entire band every arm in this bakeoff landed in (71-77%).** So
+the control arm is variance-suppressed while both candidate arms are single
+draws from a distribution roughly as wide as the differences being reported.
+
+This is not a defect introduced by the new OpenRouter path — it is forced, since
+those models reject the parameter. But it means:
+
+- **gpt-5-mini's tie at recall@5 is one sample**, not a level.
+- **Sonnet's apparent 6-point lead is one sample**, and cannot be read as a win.
+- The single-pass limitation below is therefore *worse* than "no stability
+  measurement": for two of three arms there is a **known, measured** instability
+  of about 9 points, and this run cannot see it.
+
+The one claim that survives: gpt-5-mini is at or below the control at **every
+depth measured** (@1, @5, @10, @20, @50) and regresses more questions. A
+consistent direction across five depths is harder to produce by sampling noise
+than a single-metric difference — but it is still one draw.
+
 ## The caveat that governs everything above
 
 **n = 31. One question is 3.2 percentage points.** So `vec+rw1-sonnet`'s
@@ -84,12 +123,23 @@ control arms cost nothing to include. Cents, not dollars.
 
 ## What would settle this
 
-1. **A real 3-pass spread** requires defeating the rewrite cache. Cheapest
+1. **A real multi-pass spread** requires defeating the rewrite cache. Cheapest
    honest option: add a pass index to the **rewrite** cache key for bakeoff runs
    only, leaving the embedding cache alone — rewrite variation is the thing
-   being measured. Bypassing both also re-pays every Voyage call.
+   being measured. Bypassing both also re-pays every Voyage call. This matters
+   more than it did before the confound above was noticed: for the two arms that
+   cannot take `temperature=0`, repeat passes are not a nicety, they are the
+   only way to see a number that means anything.
 2. **A bigger n.** At 31 questions no rewriter comparison can resolve a
    2-question difference, with or without repeat passes.
+3. **Decide what a fair comparison even is.** The shipped path is stabilised at
+   `temperature=0` and the candidates structurally cannot be. Two defensible
+   framings: compare each arm at *its own best available setting* (what this run
+   did — control stabilised, candidates not), or compare all arms *unstabilised*
+   by dropping `temperature=0` from the haiku eval arm, which is apples-to-apples
+   but throws away a property the shipped path actually has. The first answers
+   "should we switch?", the second answers "which rewriter is better?" They are
+   different questions and this run only addresses the first.
 
 ## Status
 
