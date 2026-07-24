@@ -93,8 +93,13 @@ TEMPLATE = r"""<!doctype html>
     padding:10px 12px;margin-bottom:8px}
   .card-x b{font-size:13.5px}
   .card-t{color:var(--muted);font-size:12.5px;margin-left:8px}
+  .card-pt{margin-left:8px;font-size:12.5px;font-weight:650;color:var(--accent);
+    font-variant-numeric:tabular-nums}
   .card-o{white-space:pre-wrap;font-size:13px;margin-top:5px;color:var(--text)}
   .card-err{color:var(--wrong);font-size:12.5px;margin-left:8px}
+  .face{margin-top:6px}
+  .face + .face{border-top:1px solid var(--line);padding-top:8px;margin-top:10px}
+  .face-n{font-weight:650;font-size:13px;margin-bottom:2px}
   .why{color:var(--muted);font-size:13px;margin-top:10px;font-style:italic}
   .acts{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
   button{background:var(--panel2);color:var(--text);border:1px solid var(--line);
@@ -168,10 +173,18 @@ function cardsHtml(cards){
   const rows = cards.map(c => {
     if(c.error) return `<div class="card-x"><b>${esc(c.name)}</b>
       <span class="card-err">could not load — ${esc(c.error)}</span></div>`;
-    const pt = c.pt ? ` &nbsp;${esc(c.pt)}` : "";
-    return `<div class="card-x"><b>${esc(c.name)}</b>
-      <span class="card-t">${esc(c.type_line||"")}${pt}</span>
-      <div class="card-o">${esc(c.oracle_text||"(no rules text)")}</div></div>`;
+    const multi = (c.faces || []).length > 1;
+    const cost = c.mana_cost ? `<span class="card-t">${esc(c.mana_cost)}</span>` : "";
+    const mv = (c.mana_value !== null && c.mana_value !== undefined)
+      ? `<span class="card-t">mana value ${esc(c.mana_value)}</span>` : "";
+    const faces = (c.faces || []).map(f => `
+      <div class="face">
+        ${multi ? `<div class="face-n">${esc(f.name)}</div>` : ""}
+        <span class="card-t">${esc(f.type_line)}</span>
+        ${f.box ? `<span class="card-pt">${esc(f.box)}</span>` : ""}
+        <div class="card-o">${esc(f.oracle_text || "(no rules text)")}</div>
+      </div>`).join("");
+    return `<div class="card-x"><b>${esc(c.name)}</b> ${cost} ${mv}${faces}</div>`;
   }).join("");
   return `<div class="cards"><h3>Cards in the original</h3>${rows}</div>`;
 }

@@ -42,23 +42,55 @@ def source_rows() -> dict[str, dict]:
     return rows
 
 
+def face_entry(face: object) -> dict:
+    """One printed face: type line, the P/T (or loyalty/defense) box, and text.
+
+    Power and toughness live on the FACE, not on the Card -- a top-level
+    getattr(card, "power") returns None even for a plain creature, which is
+    why the first version of this script rendered no P/T at all.
+    """
+    d = face.model_dump() if hasattr(face, "model_dump") else dict(face)
+    power, toughness = d.get("power") or "", d.get("toughness") or ""
+    box = f"{power}/{toughness}" if (power != "" and toughness != "") else ""
+    if not box and d.get("loyalty"):
+        box = f"loyalty {d['loyalty']}"
+    if not box and d.get("defense"):
+        box = f"defense {d['defense']}"
+    return {
+        "name": d.get("name") or "",
+        "type_line": d.get("type_line") or "",
+        "box": box,
+        "oracle_text": d.get("oracle_text") or "",
+    }
+
+
 def card_entry(name: str) -> dict:
-    """One card's display payload, or an explicit error entry."""
+    """One card's display payload, or an explicit error entry.
+
+    Multi-face cards keep BOTH faces. The double-faced card in batch 1 is a
+    1/1 front and a 4/4 back, and the question turns on the back face -- a
+    flattened single-face rendering would hide exactly the number the reader
+    needs.
+    """
     try:
         card = get_card(name)
     except Exception as e:  # pragma: no cover - network/shape defensive
         return {"name": name, "error": f"lookup failed: {e!r}"}
     if card is None:
         return {"name": name, "error": "not found on Scryfall"}
-    pt = None
-    power, toughness = getattr(card, "power", None), getattr(card, "toughness", None)
-    if power is not None and toughness is not None:
-        pt = f"{power}/{toughness}"
+    faces = [face_entry(f) for f in (card.faces or [])]
+    if not faces:  # defensive: no face data, fall back to the card level
+        faces = [{
+            "name": card.name, "type_line": card.type_line or "",
+            "box": "", "oracle_text": card.oracle_text or "",
+        }]
+    mv = card.mana_value
     return {
         "name": card.name,
-        "type_line": card.type_line,
-        "pt": pt,
-        "oracle_text": card.oracle_text or "",
+        "layout": card.layout or "",
+        "mana_cost": card.mana_cost or "",
+        "mana_value": int(mv) if mv is not None and float(mv).is_integer() else mv,
+        "faces": faces,
     }
 
 
