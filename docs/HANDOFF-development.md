@@ -89,8 +89,8 @@ produces a clean 50/50 user-block match against the wrong baseline.
 
 ### THE QUEUE — what's next
 1. **Jon rules on v4 go/no-go** (above). Blocks everything else.
-2. **docs/plan-v5-and-gold-discovery.md** — NEW, drafted this session, four
-   independently-approvable slices, all awaiting review:
+2. **docs/plan-v5-and-gold-discovery.md** — NEW, drafted and then revised to
+   Jon's corrections this session. THREE slices, all awaiting review:
    - **A. Selective symbol injection (the v5 candidate)** — scan the CARDS (and
      the question) for symbols, inject only those definitions as a reference
      section. Jon's design. Scanning cards rather than the whole context is
@@ -98,15 +98,27 @@ produces a clean 50/50 user-block match against the wrong baseline.
      context-wide scan would be worse than today's static block. Pure code, no
      model call; the rewriter structurally cannot see it (`rewrite_query` at
      answer.py:600 runs before `build_prompt` at :685).
-   - **B. Miss-variance probe** — 3 draws per missed question under v3 and v4 at
-     frozen retrieval, ~$1.40. Misses: sonnet c012/c014/c015/q029; gpt-5-mini
-     c004/c012/c015/q014/q016. Honest limit: c012/c015/q016/q014 have no gold
-     rule in the frozen context at all, so no prompt can fix them.
-   - **C. Keyword-ablation probe** — does naming "trample"/"deathtouch" in c002
-     steer retrieval to keyword-definition rules and away from damage
-     assignment? Retrieval-only, cents. Fix (if any) belongs in the rewriter,
-     never in rewording gold questions.
-   - **D. Automated gold-rule discovery** — Jon: *"I don't want to do it by hand
+   - **B. THE MISS MATRIX** (Jon: *"we just want to a/b/c the misses to see if
+     they improve"*) — run **only each arm's missed questions** across three
+     prompt variants: **A = v3**, **B = v4**, **C = v4-minus-legend** (v4's other
+     bullets without the per-symbol definitions, since those get injected
+     programmatically per Slice A; cost-math and the mana-value rule stay).
+     Variant C is load-bearing twice: it isolates whether v4's −2 came from the
+     legend or the other bullets, AND it's the baseline Slice A must beat.
+     Misses: sonnet c012/c014/c015/q029; gpt-5-mini c004/c012/c015/q014/q016
+     plus the v4-only regressions c002/c011. ~72 generations, a couple of
+     dollars. Original-question arms need NO new capture (SYSTEM-swap on
+     `_prompts_C.json`); only the de-keyworded arm needs one.
+     **De-keywording scope was derived, not guessed:** keyword names parsed from
+     CR 702 headings in the repo's own CR (190 abilities); 11 of 50 questions
+     name one; intersected with the miss lists, **c002 is the only qualifying
+     candidate** (c011's "cascade" has no card supplying it; c014's "awaken"
+     matched the CARD NAME `[Awaken the Woods]` — a false positive).
+     Honest limit: c012/c015/q016/q014 have no gold rule in the frozen context
+     at all, so no prompt can fix them — for those this measures draw variance,
+     not fixability. If de-keywording works, the fix belongs in the REWRITER,
+     never in permanently rewording Jon's eval questions.
+   - **C. Automated gold-rule discovery** — Jon: *"I don't want to do it by hand
      if I don't absolutely have to."* Two stages: wide corpus sweep for
      candidates, then bounded ablation for necessity. `evals/ablate_gold.py` is
      the precedent and states the ceiling: it ablates only CITED rules, so it
