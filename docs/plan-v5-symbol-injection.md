@@ -58,10 +58,15 @@ the repo's own Scryfall cache with the `\{[^}]{1,8}\}` regex:
 |---|---|---|---|
 | c002 | gpt-5-mini (v4 regression) | `{1} {3} {B} {G}` | 3 |
 | c004 | gpt-5-mini | `{1} {G} {R}` | 3 |
-| c011 | gpt-5-mini (v4 regression) | `{R} {X}` | 2 |
+| c011 | gpt-5-mini (v4 regression) | `{1} {5} {B} {R} {X}` | 4 |
 | c012 | both | `{1} {2} {3} {4} {13} {T}` | 2 |
 | c014 | sonnet | `{1} {2} {3} {B} {G} {X}` | 4 |
 | c015 | both | `{1} {B} {G}` | 3 |
+
+(Corrected 2026-07-25 during Slice 2: c011's row originally read `{R} {X}`.
+Valki is a modal DFC — front face `{1}{B}`, back face Tibalt `{5}{B}{R}` — and
+the first pass missed the faces. Scope is unaffected; the token estimate was
+stale.)
 
 The three rules misses — **q014, q016, q029** — have no attached cards and no
 braces in their question text. The scan finds nothing, injection emits zero
