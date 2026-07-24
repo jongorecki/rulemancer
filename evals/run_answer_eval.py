@@ -32,7 +32,12 @@ from qidfilter import QidFilterError, select_qids  # noqa: E402
 from run_eval import CR_PATH, PARSED_DIR, VECTOR_MODEL, load_questions  # noqa: E402
 
 from rulesagent.contracts import Answer  # noqa: E402
-from rulesagent.generate.answer import GEN_MODEL, RulesAgent, _degenerate  # noqa: E402
+from rulesagent.generate.answer import (  # noqa: E402
+    GEN_MODEL,
+    PROMPT_VERSION,
+    RulesAgent,
+    _degenerate,
+)
 from rulesagent.index.store import VectorStore  # noqa: E402
 from rulesagent.ingest.chunker import chunk_rules  # noqa: E402
 from rulesagent.ingest.parser import parse_comprehensive_rules  # noqa: E402
@@ -129,7 +134,9 @@ def _load_resumable(out_path: Path, args: argparse.Namespace,
     return by_id
 
 
-def _answer_from_frozen_prompt(client, model: str, system: str, user: str) -> Answer:
+def _answer_from_frozen_prompt(
+    client, model: str, system: str, user: str,
+) -> tuple[Answer, str | None, dict | None]:
     """Generate straight from an already-assembled (system, user) pair,
     bypassing RulesAgent.answer()'s retrieval/rewrite/assembly entirely --
     used only when --prompts-cache supplies a frozen prompt (docs/plan-v3-
@@ -148,7 +155,15 @@ def _answer_from_frozen_prompt(client, model: str, system: str, user: str) -> An
     be re-copied. cards_present is inferred from the frozen user string
     (build_prompt() only appends "\\n\\nCard data:\\n" when cards is
     non-empty) rather than threaded separately, since the prompts-cache
-    stores only the two assembled strings."""
+    stores only the two assembled strings.
+
+    Returns (answer, stop_reason, usage) -- stop_reason/usage read off the
+    FINAL response, whether it produced `answer` directly, contributed the
+    `weak` fallback, or the call degraded to the honest non-answer (docs/
+    spec-slice0-harness.md Task 3). There is no tool loop here at all -- this
+    is a single messages.parse() call, never a round trip -- so callers must
+    record `tool_rounds: None` for rows generated this way; that absence is
+    real information, not a gap to paper over with a fake 0 or 1."""
     msgs: list[dict] = [{"role": "user", "content": user}]
     parsed, response = None, None
     weak = None
@@ -167,6 +182,16 @@ def _answer_from_frozen_prompt(client, model: str, system: str, user: str) -> An
             parsed = None
         if parsed is not None:
             break
+    stop_reason = getattr(response, "stop_reason", None) if response is not None else None
+    usage_obj = getattr(response, "usage", None) if response is not None else None
+    usage = None
+    if usage_obj is not None:
+        usage = {
+            "input_tokens": getattr(usage_obj, "input_tokens", None),
+            "output_tokens": getattr(usage_obj, "output_tokens", None),
+            "cache_read_input_tokens": getattr(usage_obj, "cache_read_input_tokens", 0) or 0,
+            "cache_creation_input_tokens": getattr(usage_obj, "cache_creation_input_tokens", 0) or 0,
+        }
     if parsed is None and weak is not None:
         parsed = weak
     if parsed is None:
@@ -176,10 +201,10 @@ def _answer_from_frozen_prompt(client, model: str, system: str, user: str) -> An
             f"twice, stop_reason={stop} -- try again)",
             tldr="Something went wrong generating this answer -- try again.",
             citations=[], answered=False, suggested_followups=[],
-        )
+        ), stop_reason, usage
     if "\n\nCard data:\n" in user:
         parsed.text = f"{parsed.text}\n\n{ATTRIBUTION}"
-    return parsed
+    return parsed, stop_reason, usage
 
 
 def parse_args() -> argparse.Namespace:
@@ -235,6 +260,24 @@ def parse_args() -> argparse.Namespace:
         "each output row's 'run' field for provenance -- purely informational",
     )
     p.add_argument(
+        "--system-version", type=str, default=None,
+        help="RulesAgent system_version key from SYSTEM_VERSIONS (an int prompt version "
+        "such as 3 or 4, or a string tag such as 'v4nl' or 'v3+613' -- the Slice 0 "
+        "control-arm bullet, docs/spec-slice0-harness.md Task 2). Default: production "
+        f"PROMPT_VERSION ({PROMPT_VERSION}). Passed straight into "
+        "RulesAgent(system_version=...) and recorded in each output row.",
+    )
+    p.add_argument(
+        "--layers-tool",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="attach the resolve_layers tool when its calibrated trigger fires (default: "
+        "on). --no-layers-tool suppresses it entirely regardless of the trigger -- needed "
+        "for a Slice 0 arm run, where neither arm may carry the layers tool (docs/spec-"
+        "slice0-harness.md Task 1). Passed straight into RulesAgent(layers_tool=...) and "
+        "recorded in each output row for provenance.",
+    )
+    p.add_argument(
         "--prompts-cache", type=Path, default=None,
         help="path to a JSON {qid: {system, user}} prompt cache built by "
         "evals/run_openrouter_arm.py --assemble-only. When given, every question's "
@@ -260,9 +303,26 @@ def main() -> None:
         print(f"[ERROR] no vector index at {pkl.name}; run build_vector_indexes.py")
         return
     store = VectorStore.load(pkl)
+
+    # Slice 0 harness (docs/spec-slice0-harness.md Task 2c): --system-version
+    # is a free-form string on the CLI (argparse has no clean way to accept
+    # "either an int or a string" directly) since SYSTEM_VERSIONS keys are a
+    # mix of both (3, 4, "v4nl", "v3+613") -- resolve it to the real key type
+    # here, same int-else-string coercion evals/build_prompts_variant.py's
+    # own VARIANTS table encodes by hand per letter. None (not given) means
+    # production: PROMPT_VERSION, unchanged from before this flag existed.
+    if args.system_version is None:
+        system_version: int | str = PROMPT_VERSION
+    else:
+        try:
+            system_version = int(args.system_version)
+        except ValueError:
+            system_version = args.system_version  # a string tag, e.g. "v4nl"
+
     agent = RulesAgent(
         store, model=args.model, rewrite=args.rewrite, show_rewrite=args.show_rewrite,
         rewrite_version=args.rewrite_version, ruling_query_mode=args.ruling_query_mode,
+        system_version=system_version, layers_tool=args.layers_tool,
         # card_no_refresh=True: eval-reproducibility freeze mode (plan #3b) --
         # use any cached Scryfall entry regardless of TTL age. Previously
         # unset (defaulted False) on this native-sonnet path while
@@ -317,6 +377,7 @@ def main() -> None:
         f"| rewrite_version={args.rewrite_version} | ruling_query_mode={args.ruling_query_mode} "
         f"| condition={args.condition} | run={args.run} "
         f"| prompts_cache={args.prompts_cache} "
+        f"| system_version={system_version} | layers_tool={args.layers_tool} "
         f"| questions={args.questions.name}\n"
     )
 
@@ -347,12 +408,20 @@ def main() -> None:
                         print(f"[ERROR] question id {q.id!r} not found in {args.prompts_cache} -- "
                               f"the cache doesn't cover this question set")
                         return
-                    ans = _answer_from_frozen_prompt(
+                    ans, stop_reason, usage = _answer_from_frozen_prompt(
                         agent.client, args.model,
                         prompts_cache[q.id]["system"], prompts_cache[q.id]["user"],
                     )
+                    # No tool loop on this path at all -- the absence is real
+                    # (docs/spec-slice0-harness.md Task 3), never faked as 0/1/[].
+                    tool_calls = None
+                    tool_rounds = None
                 else:
                     ans = agent.answer(q.question)
+                    stop_reason = agent.last_stop_reason
+                    usage = agent.last_usage
+                    tool_calls = agent.last_tool_calls
+                    tool_rounds = agent.last_tool_rounds
                 rewritten = agent.last_rewritten  # None when --no-rewrite, or when using --prompts-cache
                 # agent.last_retrieved: list[Retrieved] (rulesagent.contracts) set by
                 # RulesAgent.answer() right before the generation call -- None when
@@ -403,6 +472,21 @@ def main() -> None:
                     # NOT rule_id (Chunk has no such field). Additive only: every
                     # field above is unchanged in name/shape/value.
                     "retrieved_rule_ids": retrieved_rule_ids,
+                    # Slice 0 harness telemetry (docs/spec-slice0-harness.md
+                    # Task 3). stop_reason makes rg3391-class max_tokens
+                    # truncation visible instead of silently scoring as an
+                    # ordinary wrong answer. tool_rounds is None only on the
+                    # --prompts-cache path (no tool loop exists there at all
+                    # -- a real absence, never faked as 0/1). system_version/
+                    # layers_tool are constant across the whole run but
+                    # stamped per row for provenance, same reasoning as the
+                    # existing model/rewrite_version fields above.
+                    "stop_reason": stop_reason,
+                    "tool_calls": tool_calls,
+                    "tool_rounds": tool_rounds,
+                    "usage": usage,
+                    "system_version": system_version,
+                    "layers_tool": args.layers_tool,
                 }
                 if q.id in answer_gold:
                     # Carried through only for questions that have it (RulesGuru

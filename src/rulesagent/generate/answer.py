@@ -1581,6 +1581,30 @@ class RulesAgent:
         # what did it compute" is answerable from telemetry without
         # re-running the question, same pattern as last_crossref/
         # last_ruling_selection.
+        #
+        # Slice 0 harness telemetry (docs/spec-slice0-harness.md Task 3).
+        # last_tool_calls above does NOT let a caller derive the round count:
+        # a single round can carry more than one tool_use block (the dispatch
+        # loop iterates every block in one response), so len(last_tool_calls)
+        # is a tool-CALL count, not a round count -- they can diverge. Exposed
+        # explicitly here instead. Set on every answer() call that reaches the
+        # round loop (regardless of whether a tool ever fired -- an ordinary
+        # no-tool question still consumes exactly 1 round), so a real 1 is
+        # never confused with the frozen-prompt path's real None (that path
+        # has no round loop at all -- see evals/run_answer_eval.py's
+        # _answer_from_frozen_prompt()).
+        self.last_tool_rounds: int | None = None
+        # stop_reason off the generation response that produced the returned
+        # Answer (or off the last attempt's response on the fully-failed
+        # empty-output path) -- makes rg3391-class max_tokens truncation
+        # visible instead of silently scoring as an ordinary wrong answer.
+        self.last_stop_reason: str | None = None
+        # Token usage off that same response: {"input_tokens",
+        # "output_tokens", "cache_read_input_tokens",
+        # "cache_creation_input_tokens"} (same shape as evals/
+        # opus_grader_calibration.py's usage dict), or None if the response
+        # never carried a `.usage` (e.g. a bare fake in an older test stub).
+        self.last_usage: dict | None = None
         self.last_fuzzy_fallbacks: list[dict] = []
         # Set by answer() on every call (docs/plan-scryfall-local-bulk.md
         # Sec 4): every local fuzzy-fallback event from this request's
@@ -1820,6 +1844,9 @@ class RulesAgent:
             extra_kwargs["tools"] = tools
         base_msgs: list[dict] = [{"role": "user", "content": user}]
         self.last_tool_calls = None
+        self.last_tool_rounds = None
+        self.last_stop_reason = None
+        self.last_usage = None
         parsed, response = None, None
         weak = None  # best parseable-but-degenerate draw, kept as a fallback
         for _attempt in range(2):
@@ -1902,6 +1929,26 @@ class RulesAgent:
 
             if use_any_tool:
                 self.last_tool_calls = attempt_tool_calls
+            # Slice 0 harness telemetry (docs/spec-slice0-harness.md Task 3),
+            # set every attempt (unlike last_tool_calls above, which is only
+            # meaningful when a tool was actually attached). `_round` still
+            # holds its last-assigned value here whether the inner loop
+            # exited via `break` or ran the for/else cap-exhaustion path, so
+            # `_round + 1` is the real number of round trips this attempt
+            # made -- 1 for an ordinary no-tool question, up to
+            # TOOL_ROUND_CAP for a chained or looping one.
+            self.last_tool_rounds = _round + 1
+            self.last_stop_reason = getattr(response, "stop_reason", None) if response is not None else None
+            usage_obj = getattr(response, "usage", None) if response is not None else None
+            if usage_obj is not None:
+                self.last_usage = {
+                    "input_tokens": getattr(usage_obj, "input_tokens", None),
+                    "output_tokens": getattr(usage_obj, "output_tokens", None),
+                    "cache_read_input_tokens": getattr(usage_obj, "cache_read_input_tokens", 0) or 0,
+                    "cache_creation_input_tokens": getattr(usage_obj, "cache_creation_input_tokens", 0) or 0,
+                }
+            else:
+                self.last_usage = None
 
             parsed = response.parsed_output if response is not None else None
             # Malformed check runs alongside _degenerate, on the SAME draw,

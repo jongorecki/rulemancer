@@ -198,8 +198,15 @@ def test_run_answer_eval_schema_additive(tmp_path):
         "prompts_cache_sha256", "answered", "answer", "citations", "gold",
         "gold_text", "cited_text", "rewrite_queries", "clarification",
     }
+    # retrieved_rule_ids (miss-partition diagnostic) plus the Slice 0 harness
+    # telemetry fields (docs/spec-slice0-harness.md Task 3): stop_reason,
+    # tool_calls, tool_rounds, usage, system_version, layers_tool.
+    new_keys = {
+        "retrieved_rule_ids", "stop_reason", "tool_calls", "tool_rounds",
+        "usage", "system_version", "layers_tool",
+    }
     assert pre_existing_keys <= row.keys()
-    assert row.keys() - pre_existing_keys == {"retrieved_rule_ids"}
+    assert row.keys() - pre_existing_keys == new_keys
     # Spot-check a few pre-existing values are exactly what this config
     # produces -- not just that the keys survived.
     assert row["id"] == "q001"
