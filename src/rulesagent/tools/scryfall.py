@@ -12,11 +12,21 @@ Card references are `[Card Name]` or `[oracle-id-uuid]` tokens in the
 question -- deterministic to parse, no LLM name-guessing. Unchanged from
 plan #3b.
 
-Lookup path (plan Sec 4):
+Lookup path (plan Sec 4, extended post-approval per the equivalence-check
+finding on c011/Valki -- a per-face-name tier, Jon-approved):
   1. ref is a UUID  -> exact match on oracle_id
-  2. else           -> exact match on case-normalized name
-  3. miss on both   -> LOCAL fuzzy match (rapidfuzz), never network
-  4. still nothing  -> None (a true miss)
+  2. else           -> exact match on case-normalized (combined) name
+  3. miss on both   -> exact match on an individual FACE's name (playable
+                       layouts only -- never token/art_series/emblem/etc.)
+  4. miss           -> LOCAL fuzzy match (rapidfuzz), never network
+  5. still nothing  -> None (a true miss)
+
+Step 3 exists because a multi-faced card's bare, commonly-used reference
+(e.g. "[Valki, God of Lies]") is neither its own combined display name
+("Valki, God of Lies // Tibalt, Cosmic Impostor") nor reliably the winning
+fuzzy candidate -- an unrelated card can out-score it on a plain string
+comparison. An exact face-name match is unambiguous and must beat any
+fuzzy near-match, so it is tried first.
 """
 
 import re
@@ -104,6 +114,23 @@ def get_card(ref: str, no_refresh: bool = False) -> Card | None:
         card = scryfall_store.lookup_name_exact(conn, ref)
         if card is not None:
             return card
+
+        # Face-name tier (added post-approval, c011/Valki equivalence-check
+        # finding): an EXACT match against an individual FACE's name, tried
+        # BEFORE fuzzy so it always wins against a fuzzy near-match (e.g.
+        # "Loki, God of Lies" out-scoring "Valki, God of Lies // Tibalt,
+        # Cosmic Impostor" on a bare WRatio comparison). A genuine ambiguity
+        # at this tier (two playable cards sharing a face name) is terminal
+        # -- refuses outright rather than falling through to fuzzy, which
+        # could silently pick one and defeat the guard.
+        card, event = scryfall_store.lookup_face_name(conn, ref)
+        if card is not None:
+            if event is not None:
+                _fuzzy_fallback_log.append(event)
+            return card
+        if event is not None:
+            _fuzzy_fallback_log.append(event)
+            return None
 
         card, event = scryfall_store.fuzzy_lookup(conn, ref)
         if event is not None:

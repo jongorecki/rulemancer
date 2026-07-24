@@ -66,6 +66,67 @@ VALKI = {
     ],
 }
 
+# --- c011/Valki equivalence-check regression fixtures (real Scryfall
+# values, verified live 2026-07-23/24) -- a bare single-face reference like
+# "Valki, God of Lies" must resolve to the real modal_dfc card even with a
+# fuzzy-favored decoy ("Loki, God of Lies") and a non-playable same-name-
+# pattern decoy (an art_series print) both present in the store.
+
+VALKI_REAL = {
+    "oracle_id": "907ae517-22d5-4ac7-bc3a-3f4d5eaeeb57",
+    "name": "Valki, God of Lies // Tibalt, Cosmic Impostor",
+    "oracle_text": "Front face text.\n//\nBack face text.",
+    "type_line": "Legendary Creature // Legendary Planeswalker",
+    "mana_cost": "",
+    "layout": "modal_dfc",
+    "mana_value": 1.0,
+    "colors": ["B"],
+    "color_identity": ["B", "R"],
+    "faces": [
+        {"name": "Valki, God of Lies", "mana_cost": "{1}{B}",
+         "type_line": "Legendary Creature -- God", "oracle_text": "Front face text.",
+         "power": "1", "toughness": "3", "loyalty": "", "defense": "",
+         "colors": ["B"], "color_indicator": []},
+        {"name": "Tibalt, Cosmic Impostor", "mana_cost": "{5}{B}{R}",
+         "type_line": "Legendary Planeswalker -- Tibalt", "oracle_text": "Back face text.",
+         "power": "", "toughness": "", "loyalty": "5", "defense": "",
+         "colors": ["B", "R"], "color_indicator": []},
+    ],
+}
+
+VALKI_ART_SERIES_DECOY = {
+    "oracle_id": "72230c49-0a41-4968-8fe7-6e8f596b1a31",
+    "name": "Valki, God of Lies // Valki, God of Lies",
+    "oracle_text": "", "type_line": "Card // Card", "mana_cost": "",
+    "layout": "art_series", "mana_value": 0.0, "colors": [], "color_identity": [],
+    "faces": [
+        {"name": "Valki, God of Lies", "mana_cost": "", "type_line": "Card",
+         "oracle_text": "", "power": "", "toughness": "", "loyalty": "", "defense": "",
+         "colors": [], "color_indicator": []},
+        {"name": "Valki, God of Lies", "mana_cost": "", "type_line": "Card",
+         "oracle_text": "", "power": "", "toughness": "", "loyalty": "", "defense": "",
+         "colors": [], "color_indicator": []},
+    ],
+}
+
+LOKI = {
+    "oracle_id": "6f72ce67-3c17-4338-904b-26e2bf4aecdc",
+    "name": "Loki, God of Lies",
+    "oracle_text": "Loki oracle text.",
+    "type_line": "Legendary Creature -- God Sorcerer Villain",
+    "mana_cost": "{1}{R}{R}",
+    "layout": "normal",
+    "mana_value": 3.0,
+    "colors": ["R"],
+    "color_identity": ["R"],
+    "faces": [
+        {"name": "Loki, God of Lies", "mana_cost": "{1}{R}{R}",
+         "type_line": "Legendary Creature -- God Sorcerer Villain", "oracle_text": "Loki oracle text.",
+         "power": "3", "toughness": "3", "loyalty": "", "defense": "",
+         "colors": ["R"], "color_indicator": []},
+    ],
+}
+
 
 @pytest.fixture()
 def _store(tmp_path, monkeypatch):
@@ -153,6 +214,51 @@ def test_fuzzy_fallback_refuses_ambiguous_near_tie(_store):
     assert len(events) == 1
     assert events[0]["reason"] == "ambiguous"
     assert set(events[0]["candidates"]) == {"Kessig Wolf", "Dessig Wolf"}
+
+
+# --- face-name lookup tier (c011/Valki fix) --------------------------------
+
+
+def test_face_name_tier_beats_fuzzy_and_skips_the_decoy(_store):
+    # Loki out-scores Valki/Tibalt on a plain fuzzy comparison, and a
+    # non-playable art_series decoy shares the exact combined-name pattern.
+    # The face-name tier must still resolve to the real modal_dfc card.
+    _store([VALKI_REAL, VALKI_ART_SERIES_DECOY, LOKI])
+
+    card = scryfall.get_card("Valki, God of Lies")
+
+    assert card is not None
+    assert card.name == "Valki, God of Lies // Tibalt, Cosmic Impostor"
+    assert card.oracle_id == VALKI_REAL["oracle_id"]
+    assert len(card.faces) == 2
+    assert card.faces[0].name == "Valki, God of Lies"
+    assert card.faces[0].mana_cost == "{1}{B}"
+    assert card.faces[1].name == "Tibalt, Cosmic Impostor"
+    assert card.faces[1].mana_cost == "{5}{B}{R}"
+    assert card.faces[1].loyalty == "5"
+
+    events = scryfall.pop_fuzzy_fallbacks()
+    assert len(events) == 1
+    assert events[0]["reason"] == "face_name_match"
+    assert events[0]["oracle_id"] == VALKI_REAL["oracle_id"]
+
+
+def test_face_name_tier_does_not_alter_already_exact_hits(_store):
+    # Regression guard: adding the face tier must not change behavior for
+    # cards that already resolve by their own (combined) exact name.
+    _store([VALKI_REAL, VALKI_ART_SERIES_DECOY, LOKI, BOLT, DOVINS_VETO])
+
+    bolt = scryfall.get_card("Lightning Bolt")
+    veto = scryfall.get_card("dovin's veto")
+    valki_full = scryfall.get_card("Valki, God of Lies // Tibalt, Cosmic Impostor")
+    loki = scryfall.get_card("Loki, God of Lies")
+
+    assert bolt.oracle_id == BOLT["oracle_id"]
+    assert veto.oracle_id == DOVINS_VETO["oracle_id"]
+    assert valki_full.oracle_id == VALKI_REAL["oracle_id"]
+    assert loki.oracle_id == LOKI["oracle_id"]
+    # None of these went through the face tier or fuzzy -- no events logged.
+    assert scryfall.pop_fuzzy_fallbacks() == []
 
 
 def test_true_miss_returns_none_with_no_fallback_event(_store):

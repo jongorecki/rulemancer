@@ -28,6 +28,7 @@ SCHEMA_STATEMENTS = [
       oracle_id  TEXT PRIMARY KEY,
       name       TEXT NOT NULL,
       name_norm  TEXT NOT NULL,
+      layout     TEXT NOT NULL DEFAULT '',
       card_json  TEXT NOT NULL
     )
     """,
@@ -41,8 +42,36 @@ SCHEMA_STATEMENTS = [
     )
     """,
     "CREATE INDEX IF NOT EXISTS idx_rulings_oracle ON rulings(oracle_id)",
+    """
+    CREATE TABLE IF NOT EXISTS card_faces (
+      oracle_id       TEXT NOT NULL,
+      face_idx        INTEGER NOT NULL,
+      face_name_norm  TEXT NOT NULL,
+      PRIMARY KEY (oracle_id, face_idx)
+    )
+    """,
+    # Per-face-name lookup tier (docs/plan-scryfall-local-bulk.md, post-
+    # approval fix for the c011/Valki finding): a single-faced card gets one
+    # row whose face name equals the card's own top-level name (redundant
+    # with `cards.name_norm`, harmless -- get_card() tries the exact-name
+    # tier first and never reaches here for those). A multi-faced card gets
+    # one row per printed face, so a bare single-face reference like "Valki,
+    # God of Lies" is reachable even though it's not the card's own
+    # (combined) display name.
+    "CREATE INDEX IF NOT EXISTS idx_card_faces_name_norm ON card_faces(face_name_norm)",
     "CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT)",
 ]
+
+# Non-playable Scryfall layouts: bonus/decorative objects (art_series),
+# tokens, and other non-spell/non-permanent objects that aren't "a card" in
+# the sense Card/CardFace models one. The face-name tier (lookup_face_name)
+# must never resolve a bare name reference to one of these when a real
+# playable card also shares that face name -- this is exactly the Valki
+# (modal_dfc) vs. decoy (art_series) case the equivalence check surfaced.
+NON_PLAYABLE_LAYOUTS = frozenset({
+    "token", "double_faced_token", "emblem", "art_series", "vanguard",
+    "scheme", "planar",
+})
 
 # Jon's ruling (2026-07-23): "Fuzzy threshold: start at 90, with the explicit
 # expectation it gets tuned against real queries." Ambiguity guard: "ship it,
@@ -122,6 +151,86 @@ def lookup_name_exact(conn: sqlite3.Connection, name: str) -> Card | None:
     if row is None:
         return None
     return _row_to_card(conn, row[0], row[1])
+
+
+def lookup_face_name(
+    conn: sqlite3.Connection, name: str,
+) -> tuple[Card | None, dict | None]:
+    """Face-name lookup tier, tried between the exact combined-name match
+    and the fuzzy fallback (get_card's step 2.5, added post-approval per
+    Jon's ruling on the c011/Valki equivalence-check finding): an EXACT
+    match against an individual FACE's name, not the card's own combined
+    "Front // Back" display name. Never fuzzy -- this is a higher-precision
+    tier ABOVE fuzzy, so it must win against any fuzzy near-match (the
+    "Loki, God of Lies" case) rather than being folded into that scoring.
+
+    Returns (card_or_none, event_or_none), same shape as fuzzy_lookup:
+      - No face matches at all: (None, None) -- not logged, a clean miss,
+        falls through to fuzzy exactly like today.
+      - Every face-name match is on a NON-PLAYABLE layout (token/art_series/
+        emblem/etc., see NON_PLAYABLE_LAYOUTS): treated the same as a clean
+        miss -- (None, None) -- so a bare reference never resolves to a
+        decorative/token object, and the caller still gets a chance via
+        fuzzy on the rare shot a real card matches some other way.
+      - Exactly one PLAYABLE card's face matches: (card, {"reason":
+        "face_name_match", ...}) -- logged like a fuzzy hit, since it's
+        still a fallback (the ref wasn't the card's own combined name).
+      - More than one PLAYABLE card shares that exact face name: (None,
+        {"reason": "ambiguous", ...}) -- refuses outright, same guard
+        philosophy as fuzzy_lookup's ambiguity margin. This is a genuine
+        exact-name tie (not a score-margin heuristic), so there's no
+        threshold to tune -- any tie at this tier is real ambiguity.
+    """
+    norm = normalize_name(name)
+    rows = conn.execute(
+        "SELECT cf.oracle_id, c.name, c.layout FROM card_faces cf "
+        "JOIN cards c ON c.oracle_id = cf.oracle_id "
+        "WHERE cf.face_name_norm = ?",
+        (norm,),
+    ).fetchall()
+    if not rows:
+        return None, None
+
+    # Dedupe to one entry per oracle_id (a card can have the same face name
+    # twice, e.g. the art_series decoy's two identical faces).
+    by_oracle_id: dict[str, tuple[str, str]] = {}
+    for oracle_id, card_name, layout in rows:
+        by_oracle_id[oracle_id] = (card_name, layout)
+
+    playable = {
+        oid: (card_name, layout)
+        for oid, (card_name, layout) in by_oracle_id.items()
+        if layout not in NON_PLAYABLE_LAYOUTS
+    }
+    if not playable:
+        # Every match was decorative/non-spell (e.g. only the art_series
+        # decoy exists, or this face name is genuinely only a token's) --
+        # not a resolvable hit at this tier, and not worth logging as a
+        # near-miss (mirrors fuzzy_lookup's "clean miss isn't logged").
+        return None, None
+
+    if len(playable) > 1:
+        candidate_names = sorted(card_name for card_name, _ in playable.values())
+        return None, {
+            "ref": name,
+            "reason": "ambiguous",
+            "matched_name": None,
+            "oracle_id": None,
+            "score": 100.0,
+            "candidates": candidate_names,
+        }
+
+    oracle_id = next(iter(playable))  # the one playable oracle_id
+    card_name, _layout = playable[oracle_id]
+    card = lookup_oracle_id(conn, oracle_id)
+    return card, {
+        "ref": name,
+        "reason": "face_name_match",
+        "matched_name": card_name,
+        "oracle_id": oracle_id,
+        "score": 100.0,
+        "candidates": [],
+    }
 
 
 def fuzzy_lookup(
@@ -226,6 +335,7 @@ def build_store(
             oracle_id = c["oracle_id"]
             name = c["name"]
             name_norm = normalize_name(name)
+            layout = c.get("layout") or ""
             card_json = json.dumps(
                 {k: c.get(k) for k in _CARD_JSON_FIELDS}, ensure_ascii=False
             )
@@ -240,9 +350,9 @@ def build_store(
                 # keep the FIRST winner and skip re-registering this name.
                 try:
                     conn.execute(
-                        "INSERT INTO cards (oracle_id, name, name_norm, card_json) "
-                        "VALUES (?, ?, ?, ?)",
-                        (oracle_id, name, oracle_id, card_json),
+                        "INSERT INTO cards (oracle_id, name, name_norm, layout, card_json) "
+                        "VALUES (?, ?, ?, ?, ?)",
+                        (oracle_id, name, oracle_id, layout, card_json),
                         # name_norm intentionally set to the oracle_id itself
                         # for the LOSING duplicate: guarantees uniqueness
                         # without colliding with any real name, and the row
@@ -254,9 +364,9 @@ def build_store(
             else:
                 seen_name_norms.add(name_norm)
                 conn.execute(
-                    "INSERT OR REPLACE INTO cards (oracle_id, name, name_norm, card_json) "
-                    "VALUES (?, ?, ?, ?)",
-                    (oracle_id, name, name_norm, card_json),
+                    "INSERT OR REPLACE INTO cards (oracle_id, name, name_norm, layout, card_json) "
+                    "VALUES (?, ?, ?, ?, ?)",
+                    (oracle_id, name, name_norm, layout, card_json),
                 )
             card_count += 1
             for i, comment in enumerate(rulings_by_oracle_id.get(oracle_id, [])):
@@ -265,6 +375,15 @@ def build_store(
                     (oracle_id, i, comment),
                 )
                 ruling_count += 1
+            for i, face in enumerate(c.get("faces") or []):
+                face_name = (face or {}).get("name") or ""
+                if not face_name:
+                    continue
+                conn.execute(
+                    "INSERT OR REPLACE INTO card_faces (oracle_id, face_idx, face_name_norm) "
+                    "VALUES (?, ?, ?)",
+                    (oracle_id, i, normalize_name(face_name)),
+                )
         for k, v in meta.items():
             set_meta(conn, k, str(v))
         conn.commit()
