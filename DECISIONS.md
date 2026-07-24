@@ -1731,3 +1731,28 @@ The prior handoff's claim that every live run 400s until 2026-08-01 was stale.
 Credentials load from `.env` via `load_dotenv()` and are not in the ambient shell
 environment — a bare `python -c` without `load_dotenv()` fails with "Could not
 resolve authentication method," which is an auth error, not a cap.
+
+## 2026-07-24 — Pure-rules eval: standing grant to draft freely
+
+After reviewing batch 1 (8 candidates, **approved 8/8 with zero edits**), Jon
+granted standing authorization: *"you can rewrite questions when you already have
+the answers like that for any that you want. that was all very clear. you can draft
+as many as you need. you can pull from whichever questions you need. you proved
+yourself with that rewrite."*
+
+**What this changes:** the constraint recorded earlier — that throughput is bounded
+by Jon's per-item review — is **relaxed**. Draft in large batches (15-20+), pull
+from any tagged slice rather than only the CR-613 rows, and Jon approves in bulk.
+
+**What still binds (unchanged):** only generalize where the original gold ALREADY
+states the rules mechanism explicitly, so derived gold is a paraphrase of
+judge-authored reasoning rather than a new ruling. Derived gold does not inherit
+RulesGuru gold's authority. rg1989 was cut under exactly this rule and stays cut.
+
+**Second payoff, recorded because it changes the target size:** Jon observed that
+generalizing a card question into a rules question is structurally the same
+operation the query rewriter performs at inference time, so every approved pair is
+a supervised example of good rewriting. The set is therefore both the measuring
+instrument for the rewriter lever AND potential training signal for it. A set built
+only to measure would stop earlier than one meant to also teach. Nothing should be
+built on this until it is much larger than 8 pairs.

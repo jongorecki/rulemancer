@@ -1,200 +1,233 @@
-# Handoff — Rulemancer: cost tool hardened, combat tool is next
+# Handoff — Rulemancer: layers tool half-built, levers ruled, API cap cleared
 
 **Replaces the prior handoff (git has every version). Written at the end of the
-second 2026-07-24 session, which fixed the cost-tool reliability defect that was
-task #1, folded Jon's manual regrade into a corrected accuracy number, and
-completed the combat-damage plan's deferred research.**
+2026-07-24 session, which planned and half-built the layer-system tool, got all
+three lever decisions ruled, started the pure-rules eval set, and discovered the
+API cap was never actually blocking.**
+
+## ⚠️ FIRST, UNLEARN THIS: the API cap is CLEARED
+
+The previous handoff said the account was capped until 2026-08-01 and that every
+live sonnet-5 run 400s. **That was stale and it gated real work.** Verified this
+session with a live `claude-sonnet-5` call (16 in / 4 out, `stop_reason=end_turn`).
+
+**Credentials load from `.env` via `load_dotenv()`, NOT the ambient shell.** A bare
+`python -c` without `load_dotenv()` fails with *"Could not resolve authentication
+method"* — that is an **auth** error and reads exactly like a cap. Don't repeat the
+mistake: test before believing any claim that the API is blocked.
 
 ## THE ONE THING TO DO FIRST
 
-**Plan the layer-system resolver tool (CR 613).** Jon ruled it the next tool over
-combat-damage (2026-07-24 — see DECISIONS.md): combat's build-prep research found
-only **7 genuinely assignment-shaped questions** in the whole corpus, while layers
-recurred on **four regrade misses** AND targets the weakest tier (Corner Case,
-50%). This is a NEW tool → **Rule 0: write `plan-layer-system-tool.md` (design
-only); Jon reviews and rules before any code.**
+**Calibrate the layers trigger** (`plan-layer-system-tool.md` §3c and §10 item 2).
+It gates Slice 4 and is the single likeliest place this plan fails.
 
-Inputs for the plan:
+Why it's the risk: layers questions contain **no layers vocabulary**. Across all
+1,409 corpus questions, `\blayer\b` appears **once** (and that row is bucket-B
+order-only), and `timestamp` / `depend` / `continuous effect` appear **zero** times.
+62 of the 68 CR-613 rows match no keyword at all. So the intuitive trigger is dead
+and §3c proposes a two-conjunct replacement (characteristic-readout phrasing AND
+≥2 loaded cards with continuous-effect-shaped oracle text).
 
-- **Ground in CR 613** (the layer system) from `data/raw/MagicCompRules
-  20260619.txt` — never from memory (grounding caught three wrong CR citations in
-  the combat plan this session).
-- **Real failure examples / seed validation set:** the regrade layers misses
-  **rg3868, rg807, rg811, rg633** (Jon's notes: "layers issue," "classic layers,"
-  "timestamp order and layers is genuinely super weird"). Read their
-  questions/gold. Possibly rg1268 (P/T wrong but "becomes a creature" right).
-- **⚠️ Scope the deterministic sub-computation carefully — this is the hard part.**
-  Layers is NOT arithmetic like cost/combat: CR 613 is a 7-layer + sublayer
-  (7a-d) + dependency + timestamp system. The plan's central job is proving there
-  is a **bounded, deterministic** computation the tool can OWN (e.g. given a set
-  of continuous effects with layer/timestamp/dependency data the model has
-  identified, compute the final characteristics). If it can't be made
-  deterministic and bounded, it isn't tool-shaped — say so (that's DECISIONS.md's
-  "what would change my mind" on this ruling).
-- **Loop-gating trap (any new tool inherits this):** the tools-off terminal round
-  from `1dfe6d4` is keyed to `use_cost_tool` (`answer.py` ~1452/1475/1507). A
-  layers trigger must broaden that gating or reinherit cap-exhaustion; size
-  `TOOL_ROUND_CAP` accordingly.
-
-**Combat is shelved** (plan complete in `plan-combat-damage-tool.md` incl. §11;
-revisit if the ROI improves). **The cost-tool reliability defect that was the
-prior task #1 is DONE** (`1dfe6d4`) — details below.
-
-**Task #1 from the prior handoff — the cost-tool reliability defect — is DONE**
-(commit `1dfe6d4`). Root cause was **cap-exhaustion**, not the payload/parse
-collision the report guessed: 16 of 17 failing attempts were the model emitting
-`tool_use` on every round until `TOOL_ROUND_CAP` nulled the response. Fix landed
-three coupled changes (details below). Empty-output dropped from ~29% to **0/24**.
+**The bar, already written into the plan:** ≥60% recall on the 51 bucket-A questions
+with <10% firing on a 100-row non-layers sample. If conjunct 2 can't hit that, the
+blocker is the trigger, not the engine — and that's worth knowing before Slice 4,
+not after. **Slice 3 is disjoint and can run in parallel** (engine code vs. a corpus
+measurement).
 
 ## HOW JON WORKS (unchanged, load-bearing)
 
 - **Rule 0: plan before code.** Every `plan-*.md` is design-only until Jon rules.
-  A bug-fix on already-approved code uses systematic-debugging, not a fresh plan;
-  a NEW tool needs a plan and a ruling.
-- **USE SUBAGENTS.** Dispatch scoped implementation to Sonnet against a written
-  plan; keep the lead for judgment/review/talking to Jon. Haiku for bulk
-  fetch/filter/verify with compact returns. This session ran ~5.
-- **Do-not-delegate:** eval questions, gold, grading verdicts, **reading
-  failures** (the lead reads the garbled/failed outputs itself).
+  A bug-fix on approved code uses systematic-debugging; a NEW tool needs a plan.
+- **USE SUBAGENTS.** Sonnet for scoped implementation against a written plan; Haiku
+  for bulk fetch/filter/verify with compact returns. Keep the lead for judgment,
+  review, and talking to Jon. This session ran 5.
+- **Do-not-delegate:** eval questions, gold, grading verdicts, **reading failures**
+  (the lead reads the garbled/failed outputs itself).
 - **Judge is FROZEN** (`judge_bakeoff` prompt + gpt-5-mini). Never reword.
 - **Never assert an MTG/model fact from memory.** Ground in the repo CR
   (`data/raw/MagicCompRules 20260619.txt`), Scryfall via
-  `rulesagent.tools.scryfall.get_card`, or a live check. Pricing via claude-api.
-- **Billing:** Claude-labour on subscription subagents; API spend is for
-  product/eval arms only. The API cap that was the binding constraint is
-  **cleared** — see ENVIRONMENT.
-- Commit per slice on master, heredoc messages, `Co-Authored-By: Claude Opus 4.8`
-  trailer (repo convention). `.venv/Scripts/python.exe`, `PYTHONIOENCODING=utf-8`.
-  Jon runs the app on port 8000 — never bind/kill it.
-- **Verify your own writes / evidence not assertions.** `str.replace()` no-ops
-  silently — re-read and assert. Never `| tail` a long run (masks the exit code)
-  — `PYTHONUNBUFFERED=1` + a log file. **A single favourable run is not a rate**
-  — aggregate before claiming reliability. Subagents that background a long run
-  and yield a "standing by" placeholder must instead poll the log in-turn.
+  `rulesagent.tools.scryfall.get_card`, or a live check. Model facts via the
+  claude-api skill — that skill is how this session found the rg3391 root cause.
+- **Verify agents' claims yourself.** Both build agents this session reported green
+  suites that were contaminated by the *other* agent's uncommitted files. Neither
+  was independent evidence. Re-run on a clean tree, and hand-check deliverables
+  against the plan's own expected outputs.
+- Commit per slice on master, heredoc messages, `Co-Authored-By: Claude Opus 4.8`.
+  `.venv/Scripts/python.exe`, `PYTHONIOENCODING=utf-8`. Jon runs the app on port
+  8000 — never bind/kill it.
 
 ## THE STRATEGY (unchanged through-line)
 
-This is a **card-interaction reasoning product.** Held-out (RulesGuru-150):
-sonnet **72%** raw / **75.3%** after Jon's regrade, monotonic by difficulty.
-Retrieval overfit badly (recall@50 100% tuned vs **63%** held-out) AND barely
-predicts correctness — the model answers card questions from **oracle text**, not
-retrieved CR rules. **So the levers are REASONING (tools) and CARD-DATA quality.**
-Caveat surfaced by the holdout report: retrieval **coverage** is the
-under-measured lever, and **sonnet-as-rewriter improves held-out coverage** (@50
-75% vs haiku 63%) — the rewriter question is live again on the *retrieval* side.
+A **card-interaction reasoning product.** Held-out (RulesGuru-150): sonnet **72%**
+raw / **75.3%** after Jon's regrade. Retrieval overfit badly (recall@50 100% tuned
+vs **63%** held-out) AND barely predicts correctness — the model answers card
+questions from **oracle text**, not retrieved CR rules. **So the levers are
+REASONING (tools) and CARD-DATA quality.**
 
-## THE TOOL ROADMAP (the core direction)
+## THE TOOL ROADMAP
 
-Pattern: the model orchestrates + reasons; deterministic tools own the exact
+Pattern: the model orchestrates and reasons; deterministic tools own the exact
 sub-computations it narrates right and then botches.
 
 1. **Cost calculator — SHIPPED + HARDENED** (`da0449e`, `e763e91`, `1dfe6d4`).
-   Reliable now; the loop it uses is the shared machinery for every later tool.
-2. **Combat-damage assigner — SHELVED** (Jon 2026-07-24). Plan complete
-   (`plan-combat-damage-tool.md` incl. §11), but build-prep research found only 7
-   genuinely assignment-shaped questions in the corpus — thin ROI. Revisit if that
-   rises; mind the `use_cost_tool` loop-gating trap if resurrected.
-3. **State-based-action checker** — idea, not planned.
-4. **Layer-system resolver (CR 613) — NEXT TOOL; plan it** (Jon ruled 2026-07-24,
-   DECISIONS.md). Targets the weakest tier (Corner Case, 50%); reinforced by four
-   regrade misses (rg3868, rg807, rg811, rg633). Hardest design question: can
-   layer resolution be scoped as a bounded, deterministic sub-computation? See
-   THE ONE THING.
-5. **Question-classification pipeline step** (Jon's idea) — route to the right
-   tool + boost relevant rules. ADDITIVE (offer-more, never restrictive),
-   deterministic-first. Not yet planned.
-6. **NEW tool ideas from this session's regrade notes:**
-   - **Trigger-type identifier** — "enters-the-graveyard" vs "leaves-the-
-     battlefield" triggers (rg608).
-   - **Ability-type / ability-definer tool** — what counts as an ability,
-     mana-ability vs not (rg549; rg517 Deathrite Shaman first ability is not a
-     mana ability because it targets).
-   - **Replacement-effect ordering tool** — order of multiple replacement
-     effects + best outcome, and recognizing when things are a *single* ability
-     so replacements resolve together (rg1095, rg1953).
-7. **DO NOT build the keyword-reminder-text tool** (redundant with oracle text,
-   epistemically risky) — already ruled out.
+2. **Combat-damage — SHELVED** (only 7 assignment-shaped questions in 1,409).
+3. **Layer-system resolver (CR 613) — HALF BUILT.** Slices 1-2 done, 3-4 to go.
+4. **State-based-action checker** — idea, not planned.
+5. **Question-classification pipeline step** (Jon's idea) — route to the right tool.
+   Additive, deterministic-first. Not planned. *Note: if the layers trigger fails
+   its calibration bar, this is the natural fallback — a classifier could route
+   where a regex can't.*
+6. Other ideas from regrade notes: trigger-type identifier (rg608), ability-type
+   definer (rg549, rg517), replacement-effect ordering (rg1095, rg1953).
+7. **DO NOT build the keyword-reminder-text tool** — already ruled out.
 
-**Data idea (not a tool):** load a card's *rulings* when the card is loaded
-(rg517, rg7215 — the Minas Tirith ruling got ignored when it applied).
+## WHAT SHIPPED THIS SESSION (all on master, 419 tests green)
 
-## WHAT SHIPPED THIS SESSION (all on master)
+- **`plan-layer-system-tool.md`** (`c8bcd1e`, `6712313`, `aed0292`) — full design,
+  Jon's three rulings folded in. **Verdict: tool-shaped, but the deterministic core
+  is CR 613.6 ordering bookkeeping, not arithmetic.** sonnet made the *same* 613.6
+  error on three of four regrade seeds after narrating the layers correctly. ROI:
+  **51** genuinely resolver-shaped questions (68 cite CR 613, hand-bucketed) vs
+  combat's 7.
+- **answer.py seam generalised** (`a36db25`, `c79cd03`) — the three `use_cost_tool`
+  gates broadened to `use_any_tool`, **plus a fourth must-fix the combat plan
+  missed**: dispatch had no `block.name` branch and called `_run_calculate_cost`
+  unconditionally. Now name-routed with an unknown-tool error.
+  `TOOL_ROUND_CAP` 3 → 4 per Jon's ruling.
+- **Layer resolver Slices 1-2** (`c85de03`, `ec8cee4`) — layers 2/4/5/6/7a-7d, the
+  CR 613.6 `is_active` gate, `applies_if` option B (six predicates + `expect`) and
+  all four anti-silent-gating mechanisms. Lead-verified against hand-traces:
+  rg3868 → **6/6** (sonnet said 3/3), rg807 → 4/4 blue Frog, rg811 → 4/4 black Frog,
+  CR 613.4d switch examples → 4/6 and 1/4, CR 613.5 Gray Ogre → 5/8, Honor of the
+  Pure → 3/3, and an `expect` mismatch emits a warning with `skipped_count: 1`.
+- **Pure-rules eval batch 1** (`47b3090`, `976c08e`, `f4396c5`) — 8 candidates,
+  **8/8 approved by Jon with zero edits**, plus an approval UI with full oracle
+  text, P/T, and both faces of double-faced cards.
+- **Lever rulings + API correction** (`8d1be26`).
 
-- **Cost-tool reliability fix** (`1dfe6d4`). Instrumented repro
-  (`evals/_phase1_costtool_repro.py`, 24 gens) root-caused cap-exhaustion. Three
-  changes: (a) `tool_choice={"type":"none"}` on the final tool round so the model
-  can't loop and must emit the Answer; (b) a **malformed-answer guard**
-  (`_malformed`: leakage markers + <30-char fragment) that routes garbled draws
-  to the existing retry→honest-decline path instead of shipping them as
-  `answered=True` — high-precision, coherent-uncited answers untouched (q029
-  preserved); (c) `_needs_cost_tool` excludes mana-*production* questions (rg289
-  FP). Verified: 354 tests, empty 0/24, degenerate 0/24, no false positives.
-- **RulesGuru regrade folded** (`d742d34`). Jon regraded all 42 sonnet misses: 2
-  actually correct (judge wrong), 6 partial, 34 wrong → **75.3% (113/150), 110 W
-  / 6 D / 34 L** at half-credit. Upward-only (the 108 judge-passes weren't
-  re-audited). Report: `docs/report-rulesguru-holdout.md`; verdicts:
-  `data/parsed/rulesguru_disagreement_verdicts.json`.
-- **Combat plan build-prep research** (`plan-combat-damage-tool.md` §11) — CR
-  grounding that corrected 3 wrong citations, the ROI count (only 7 of 164 tagged
-  rows are genuinely assignment-shaped), a calibrated trigger regex, and the
-  `use_cost_tool` loop-gating trap noted in THE ONE THING.
+## THE THREE LEVER RULINGS (2026-07-24, in DECISIONS.md)
 
-## RESIDUALS / OPEN ITEMS FROM THIS SESSION
+- **v5 — NO-GO, stay on cell B.** Cell D fixed 0 of 3 sonnet misses and produced 0
+  stable flips at **+510 tok/query over current production**, with no prompt caching
+  anywhere to offset it. Jon: "stick with B for now, plan to A/B things later."
+- **Rewriter — HOLD** for the pure-rules eval. Haiku and sonnet are identical at the
+  real operational depth (`TOP_K=15`; @10 87/87, @20 94/94); the holdout coverage
+  gain is on a corpus that's 98% card questions, so the gain's *value* is unmeasured.
+- **L2 generator — DEFERRED to post-tools** (Jon's reasoning, which overrode a
+  recommendation to pin sonnet). Tools move sub-computations out of the model, so
+  the 22-question held-out gap was measured on a pipeline being actively replaced.
+  **Re-test after layers ships:** compare on the tool-triggering subset measuring
+  accuracy AND tool-call well-formedness AND citation stability — the last because
+  tools trade reasoning burden for structured-output precision, and gpt-5-mini's
+  measured weak spot is exactly there (six-arm bakeoff: **stable citations 2/50**,
+  on a since-superseded prompt, so re-measure rather than treat as verdict).
+  Cost context: ~$0.0059/query (mini) vs ~$0.048 (sonnet); tool round trips
+  multiply both, so the absolute gap **widens** with tools.
 
-- **rg6636 rep3 word-salad** — still ships as `answered=True`-but-uncited (~1/24).
-  Left uncaught deliberately (a guard loose enough to catch real-prose word-salad
-  risks nuking a real terse answer); it's flagged in `last_uncited_success`
-  telemetry, so it's monitorable, not silently trusted.
-- **rg6916 rep1** — leaked scratchpad text landed in an `answered=False` decline
-  (out of the guard's `answered=True` scope). Small UX follow-up.
-- **Sentinel de-conflation** — the empty-output path still logs `"error"` for both
-  cap-exhaustion and validation-empty; distinguish them (less urgent now that
-  cap-exhaustion is structurally impossible on the tool path).
-- **rg3391 long-context empty** — a *different* empty-output cause than the
-  cost-loop one. Jon's note says "raise max_tokens"; but the repro showed baseline
-  empties were NOT truncation (nowhere near the 16384 cap), so that hypothesis is
-  suspect — repro rg3391 specifically before assuming.
+## THE PURE-RULES EVAL PROGRAM
+
+Fills the measurement gap: no held-out *pure-rules* set exists, so RulesGuru's
+98%-card corpus lets oracle text confound every attempt to test whether the CR-rule
+RAG earns its keep.
+
+**Jon's standing grant (2026-07-24):** *"you can rewrite questions when you already
+have the answers like that for any that you want... draft as many as you need...
+pull from whichever questions you need."* So the earlier "throughput bounded by
+Jon's review" constraint is **relaxed** — draft freely in large batches, he approves
+in bulk. Batch 2 can be 15-20+ and can pull from any tagged slice, not just CR 613.
+
+**The one rule that still binds:** only generalize where the original gold **already
+states the rules mechanism explicitly**, so derived gold is a paraphrase rather than
+a new ruling. Derived gold does **not** inherit RulesGuru gold's authority (that
+carve-out exists because certified judges wrote it). One candidate was cut for
+exactly this (rg1989 — gold's arithmetic doesn't follow without the cards' printed
+P/T).
+
+**Second, under-appreciated payoff (Jon's observation):** generalizing a card
+question into a rules question is *structurally the same operation the query
+rewriter performs*. Every approved pair is a supervised example of good rewriting.
+So this set is both the measuring instrument for the rewriter lever **and**
+potential training signal for it. That changes the target size — a set built only to
+measure would stop earlier than one meant to also teach. Don't build on this until
+the set is much larger than 8 pairs.
+
+**Workflow:** draft into `evals/purerules_candidates.json` → run
+`evals/enrich_purerules_cards.py` (attaches oracle text, P/T, all faces) →
+`evals/build_purerules_approval_ui.py` → open `data/parsed/purerules_approval.html`
+(Chrome blocks `file://`, so serve it: `python -m http.server 8765` from
+`data/parsed`, **never port 8000**) → Jon exports `purerules_decisions.json`.
+
+## RESIDUALS / OPEN ITEMS
+
+- **rg3391 — ROOT-CAUSED this session, fix not built.** Its recorded degrade text
+  says `stop_reason=max_tokens`, so it **is** truncation. Jon's original "raise
+  max_tokens" note was right; the prior handoff talked him out of it by
+  over-generalising a c018 finding. **But raising the number alone doesn't work** —
+  `answer.py:1421` records that `max_tokens=32768` trips the SDK's non-streaming
+  10-minute-timeout guard. The real fix is to **stream** (`client.messages.stream()`
+  + `.get_final_message()`), which lifts the ceiling toward sonnet-5's real 128K.
+  Two aggravating factors: sonnet-5 runs **adaptive thinking by default** when
+  `thinking` is omitted (answer.py doesn't set it) and `max_tokens` caps thinking +
+  text *together*; and sonnet-5's tokenizer produces **~30% more tokens** than 4.6.
+  ⚠️ Do NOT "fix" this with `thinking: {"type": "disabled"}` — that makes sonnet-5
+  measurably *less* likely to reach for tools, which is exactly wrong for this
+  pipeline.
+- **Sentinel de-conflation** — `answer.py:1556` collapses cap-exhaustion and
+  validation-empty into one `"error"` sentinel. Small, unblocked.
+- **rg6916 rep1** — leaked scratchpad text in an `answered=False` decline. Small.
+- **rg6636 rep3 word-salad** — deliberately left uncaught; monitored via
+  `last_uncited_success`. Not an open item.
+- **`evals/_phase1_costtool_repro.py`** has two stale `TOOL_ROUND_CAP (3)` comments.
+  Comments only, not exercised by the suite.
 
 ## HELD / BLOCKED ON JON
 
-- **Scryfall local-bulk + per-face + self-heal** (`worktree agent-
-  a818653b08eb516a4`, ~8 commits, NOT merged; complete + verified, 302 tests,
-  29/29 equivalence; self-heal removes the missing-db catastrophe). Landing is a
-  deliberate reconciliation. ⚠️ **The `answer.py` conflict is now THREE-way:** the
-  branch's fuzzy-fallback wiring vs master's cost-calc tool loop vs this session's
-  new `tool_choice:none` + `_malformed` guard. **Keep all three.** Master has no
-  `scryfall.db` (first `get_card` self-heals → 180MB download; pre-build or accept
-  it).
-- **Lever decisions Jon owes** — v5 go/no-go, L2 generator, and the rewriter-on-
-  the-retrieval-side question (holdout data delivered; sonnet rewriter lifts
-  coverage).
+- **Scryfall local-bulk + per-face + self-heal** (worktree
+  `agent-a818653b08eb516a4`, ~8 commits, complete + verified, NOT merged).
+  ⚠️ **The `answer.py` conflict is now FOUR-way** — the branch's fuzzy-fallback
+  wiring, master's cost-tool loop, the `1dfe6d4` reliability fix, and this session's
+  seam generalisation. **Keep all four.** Jon's ruling: *"needs to get resolved as
+  soon as it doesn't require stopping something that's already in progress"* — so
+  land it when no agent owns `answer.py`. Master has no `scryfall.db` (first
+  `get_card` self-heals → 180MB download; pre-build or accept it).
 
-## STILL QUEUED (untouched)
+## STILL QUEUED
 
-`plan-sso.md` (tied to Jon's job-hunt auth-evidence goal — see the rulemancer
-memory), `plan-deploy.md` (budget-breaker slice), Slice C gold discovery,
-`plan-c011-stale-rulings.md` (diagnosed, frozen), the miss-partition diagnostic
-(largely mooted — retrieval barely predicts correctness). **Measurement gap:** no
-held-out *pure-rules* eval set exists yet — needed to test whether the CR-rule RAG
-earns its keep (RulesGuru is 98% card questions, so oracle text confounds it).
+`plan-sso.md` (tied to Jon's job-hunt auth-evidence goal), `plan-deploy.md`,
+Slice C gold discovery, `plan-c011-stale-rulings.md` (diagnosed, frozen), the
+miss-partition diagnostic (largely mooted).
+
+## LAYERS TOOL — REMAINING SLICES
+
+- **Slice 3** — CR 613.8b dependency ordering (including the loop-falls-back-to-
+  timestamp case the CR never illustrates) + the full refusal list.
+  **Also fold in a fix flagged during Slice 2 review:** the 613.6 `removed_at`
+  bookkeeping currently matches ability **text strings** to decide which source got
+  removed. That was a genuine correction to the plan's own spec (a literal reading
+  would have marked Muraganda Petroglyphs removed and returned 4/4 instead of 6/6 on
+  rg3868), but string matching is fragile — `"Trample"` vs `"trample"` silently
+  misjudges. Replace with an explicit `source_on_this_object` flag in the schema.
+- **Slice 4** — wiring: `RESOLVE_LAYERS_TOOL` schema, `_needs_layers_tool`,
+  `_run_resolve_layers`, and registration in `_TOOL_DISPATCH`. **Gated on the
+  trigger calibration above.**
+- **Slice 0** (prompt-bullet control arm) and **Slice 5** (live validation) are both
+  **now runnable** — the cap never blocked them. Per Jon's ruling the tool must
+  **tie or beat** the control arm, and both arms carry a regression measurement,
+  because a system-prompt bullet is a global change while the tool only fires when
+  triggered.
 
 ## ENVIRONMENT & GOTCHAS
 
-- **API usage cap — CLEARED (verified live 2026-07-24).** An earlier version of
-  this handoff said the account was capped until 2026-08-01 and that every live
-  sonnet-5 run 400s. **That is no longer true.** Verified with a real
-  `claude-sonnet-5` call (16 in / 4 out tokens, `stop_reason=end_turn`), so live
-  eval/harness/product-arm runs work. Credentials load from `.env` via
-  `load_dotenv()` — they are NOT in the ambient shell environment, so a bare
-  `python -c` without `load_dotenv()` fails with "Could not resolve
-  authentication method." That auth error is not a cap.
-- ~17+ merged agent worktrees may remain; prune with `git worktree remove`. **KEEP
-  `agent-a818653b08eb516a4`** (Scryfall, unmerged).
+- Worktrees are pruned to 2. **KEEP `agent-a818653b08eb516a4`** (Scryfall, unmerged).
 - Answer object field for the answer text is **`.text`**, not `.answer`.
+- `data/parsed/` is **gitignored** — generated UIs live there and regenerate from
+  their builder scripts.
+- Power/toughness are **not** top-level `Card` fields — they live on `Card.faces[]`.
+  `getattr(card, "power")` returns `None` even for a plain creature.
+- Chrome extension blocks `file://` URLs; serve local HTML over `http.server`.
+  Also: don't click a button that fires `confirm()` while driving the page — a modal
+  freezes the extension connection.
 - The RulesGuru API re-randomizes card/name text per refetch; `rulesguru_full.jsonl`
   is a frozen snapshot (stable on gold/level/tags, not byte-reproducible).
-- Repro harness: `evals/_phase1_costtool_repro.py` writes a classification log +
-  `_records.json` (per-round `stop_reason`/`content_types`/`tool_attached`/usage —
-  the records are how cap-exhaustion vs the forced terminal round was diagnosed).
 - Doc-metadata / token-economy rules live in `D:\Job_hunt\CLAUDE.md` and
   `Token-Economy-Policy.md`.
