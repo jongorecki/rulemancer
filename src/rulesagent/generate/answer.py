@@ -10,6 +10,7 @@ reproducible answer evals -- see DECISIONS.md.
 """
 
 import logging
+import re
 
 import anthropic
 from dotenv import load_dotenv
@@ -393,6 +394,147 @@ SYSTEM_V4 = (
 )
 
 
+# v4nl == v5 plan's "cell C" (docs/plan-v5-symbol-injection.md Sec 3/5a):
+# v4's bullets 4b/4c/4d/4e and the 3b intro clause, MINUS the per-symbol
+# notation legend (both CORE and REFERENCE tiers). Derived by copying
+# SYSTEM_V4 verbatim and cutting two things: (1) the "Notation legend,
+# REFERENCE tier" bullet, removed whole -- it is pure per-symbol
+# definitions, no arithmetic guidance; (2) the "Notation legend, CORE
+# tier" bullet, reduced to ONLY its trailing mana-value-COUNT sentence --
+# the rest of that bullet (what {N}/{C}/{W}.../hybrid/Phyrexian/{X}/{T}/
+# {Q} each individually mean, plus the "{2}{U}{U} = 4 total" illustration)
+# is per-symbol definition content and moves to SYMBOL_DEFS below instead.
+# The separate "Cost math: a cost-REDUCTION effect..." bullet is untouched
+# -- arithmetic guidance, not a definition, per the plan's own distinction.
+# Every other bullet (1a, cite, define-key-term, zones, accurate-and-to-
+# -the-point, 1d timing, card-data, 1e card-text-overrides, ruling-
+# authoritative, ruling-label, tldr, suggested_followups) is copy-pasted
+# unchanged from SYSTEM_V4 -- nothing here is retyped prose.
+SYSTEM_V4NL = (
+    "You are a Magic: The Gathering rules expert. Answer the user's question "
+    "using ONLY the numbered rules provided in the context below. Rules are "
+    "labeled with their number in brackets, e.g. [104.3a]. State assumptions "
+    "when the context doesn't cover something.\n"
+    "- Always refer to a card by its exact full name, every time you mention "
+    "it in your reasoning and in the answer text -- never by a role word "
+    "(\"the attacker,\" \"the blocker,\" \"the creature,\" \"it\") once two or "
+    "more named cards are in the question. If you find yourself about to "
+    "write a role word for a card, stop and substitute its full name "
+    "instead.\n"
+    "- Cite the exact rule numbers you relied on in the citations field. Every "
+    "rule number you reference anywhere in the answer text MUST also appear in "
+    "the citations field, and whenever answered is true the citations field MUST "
+    "be non-empty -- that field is what makes the answer verifiable, so an "
+    "answer that relies on rules can never leave it blank. If you genuinely "
+    "cannot ground the answer in any provided rule, set answered to false "
+    "instead of answering without citations.\n"
+    "- If the provided rules don't contain enough to answer, set answered to "
+    "false and say what's missing -- do NOT fill the gap with outside "
+    "knowledge or guesses.\n"
+    "- Define any key term the question hinges on (e.g. what 'phasing' means) "
+    "so the answer stands on its own.\n"
+    # The only surviving piece of the CORE-tier notation legend bullet --
+    # everything before this sentence in SYSTEM_V4 was a per-symbol
+    # definition and moved to SYMBOL_DEFS.
+    "- For a mana value or total-cost COUNT (as opposed to what you actually "
+    "pay): every hybrid symbol -- two-color, colorless, or hybrid Phyrexian "
+    "alike -- counts as 1 no matter which half would be paid; a monocolored "
+    "hybrid such as {2/W} counts as 2; and {X}, {Y}, and {Z} count as 0 "
+    "wherever the object isn't on the stack.\n"
+    "- Cost math: a cost-REDUCTION effect (\"this costs {1} less\") only "
+    "lowers the generic portion and never goes below {0} generic -- it "
+    "cannot touch colored or {C} symbols. A cost-INCREASE effect that sets "
+    "a floor on the total cost (read the card's own wording for exactly "
+    "how it's phrased -- don't assume a specific card's wording without "
+    "seeing it) applies to the TOTAL mana paid, not just the generic part. "
+    "When more than one cost-changing effect applies, apply them one at a "
+    "time in the order described by the rules provided, and always restate "
+    "the final total cost broken out by symbol, not just a lump number. "
+    "Worked example: a spell that costs {1}{G}{G} (3 total: 1 generic + 2 "
+    "green) with a \"spells cost {1} less\" effect becomes {G}{G} (2 total "
+    "-- the 1 generic mana is gone, the 2 green mana is untouched); if a "
+    "total-cost floor of 3 also applies, the total goes back up to 3 "
+    "(typically {1}{G}{G} again, since the floor cares about the total "
+    "mana count, not which symbols make it up).\n"
+    # Notation legend, REFERENCE tier -- removed whole (pure definitions).
+    "- Name the specific zones, steps, or objects involved rather than "
+    "referring to them vaguely (e.g. the command zone and exile are separate "
+    "zones).\n"
+    "- If the outcome would be different assuming a multiplayer game "
+    "compared to a two-player game, state each outcome separately and say "
+    "which is which. If the outcome is the same regardless of player "
+    "count, say that plainly instead of silently defaulting to a "
+    "two-player framing. When referring to who defends or is affected, say "
+    "\"defending player(s)\" (plural-aware) rather than assuming there is "
+    "exactly one, since some multiplayer variants can have more than one. "
+    "If the provided context only contains two-player-framed rules, say "
+    "your answer is for the two-player case and that a multiplayer table "
+    "may follow different rules -- do not invent multiplayer rules that "
+    "weren't provided.\n"
+    "- Keep the answer accurate and to the point; a player should be able to "
+    "act on it.\n"
+    "- If the order or timing of events in the question is ambiguous (for "
+    "example, exactly when damage was marked relative to a spell being cast "
+    "or resolving), say plainly which timing you're assuming, then add one "
+    "short sentence on how the answer would change under a different timing. "
+    "Never resolve an ambiguous timing question as if only one order were "
+    "possible without saying so.\n"
+    "- When the answer depends on a fact the question doesn't state (an "
+    "unknown mana value, an unspecified zone, an ambiguous order or "
+    "timing, an uncertain player count, etc.), say plainly what you "
+    "assumed instead of silently picking one option. If a different "
+    "assumption would change the answer, add one short sentence on how. "
+    "This is disclosure, not a request for more information -- answer "
+    "with your best assumption stated, don't ask the question back to the "
+    "user.\n"
+    "- You may also be given specific cards' oracle text and rulings, "
+    "labeled \"Card data\" below the rules context. Treat that as additional "
+    "ground truth alongside the rules -- if you rely on a card, cite it by "
+    "name in the citations field, the same way you cite rule numbers.\n"
+    "- A card's own printed rules text always wins over a general rule it "
+    "contradicts. If a card's text says something that conflicts with how a "
+    "general rule would otherwise apply, follow the card's text and say so "
+    "explicitly (name the specific text and note that card text overrides "
+    "the general rule) rather than applying the general rule as if the card "
+    "were silent.\n"
+    "- A provided ruling is itself authoritative, self-sufficient grounding. If "
+    "a ruling directly states what happens in the interaction, rely on it and "
+    "answer -- do NOT decline or hedge just because the underlying numbered rule "
+    "isn't also in the context. (You still must not invent rules or rulings that "
+    "weren't provided.)\n"
+    "- Card rulings in the context are labeled like \"[Card Name ruling #4]\". "
+    "When you rely on a ruling, put that exact label in the citations field, "
+    "the same way you cite rule numbers.\n"
+    "- Answer the practical question a player is actually asking, not only "
+    "the narrowest literal reading of the words. If the situation clearly "
+    "involves resolving multiple copies or instances of an effect and the "
+    "literal wording could be read as asking about just one, answer the "
+    "practical version (e.g. the total after everything resolves) first, "
+    "and only note the narrower literal reading afterward if it's "
+    "genuinely ambiguous which one was meant.\n"
+    "- Open the text field with a direct, unmistakable answer to the "
+    "question -- the first sentence or two should say plainly what happens, "
+    "not lead with caveats or setup. Put reasoning, assumptions, and "
+    "secondary discussion after that direct answer, never before it. If the "
+    "question can reasonably be read two ways (for example, \"who gets "
+    "priority\" could mean right after a spell is cast or right after it "
+    "resolves), answer the reading actually asked first and explicitly, then "
+    "briefly cover the other reading if it's a likely point of confusion -- "
+    "don't let a second reading delay or bury the direct answer to the "
+    "first. Never write a claim in the text field that you're about to "
+    "contradict a sentence later -- work out the right answer before "
+    "writing, then write only that; if you catch a false start, discard it "
+    "rather than \"correcting\" it in place.\n"
+    "- Fill the tldr field with one or two plain sentences that directly answer "
+    "the question for a player in a hurry -- no rule numbers, no hedging "
+    "boilerplate. If answered is false, the tldr plainly says the provided "
+    "rules don't settle it.\n"
+    "- Fill suggested_followups with two or three short natural next questions "
+    "a curious player might ask after reading this answer, each under about "
+    "twelve words."
+)
+
+
 # The registry. Add a version here and it is immediately runnable by both
 # production (via PROMPT_VERSION) and the A/B harness (via an explicit
 # version argument) -- evals/build_prompts_variant.py takes a version name
@@ -401,12 +543,203 @@ SYSTEM_V4 = (
 SYSTEM_VERSIONS: dict[int | str, str] = {
     3: SYSTEM_V3,
     4: SYSTEM_V4,
+    "v4nl": SYSTEM_V4NL,
 }
 
 # What production actually sends. Kept as a module-level name so every
 # existing import site (build_prompt, the OpenRouter arms, the identity
 # fixture) keeps working unchanged.
 SYSTEM = SYSTEM_VERSIONS[PROMPT_VERSION]
+
+
+# Slice 2, selective symbol injection (docs/plan-v5-symbol-injection.md
+# Sec 5a). SYMBOL_DEFS is v4's CORE+REFERENCE notation legend (SYSTEM_V4,
+# untouched above) decomposed to one entry per symbol -- reused VERBATIM,
+# never re-derived from memory, since the wording was build-time-verified
+# against the repo's own CR and Scryfall's Colors-and-Costs doc (see the
+# SYSTEM_V4 comment block). Where the legend states several symbols in one
+# semicolon/comma-joined sentence (e.g. the colorless-hybrid / hybrid-
+# Phyrexian / {C/P} / {H} sentence), each clause is split into its own
+# entry with only mechanical edits: a leading lowercase "a" -> "A" when a
+# clause becomes sentence-initial, and the joining semicolon/comma -> a
+# period. No clause's wording was rewritten. Two exceptions, both
+# deliberate:
+#   - The {2}{U}{U} "= 4 total mana, never 4 mana of any color" sentence
+#     is dropped. It doesn't define a NEW symbol (both {2}/generic and
+#     {U}/color are already covered above) -- it's a worked illustration,
+#     and cutting it is the ambiguous edge of "only definitions move"
+#     (see the implementation report).
+#   - The loyalty-symbol sentence ("written [+N], [-N], or [0]...") is
+#     dropped from this dict. It uses SQUARE brackets, not curly braces,
+#     so it can never be matched by _symbols_present's `\{[^}]{1,8}\}`
+#     regex -- keeping it here would be a dead entry no code path can ever
+#     reach. Flagged in the implementation report rather than silently
+#     included.
+# Dict order is the canonical legend order (CORE tier, then REFERENCE
+# tier) and doubles as _collapse_families's output order -- one source of
+# truth, no separate ordering list to drift out of sync.
+SYMBOL_DEFS: dict[str, str] = {
+    "generic": (
+        "{N} where N is a plain number means N generic mana, payable with "
+        "any color or with colorless mana."
+    ),
+    "{C}": (
+        "{C} means colorless mana specifically -- it is NOT generic and is "
+        "never satisfied by colored mana."
+    ),
+    "{W}": "{W}/{U}/{B}/{R}/{G} each mean one mana of that single color.",
+    "{U}": "{W}/{U}/{B}/{R}/{G} each mean one mana of that single color.",
+    "{B}": "{W}/{U}/{B}/{R}/{G} each mean one mana of that single color.",
+    "{R}": "{W}/{U}/{B}/{R}/{G} each mean one mana of that single color.",
+    "{G}": "{W}/{U}/{B}/{R}/{G} each mean one mana of that single color.",
+    "hybrid": (
+        "A hybrid symbol such as {W/U} is itself a colored symbol and "
+        "means the cost can be paid with one mana of EITHER named color. "
+        "More generally, a hybrid symbol is paid in one of the two ways "
+        "shown by its two halves."
+    ),
+    "monocolored_hybrid": (
+        "A monocolored hybrid symbol such as {2/B} can be paid with "
+        "either one mana of that color or two mana of any type."
+    ),
+    "phyrexian": (
+        "A Phyrexian symbol such as {W/P} is also a colored symbol and "
+        "means the cost can be paid with one mana of that color OR by "
+        "paying 2 life instead."
+    ),
+    "colorless_hybrid": (
+        "A colorless hybrid symbol such as {C/W} is paid with one "
+        "colorless mana or one mana of the named color."
+    ),
+    "hybrid_phyrexian": (
+        "A hybrid Phyrexian symbol such as {W/U/P} is paid with one mana "
+        "of either named color or 2 life."
+    ),
+    "{C/P}": "{C/P} is paid with one colorless mana or 2 life.",
+    "{H}": "{H} is paid with one colored mana of any color, or 2 life.",
+    "{X}": (
+        "{X} is a variable fixed when the spell or ability is cast or "
+        "activated -- resolve X to its actual value before doing any of "
+        "the arithmetic below."
+    ),
+    "{T}": "{T} in a cost means \"tap this permanent\".",
+    "{Q}": "{Q} means \"untap this permanent.\"",
+    "{E}": (
+        "{E} means one energy counter -- paying {E} removes one energy "
+        "counter from yourself."
+    ),
+    "{S}": (
+        "{S} in a cost means it can be paid with one mana of any type "
+        "produced by a snow source -- snow is not itself a color or a "
+        "type of mana."
+    ),
+    "{L}": "{L} means one mana from a legendary source.",
+    "{Y}": "{Y} and {Z} work like {X} as extra variables.",
+    "{Z}": "{Y} and {Z} work like {X} as extra variables.",
+    "{PW}": "{PW} marks a planeswalker.",
+    "{CHAOS}": "{CHAOS} is the Chaos symbol.",
+    "{A}": "{A} is an acorn counter.",
+    "{TK}": "{TK} is a ticket counter.",
+    "{D}": "{D} means one potential land drop.",
+    "{P}": (
+        "A bare {P} with no color letter is a MODAL BUDGET PAWPRINT, NOT "
+        "Phyrexian mana -- Phyrexian mana always has a color component, "
+        "as in {W/P} or {W/U/P}."
+    ),
+}
+
+_SYMBOL_RE = re.compile(r"\{[^}]{1,8}\}")
+_MANA_COLORS = {"W", "U", "B", "R", "G"}
+
+
+def _symbols_present(text: str) -> set[str]:
+    """Every distinct `{...}` token in `text`, 1-8 chars inside the braces
+    (matches everything from `{X}` to `{CHAOS}`). No semantic filtering --
+    that's _collapse_families's job."""
+    return set(_SYMBOL_RE.findall(text))
+
+
+def _classify_symbol(raw: str) -> str | None:
+    """Map one raw `{...}` token to its SYMBOL_DEFS key, or None if it
+    isn't a symbol this dict defines (e.g. an Un-set half-mana/infinity
+    symbol, or anything else not in the legend -- silently dropped, never
+    guessed at)."""
+    inner = raw[1:-1]
+    if inner.isdigit():
+        return "generic"
+    if inner in _MANA_COLORS:
+        return f"{{{inner}}}"
+    if inner == "C/P":
+        return "{C/P}"
+    if inner in ("C", "X", "Y", "Z", "T", "Q", "H", "E", "S", "L", "PW",
+                 "CHAOS", "A", "TK", "D", "P"):
+        return f"{{{inner}}}"
+    parts = inner.split("/")
+    if len(parts) == 2:
+        a, b = parts
+        if a in _MANA_COLORS and b in _MANA_COLORS:
+            return "hybrid"
+        if a.isdigit() and b in _MANA_COLORS:
+            return "monocolored_hybrid"
+        if a in _MANA_COLORS and b == "P":
+            return "phyrexian"
+        if a == "C" and b in _MANA_COLORS:
+            return "colorless_hybrid"
+    elif len(parts) == 3:
+        a, b, c = parts
+        if a in _MANA_COLORS and b in _MANA_COLORS and c == "P":
+            return "hybrid_phyrexian"
+    return None
+
+
+def _collapse_families(symbols: set[str]) -> list[str]:
+    """The ten two-color hybrids collapse to ONE 'hybrid' entry; likewise
+    Phyrexian (5), hybrid Phyrexian (10), {C/x} colorless hybrids (5),
+    {2/x} monocolored hybrids (5), and generic numerals {0}..{20} (one
+    'generic' entry). Returns SYMBOL_DEFS keys, in the dict's own
+    (legend) order, so the emitted block reads CORE-tier-then-REFERENCE-
+    tier regardless of the input set's arbitrary order."""
+    present = {_classify_symbol(s) for s in symbols}
+    present.discard(None)
+    return [key for key in SYMBOL_DEFS if key in present]
+
+
+def _symbol_reference_block(symbols: set[str]) -> str:
+    """"" when `symbols` is empty (or contains nothing SYMBOL_DEFS
+    defines) -- zero symbols, zero tokens. Otherwise one definition line
+    per collapsed family/symbol, verbatim from SYMBOL_DEFS. The five
+    colored-mana keys ({W}/{U}/{B}/{R}/{G}) share one identical sentence
+    in v4's source text (it names all five colors at once) -- deduped
+    here by TEXT, not just by key, so e.g. a card with both {B} and {G}
+    gets that sentence once, not twice. Paying for the same sentence
+    twice is exactly the waste this slice exists to cut."""
+    keys = _collapse_families(symbols)
+    seen: set[str] = set()
+    lines = []
+    for k in keys:
+        d = SYMBOL_DEFS[k]
+        if d not in seen:
+            seen.add(d)
+            lines.append(d)
+    if not lines:
+        return ""
+    body = "\n".join(f"- {d}" for d in lines)
+    return f"Symbol reference (notation used in the cards/question above):\n{body}"
+
+
+def _card_symbol_text(cards: list[Card]) -> str:
+    """mana_cost + oracle_text off every card AND every face (a modal DFC's
+    top-level mana_cost is empty -- each face carries its own), joined into
+    one scan target for _symbols_present. Never includes retrieved rules
+    context -- see the WHY comment in build_prompt."""
+    parts = []
+    for c in cards:
+        parts.append(c.mana_cost)
+        parts.append(c.oracle_text)
+        for f in c.faces:
+            parts.append(f.mana_cost)
+            parts.append(f.oracle_text)
+    return " ".join(parts)
 
 
 def _format_context(retrieved: list[Retrieved]) -> str:
@@ -430,6 +763,36 @@ def build_prompt(question: str, retrieved: list[Retrieved], cards: list[Card],
         # the plan -- it enriches generation, it never touches
         # retrieval or the (unchanged) rewrite step.
         user += f"\n\nCard data:\n{_format_cards(cards)}"
+    # Slice 2, selective symbol injection (docs/plan-v5-symbol-injection.md
+    # Sec 5a). Scan ONLY the cards (mana_cost + oracle_text, every face)
+    # and the question text -- NEVER `context`/`retrieved`, the assembled
+    # rules-context string above.
+    #
+    # WHY cards-not-context: CR 107.4 is a single chunk enumerating every
+    # mana symbol in the game, so if that chunk (or any rules chunk that
+    # happens to quote a symbol in passing) is ever retrieved, a
+    # context-wide scan would inject MORE of the legend than the static
+    # v4 dictionary did -- worse than what this slice exists to fix.
+    # Measured, not argued: on c014's frozen user block (docs/plan-v5-
+    # symbol-injection.md Sec 2), the whole assembled block contains 8
+    # distinct symbols; the card block alone contains 6. The 2-symbol
+    # difference comes from the rules context, which the cards and
+    # question never asked about.
+    #
+    # WHY no rewriter guard is needed: rewrite_query() runs (in
+    # RulesAgent.answer(), well before this function is called) BEFORE
+    # build_prompt() assembles anything -- there is no code path where the
+    # rewriter can see this injected block, so no flag/guard is needed to
+    # keep it structurally invisible to the rewriter.
+    #
+    # Card-less questions still get scanned (Jon's ruling #7: inject when
+    # a symbol appears in the question with no card attached), so this is
+    # NOT nested inside `if cards:` above -- the block is anchored
+    # immediately before "\n\nQuestion:" either way.
+    symbols = _symbols_present(f"{_card_symbol_text(cards)} {question}")
+    symbol_block = _symbol_reference_block(symbols)
+    if symbol_block:
+        user += f"\n\n{symbol_block}"
     user += f"\n\nQuestion: {question}"
     if rewrite_queries is not None:
         # Jon's idea: let the generator see BOTH the user's own words and
