@@ -19,7 +19,9 @@ Run: uv run uvicorn rulesagent.api.main:app --reload
 
 import json
 import logging
+import os
 import sqlite3
+import sys
 import threading
 import time
 import uuid
@@ -29,7 +31,7 @@ from pathlib import Path
 from typing import Literal
 
 import httpx
-from fastapi import FastAPI, HTTPException
+from fastapi import BackgroundTasks, FastAPI, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -46,12 +48,31 @@ VECTOR_MODEL = "voyage-4-large"
 SCRYFALL_AUTOCOMPLETE = "https://api.scryfall.com/cards/autocomplete"
 SCRYFALL_HEADERS = {"User-Agent": "mtg-rules-bot/0.1 (learning project)", "Accept": "application/json"}
 
+# scripts/ isn't a package under src/ -- same sys.path-insertion convention
+# tests/test_watch_runs.py already uses for evals/watch_runs.py. The admin
+# refresh endpoint below must call the SAME shared import function the CLI
+# uses (docs/plan-scryfall-local-bulk.md Sec 5 item 2: "not a duplicated
+# code path"), so this module needs a real import of it, not a reimplementation.
+sys.path.insert(0, str(REPO / "scripts"))
+import refresh_scryfall_bulk  # noqa: E402
+
 _state: dict = {}
 _lock = threading.Lock()
 # Serializes /answer. Cache writes no longer need this (L3: per-key SQLite).
 # It stays to guard the `agent.last_*` recorder reads made right after
 # answer() -- another concurrent request could overwrite those attributes
 # between the call and the reads.
+
+_SCRYFALL_REFRESH_IDLE = {
+    "status": "idle", "started_at": None, "finished_at": None,
+    "result": None, "error": None,
+}
+_scryfall_refresh_lock = threading.Lock()
+_scryfall_refresh_state: dict = dict(_SCRYFALL_REFRESH_IDLE)
+# Admin refresh status (docs/plan-scryfall-local-bulk.md Sec 5 item 2, Jon's
+# ruling: "background task + status poll"). A separate lock from `_lock`
+# above -- this guards a completely different piece of state and there's no
+# reason a slow refresh should contend with /answer's lock or vice versa.
 
 
 @asynccontextmanager
@@ -370,6 +391,94 @@ def autocomplete(q: str) -> dict:
         return {"suggestions": r.json().get("data", [])}
     except httpx.HTTPError:
         return {"suggestions": []}
+
+
+# --- Scryfall local-bulk admin (docs/plan-scryfall-local-bulk.md Sec 5     -
+# --- item 2, Jon's ruling: background task + status poll, ADMIN_TOKEN      -
+# --- env-var pattern) -------------------------------------------------------
+
+
+class AdminRefreshResponse(BaseModel):
+    status: str  # "started" | "already_running"
+
+
+class AdminStatusResponse(BaseModel):
+    status: str  # "idle" | "running" | "success" | "failed"
+    started_at: str | None
+    finished_at: str | None
+    result: dict | None
+    error: str | None
+
+
+def _require_admin_token(authorization: str | None) -> None:
+    """Bearer-token gate, matching the existing os.environ.get(...) key
+    pattern (openrouter_backend.py's OPENROUTER_API_KEY). Fails CLOSED: if
+    ADMIN_TOKEN isn't configured at all, every request is refused (503) --
+    never silently wide open. A configured token that doesn't match, or a
+    missing/malformed header, is a 401."""
+    token = os.environ.get("ADMIN_TOKEN")
+    if not token:
+        raise HTTPException(status_code=503, detail="admin endpoint not configured (no ADMIN_TOKEN)")
+    if authorization != f"Bearer {token}":
+        raise HTTPException(status_code=401, detail="missing or invalid admin token")
+
+
+def _run_scryfall_refresh() -> None:
+    """The background task body -- calls the SAME shared import function the
+    CLI (scripts/refresh_scryfall_bulk.py __main__) and the calendar trigger
+    use, not a duplicated code path."""
+    with _scryfall_refresh_lock:
+        _scryfall_refresh_state.update({
+            "status": "running",
+            "started_at": datetime.now(timezone.utc).isoformat(),
+            "finished_at": None, "result": None, "error": None,
+        })
+    try:
+        summary = refresh_scryfall_bulk.refresh()
+    except Exception as e:
+        logger.warning("scryfall admin refresh failed: %r", e)
+        with _scryfall_refresh_lock:
+            _scryfall_refresh_state.update({
+                "status": "failed",
+                "finished_at": datetime.now(timezone.utc).isoformat(),
+                "error": str(e),
+            })
+        return
+    with _scryfall_refresh_lock:
+        _scryfall_refresh_state.update({
+            "status": "success",
+            "finished_at": datetime.now(timezone.utc).isoformat(),
+            "result": summary,
+        })
+
+
+@app.post(
+    "/admin/scryfall/refresh", tags=["ops"], summary="Trigger a Scryfall bulk-data refresh",
+    description="Token-protected (Authorization: Bearer <ADMIN_TOKEN>). Kicks off a real "
+    "download+rebuild+atomic-swap in the background and returns immediately -- poll "
+    "GET /admin/scryfall/status for the result. A no-op (no second background task) "
+    "if a refresh is already running.",
+)
+def admin_scryfall_refresh(
+    background_tasks: BackgroundTasks, authorization: str | None = Header(default=None),
+) -> AdminRefreshResponse:
+    _require_admin_token(authorization)
+    with _scryfall_refresh_lock:
+        if _scryfall_refresh_state["status"] == "running":
+            return AdminRefreshResponse(status="already_running")
+    background_tasks.add_task(_run_scryfall_refresh)
+    return AdminRefreshResponse(status="started")
+
+
+@app.get(
+    "/admin/scryfall/status", tags=["ops"], summary="Poll the last/current Scryfall refresh",
+    description="Token-protected (Authorization: Bearer <ADMIN_TOKEN>).",
+)
+def admin_scryfall_status(authorization: str | None = Header(default=None)) -> AdminStatusResponse:
+    _require_admin_token(authorization)
+    with _scryfall_refresh_lock:
+        state = dict(_scryfall_refresh_state)
+    return AdminStatusResponse(**state)
 
 
 # Serve the frontend from the same process (mounted LAST so the API routes and
