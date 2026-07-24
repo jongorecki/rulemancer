@@ -160,6 +160,11 @@ class Debug(BaseModel):
     # header ruling 1): True when this answer was answered=true but cited
     # nothing -- surfaced (not retried) so an ungrounded "success" is
     # auditable. Mirrors agent.last_uncited_success.
+    fuzzy_fallbacks: list[dict]  # docs/plan-scryfall-local-bulk.md Sec 4:
+    # "Always flagged, never silent" -- every local fuzzy-fallback event
+    # (successful match or refused ambiguous near-tie) from this request's
+    # card-ref resolution, each {ref, reason, matched_name, oracle_id,
+    # score, candidates}. Mirrors agent.last_fuzzy_fallbacks.
 
 
 class AnswerResponse(BaseModel):
@@ -290,6 +295,7 @@ def answer(req: AnswerRequest) -> AnswerResponse:
         selection = dict(agent.last_ruling_selection or {})
         unresolved_refs = list(agent.last_unresolved_refs or [])
         uncited_success = bool(getattr(agent, "last_uncited_success", False))
+        fuzzy_fallbacks = list(getattr(agent, "last_fuzzy_fallbacks", []) or [])
     latency_ms = int((time.monotonic() - t0) * 1000)
 
     # Labeled rulings shown to the model, for resolving ruling citations:
@@ -327,6 +333,7 @@ def answer(req: AnswerRequest) -> AnswerResponse:
         selected_ruling_ids=selection,
         unresolved_card_refs=unresolved_refs,
         uncited_success=uncited_success,
+        fuzzy_fallbacks=fuzzy_fallbacks,
     )
     _log_row("queries", {
         "request_id": request_id,

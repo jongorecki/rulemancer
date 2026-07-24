@@ -22,7 +22,7 @@ from rulesagent.retrieve.crossrefs import expand_crossrefs
 from rulesagent.retrieve.hybrid import rrf_fuse
 from rulesagent.retrieve.rewrite import rewrite_query
 from rulesagent.tools.ruling_retrieval import ruling_id, select_rulings, select_rulings_union
-from rulesagent.tools.scryfall import ATTRIBUTION, get_card, parse_card_refs
+from rulesagent.tools.scryfall import ATTRIBUTION, get_card, parse_card_refs, pop_fuzzy_fallbacks
 
 load_dotenv()
 
@@ -1005,6 +1005,12 @@ class RulesAgent:
         # a Card, either a confirmed Scryfall miss or a fetch exception (the
         # latter previously crashed the whole request). Same lifecycle/
         # pattern as last_crossref -- read right after answer() by the API.
+        self.last_fuzzy_fallbacks: list[dict] = []
+        # Set by answer() on every call (docs/plan-scryfall-local-bulk.md
+        # Sec 4): every local fuzzy-fallback event from this request's
+        # get_card() calls -- a successful fallback match or a refused
+        # ambiguous near-tie, each {ref, reason, matched_name, oracle_id,
+        # score, candidates}. Same lifecycle/pattern as last_unresolved_refs.
 
     def answer(self, question: str, history: list[dict] | None = None) -> Answer:
         """`history` (optional): prior conversation turns, oldest first, each
@@ -1061,6 +1067,16 @@ class RulesAgent:
             resolved.append(c)
         cards = resolved
         self.last_unresolved_refs = unresolved
+        # Local-bulk fuzzy-fallback / ambiguity-guard debug surface (docs/
+        # plan-scryfall-local-bulk.md Sec 4): get_card() logs a module-level
+        # event on scryfall's own side-channel whenever it had to fall back
+        # to a local fuzzy match (a successful match, or a refused ambiguous
+        # near-tie) -- its signature stays `Card | None` so this is the only
+        # way that information reaches a caller. Drained once per request,
+        # right after every ref for this request has been resolved, mirroring
+        # last_unresolved_refs above and the last_crossref/selected_ruling_ids
+        # pattern elsewhere in this method.
+        self.last_fuzzy_fallbacks = pop_fuzzy_fallbacks()
 
         # Condensed transcript for the rewriter: a follow-up like "what about
         # while it's phased out?" only rewrites into a useful standalone search
