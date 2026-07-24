@@ -132,25 +132,35 @@ differential checks verify reality.
   merged). Fully built + tested. The Valki regression is FIXED (per-face-name
   lookup tier, Jon-approved; equivalence check now 29/29, only Valki changed
   miss→hit, both DFC faces intact). Master is verified clean of this branch.
-  **PRE-MERGE CHECKLIST — this is a production get_card backend swap, do NOT
-  merge without all of these:**
-  1. **Build `data/scryfall.db` on master first.** New get_card resolves ONLY
-     against the local snapshot (no live fallback). A missing db means
-     `connect()` silently CREATE-TABLE-IF-NOT-EXISTS makes an empty one. A
-     fail-loud guard was added (`assert_populated()` raises
-     `ScryfallStoreEmptyError`), so it's no longer silent — BUT see #2.
-  2. **The guard is swallowed by answer.py's per-ref `try/except Exception`**
-     (the c012 handler). So on an empty db it currently logs an error per card
-     ref per request (degraded+noisy) rather than hard-failing at startup. FIX
-     at merge time: make that handler re-raise `ScryfallStoreEmptyError` (it's a
-     config error, not a per-card miss), or add a startup populated-check in
-     `RulesAgent.__init__`. Deferred because **the cost-calculator agent is also
-     editing answer.py** — reconcile both in one answer.py merge pass.
-  3. **Deploy implication:** production/Fly.io deploy needs a db-build step
-     (`scripts/refresh_scryfall_bulk.py`, downloads ~180MB Scryfall bulk).
-     Jon's call — this changes the deploy process.
-  4. Reconcile answer.py: both this branch (fuzzy_fallbacks debug wiring) and
-     the cost-calc branch touch answer.py; expect a conflict, merge carefully.
+  **SELF-HEAL redesign DONE (`16d06eb`), catastrophe blocker RESOLVED.** Jon's
+  design: get_card uses the local snapshot when healthy (per-face tier); on a
+  missing/empty snapshot it falls back to LIVE Scryfall per-card AND kicks off a
+  background bulk refresh (build-to-temp + os.replace, dedup-locked) that heals
+  the db. So a missing db is no longer catastrophic — it degrades to live and
+  rebuilds. The old fail-loud guard was removed (get_card no longer raises), so
+  the earlier "answer.py swallows ScryfallStoreEmptyError" concern is MOOT.
+  302 tests, 9 self-heal tests, 29/29 equivalence holds. Live path recovered
+  from `acdce54:scryfall.py` (parent of the local-only commit). Residuals the
+  agent flagged: no TTL cache on the live bridge (intentional — it's a bridge);
+  self-heal dedup lock doesn't share state with the admin-endpoint refresh dedup
+  (narrow overlap risk).
+  **LANDING IT IS A DELIBERATE MERGE-RECONCILIATION, not a clean merge:**
+  1. **The branch is ~15.8k lines BEHIND master** (based early 2026-07-24,
+     before cost-calc / judge_v5 / retrieved-id-logging / the full import
+     landed). `answer.py` is changed in both → a real conflict in the
+     GENERATION PATH (this branch's fuzzy_fallback debug wiring vs master's
+     cost-calc tool loop). Cleanest: merge master INTO the branch first (or
+     rebase the branch onto master), resolve answer.py by KEEPING BOTH (the
+     fuzzy_fallback drain AND the tool loop are independent additions), verify,
+     then merge back. Do NOT do a naive tip-to-tip merge.
+  2. **Master has no `data/scryfall.db`.** After merge, the first get_card
+     self-heals → 180MB background download. Decide deliberately: pre-build the
+     db (`scripts/refresh_scryfall_bulk.py`) so the local path is live
+     immediately, or accept the one-time self-heal download. Either is safe.
+  3. **Deploy:** the branch documents running the refresh at deploy; wiring it
+     into actual Fly.io config is Jon's. Not a hard prerequisite anymore (self-
+     heal covers a cold deploy), but recommended so prod starts on local, not
+     live.
 - **c020 phase 2** — its capture correctly contains injection (production is now
   cell B), so `build_prompts_variant.py` gate 3 rightly refused a clean v3
   derivation. c020 is now a cell-B-vs-D comparison; its derivation must be
