@@ -1,0 +1,12 @@
+# Frozen eval fixtures whose BYTE identity is asserted by a test.
+#
+# This repo runs with core.autocrlf=true, so by default git rewrites LF to CRLF
+# in the working tree on checkout. For a file whose bytes are compared against a
+# freshly generated copy, that conversion makes the test fail on a clean clone
+# for a reason that has nothing to do with the file's contents -- and the
+# tempting "fix" is to regenerate the fixture, which is exactly how a real drift
+# would get buried (see docs/HANDOFF-development.md on byte-identity fixtures).
+#
+# `-text` tells git to do no end-of-line conversion on these paths at all, so
+# what the builder writes is what every checkout gets.
+evals/_layers_regression_sample.jsonl -text
