@@ -1,4 +1,133 @@
-# Handoff — Rulemancer: v3 shipped, SIX plans await Jon's review (supersedes all prior handoffs; git has them)
+# Handoff — Rulemancer: v4 BUILT and GRADED (failed its go test), v5 plan drafted (supersedes all prior handoffs; git has them)
+
+## SESSION-END STATE — 2026-07-24 (read this whole block first; it supersedes everything below it, including the 07-23 block)
+
+**The v4 + condition-E slice was planned, built, run, and graded end to end in
+this session. v4 FAILED its own go criterion. ONE decision is open and it
+blocks everything: the v4 go/no-go. Master currently ships the failed
+candidate.**
+
+### THE OPEN DECISION (Jon's, first thing)
+`PROMPT_VERSION = 4` is live on master. It failed its go test, costs +1,215
+tokens/query, did not fix c014, and drops gpt-5-mini to a 3-answer gap — which
+trips Jon's own pre-commitment #3 ("gap ≥3 → sonnet stays pinned") and
+mothballs the ~8x cheaper generator option. **Controller recommendation:
+revert production to v3**, keep v4's content as the input to the v5 candidate
+(docs/plan-v5-and-gold-discovery.md Slice A). Not done — Jon has not ruled.
+
+### The v4 A/B RESULT (Jon-graded, strict, partial = not-correct)
+| Arm | v3 cond-C | v4 | Delta |
+|---|---|---|---|
+| sonnet (production) | 46/50 | **46/50** | **0** — zero divergence, all 50 questions, both runs |
+| gpt-5-mini (L2 candidate) | 45/50 | **43/50** | **−2** — c002, c011 stable-flipped correct→wrong |
+
+- Verdicts: `evals/verdicts_v4e.json`. Report: `evals/report-v4e.md`.
+- **c014 never moved** — the mana-arithmetic failure the whole notation legend
+  was built for. v4 made the model *state* the cost breakdown correctly
+  ("3 total mana: 1 generic + 2 green") and still reach the wrong conclusion.
+  The bottleneck is multi-step reasoning about cost modification, not notation.
+- **Groundedness 2 → 0** on comparable arms in condition C. The only real win.
+- Jon's c011 note — *"old ruling, not updated one"* — is a **stale-ruling data
+  bug** in the corpus, now the backlog's first `data-bug` entry. Retrieval was
+  byte-identical between v3 and v4, so both saw the same stale ruling; v3
+  answered around it, v4 leaned on it.
+
+### CONDITION E: CLOSED on latency, not accuracy (DECISIONS.md 2026-07-24)
+Measured single-request: sonnet **9.3s** · gpt-5-mini default **16.0s** ·
+gpt-5-mini `effort=high` **69.7s** (7,424 of 7,839 completion tokens were
+reasoning). Jon's ruling: unusable for an interactive product. **Streaming
+cannot rescue it** — a reasoning model emits zero output tokens while
+reasoning, so the L5 deploy plan's SSE answer doesn't apply. Both high-effort
+runs were killed mid-flight; they were never graded and should not be re-run.
+The deferred L2 decision now rests entirely on the DEFAULT gpt-5-mini cell.
+
+### What SHIPPED this session (committed, reviewed)
+- **Prompt v4** (`8c7550f`): 4a–4e + 3b, `PROMPT_VERSION` 3→4, two-tier Scryfall/CR
+  notation legend. Every symbol verified against the repo's own CR
+  (`data/raw/MagicCompRules 20260619.txt`) and Scryfall's Colors-and-Costs doc.
+  Includes the mana-value counting rule (hybrid counts 1, `{2/W}` counts 2,
+  `{X}/{Y}/{Z}` count 0) and the `{P}` = pawprint / NOT-Phyrexian
+  disambiguation. Half-mana and infinite symbols excluded (Un-set only, Jon's
+  ruling); **tests assert their absence**. SYSTEM 5,189 → 10,045 chars.
+- **Condition-E reasoning passthrough** (`b19b0b3`): optional `reasoning` dict,
+  default-off and byte-identical when unset; `--reasoning` CLI recorded into
+  run metadata; `--retry-errors` HARD-ERRORS on an explicit mismatch. Effort
+  enum verified live against the API's own validator (LOG.md).
+- **`evals/build_prompts_v4.py`** (`cbfa3f8`): derives `_prompts_v4.json` from
+  condition C by swapping ONLY the `system` field. Four gates, `--check` mode.
+  Independently verified: 50/50 user blocks byte-identical.
+
+### THE METHOD THAT MADE THIS WORK — reuse it
+**SYSTEM-swap on a frozen capture.** `_prompts_C.json` stores `{system, user}`
+separately per question, so a SYSTEM-only change can reuse condition C's `user`
+blocks verbatim. v3 and v4 then answer from **byte-identical retrieval** — the
+30-34% embedding nondeterminism is absent, not merely controlled — and the v3
+baselines need no re-run (6 runs became 4). Any future prompt-only A/B should
+do this. Gate 1 (hash the captured system against the recorded v3 digest
+`25aa69e1…`) is the load-bearing check: without it, a drifted capture still
+produces a clean 50/50 user-block match against the wrong baseline.
+
+### OPERATIONAL LESSONS PAID FOR IN THIS SESSION (do not relearn these)
+- **Never pipe a long-running python run through `| tail`.** It block-buffers
+  stdout (progress invisible) AND masks python's exit code behind tail's 0 — a
+  crashed run reported "exit code 0" and stayed hidden for 40 minutes. Use
+  `PYTHONUNBUFFERED=1` and redirect to a log file.
+- **Verify agent self-reports against the filesystem and process table.** A run
+  agent reported "monitors armed, grid running" while **two of four runs had
+  never been launched** — including the entire condition-E cell, the
+  decision-relevant arm. Thirty seconds of `ls` + `Get-CimInstance` found it.
+- **A real bug, unfixed, worth a slice:** `openrouter_backend.py`'s `_attempt()`
+  wraps `data = r.json()` in a try that catches only `httpx` errors, so a
+  malformed/truncated HTTP 200 body kills the whole run **with zero rows
+  saved**. That is what crashed the first default r2. Runs write once at the
+  end, so there is no partial credit — incremental writes would also make the
+  ~1hr background-job ceiling survivable.
+- **Queue builders emit rows without `cited_text`**, so the grading UI renders
+  every citation as "(text not found as a chunk)". This silently degraded the
+  v3ab grading session too (all 144 rows). Fixed ad hoc for the v4 queue via
+  `build_arm_review.py`'s chunk map; the builders themselves are still divergent.
+
+### THE QUEUE — what's next
+1. **Jon rules on v4 go/no-go** (above). Blocks everything else.
+2. **docs/plan-v5-and-gold-discovery.md** — NEW, drafted this session, four
+   independently-approvable slices, all awaiting review:
+   - **A. Selective symbol injection (the v5 candidate)** — scan the CARDS (and
+     the question) for symbols, inject only those definitions as a reference
+     section. Jon's design. Scanning cards rather than the whole context is
+     deliberate: **CR 107.4 enumerates every symbol in the game**, so a
+     context-wide scan would be worse than today's static block. Pure code, no
+     model call; the rewriter structurally cannot see it (`rewrite_query` at
+     answer.py:600 runs before `build_prompt` at :685).
+   - **B. Miss-variance probe** — 3 draws per missed question under v3 and v4 at
+     frozen retrieval, ~$1.40. Misses: sonnet c012/c014/c015/q029; gpt-5-mini
+     c004/c012/c015/q014/q016. Honest limit: c012/c015/q016/q014 have no gold
+     rule in the frozen context at all, so no prompt can fix them.
+   - **C. Keyword-ablation probe** — does naming "trample"/"deathtouch" in c002
+     steer retrieval to keyword-definition rules and away from damage
+     assignment? Retrieval-only, cents. Fix (if any) belongs in the rewriter,
+     never in rewording gold questions.
+   - **D. Automated gold-rule discovery** — Jon: *"I don't want to do it by hand
+     if I don't absolutely have to."* Two stages: wide corpus sweep for
+     candidates, then bounded ablation for necessity. `evals/ablate_gold.py` is
+     the precedent and states the ceiling: it ablates only CITED rules, so it
+     cannot find gold that was never retrieved (the q016 case). Proposes, never
+     writes — Jon encodes. Validation gate: must reproduce existing hand-curated
+     gold before it's trusted on questions that lack it.
+3. **Still queued from before, untouched:** docs/plan-rewriter-model-bakeoff.md,
+   docs/plan-scryfall-local-bulk.md (approved), docs/plan-sso.md (OIDC),
+   docs/plan-deploy.md (budget breaker is the critical slice), plus the owed
+   post-hoc citation-filter slice (groundedness pre-commitment #1, partially
+   discharged 2026-07-24) and the stale-ruling data bug from c011.
+
+### Two null results now point the same direction
+L1 proved **retrieval** wasn't the gap (gold was already in the pool). v4 proved
+**prompt wording** isn't either (zero divergence on the incumbent). What's left
+is generation-model capability — which reframes L2 from "can we save money" to
+"is there headroom above sonnet at all."
+
+---
+
+# Previous handoff — 2026-07-23 evening (superseded above, kept for context)
 
 You are picking up **Rulemancer** (package `rulesagent`): a RAG agent over the
 MTG Comprehensive Rules with a per-card rulings mini-RAG, FastAPI backend,

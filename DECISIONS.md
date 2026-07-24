@@ -1416,6 +1416,43 @@ SYSTEM string (it doesn't, by its own non-goals), or a per-question byte-equalit
 failure in the derived prompts file — which is exactly what the plan's Task 3
 verification checks and reports.
 
+## 2026-07-24 — condition E (reasoning effort) FAILS ON LATENCY, before accuracy matters
+
+**What:** The `effort=high` arm of condition E was killed mid-run and will not be
+graded. Jon's call, on measured latency. The two `gpt-5-mini` default runs and
+both sonnet runs stand; the v4 A/B proceeds without a high-effort cell.
+
+**The measurement (single request, q001, no contention — the smoke tests):**
+sonnet **9.3s** · gpt-5-mini default **16.0s** · gpt-5-mini `effort=high`
+**69.7s**. Under three concurrent eval runs the high arm degraded further to
+87-110s/question. Reasoning tokens on the same question: 1,152 default vs
+**7,424** at high effort — the flag is definitely effective, it just costs ~7x
+the incumbent's wall clock.
+
+**Why this kills it before grading:** Jon's product judgment — "we definitely
+can't be waiting an average of 87 seconds for an answer, users will hate that."
+Decisive technical detail: **streaming cannot rescue this.** The L5 deploy plan's
+answer to slow answers is SSE token streaming, but a reasoning model emits ZERO
+output tokens while reasoning (7,424 of 7,839 completion tokens were reasoning).
+A visitor would watch a blank screen for ~60s and then get a burst. Streaming
+masks generation latency; it cannot mask reasoning latency. So an arm that can't
+ship on latency can't change the L2 generator decision no matter what it scores,
+and grading its flips would spend Jon's scarcest resource on an unusable option.
+
+**Consequence for the deferred L2 call:** it now rests entirely on the DEFAULT
+gpt-5-mini cell vs sonnet — which is the comparison we have. Condition E's
+recorded result is a latency verdict, not an accuracy one: raising reasoning
+effort is off the table for this product.
+
+**Alternatives rejected:** letting r1 finish for the writeup (~60 min more for
+evidence that couldn't be decision-grade anyway — one run can't satisfy the
+stable-flip rule); testing `medium` effort instead (same latency class, same
+streaming problem); accepting the latency for a "quality mode" toggle (no such
+product surface exists, and it would need its own plan).
+
+**What would change my mind:** a reasoning model that streams interim output, or
+a deployment where answers are precomputed/async rather than interactive.
+
 ## 2026-07-24 — groundedness follow-up does NOT enter prompt v4
 
 **What:** Jon read the 7 flagged groundedness instances and ruled v4 ships exactly
