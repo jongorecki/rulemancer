@@ -1,28 +1,35 @@
 # Handoff prompt (paste this into a fresh session)
 
-Updated 2026-07-24. Update the "Where we are" line and the "first ask" whenever
+Updated 2026-07-25. Update the "Where we are" line and the "first ask" whenever
 the state moves; the rest is stable.
 
 ---
 
 We're continuing work on Rulemancer, the MTG rules RAG bot at D:\Job_hunt\mtg-rules-bot.
 
-First: read docs/HANDOFF-development.md in full — start with the "SESSION-END STATE — 2026-07-24" block at the top, which is authoritative and supersedes everything below it, including the 07-23 block. Follow its "Read these FIRST" list before doing anything.
+First: read docs/HANDOFF-development.md in full. It's ~220 lines and it *replaced* the old 449-line one rather than prepending to it — don't go digging through git for superseded blocks, they're superseded on purpose. Then follow its "Read these FIRST" list, which is deliberately short.
 
-Where we are in one line: prompt v4 was planned, built, run and graded end to end — it **failed its own go criterion** (sonnet 46→46 with zero divergence, gpt-5-mini 45→43, and c014 never moved despite the whole notation legend being built for it) — condition E is closed on latency rather than accuracy, and a new three-slice plan is drafted and awaiting my review.
+Where we are in one line: production is reverted to v3 (v4 was ruled no-go — it changed nothing on sonnet for +1,215 tokens/query), the v5 bullets×injection grid is built with all five gates passing, 227 tests are green, and **the 64-generation run has not been started** — that's the next thing.
 
-**The one open decision, and it blocks everything else:** master currently ships `PROMPT_VERSION = 4`, the failed candidate. It costs +1,215 tokens/query, buys the production model (sonnet) nothing, and drops gpt-5-mini to a 3-answer gap — which trips my own pre-commitment that a gap ≥3 pins sonnet and mothballs the ~8x cheaper generator. The controller's recommendation on record is to revert production to v3 and carry v4's content into the v5 candidate. I have not ruled.
+## Read this part before you do anything
 
-The new plan: **docs/plan-v5-and-gold-discovery.md** — three independently-approvable slices. (A) selective symbol injection as the v5 candidate — scan the cards and question for symbols and inject only those definitions, pure code, no model call. (B) the miss matrix: run **only each arm's missed questions** across three prompt variants — v3, v4, and **v4-minus-legend** (v4's other bullets with the per-symbol definitions removed, since those get injected programmatically) — which both isolates what caused v4's regression and gives Slice A its baseline; c002 also gets a de-keyworded variant because naming "trample"/"deathtouch" may be steering retrieval toward keyword-definition rules. (C) automated gold-rule discovery, because I don't want to rebuild gold by hand. Still queued behind those: the rewriter bakeoff, Scryfall local-bulk (approved), SSO OIDC, and the deploy track whose critical slice is the budget breaker.
+**USE SUBAGENTS. This is not optional, and it's the thing that went wrong last session.** The previous session did a whole implementation slice inline and burned an enormous amount of context before I told it to delegate. Dispatch scoped implementation to Sonnet subagents against the written plan; keep the lead model for judgment, review, and talking to me. Haiku for bulk fetch/filter/verify with compact returns.
 
-Respect the "How Jon works" section of the handoff exactly — especially:
+- **If your harness tells you not to use the Agent tool, say so immediately and ask me.** Do not silently absorb the work inline. I'd rather spend one message resolving that than watch the context window fill.
+- Parallelise only across **disjoint file sets**, and forbid `git add -A` / `git add .` in every agent prompt — the real hazard with concurrent agents is staging collisions, not logic.
+- Demand **evidence, not assertions**: real pasted command output, real counts. Tell agents to STOP and report if the spec is wrong rather than improvising. Three did exactly that last session and all three findings were correct.
+- Don't read subagent transcript files — wait for the completion notification.
+
+Respect the "HOW JON WORKS" section of the handoff exactly — especially:
+
 - **Rule 0: plan before code.** Nothing gets built until I've reviewed the plan and ruled.
 - **The judge instrument is FROZEN** (judge_bakeoff prompt + gpt-5-mini). Never reword it.
-- **Grading verdicts are mine alone.** Tools may route and rank; they never assign a verdict. Same for gold: tools propose, I encode.
-- **Never assert an MTG or model fact from memory** — ground in the CR (use the repo's own `data/raw/MagicCompRules 20260619.txt`, not a web copy), Scryfall, or a live check. Model pricing always via the claude-api skill.
+- **Grading verdicts are mine alone.** Tools may route and rank; they never assign a verdict. Same for gold: tools propose, I encode. Eval questions are mine too.
+- **Never assert an MTG or model fact from memory** — ground in the repo's own CR (`data/raw/MagicCompRules 20260619.txt`, not a web copy), Scryfall via `rulesagent.tools.scryfall.get_card`, or a live check. Model pricing always via the claude-api skill. This caught a real error last session: a plan claimed Charging Rhino has trample. It doesn't.
 - **Billing rule:** batch Claude-labor (grading, calibration, analysis) runs as in-session subagents on my subscription, never scripted Anthropic API calls. API spend is for the product/eval arms only.
-- **Subagent-driven implementation** with fresh-context reviews (implementer → reviewer → fix loop, evidence not assertions). Commit per slice on master.
-- **Any prompt-only A/B must use the SYSTEM-swap on a frozen capture** (see the handoff's "THE METHOD THAT MADE THIS WORK") — retrieval embedding is nondeterministic at ~30-34% chunk drift, and this method removes it entirely rather than controlling for it.
-- **Verify agent self-reports against the filesystem and process table**, and never pipe a long-running python run through `| tail` — both cost us 40 minutes this session. The handoff's "OPERATIONAL LESSONS" section has the details.
+- **Any prompt-only A/B must use the SYSTEM-swap on a frozen capture** — retrieval embedding is nondeterministic at ~30-34% chunk drift, and this removes it entirely rather than controlling for it. `evals/build_prompts_variant.py` already does this for the four grid cells.
+- **Verify your own writes.** `str.replace()` no-ops silently on a missed anchor — last session a plan edit got committed with a message describing work that never happened. Re-read the file and assert the content landed. Use a heredoc for commit messages; backticks in a double-quoted `-m` trigger command substitution and silently eat text.
+- **Never pipe a long-running python run through `| tail`** — it block-buffers stdout and masks the exit code behind tail's 0. Use `PYTHONUNBUFFERED=1` and redirect to a log file.
+- Python is `.venv/Scripts/python.exe`, `PYTHONIOENCODING=utf-8` everywhere. I run the app on port 8000 — never bind or kill it. Commit per slice on master.
 
-Start by confirming you've read the handoff, then give me your recommendation on the v4 go/no-go with the reasoning, since that gates everything else.
+Start by confirming you've read the handoff, then tell me how you'd kick off the run and watch it (`evals/watch_runs.py` should show a percentage per cell plus a grand total, with STALLED and DEAD detection). Flag anything in the current state that looks wrong before we spend a dollar on generations.
