@@ -1,0 +1,170 @@
+
+3617 chunks | 31 questions (0 empty-gold, excluded from recall denominator) | vector=voyage-4-large | rerank pool=50
+
+retriever           recall@1    recall@5    recall@10   recall@20   recall@50   
+--------------------------------------------------------------------------------
+BM25                    13%       35%       45%       52%       74%   
+voyage-4-large          29%       68%       84%       87%       94%   
+hybrid-RRF              23%       45%       68%       77%       94%   
+hybrid-wt0.5            29%       52%       77%       90%       90%   
+rerank:rerank-2.5       29%       71%       74%       90%       94%   
+rerank:rerank-2.5-lite    23%       68%       77%       90%       94%   
+vec+rw1-haiku           45%       71%       87%       94%      100%   
+vec+rw3-haiku           45%       74%       87%       87%       97%   
+vec+rw1-sonnet          35%       77%       87%       94%       97%   
+vec+rw3-sonnet          39%       74%       87%       97%      100%   
+vec+rw1-gpt5mini        39%       71%       81%       81%       90%   
+vec+rw3-gpt5mini        29%       71%       77%       87%      100%   
+vec+rw1-sonnet+orig     35%       77%       90%       90%      100%   
+
+weighted-fusion alpha sweep (recall@5, alpha = vector weight):
+  a=0.3: 42%   a=0.5: 52%   a=0.7: 65%
+
+Per-question hit@5 (Y=hit, .=miss):
+qid   match BM25              voyage-4-large    rerank:rerank-2.  rerank:rerank-2.  vec+rw1-haiku     vec+rw3-haiku     vec+rw1-sonnet    vec+rw3-sonnet    vec+rw1-gpt5mini  vec+rw3-gpt5mini  vec+rw1-sonnet+o  question
+q001  any   Y                 .                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 Do creatures phasing back in trigger enter t
+q002  all   .                 Y                 Y                 .                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 how does trample work with deathtouch?
+q003  all   Y                 Y                 Y                 Y                 .                 Y                 .                 .                 .                 Y                 Y                 is storm a triggered ability that can be cou
+q004  all   .                 .                 .                 .                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 can i use cards with hybrid mana symbols in 
+q005  any   Y                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 can I respond to the untap step?
+q006  any   Y                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 are creatures still considered attacking cre
+q007  any   .                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 Do you cast lands?
+q008  all   .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 can I sacrifice an evoked creature before th
+q009  any   .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 if a card loses all abilities, does that inc
+q010  any   Y                 Y                 Y                 Y                 Y                 .                 Y                 Y                 Y                 .                 Y                 can i draw cards if i'm already at my maximu
+q011  any   Y                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 what happens when a planeswalker has 0 or le
+q012  any   .                 .                 .                 .                 .                 .                 Y                 Y                 Y                 .                 Y                 do non-creature artifacts die?
+q013  any   Y                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 what happens if i should draw a card when my
+q014  all   .                 .                 .                 Y                 .                 .                 .                 .                 .                 .                 .                 what are the steps in combat and when do I h
+q015  all   .                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 can i respond to a mana ability?
+q016  any   .                 .                 .                 .                 Y                 Y                 Y                 .                 Y                 .                 .                 can I respond to a cost being paid?
+q017  any   .                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 can you explain layers?
+q018  any   Y                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 how does the legend rule work?
+q019  any   Y                 Y                 Y                 Y                 .                 Y                 Y                 Y                 Y                 Y                 Y                 when does my creature die after its been mar
+q020  all   .                 Y                 Y                 Y                 Y                 Y                 Y                 .                 Y                 Y                 Y                 can I cast my commander from exile?
+q021  all   .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 what happens during the cleanup step?
+q022  any   .                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 when are state-based actions checked?
+q024  any   Y                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 when can I concede a game?
+q025  any   .                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 .                 Y                 Y                 how do I know who the active player is?
+q026  any   .                 .                 .                 .                 .                 .                 .                 Y                 .                 Y                 .                 when someone other than the active player ca
+q027  any   .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 .                 when the active player cast a spell, who get
+q028  any   .                 Y                 Y                 .                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 can I hold priority to cast more spells afte
+q029  all   .                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 when are lore counters put on sagas?
+q030  any   .                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 .                 .                 Y                 what is a delayed triggered ability?
+q031  any   .                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 can non-permanent spells have abilities?
+q032  any   Y                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 Y                 can I use a mana ability when a spell with s
+
+Retrieved-set churn (voyage-4-large top-15 vs vec+rw1-sonnet top-15):
+  q001  Do creatures phasing back in trigger enter the bat
+    dropped: ['502.1', '702.26i', '603.6c', '707.5']
+    added:   ['730.2b', '403.4', '702.26g', 'Phased In, Phased Out']
+  q002  how does trample work with deathtouch?
+    dropped: ['702.19g', '702.2f', '702.2e', 'Trample', 'Deathtouch']
+    added:   ['510.1a', 'Lethal Damage', '702.19f', 'Assign Combat Damage', 'Excess Damage']
+  q003  is storm a triggered ability that can be countered
+    dropped: ['603.10e', '603.2a', 'Ward', '607.2i', '113.3c', '702.174j', '615.13']
+    added:   ['707.10d', '807.5b', 'Demonstrate', 'Gravestorm', '702.144a', '707.9g', '405.4']
+  q004  can i use cards with hybrid mana symbols in a comm
+    dropped: ['Hybrid Card', 'Hybrid Mana Symbols', '118.13', 'Monocolored Hybrid Mana Symbols', '903.11']
+    added:   ['903.4d', '207.5', '903.4e', '903.4c', '702.124c']
+  q005  can I respond to the untap step?
+    dropped: ['702.26m', '703.4b', '703.4a', 'Untap Step', '502.3', '702.26a']
+    added:   ['507.1', '724.2f', '103.8c', '703.4h', '805.4d', '513.1']
+  q006  are creatures still considered attacking creatures
+    dropped: ['508.4', '506.3c', 'Attacking Creature', '508.4a', '508.4b']
+    added:   ['509.1h', '506.4', '506.4a', 'Remove from Combat', 'Blocked Creature']
+  q007  Do you cast lands?
+    dropped: ['305.2', '202.1b', 'Artifact Land']
+    added:   ['302.1', '400.7i', '701.5a']
+  q008  can I sacrifice an evoked creature before that cre
+    dropped: ['116.2e', '702.110b', '608.2d', '724.2f', '614.4', '118.10', '702.110a', '500.12']
+    added:   ['113.7a', '603.7c', '603.3d', '610.3b', '610.3a', '608.3b', '608.2a', '603.6']
+  q009  if a card loses all abilities, does that include k
+    dropped: ['123.7a', '702.165d', '603.6b', '702.22b', '115.1e']
+    added:   ['113.1a', 'Rules Text', 'Devoid', '109.3', 'Characteristic-Defining Ability']
+  q010  can i draw cards if i'm already at my maximum hand
+    dropped: ['121.6', '104.3c', '313.6']
+    added:   ['121.2c', '103.5', '402.1']
+  q011  what happens when a planeswalker has 0 or less loy
+    dropped: ['107.7', '901.14b', '120.3c', '306.8', '209.1', 'Compleated', '306.5c']
+    added:   ['724.1c', '724.2c', '310.7', '704.2', '117.2d', '122.1g', '704.8']
+  q012  do non-creature artifacts die?
+    dropped: ['704.5p', '704.5f', '301.4', '208.3', '301.5', '310.7', '111.7', '300.2', '120.6', '704.5m', '702.2e']
+    added:   ['700.4', '700.11', '603.6c', 'Destroy', 'Sacrifice', '702.167b', 'Afterlife', 'Leaves the Battlefield', 'Undying', 'Last Known Information', '701.8a']
+  q013  what happens if i should draw a card when my libra
+    dropped: ['702.52b', '504.1', '401.7', '701.24e']
+    added:   ['704.7', '729.3', '104.5', '810.8a']
+  q014  what are the steps in combat and when do I have pr
+    dropped: ['510.1', '506.2a', '802.5', '509.1', '510.2']
+    added:   ['Declare Attackers Step', 'Combat Phase', 'Declare Blockers Step', '703.4i', 'Assign Combat Damage']
+  q015  can i respond to a mana ability?
+    dropped: ['605.2', '605.4', '605.3c', 'Respond', '508.1i']
+    added:   ['117.2', '117.2e', '724.2f', '702.61b', '117.3d']
+  q016  can I respond to a cost being paid?
+    dropped: ['614.17b', '118.11', '701.6b', '118.5', '800.4f', '118.12', '118.6a', '118.7', 'Pay']
+    added:   ['508.1i', '601.2g', '601.5', '608.2g', '605.3a', '601.2h', '118.8a', '118.13b', '118.13c']
+  q017  can you explain layers?
+    dropped: ['613.8', '613.1e', '613.7', '613.2', 'Dependency', '711.3']
+    added:   ['613.2c', '613.1f', '613.1b', '613.3', '613.1g', '613.4a']
+  q018  how does the legend rule work?
+    dropped: ['205.4e', 'Legendary', 'Legend (Obsolete)', 'Worthy', '903.1', '700.16', '205.4b', 'Commander', '702.124i']
+    added:   ['303.7a', '704.5k', 'World Rule', '704.5y', '400.6', '704.7', 'Planeswalker Uniqueness Rule (Obsolete)', '205.4f', '704.2']
+  q019  when does my creature die after its been marked wi
+    dropped: ['704.5f', '704.5h', '120.10', '120.4a', '120.3e', '703.4m']
+    added:   ['704.3', '724.2c', '510.3a', '117.5', '405.6f', '704.4']
+  q020  can I cast my commander from exile?
+    dropped: ['702.170d', '715.3d', '309.2c', '406.3b']
+    added:   ['108.5', '903.3e', '903.11', '400.10']
+  q021  what happens during the cleanup step?
+    dropped: ['512.1', '724.2d', '511.3', '120.6', '500.5']
+    added:   ['513.1', '724.1c', '724.2c', '117.3a', '514.1']
+  q022  when are state-based actions checked?
+    dropped: ['704.2', '704.5', '704.1a', '704.1', 'State-Based Actions', '704.6', '704.4']
+    added:   ['603.3b', '724.1c', '405.6e', '510.3a', '117.3a', '116.1', '117.2a']
+  q024  when can I concede a game?
+    dropped: ['104.1', '104.3k', 'Lose the Game', '104.4i', '104.4a', '104.3g', '104.3e', '104.3', '104.4d']
+    added:   ['104.5', '405.6h', '800.4a', '800.4j', '901.14b', '603.9', '901.10', '800.4b', '800.4m']
+  q025  how do I know who the active player is?
+    dropped: ['805.4a', 'Active Team', '723.3']
+    added:   ['101.4', '117.3a', '805.6']
+  q026  when someone other than the active player casts a 
+    dropped: ['602.3b', '601.7', '117.7']
+    added:   ['117.3a', 'Priority', '724.2f']
+  q027  when the active player cast a spell, who gets prio
+    dropped: ['602.3b', '117.7', '117.1']
+    added:   ['507.1', '514.3a', '724.2f']
+  q028  can I hold priority to cast more spells after I've
+    dropped: ['500.2', '733.2', '304.1', '805.5a', '506.7d', '116.3', '307.5a', '514.3', '117.1a']
+    added:   ['117.3b', '514.3a', '724.2f', '509.2', '507.2', '508.2', '504.2', '505.6', '510.3']
+  q029  when are lore counters put on sagas?
+    dropped: ['Saga']
+    added:   ['107.15']
+  q031  can non-permanent spells have abilities?
+    dropped: ['611.3d', '101.2a', '612.3', '113.12', '113.2d', '113.10', '603.2a', '113.1a', '605.5', '113.11']
+    added:   ['405.4', 'Ability', '603.3', '702.61b', '604.5', '405.1', '603.1a', '113.3b', '610.5', '113.4']
+  q032  can I use a mana ability when a spell with split-s
+    dropped: ['605.4a', '605.2', '605.5b']
+    added:   ['605.3', '508.1i', '118.2']
+
+  mean chunks changed per question: 5.5 / 15
+  unchanged questions: 1/31
+
+Regressions vs pure-vector baseline (hit@5, baseline='voyage-4-large'):
+  BM25: ['q002', 'q007', 'q015', 'q017', 'q020', 'q022', 'q025', 'q028', 'q029', 'q030', 'q031']
+  hybrid-RRF: ['q002', 'q007', 'q015', 'q020', 'q022', 'q028', 'q029', 'q031']
+  hybrid-wt0.5: ['q002', 'q007', 'q015', 'q022', 'q029', 'q031']
+  rerank:rerank-2.5-lite: ['q002', 'q028']
+  vec+rw1-haiku: ['q003', 'q019']
+  vec+rw3-haiku: ['q010']
+  vec+rw1-sonnet: ['q003']
+  vec+rw3-sonnet: ['q003', 'q020']
+  vec+rw1-gpt5mini: ['q003', 'q025', 'q030']
+  vec+rw3-gpt5mini: ['q010', 'q030']
+
+Clarification report (non-null clarification; bar: <= 5 of 31):
+  vec+rw1-haiku   : 0/31 -> []
+  vec+rw3-haiku   : 0/31 -> []
+  vec+rw1-sonnet  : 0/31 -> []
+  vec+rw3-sonnet  : 1/31 -> ['q020']
+  vec+rw1-gpt5mini: 1/31 -> ['q016']
+  vec+rw3-gpt5mini: 0/31 -> []
