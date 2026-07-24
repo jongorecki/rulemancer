@@ -530,3 +530,431 @@ fix for a single eval question.
    read-the-question-text pass to isolate actual assignment-shaped
    questions from the coarser `Combat`/`Damage`/`Fight` tag union (§6) —
    not done here.
+
+## 11. Build-prep research (completing §6/§10 open items)
+
+Written 2026-07-24 on `master` (which carries `data/raw/` and `evals/`,
+unlike the worktree §10 item 5 was blocked in). Research only — no source
+file touched, no tool code written, nothing built. Every claim below is
+grepped or fetched live, not asserted from memory.
+
+### 11.1. CR text grounding (§10 item 5) — found, with two real discrepancies
+
+`data/raw/MagicCompRules 20260619.txt` is present in this checkout (confirmed
+before searching, per Rule 0's "stop and report if absent" — it wasn't
+absent). Grepped directly, verbatim below.
+
+**CR 509.2** — turns out **not to be the rule this plan thought it was.**
+Verbatim:
+
+> 509.2. Second, the active player gets priority. (See rule 117, “Timing and
+> Priority.”)
+
+This is a pure priority-timing rule (who gets priority right after blockers
+are declared) — it says nothing about assignment order among multiple
+blockers. §5 item 2 and §10 item 5 of this plan cite "CR 509.2/510.1c" as
+the rule making "the attacking player's chosen order load-bearing." **That's
+a misattribution — the actual rule is 510.1c alone** (quoted next), not
+509.2. Flagging this now rather than letting it ship silently into
+`combat_calculator.py`'s docstring the way `cost_calculator.py`'s docstring
+quotes 601.2f correctly — a wrong CR citation in a docstring that exists
+specifically to avoid citing rules from memory would be an embarrassing way
+for this feature to fail its own stated discipline.
+
+**CR 510.1c**, verbatim (this is the real order-of-assignment rule):
+
+> 510.1c A blocked creature assigns its combat damage to the creatures
+> blocking it. If no creatures are currently blocking it (if, for example,
+> they were destroyed or removed from combat), it assigns no combat damage.
+> If exactly one creature is blocking it, it assigns all its combat damage
+> to that creature. If two or more creatures are blocking it, it assigns its
+> combat damage to those creatures divided as its controller chooses among
+> them.
+
+**CR 510.5 — does not exist.** Grepped for `510.5` (both anchored and
+unanchored) against the full CR text: zero hits. The Combat Damage Step
+section (510) only runs 510.1 through 510.4 in this version of the CR —
+510.4 is the first-strike/double-strike step-split rule (quoted below,
+folded into 702.4/702.7 territory). There is no current CR number 510.5 to
+paste. Whoever wrote the task brief's rule list either misremembered a
+number or was thinking of a rule that's been renumbered since; either way,
+**this rule number should be dropped from `combat_calculator.py`'s docstring
+plan entirely** — there's nothing to cite.
+
+**CR 702.2c** (deathtouch), verbatim:
+
+> 702.2c Any nonzero amount of combat damage assigned to a creature by a
+> source with deathtouch is considered to be lethal damage for the purposes
+> of determining if excess damage is being dealt.
+
+**CR 702.4** (Double Strike) — **and a second discrepancy**: this rule alone
+is NOT "first strike / double strike" as the plan's header groups it; first
+strike is a separate numbered ability, CR 702.7. Both are quoted below since
+the tool needs both.
+
+> 702.4. Double Strike
+>
+> 702.4a Double strike is a static ability that modifies the rules for the
+> combat damage step. (See rule 510, “Combat Damage Step.”)
+>
+> 702.4b If at least one attacking or blocking creature has first strike
+> (see rule 702.7) or double strike as the combat damage step begins, the
+> only creatures that assign combat damage in that step are those with
+> first strike or double strike. After that step, instead of proceeding to
+> the end of combat step, the phase gets a second combat damage step. The
+> only creatures that assign combat damage in that step are the remaining
+> attackers and blockers that had neither first strike nor double strike as
+> the first combat damage step began, as well as the remaining attackers
+> and blockers that currently have double strike. After that step, the
+> phase proceeds to the end of combat step.
+>
+> 702.4c Removing double strike from a creature during the first combat
+> damage step will stop it from assigning combat damage in the second
+> combat damage step.
+>
+> 702.4d Giving double strike to a creature with first strike after it has
+> already dealt combat damage in the first combat damage step will allow
+> the creature to assign combat damage in the second combat damage step.
+>
+> 702.4e Multiple instances of double strike on the same creature are
+> redundant.
+
+**CR 702.7** (First Strike — the rule actually missing from the plan's own
+list; needed for the `step: "first_strike"` input the tool's interface
+already proposes in §3b), verbatim:
+
+> 702.7. First Strike
+>
+> 702.7a First strike is a static ability that modifies the rules for the
+> combat damage step. (See rule 510, “Combat Damage Step.”)
+>
+> 702.7b If at least one attacking or blocking creature has first strike or
+> double strike (see rule 702.4) as the combat damage step begins, the only
+> creatures that assign combat damage in that step are those with first
+> strike or double strike. After that step, instead of proceeding to the
+> end of combat step, the phase gets a second combat damage step. The only
+> creatures that assign combat damage in that step are the remaining
+> attackers and blockers that had neither first strike nor double strike as
+> the first combat damage step began, as well as the remaining attackers
+> and blockers that currently have double strike. After that step, the
+> phase proceeds to the end of combat step.
+>
+> 702.7c Giving first strike to a creature without it after combat damage
+> has already been dealt in the first combat damage step won't preclude
+> that creature from assigning combat damage in the second combat damage
+> step. Removing first strike from a creature after it has already dealt
+> combat damage in the first combat damage step won't allow it to also
+> assign combat damage in the second combat damage step (unless the
+> creature has double strike).
+>
+> 702.7d Multiple instances of first strike on the same creature are
+> redundant.
+
+Also worth having on hand for the tool's `step` parameter — **CR 510.4**,
+the rule that actually governs which creatures deal damage in which step
+(neither 702.4 nor 702.7 alone states this; both merely point back at 510):
+
+> 510.4 If at least one attacking or blocking creature has first strike (see
+> rule 702.7) or double strike (see rule 702.4) as the combat damage step
+> begins, the only creatures that assign combat damage in that step are
+> those with first strike or double strike. After that step, instead of
+> proceeding to the end of combat step, the phase gets a second combat
+> damage step. The only creatures that assign combat damage in that step
+> are the remaining attackers and blockers that had neither first strike
+> nor double strike as the first combat damage step began, as well as the
+> remaining attackers and blockers that currently have double strike. After
+> that step, the phase proceeds to the end of combat step.
+
+**CR 702.19** (Trample), verbatim, in full (the tool's core rule):
+
+> 702.19. Trample
+>
+> 702.19a Trample is a static ability that modifies the rules for assigning
+> an attacking creature's combat damage. The ability has no effect when a
+> creature with trample is blocking or is dealing noncombat damage. (See
+> rule 510, "Combat Damage Step.")
+>
+> 702.19b The controller of an attacking creature with trample first
+> assigns damage to the creature(s) blocking it. Once all those blocking
+> creatures are assigned lethal damage, any excess damage is assigned as
+> its controller chooses among those blocking creatures and the player,
+> planeswalker, or battle the creature is attacking. When checking for
+> assigned lethal damage, take into account damage already marked on the
+> creature and damage from other creatures that's being assigned during the
+> same combat damage step, but not any abilities or effects that might
+> change the amount of damage that's actually dealt. The attacking
+> creature's controller need not assign lethal damage to all those blocking
+> creatures but in that case can't assign any damage to the player or
+> planeswalker it's attacking.
+>
+> 702.19c Trample over planeswalkers is a variant of trample that modifies
+> the rules for assigning combat damage to planeswalkers. [...] (out of
+> scope per this plan's §2 — no planeswalker support proposed — quoted in
+> the actual file if needed later.)
+>
+> 702.19d If an attacking creature with trample or trample over
+> planeswalkers is blocked, but there are no creatures blocking it when
+> damage is assigned, its damage is assigned to the defending player and/or
+> planeswalker as though all blocking creatures have been assigned lethal
+> damage.
+>
+> 702.19g Multiple instances of trample on the same creature are redundant.
+> Multiple instances of trample over planeswalkers on the same creature are
+> redundant.
+
+**Summary of discrepancies found** (both real, both worth fixing before
+`combat_calculator.py` is written):
+
+1. **509.2 is not the assignment-order rule** — drop it, cite 510.1c alone
+   for "controller chooses among them" ordering.
+2. **510.5 does not exist** in this CR version — drop it entirely, nothing
+   to cite.
+3. (Minor, additive rather than a correction) **"702.4 (first strike/double
+   strike)" is actually two separate rules** — 702.4 is double strike only;
+   702.7 is first strike. Both are quoted above since the tool's `step`
+   parameter needs both, and 510.4 is the rule that actually splits the
+   combat damage step in two, which neither 702.4 nor 702.7 states on its
+   own (each just points back at 510).
+
+### 11.2. Real validation slice (§6/§10 item 6) — the ROI number
+
+Pulled the 164-row `Combat`/`Damage`/`Fight` union to
+`evals/_combat_union_slice.jsonl` via `jq`-equivalent (Python, one pass,
+never dumped raw into context) and read every `question` field. Cross-
+checked the load-bearing cards' actual oracle text live via
+`rulesagent.tools.scryfall.get_card` (not from memory) wherever the
+question's shape looked promising, to confirm which side of combat actually
+carries trample/deathtouch before counting a row as a hit.
+
+**Result: 7 of the 164 rows (151 with gold) are genuinely combat-damage-
+assignment-shaped** — involving trample overflow, deathtouch lethal-amount,
+or multi-blocker ordering, as opposed to first-strike timing, "does it
+survive," fight spells, or burn. That's **4.3% of the union, and roughly
+0.5% of the full 1,409-row rulesguru corpus.**
+
+The 7, with their actual `gold` CR citations (confirming the classification
+independently — the eval's own human-written gold agrees these are
+509/510/702.2/702.19 questions):
+
+- **rg78** — gold `['702.16e', '702.19b']`. *"Anton attacks with a [Skaab
+  Goliath] and Nathaly blocks with an [Elite Inquisitor]. How can Anton
+  assign combat damage?"* Skaab Goliath: 6/9, trample, no deathtouch. Elite
+  Inquisitor: 2/2, first strike, **protection from Zombies** — and Skaab is
+  a Zombie subtype, so 702.16e (protection prevents the damage) is the real
+  crux here, not just trample. A trample-overflow question with a
+  protection wrinkle layered on: the *assignment* math (lethal to blocker,
+  rest tramples) is unaffected by protection — protection prevents dealt
+  damage, not assigned damage — so the proposed tool's scope (§2, "computes
+  assignment amounts only") would still get this right, but the model has
+  to know that distinction to hand the tool the right question in the
+  first place.
+- **rg86** — gold `['510.1c', '702.2c']`, exactly the two core rules this
+  plan targets. *"Ariel attacks Nala with an [Ayli, Eternal Pilgrim], which
+  is their only creature. Nala blocks with their [Canyon Minotaur] and
+  [Eager Cadet]. Will both blockers die, or just one? If there's a choice,
+  who makes it, and when?"* Ayli: 2/3, **deathtouch**, attacking; Canyon
+  Minotaur 3/3, Eager Cadet 1/1, both blocking. Deathtouch-attacker +
+  multi-blocker order in one question, with — notably — **no "damage" word
+  anywhere in the question at all** (see §11.3).
+- **rg581** — gold `['510.1d', '702.16a']`. *"Anson attacks with [Argothian
+  Swine]. Nico blocks with [Blightbeetle]. What is the maximum damage that
+  can be dealt to Nico?"* Argothian Swine: 3/3 trample. Blightbeetle: 1/1,
+  protection from green (Argothian Swine reads as green). Same
+  protection-layered-on-trample shape as rg78 — assignment math (lethal 1,
+  trample 2 to Nico the player, who has no protection) stays in the tool's
+  scope even though the gold cites protection rules, not 702.19b directly.
+- **rg1917** — gold `['120.6', '702.19b']`. *"Aydin is attacking with [Iron
+  Tusk Elephant]. Nadia controls [Zilortha, Strength Incarnate] and blocks
+  with [Kraken Hatchling]. What is the maximum amount of damage Aydin can
+  deal to Nadia?"* Iron Tusk Elephant 3/3 trample; Kraken Hatchling 0/4, but
+  Zilortha's static ability changes lethal-damage-for-creatures-you-control
+  from toughness to **power** — a card-specific rewrite of the lethal-damage
+  rule the tool's §2 scope line ("the tool never reads oracle text ... and
+  never decides for itself" a card-specific rule) correctly refuses to
+  model on its own; the model must pre-compute the modified lethal
+  threshold (0, from Kraken Hatchling's own power) before calling the tool.
+- **rg2079** — gold `['614.7a', '704.5g']` (neither 510 nor 702.19 directly
+  — this one resolves more through state-based-action/replacement-effect
+  rules than a clean trample citation, another Zilortha-on-the-blocker's-
+  side case). *"Nixon controls [Zilortha, Strength Incarnate] and [Phyrexian
+  Walker]. Aliza attacks with [Summon: Kujata] and Nixon blocks it with
+  Phyrexian Walker. What is the maximum amount of damage that can be dealt
+  to Nixon?"* Summon: Kujata 7/5 trample, haste; Phyrexian Walker 0/3, same
+  Zilortha modifier as rg1917.
+- **rg3195** — gold `['510.1c', '702.19b', '702.2c']`, **the exact three
+  rules this plan's docstring targets, all at once.** *"Adrien controls
+  [Rune of Mortality] attached to [Iron Giant], which is attacking. Nico
+  blocks with two copies of [Kavu Runner]. What is the maximum amount of
+  damage Adrien can assign to Nico, and which creature(s) will die in
+  combat?"* Iron Giant 6/6 trample + Rune of Mortality grants it
+  **deathtouch**; two 3/3 blockers. This is the richest single test case in
+  the corpus: deathtouch attacker, two blockers, assignment order, and
+  trample overflow, all in one question.
+- **rg5308** — gold `['510.1c', '702.19b', '702.2c']`, same three rules
+  again. *"Annalee attacks with their [Rootbreaker Wurm] equipped with
+  [Gorgon's Head]. Nico blocks with [Hazoret, Godseeker]. What is the
+  maximum amount of damage Annalee can assign to Nico?"* Rootbreaker Wurm
+  6/6 trample + Gorgon's Head grants **deathtouch**; blocker Hazoret,
+  Godseeker 5/3 **indestructible**. This is a direct, real-corpus test of
+  the plan's §2 "indestructible is deliberately NOT special-cased" ruling —
+  a genuine card in the wild pairing deathtouch-attacker-trample with an
+  indestructible blocker.
+
+**Three more rows are adjacent but explicitly excluded from the count**
+(consistent with the task's "NOT... does it survive combat" carve-out):
+`rg910`, `rg2932`, `rg2933` all involve a blocker being bounced/returned to
+hand mid-combat-damage-step (gold cites 509.1/510.1/510.2/611.x) — genuinely
+CR 510-adjacent, but the crux is "is this creature still blocked at all,"
+not a lethal/trample/order computation once the blockers are settled. Also
+excluded: `rg77` (Prey Upon — CR 701.12 fight, correctly out of the tool's
+scope per §2), `rg1775` (Excruciator vs. Unbreathing Horde — a damage-
+prevention-replacement-effect interaction, exactly the plan's §2 refusal
+category, not an assignment question).
+
+**This directly answers §8's ROI question: yes, this is rare** — 7 hits in
+164 tagged rows, roughly 1 in 23 even inside the already-filtered
+combat/damage union, and about 1 in 200 across the full rulesguru corpus.
+That's a small base rate. It does not by itself mean don't build — c020 and
+the 7-row slice above show the failure mode is real and the two rules-gold
+citations that appear twice (rg3195, rg5308) land exactly on the tool's
+intended scope — but Jon's own §8 criterion ("if ... only a handful of
+genuine ... questions" turns up, "the added-round-trip cost ... may not be
+worth it") is now answered with a real number instead of "unknown," and the
+number is on the small side.
+
+### 11.3. Trigger-regex calibration (§3c/§10 item 4)
+
+The plan's proposed regex, `\bhow much (combat )?damage\b` (or the string
+"damage do I have to assign"), was calibrated against c020 alone. Checked
+against the 7 real assignment-shaped questions above:
+
+| qid | phrasing | matches proposed regex? |
+|---|---|---|
+| c020 | "how much combat damage do I have to assign to the blocker" | **yes** |
+| rg78 | "How can Anton assign combat damage?" | no |
+| rg86 | "Will both blockers die, or just one? ... who makes it, and when?" | no (no "damage" word at all) |
+| rg581 | "What is the maximum damage that can be dealt to Nico?" | no |
+| rg1917 | "What is the maximum amount of damage Aydin can deal to Nadia?" | no |
+| rg2079 | "What is the maximum amount of damage that can be dealt to Nixon?" | no |
+| rg3195 | "What is the maximum amount of damage Adrien can assign to Nico ...?" | no |
+| rg5308 | "What is the maximum amount of damage Annalee can assign to Nico?" | no |
+
+**1 hit out of 8 (12.5%).** The proposed regex, calibrated only against the
+one founding example, would miss 6 of the 7 real corpus questions. The
+dominant real-world phrasing is **"what is the maximum (amount of) damage
+... can deal/assign,"** not "how much damage" — c020's own phrasing turns
+out to be the outlier, not the pattern.
+
+**Refined regex proposal** (design only, not implemented):
+
+```
+r"\b(how (?:much|many)\b.{0,40}?damage"          # "how much ... damage" (c020)
+r"|maximum\b.{0,30}?damage"                       # "maximum (amount of) damage" (rg581/1917/2079/3195/5308)
+r"|assign\w*\b.{0,30}?(?:combat\s+)?damage"       # "assign combat damage" (rg78)
+r"|damage\b.{0,30}?assign)\b"                     # "damage ... assign" (covers c020 + rg3195/5308's word order too)
+```
+
+Tested against the same 8: **7 of 8 hit** (c020, rg78, rg581, rg1917,
+rg2079, rg3195, rg5308 all match at least one branch). **rg86 still
+misses** — and cannot be caught by any damage-word regex, because the
+question never says "damage": it asks *"will both blockers die, or just
+one?"* with no damage phrasing at all. Catching rg86's shape would need a
+structurally different second trigger branch — something like a
+"will/does/do ... die" question combined with a multi-blocker phrase
+("blocks with X and Y" / a comma-or-"and"-joined blocker list) — a distinct
+signal from any damage-word pattern, not a regex tweak. Flagged as a real
+gap in the trigger design, not resolved here (mirrors this plan's own
+standing rule that a false negative is a non-regression, so leaving rg86
+uncaught is safe-but-incomplete, not broken).
+
+Net calibration verdict: the refined 4-branch regex is a meaningfully
+better starting point than the single c020-derived pattern, but it should
+still be treated as a first pass, not a final answer — 8 examples is a
+small tuning set, same caveat this plan already applies to its own 8-row
+mana-cost slice (`docs/plan-cost-calculator-tool.md` §6).
+
+### 11.4. Interaction with the new tool loop (§3d item 3/§10 item 3) — reassessed against `answer.py` post-1dfe6d4
+
+Read `answer.py`:1439-1508 (the round loop) and :840-846 (`TOOL_ROUND_CAP`
+sizing note) directly, plus commit `1dfe6d4`'s message. Confirmed the new
+shape:
+
+- `TOOL_ROUND_CAP = 3`, loop `for _round in range(TOOL_ROUND_CAP)`: rounds
+  0, 1, 2.
+- `is_last_round = _round == TOOL_ROUND_CAP - 1` (round index 2, the 3rd
+  round): `tool_choice` is forced to `{"type": "none"}` on that round only
+  — `tools` stays attached (schema still sent) but the model is barred from
+  calling one, so it must emit the terminal structured `Answer`.
+- A round that comes back `stop_reason == "tool_use"` appends the
+  assistant's tool_use turn + a tool_result turn and `continue`s (another
+  round); any other round `break`s out with the (hopefully parsed) `Answer`.
+
+**So there are exactly 2 tool-capable rounds (0 and 1), then a forced-answer
+round (2).** This matches the task's framing precisely: a double-strike
+combat question needs 2 *sequential* `combat_damage_assignment` calls
+(first-strike step, then the regular step, carrying forward
+`damage_marked` from the first call's result) — and because the second
+call's input depends on the first call's *output*, the model cannot pack
+both into a single round's multiple tool_use blocks the way it could for
+two independent, non-dependent calls. Two sequential calls need two
+sequential rounds. **That fits the 2-round budget exactly, with zero slack
+left over** — round 0 = first-strike call, round 1 = regular-step call,
+round 2 = forced terminal answer with no room for a third call of any kind
+(a retry within the attempt, a cost-tool co-fire that also depends on the
+combat result, or a mis-shaped extra combat call). This confirms §3d item
+3's worry rather than resolving it: **the cap likely does need raising**
+once the combat tool ships, specifically because double-strike is not a
+one-call use case the way `calculate_cost` mostly is.
+
+Two clarifications on top of the plan's original framing:
+
+1. **Independent (non-sequential) co-firing is actually fine at the current
+   cap.** If a question trips both `use_cost_tool` and a hypothetical
+   `use_combat_tool` for two calls that don't depend on each other's output
+   (the plan's §3c "imagined case" — a trample fight with an X-cost pump
+   spell), the model can emit both tool_use blocks in the *same* round
+   (Claude can return multiple tool_use blocks in one turn when they're
+   independent), leaving round 1 free and round 2 for the terminal answer.
+   The cap only gets tight when calls are **sequentially dependent** on each
+   other's results — which is specifically the double-strike combat case,
+   not the two-different-tools case the plan flagged as the "emerging
+   concern" in §3c. The real pressure point is narrower than §3c implied,
+   but it is real: a double-strike question that *also* needs a cost-tool
+   call (sequentially, e.g. because the cost call needs to know the combat
+   outcome, or vice versa) would need 3 sequential rounds and there are only
+   2 tool-capable ones — that case genuinely breaks today, with no
+   workaround short of raising `TOOL_ROUND_CAP`.
+
+2. **A more consequential finding: the tools-off/round-trip logic is gated
+   on `use_cost_tool` specifically, not on "any tool triggered," in three
+   separate places** — `answer.py`:1452 (`if use_cost_tool and
+   is_last_round: ... tool_choice: none`), :1475 (`if use_cost_tool and
+   ...stop_reason == "tool_use"`, the gate that decides whether to even
+   enter the round-trip-continuation branch), and :1507-1508 (`if
+   use_cost_tool: self.last_tool_calls = ...`). §3a of this plan describes
+   the combat tool as "a second dispatch branch in the same `for block in
+   response.content` loop... additive to a proven seam, not a new one" —
+   that's true for the *inner* per-block dispatch (matching on `block.name`
+   inside the tool-result-building loop), but it understates the change
+   needed at the **outer** round-loop level: if a `use_combat_tool` trigger
+   is added without also updating these three `if use_cost_tool` checks to
+   something like `if (use_cost_tool or use_combat_tool)`, then a question
+   that trips *only* the combat trigger would (a) never get the
+   tools-off-on-last-round protection this commit just shipped, silently
+   reintroducing the cap-exhaustion bug `1dfe6d4` just fixed, but scoped to
+   the new tool, and (b) never even enter the round-trip-continuation
+   branch at :1475, so a combat-tool-only call that returns `stop_reason ==
+   "tool_use"` would fall through to `break` with an unexecuted tool call
+   and a `parsed_output` of `None` — a wasted, silently-broken round, not a
+   working tool call. This is a small code change (three boolean checks
+   widened), not a redesign, but it is a real must-fix at build time that
+   §3a's "additive, not a new seam" framing doesn't currently surface.
+
+**Verdict:** `TOOL_ROUND_CAP` likely needs raising (e.g. to 4, giving 3
+tool-capable rounds) once the combat tool ships, specifically for the
+double-strike case — not resolved here, per §3d item 3's own scoping, but
+now confirmed rather than merely flagged. Separately and more urgently: the
+three `use_cost_tool`-only gates in the round loop must be broadened to
+cover any registered tool trigger, or the combat tool will silently inherit
+the exact cap-exhaustion failure mode commit `1dfe6d4` just spent an
+instrumented repro fixing for `calculate_cost`.
