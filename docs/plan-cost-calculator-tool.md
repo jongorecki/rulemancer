@@ -237,11 +237,17 @@ considered further.
 
 ### 3d. What's explicitly not solved here (open items)
 
-- Whether `anthropic.Anthropic().messages.parse(..., output_format=Answer)`
-  supports `tools=` in the same call, and if not, the exact mechanics of a
-  final tools-off/`output_format`-on call to close out the structured
-  `Answer`. Unverified — needs a small spike before implementation, not
-  answerable from reading source alone.
+- ~~Whether `.messages.parse(..., output_format=Answer)` supports `tools=`~~
+  **RESOLVED by spike 2026-07-23 (`docs/spike-tool-use-findings.md`, commit
+  `7a7e94b`).** No conflict: `messages.parse(tools=..., output_format=Answer)`
+  is a legal call. `output_format` constrains only whichever turn *ends* the
+  conversation; on a turn where the model calls a tool, `stop_reason` is
+  `tool_use` and `parsed_output` is `None`. **The integration is simpler than
+  this plan assumed** — there is NO "final tools-off call" branch to build.
+  Reissue the *same* `parse(tools=..., output_format=Answer)` call each loop
+  round; it returns a populated `Answer` automatically once the model stops
+  calling tools. Verified end-to-end for single and chained tool calls on
+  `claude-sonnet-5`. Round trips = tool calls + 1. Keep a round cap as a guard.
 - How the tool round trip nests inside the existing empty/degenerate-draw
   retry loop (`answer.py`:1187-1214), which currently assumes a single call
   per attempt.
@@ -428,8 +434,11 @@ working demo alone, because it shows the diagnosis came before the fix.
 
 ## 10. Open items (compiled from above)
 
-1. `.messages.parse(..., output_format=Answer)` + `tools=` compatibility —
-   unverified, needs a spike (§3d).
+1. ~~`.messages.parse()` + `tools=` compatibility~~ **RESOLVED** — no conflict,
+   one reusable looped call shape, no tools-off branch needed (§3d, spike
+   `7a7e94b`). gpt-5-mini via OpenRouter also verified viable, same 2-round
+   shape — which also softens open item #3 below from "unknown" to "viable,
+   mechanics not yet designed".
 2. Tool-round-trip nesting inside the existing empty/degenerate-draw retry
    loop at `answer.py`:1187-1214 — not designed here (§3d).
 3. OpenRouter/gpt-5-mini tool-use support — deferred, not designed (§3d, §7).
