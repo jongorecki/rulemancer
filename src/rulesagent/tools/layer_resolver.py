@@ -123,30 +123,55 @@ before 7c regardless of relative timestamp/resolution order):
     +4/+4 from the resolved spell, +0/+2 from the enchantment, and +1/+1
     from the counter).
 
-**Ability-source bookkeeping for the 613.6 gate.** To know whether a
-source's ability was "removed" (for the purposes of `is_active`), this
-module tracks which currently-present ability TEXT was contributed by which
-`source_id` -- populated whenever an `add_abilities` part actually adds new
-text, and (so an ability printed on the object itself, not granted by any
-part in this call, can also be tracked as "removed") pre-seeded at
-initialisation as `{text: text for text in base.abilities}`. That pre-seed
-is inert unless a part's `source_id` is deliberately written to match one of
-the object's own printed ability strings -- the natural convention for "this
-part comes from the same printed ability that also grants this text".
-When a `remove_abilities` / `remove_all_abilities` / `cant_have_abilities`
-part applies, every currently-tracked source whose text is stripped gets
-`removed_at[source] = this layer's index`. A source that never contributes
-(or is never pre-seeded with) any tracked ability text -- e.g. Muraganda
-Petroglyphs' land-based static ability in rg3868 -- is never marked
-"removed"; its conditional applicability is governed entirely by
-`applies_if`, which is the correct CR reading (that ability was never one of
-the creature's own abilities to begin with, so nothing ever strips it).
+**Ability-source bookkeeping for the 613.6 gate -- `source_on_this_object`
+(Slice 3, replacing Slice 2's text-matching).** To know whether a source's
+ability was "removed" (for the purposes of `is_active`), this module needs
+to know which sources' *generating abilities* are themselves abilities of
+the object being resolved -- so that a `remove_abilities` /
+`remove_all_abilities` / `cant_have_abilities` part can correctly mark those
+(and only those) sources as removed. Slice 2 inferred this by matching
+ability TEXT strings (an `ability_source` map, pre-seeded from
+`base.abilities` and updated on every `add_abilities`). That was flagged in
+review as fragile: it silently misjudges on any wording drift between a
+part's `source_id` and the literal ability text it was meant to track --
+"Trample" vs "trample" is exactly this failure, and there is no way for the
+engine to detect the mismatch, because a mismatched lookup just looks like
+"never removed" rather than an error.
 
-**Still out of Slice 2** (see plan Sec 9, Slice 3): CR 613.8 dependency
-ordering. A part carrying a non-empty `depends_on` is still refused, for the
-same reason as Slice 1 -- this module cannot yet compute the CR 613.8b
-wait-until-after ordering, and applying such a part in plain timestamp order
-instead would be a silent wrong answer.
+Slice 3 replaces the inference with an **explicit, caller-declared boolean**:
+each part carries `source_on_this_object` (default `False`). If `True`, the
+part's `source_id` is declared to be an ability that lives on the object
+being resolved -- e.g. Wayward Angel's threshold ability is Wayward Angel's
+own printed static ability, so its parts (`e1a`/`e1b`/`e1c`) all declare
+`source_on_this_object: true`. If `False` (or omitted), the source is
+declared to live elsewhere -- e.g. Muraganda Petroglyphs' "creatures with no
+abilities get +2/+2" is an ability of Muraganda, not of the creature it
+affects, so it is never a candidate to be stripped by that creature's own
+`remove_all_abilities` no matter what applies_if says separately.
+
+When a `remove_abilities` / `remove_all_abilities` / `cant_have_abilities`
+part applies at layer index `i`, every OTHER source_id anywhere in `effects`
+that declares `source_on_this_object: true` on any of its parts gets
+`removed_at.setdefault(source, i)` -- unconditionally of the removing
+operation's specific `value` list (mirroring the plan's own pseudocode,
+which routes both `remove_all_abilities` and `remove_abilities` through the
+same `record_removals` call without distinguishing which named abilities
+were affected). No ability text is read or compared anywhere in this
+computation; case, wording, and punctuation cannot desynchronise it.
+
+**CR 613.8b dependency ordering (Slice 3).** `depends_on` is no longer a
+blanket refusal. Within each `is_cda` group (CDAs first per 613.3, then
+everything else -- 613.8a criterion (c) forbids a dependency crossing that
+boundary), parts are ordered by repeatedly picking, among parts whose
+declared dependencies have all already been placed, the one with the
+smallest timestamp:
+
+    613.8b An effect dependent on one or more other effects waits to apply
+    until just after all of those effects have been applied. If multiple
+    dependent effects would apply simultaneously in this way, they're
+    applied in timestamp order relative to each other. If several dependent
+    effects form a dependency loop, then this rule is ignored and the
+    effects in the dependency loop are applied in timestamp order.
 
     613.8a An effect is said to "depend on" another if (a) it's applied in
     the same layer (and, if applicable, sublayer) as the other effect; (b)
@@ -157,13 +182,24 @@ instead would be a silent wrong answer.
     Otherwise, the effect is considered to be independent of the other
     effect.
 
+When no part is ever "ready" (every remaining part's dependencies are
+themselves among the remaining, unplaced parts) that is a dependency loop by
+construction, and per 613.8b's own final sentence the dependency rule is
+dropped for exactly that remainder: it is appended in plain timestamp order.
+`depends_on` stays model-declared input throughout (plan Sec 2/5.2) -- this
+module never infers a dependency, only orders the ones it is told about.
+
 Refuses rather than guesses: malformed/missing `base`, an unknown layer
 token, an `operation.kind` illegal for its declared layer, a non-integer
 timestamp (bool is explicitly rejected), two parts in the same layer sharing
-a timestamp (never tie-broken), a duplicate part `id`, an unknown colour
-token, a malformed `applies_if` (wrong shape, unknown predicate key, wrong
-value type for its predicate), and a present-and-non-empty `depends_on`
-(Slice 3 feature). All of these return `{"ok": False, "error": "..."}` --
+a timestamp with no dependency between them (never tie-broken), a duplicate
+part `id`, an unknown colour token, a malformed `applies_if` (wrong shape,
+unknown predicate key, wrong value type for its predicate), a non-boolean
+`source_on_this_object`, a non-empty `depends_on` with no
+`dependency_reason`, and a `depends_on` naming a part that isn't in the same
+layer (CR 613.8a criterion (a) -- this also covers a `depends_on` naming a
+part id that doesn't exist at all, since it necessarily can't be "in the
+same layer" either). All of these return `{"ok": False, "error": "..."}` --
 this module never raises for an input-shape problem and never produces a
 best-effort characteristics object it can't stand behind.
 """
@@ -372,15 +408,25 @@ def _validate_part(p: object) -> str | None:
     if applies_if_err:
         return f"part {part_id!r}: {applies_if_err}"
 
+    source_on_this_object = p.get("source_on_this_object", False)
+    if not isinstance(source_on_this_object, bool):
+        return (
+            f"part {part_id!r}: source_on_this_object must be a boolean, got "
+            f"{source_on_this_object!r}"
+        )
+
     depends_on = p.get("depends_on")
     if depends_on:
         if not isinstance(depends_on, list) or not all(isinstance(x, str) for x in depends_on):
             return f"part {part_id!r}: depends_on must be a list of part ids, got {depends_on!r}"
-        return (
-            f"part {part_id!r}: depends_on is not yet supported -- Slice 2 does not "
-            f"implement CR 613.8b dependency ordering (see docs/plan-layer-system-tool.md "
-            f"Sec 9, Slice 3). Leave depends_on empty/null for this slice."
-        )
+        dependency_reason = p.get("dependency_reason")
+        if not isinstance(dependency_reason, str) or not dependency_reason:
+            return (
+                f"part {part_id!r}: dependency_reason is required whenever depends_on is "
+                f"non-empty (CR 613.8a), got {dependency_reason!r}"
+            )
+    elif depends_on is not None and not isinstance(depends_on, list):
+        return f"part {part_id!r}: depends_on must be a list of part ids or null, got {depends_on!r}"
 
     cite = p.get("cite", "")
     if not isinstance(cite, str):
@@ -453,12 +499,42 @@ def _apply_pt_op(state: dict, operation: dict) -> None:
         state["power"], state["toughness"] = (state["toughness"] or 0), (state["power"] or 0)
 
 
+def _order_dependency_group(parts: list[dict]) -> list[dict]:
+    """CR 613.7/613.8b within one is_cda group: repeatedly place the
+    smallest-timestamp part among those whose declared dependencies have
+    already been placed. A part with no depends_on is trivially always
+    ready, so this reduces to a plain timestamp sort when nothing declares a
+    dependency -- the Slice 1/2 behaviour. When NO remaining part is ever
+    ready (every remaining part's dependencies are themselves unplaced), that
+    is a dependency loop by construction; CR 613.8b's final sentence says the
+    rule is then ignored for exactly that remainder, so it is appended in
+    plain timestamp order."""
+    remaining = list(parts)
+    placed: set[str] = set()
+    ordered: list[dict] = []
+
+    while remaining:
+        ready = [p for p in remaining if all(dep in placed for dep in (p.get("depends_on") or []))]
+        if not ready:
+            remaining.sort(key=lambda p: p["timestamp"])
+            ordered.extend(remaining)
+            break
+        ready.sort(key=lambda p: p["timestamp"])
+        next_part = ready[0]
+        ordered.append(next_part)
+        placed.add(next_part["id"])
+        remaining.remove(next_part)
+
+    return ordered
+
+
 def _order_parts(parts: list[dict]) -> list[dict]:
-    """CR 613.3/613.4: characteristic-defining abilities first, then
-    everything else, each group in CR 613.7 timestamp order."""
-    cdas = sorted((p for p in parts if p.get("is_cda", False)), key=lambda p: p["timestamp"])
-    others = sorted((p for p in parts if not p.get("is_cda", False)), key=lambda p: p["timestamp"])
-    return cdas + others
+    """CR 613.3/613.4a: characteristic-defining abilities first, then
+    everything else -- CR 613.8a criterion (c) forbids a dependency crossing
+    that boundary, so each group is ordered independently."""
+    cdas = [p for p in parts if p.get("is_cda", False)]
+    others = [p for p in parts if not p.get("is_cda", False)]
+    return _order_dependency_group(cdas) + _order_dependency_group(others)
 
 
 def _is_active(source_id: str, layer_index: int, started: dict, removed_at: dict) -> bool:
@@ -521,24 +597,34 @@ def _predicate_state_snapshot(applies_if: dict, state: dict) -> dict:
 def resolve_layers(base: dict | None, effects: list[dict] | None = None) -> dict:
     """Apply a list of caller-classified, caller-layer-assigned continuous
     effect parts to `base` in CR 613 order, for all eight layers/sublayers
-    (2, 4, 5, 6, 7a, 7b, 7c, 7d -- see the module docstring for the Slice 2
-    boundary: CR 613.8 dependency ordering is still Slice 3). Never raises on
-    bad input; returns {"ok": False, "error": "..."} instead.
+    (2, 4, 5, 6, 7a, 7b, 7c, 7d) plus CR 613.8b dependency ordering (Slice 3
+    -- see the module docstring). Never raises on bad input; returns
+    {"ok": False, "error": "..."} instead.
 
     base: {"name": str, "card_types": [str], "supertypes": [str],
            "subtypes": [str], "colors": [str], "abilities": [str],
            "power": int|None, "toughness": int|None, "controller": str|None}
           -- the object's copiable values, post-layer-1 (plan Sec 3a).
-    effects: flat list of effect parts (plan Sec 3a table):
+    effects: flat list of effect parts (plan Sec 3a table, plus the Slice 3
+          `source_on_this_object` addition, Part 3 of the review fix):
           {"id": str, "source_id": str,
            "layer": "2"|"4"|"5"|"6"|"7a"|"7b"|"7c"|"7d",
            "timestamp": int (>=0), "is_cda": bool,
            "depends_on": list[str]|None, "dependency_reason": str|None,
            "operation": {...},
            "applies_if": {<one of the six predicate keys>: ..., "expect": bool|None}|None,
+           "source_on_this_object": bool (default False) -- True declares
+             that this part's source_id is itself an ability of the object
+             being resolved, so a later remove_abilities/
+             remove_all_abilities/cant_have_abilities part correctly marks it
+             removed for the CR 613.6 gate (module docstring). Explicit,
+             caller-declared -- never inferred from ability text.
            "cite": str}
-          A non-empty `depends_on` is refused in this slice (Slice 3
-          feature). `None`/omitted is treated as [].
+          `depends_on`/`dependency_reason`: `None`/omitted `depends_on` is
+          treated as []. A non-empty `depends_on` requires a non-empty
+          `dependency_reason` (CR 613.8a) and every named id must be a part
+          in the SAME layer as this part (CR 613.8a criterion (a)) --
+          otherwise a refusal, never a guess.
 
     Returns on success:
       {"ok": True,
@@ -561,12 +647,6 @@ def resolve_layers(base: dict | None, effects: list[dict] | None = None) -> dict
     if not isinstance(effects, list):
         return {"ok": False, "error": f"effects must be a list, got {type(effects).__name__}"}
 
-    # dependencies_declared would flag any part that named a dependency, but
-    # _validate_part below refuses any non-empty depends_on outright (Slice 2
-    # does not implement CR 613.8b ordering), so a truthy declaration never
-    # reaches a successful return in this slice. Always False for now;
-    # Slice 3 makes this field meaningful.
-    dependencies_declared = False
     seen_ids: set[str] = set()
     for p in effects:
         err = _validate_part(p)
@@ -577,23 +657,51 @@ def resolve_layers(base: dict | None, effects: list[dict] | None = None) -> dict
             return {"ok": False, "error": f"duplicate part id: {part_id!r}"}
         seen_ids.add(part_id)
 
-    # CR 613.7 refusal: two parts in the same layer/sublayer sharing a
-    # timestamp are never tie-broken.
-    for layer in _LAYER_ORDER:
-        parts_in_layer = [p for p in effects if p["layer"] == layer]
-        seen_ts: dict[int, str] = {}
-        for p in parts_in_layer:
-            ts = p["timestamp"]
-            if ts in seen_ts:
+    # CR 613.8a criterion (a): a dependency must be in the same layer (and
+    # sublayer) as the part that declares it. This single lookup also covers
+    # a depends_on naming a part id that doesn't exist anywhere -- such an id
+    # is necessarily not "in the same layer" either, so it is refused with
+    # the same message rather than raising a KeyError later.
+    id_to_layer = {p["id"]: p["layer"] for p in effects}
+    for p in effects:
+        for dep_id in (p.get("depends_on") or []):
+            if dep_id not in id_to_layer or id_to_layer[dep_id] != p["layer"]:
                 return {
                     "ok": False,
                     "error": (
-                        f"layer {layer!r}: parts {seen_ts[ts]!r} and {p['id']!r} share "
-                        f"timestamp {ts} -- CR 613.7 orders by timestamp and this cannot "
-                        f"be tie-broken"
+                        f"part {p['id']!r}: depends_on names {dep_id!r}, which is not a "
+                        f"part in the same layer {p['layer']!r} -- CR 613.8a criterion (a) "
+                        f"requires a dependency to be in the same layer/sublayer"
                     ),
                 }
-            seen_ts[ts] = p["id"]
+
+    # CR 613.7 refusal: two parts in the same layer/sublayer sharing a
+    # timestamp with no dependency between them are never tie-broken. A
+    # declared dependency (either direction) resolves the tie instead via
+    # CR 613.8b's wait-until-after rule, so it is exempted here.
+    for layer in _LAYER_ORDER:
+        parts_in_layer = [p for p in effects if p["layer"] == layer]
+        by_ts: dict[int, list[dict]] = {}
+        for p in parts_in_layer:
+            by_ts.setdefault(p["timestamp"], []).append(p)
+        for ts, group in by_ts.items():
+            for i in range(len(group)):
+                for j in range(i + 1, len(group)):
+                    a, b = group[i], group[j]
+                    a_deps = a.get("depends_on") or []
+                    b_deps = b.get("depends_on") or []
+                    if b["id"] in a_deps or a["id"] in b_deps:
+                        continue
+                    return {
+                        "ok": False,
+                        "error": (
+                            f"layer {layer!r}: parts {a['id']!r} and {b['id']!r} share "
+                            f"timestamp {ts} with no dependency between them -- CR 613.7 "
+                            f"orders by timestamp and this cannot be tie-broken"
+                        ),
+                    }
+
+    dependencies_declared = any((p.get("depends_on") or []) for p in effects)
 
     state = {
         "card_types": list(base.get("card_types", [])),
@@ -614,11 +722,10 @@ def resolve_layers(base: dict | None, effects: list[dict] | None = None) -> dict
     # CR 613.6 bookkeeping.
     started: dict[str, int] = {}          # source_id -> earliest layer index it applied at
     removed_at: dict[str, int] = {}       # source_id -> layer index its ability was stripped at
-    # Which source_id contributed which currently-present ability text.
-    # Pre-seeded from base so a part whose source_id matches one of the
-    # object's own printed abilities is trackable even though nothing in
-    # `effects` ever "added" that text (see module docstring).
-    ability_source: dict[str, str] = {text: text for text in state["abilities"]}
+    # Every source_id that declares source_on_this_object on any of its
+    # parts (Part 3 fix, Slice 3) -- an explicit, caller-stated set, not
+    # inferred from ability text (see module docstring).
+    on_this_object_sources = {p["source_id"] for p in effects if p.get("source_on_this_object", False)}
 
     for layer in _LAYER_ORDER:
         idx = _LAYER_INDEX[layer]
@@ -676,23 +783,16 @@ def resolve_layers(base: dict | None, effects: list[dict] | None = None) -> dict
                 state_after = {"colors": list(state["colors"])}
             elif layer == "6":
                 kind = operation["kind"]
+                _apply_ability_op(state, operation, abilities_blocked)
                 if kind in _ABILITY_REMOVING_KINDS:
-                    if kind == "remove_abilities":
-                        remove_set = set(operation["value"])
-                        removed_texts = [a for a in state["abilities"] if a in remove_set]
-                    else:  # remove_all_abilities / cant_have_abilities
-                        removed_texts = list(state["abilities"])
-                    _apply_ability_op(state, operation, abilities_blocked)
-                    for text in removed_texts:
-                        src = ability_source.pop(text, None)
-                        if src is not None:
-                            removed_at.setdefault(src, idx)
-                else:  # add_abilities
-                    before = set(state["abilities"])
-                    _apply_ability_op(state, operation, abilities_blocked)
-                    for a in state["abilities"]:
-                        if a not in before:
-                            ability_source[a] = source_id
+                    # Part 3 fix: explicit source_on_this_object, not ability
+                    # text matching -- every OTHER declared on-this-object
+                    # source is now removed, regardless of which specific
+                    # ability text this operation named (mirrors the plan's
+                    # own pseudocode, which routes remove_all_abilities and
+                    # remove_abilities through the same record_removals call).
+                    for src in on_this_object_sources:
+                        removed_at.setdefault(src, idx)
                 state_after = {"abilities": list(state["abilities"])}
             else:  # 7a / 7b / 7c / 7d
                 _apply_pt_op(state, operation)

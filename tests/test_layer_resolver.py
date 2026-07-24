@@ -520,17 +520,10 @@ def test_refuses_applies_if_with_wrong_value_type():
     assert "power_gte" in result["error"]
 
 
-def test_refuses_nonempty_depends_on_as_not_yet_supported():
-    result = resolve_layers(
-        base=WAYWARD_ANGEL_BASE,
-        effects=[_part(id="e1", layer="6", timestamp=1,
-                        operation={"kind": "remove_all_abilities"},
-                        depends_on=["some_other_part"],
-                        dependency_reason="test dependency")],
-    )
-    assert result["ok"] is False
-    assert "depends_on" in result["error"]
-    assert "not yet supported" in result["error"]
+# Slice 3 implements CR 613.8b dependency ordering, so a well-formed
+# depends_on (same layer, dependency_reason present) is no longer a blanket
+# refusal -- see the "Slice 3" test section at the bottom of this file for
+# the ordering/refusal tests that replace the old Slice-1/2 placeholder.
 
 
 def test_empty_depends_on_is_accepted():
@@ -594,6 +587,7 @@ def test_rg3868_muraganda_wayward_angel_humility():
                 "is_cda": False, "depends_on": None, "dependency_reason": None,
                 "operation": {"kind": "set_colors", "value": ["B"]},
                 "applies_if": None, "cite": "Wayward Angel threshold",
+                "source_on_this_object": True,
             },
             {
                 "id": "e1b", "source_id": "e1", "layer": "6", "timestamp": 1,
@@ -603,24 +597,28 @@ def test_rg3868_muraganda_wayward_angel_humility():
                     "value": ["Trample", "At the beginning of your upkeep, sacrifice a creature."],
                 },
                 "applies_if": None, "cite": "Wayward Angel threshold",
+                "source_on_this_object": True,
             },
             {
                 "id": "e1c", "source_id": "e1", "layer": "7c", "timestamp": 1,
                 "is_cda": False, "depends_on": None, "dependency_reason": None,
                 "operation": {"kind": "modify_pt", "power": 3, "toughness": 3},
                 "applies_if": None, "cite": "Wayward Angel threshold",
+                "source_on_this_object": True,
             },
             {
                 "id": "e2a", "source_id": "e2", "layer": "6", "timestamp": 2,
                 "is_cda": False, "depends_on": None, "dependency_reason": None,
                 "operation": {"kind": "remove_all_abilities"},
                 "applies_if": None, "cite": "Humility",
+                "source_on_this_object": False,
             },
             {
                 "id": "e2b", "source_id": "e2", "layer": "7b", "timestamp": 2,
                 "is_cda": False, "depends_on": None, "dependency_reason": None,
                 "operation": {"kind": "set_pt", "power": 1, "toughness": 1},
                 "applies_if": None, "cite": "Humility",
+                "source_on_this_object": False,
             },
             {
                 "id": "e3a", "source_id": "e3", "layer": "7c", "timestamp": 3,
@@ -628,6 +626,7 @@ def test_rg3868_muraganda_wayward_angel_humility():
                 "operation": {"kind": "modify_pt", "power": 2, "toughness": 2},
                 "applies_if": {"has_no_abilities": True},
                 "cite": "Muraganda Petroglyphs",
+                "source_on_this_object": False,
             },
         ],
     )
@@ -644,12 +643,17 @@ def test_rg3868_muraganda_wayward_angel_humility():
 
 
 def _wayward_angel_threshold_parts(ts):
+    # source_on_this_object=True on all three parts: Threshold is Wayward
+    # Angel's own printed static ability (plan Sec 3b.5 / Part 3 fix) -- the
+    # caller states this explicitly rather than the engine inferring it by
+    # matching ability text.
     return [
         {
             "id": "e1a", "source_id": "e1", "layer": "5", "timestamp": ts,
             "is_cda": False, "depends_on": None, "dependency_reason": None,
             "operation": {"kind": "set_colors", "value": ["B"]},
             "applies_if": None, "cite": "Wayward Angel threshold",
+            "source_on_this_object": True,
         },
         {
             "id": "e1b", "source_id": "e1", "layer": "6", "timestamp": ts,
@@ -659,41 +663,51 @@ def _wayward_angel_threshold_parts(ts):
                 "value": ["Trample", "At the beginning of your upkeep, sacrifice a creature."],
             },
             "applies_if": None, "cite": "Wayward Angel threshold",
+            "source_on_this_object": True,
         },
         {
             "id": "e1c", "source_id": "e1", "layer": "7c", "timestamp": ts,
             "is_cda": False, "depends_on": None, "dependency_reason": None,
             "operation": {"kind": "modify_pt", "power": 3, "toughness": 3},
             "applies_if": None, "cite": "Wayward Angel threshold",
+            "source_on_this_object": True,
         },
     ]
 
 
 def _turn_to_frog_parts(ts):
+    # source_on_this_object=False (explicit): Turn to Frog's effect is a
+    # spell/continuous effect, not an ability printed on Wayward Angel
+    # itself, so it is never a candidate to be stripped by an
+    # ability-removal effect targeting the object.
     return [
         {
             "id": "e2_4", "source_id": "e2", "layer": "4", "timestamp": ts,
             "is_cda": False, "depends_on": None, "dependency_reason": None,
             "operation": {"kind": "set_types", "subtypes": ["Frog"]},
             "applies_if": None, "cite": "Turn to Frog",
+            "source_on_this_object": False,
         },
         {
             "id": "e2_5", "source_id": "e2", "layer": "5", "timestamp": ts,
             "is_cda": False, "depends_on": None, "dependency_reason": None,
             "operation": {"kind": "set_colors", "value": ["U"]},
             "applies_if": None, "cite": "Turn to Frog",
+            "source_on_this_object": False,
         },
         {
             "id": "e2_6", "source_id": "e2", "layer": "6", "timestamp": ts,
             "is_cda": False, "depends_on": None, "dependency_reason": None,
             "operation": {"kind": "remove_all_abilities"},
             "applies_if": None, "cite": "Turn to Frog",
+            "source_on_this_object": False,
         },
         {
             "id": "e2_7b", "source_id": "e2", "layer": "7b", "timestamp": ts,
             "is_cda": False, "depends_on": None, "dependency_reason": None,
             "operation": {"kind": "set_pt", "power": 1, "toughness": 1},
             "applies_if": None, "cite": "Turn to Frog",
+            "source_on_this_object": False,
         },
     ]
 
@@ -908,11 +922,11 @@ def test_is_active_gate_direct_unit_converse_never_started_does_not_apply():
 
 def test_is_active_gate_end_to_end_converse_via_base_ability_source_seed():
     # End-to-end version of the converse: the object has a printed ability
-    # "Ancient Blessing" that ALSO (by the caller's convention of naming
-    # source_id after the printed ability text it corresponds to) grants a
-    # +2/+2 static bonus, with its ONLY registered part in layer 7c. A
-    # different source (Humility-style) strips all abilities in layer 6,
-    # before "Ancient Blessing"'s 7c part has ever run -- so removed_at is
+    # "Ancient Blessing" that ALSO grants a +2/+2 static bonus (declared via
+    # the explicit source_on_this_object flag, Part 3 fix -- not by naming
+    # convention or text matching), with its ONLY registered part in layer
+    # 7c. A different source (Humility-style) strips all abilities in layer
+    # 6, before "Ancient Blessing"'s 7c part has ever run -- so removed_at is
     # set for it while started never was, and the CR 613.6 gate correctly
     # keeps its +2/+2 from ever applying.
     base = {
@@ -926,7 +940,8 @@ def test_is_active_gate_end_to_end_converse_via_base_ability_source_seed():
             _part(id="strip", source_id="humility", layer="6", timestamp=1,
                   operation={"kind": "remove_all_abilities"}),
             _part(id="bonus", source_id="Ancient Blessing", layer="7c", timestamp=1,
-                  operation={"kind": "modify_pt", "power": 2, "toughness": 2}),
+                  operation={"kind": "modify_pt", "power": 2, "toughness": 2},
+                  source_on_this_object=True),
         ],
     )
     assert result["ok"] is True, result
@@ -1080,3 +1095,304 @@ def test_refuses_set_controller_with_empty_value():
                         operation={"kind": "set_controller", "value": ""})],
     )
     assert result["ok"] is False
+
+
+# =============================================================================
+# Slice 3 -- CR 613.8b dependency ordering, the full refusal list (plan Sec
+# 3b/9), and the source_on_this_object fix (Part 3, carried over from Slice 2
+# review). docs/plan-layer-system-tool.md Sec 9, Slice 3.
+# =============================================================================
+
+
+# --- Part 1: CR 613.8b dependency ordering -----------------------------------
+
+
+def test_depends_on_defers_a_dependent_effect_past_its_own_earlier_timestamp():
+    # CR 613.8b: "An effect dependent on one or more other effects waits to
+    # apply until just after all of those effects have been applied." Y
+    # depends on X and has a MUCH earlier timestamp (1 vs 5) than X -- Y must
+    # still apply after X. Z is independent and has no bearing on ordering
+    # beyond its own timestamp.
+    result = resolve_layers(
+        base=WAYWARD_ANGEL_BASE,
+        effects=[
+            _part(id="y", source_id="sy", layer="5", timestamp=1,
+                  operation={"kind": "set_colors", "value": ["U"]},
+                  depends_on=["x"], dependency_reason="Y depends on X (test)"),
+            _part(id="z", source_id="sz", layer="5", timestamp=2,
+                  operation={"kind": "add_colors", "value": ["G"]}),
+            _part(id="x", source_id="sx", layer="5", timestamp=5,
+                  operation={"kind": "set_colors", "value": ["B"]}),
+        ],
+    )
+    assert result["ok"] is True, result
+    applied_order = [t["applied"] for t in result["trace"]]
+    assert applied_order == ["z", "x", "y"]
+    # z (add_colors G) then x (set_colors [B], wipes z's G) then y (set_colors [U]).
+    assert result["result"]["colors"] == ["U"]
+
+
+def test_depends_on_simultaneously_ready_dependents_break_by_timestamp():
+    # X has no dependency (ts=1). Y and Z both depend on X, ts=3 and ts=2
+    # respectively -- CR 613.8b: "If multiple dependent effects would apply
+    # simultaneously in this way, they're applied in timestamp order
+    # relative to each other." Once X is placed, Y and Z are both "ready"
+    # and must order Z (ts2) before Y (ts3).
+    result = resolve_layers(
+        base=WAYWARD_ANGEL_BASE,
+        effects=[
+            _part(id="y", source_id="sy", layer="7c", timestamp=3,
+                  operation={"kind": "modify_pt", "power": 1, "toughness": 0},
+                  depends_on=["x"], dependency_reason="Y depends on X (test)"),
+            _part(id="z", source_id="sz", layer="7c", timestamp=2,
+                  operation={"kind": "modify_pt", "power": 0, "toughness": 1},
+                  depends_on=["x"], dependency_reason="Z depends on X (test)"),
+            _part(id="x", source_id="sx", layer="7c", timestamp=1,
+                  operation={"kind": "modify_pt", "power": 10, "toughness": 10}),
+        ],
+    )
+    assert result["ok"] is True, result
+    applied_order = [t["applied"] for t in result["trace"]]
+    assert applied_order == ["x", "z", "y"]
+    assert result["result"]["power"] == 4 + 10 + 0 + 1
+    assert result["result"]["toughness"] == 4 + 10 + 1 + 0
+
+
+def test_dependency_loop_falls_back_to_timestamp_order():
+    # CR 613.8b, final sentence: "If several dependent effects form a
+    # dependency loop, then this rule is ignored and the effects in the
+    # dependency loop are applied in timestamp order." a depends on b and b
+    # depends on a -- neither can ever become "ready" under the wait-until-
+    # after rule, so the loop-fallback applies and they go strictly by
+    # timestamp (a, ts1, before b, ts2), as if depends_on had never been
+    # declared. This is the case CR 613.8 states but never illustrates (plan
+    # Sec 9, Slice 3).
+    result = resolve_layers(
+        base=WAYWARD_ANGEL_BASE,
+        effects=[
+            _part(id="a", source_id="sa", layer="5", timestamp=1,
+                  operation={"kind": "set_colors", "value": ["B"]},
+                  depends_on=["b"], dependency_reason="loop test: a depends on b"),
+            _part(id="b", source_id="sb", layer="5", timestamp=2,
+                  operation={"kind": "set_colors", "value": ["U"]},
+                  depends_on=["a"], dependency_reason="loop test: b depends on a"),
+        ],
+    )
+    assert result["ok"] is True, result
+    applied_order = [t["applied"] for t in result["trace"]]
+    assert applied_order == ["a", "b"]
+    # a (set [B]) applies first, then b (set [U]) overwrites it -- final [U].
+    assert result["result"]["colors"] == ["U"]
+
+
+def test_dependency_loop_of_three_falls_back_to_timestamp_order():
+    # A three-part loop (a->b->c->a) -- same fallback, generalised.
+    result = resolve_layers(
+        base=WAYWARD_ANGEL_BASE,
+        effects=[
+            _part(id="a", source_id="sa", layer="7c", timestamp=3,
+                  operation={"kind": "modify_pt", "power": 1, "toughness": 0},
+                  depends_on=["b"], dependency_reason="loop test"),
+            _part(id="b", source_id="sb", layer="7c", timestamp=1,
+                  operation={"kind": "modify_pt", "power": 0, "toughness": 1},
+                  depends_on=["c"], dependency_reason="loop test"),
+            _part(id="c", source_id="sc", layer="7c", timestamp=2,
+                  operation={"kind": "modify_pt", "power": 10, "toughness": 10},
+                  depends_on=["a"], dependency_reason="loop test"),
+        ],
+    )
+    assert result["ok"] is True, result
+    applied_order = [t["applied"] for t in result["trace"]]
+    assert applied_order == ["b", "c", "a"]  # strict timestamp order: 1, 2, 3
+
+
+def test_shared_timestamp_allowed_when_dependency_relationship_exists():
+    # The refusal is "same timestamp AND no dependency between them" -- a
+    # declared dependency resolves the tie instead of triggering a refusal.
+    result = resolve_layers(
+        base=WAYWARD_ANGEL_BASE,
+        effects=[
+            _part(id="a", source_id="sa", layer="5", timestamp=1,
+                  operation={"kind": "set_colors", "value": ["B"]},
+                  depends_on=["b"], dependency_reason="a depends on b (test)"),
+            _part(id="b", source_id="sb", layer="5", timestamp=1,
+                  operation={"kind": "set_colors", "value": ["U"]}),
+        ],
+    )
+    assert result["ok"] is True, result
+    applied_order = [t["applied"] for t in result["trace"]]
+    assert applied_order == ["b", "a"]
+    assert result["result"]["colors"] == ["B"]
+
+
+def test_dependencies_declared_true_when_any_part_declares_depends_on():
+    result = resolve_layers(
+        base=WAYWARD_ANGEL_BASE,
+        effects=[
+            _part(id="a", source_id="sa", layer="5", timestamp=1,
+                  operation={"kind": "set_colors", "value": ["B"]},
+                  depends_on=["b"], dependency_reason="test"),
+            _part(id="b", source_id="sb", layer="5", timestamp=2,
+                  operation={"kind": "set_colors", "value": ["U"]}),
+        ],
+    )
+    assert result["ok"] is True, result
+    assert result["dependencies_declared"] is True
+
+
+def test_dependencies_declared_false_when_no_depends_on():
+    result = resolve_layers(
+        base=WAYWARD_ANGEL_BASE,
+        effects=[_part(id="a", layer="5", timestamp=1,
+                        operation={"kind": "set_colors", "value": ["B"]})],
+    )
+    assert result["ok"] is True, result
+    assert result["dependencies_declared"] is False
+
+
+# --- Part 2: the full refusal list -------------------------------------------
+
+
+def test_refuses_depends_on_without_dependency_reason():
+    result = resolve_layers(
+        base=WAYWARD_ANGEL_BASE,
+        effects=[
+            _part(id="a", source_id="sa", layer="5", timestamp=1,
+                  operation={"kind": "set_colors", "value": ["B"]},
+                  depends_on=["b"], dependency_reason=None),
+            _part(id="b", source_id="sb", layer="5", timestamp=2,
+                  operation={"kind": "set_colors", "value": ["U"]}),
+        ],
+    )
+    assert result["ok"] is False
+    assert "dependency_reason" in result["error"]
+
+
+def test_refuses_depends_on_naming_a_part_in_a_different_layer():
+    # CR 613.8a criterion (a): a dependency must be in the same
+    # layer/sublayer as the effect that depends on it.
+    result = resolve_layers(
+        base=WAYWARD_ANGEL_BASE,
+        effects=[
+            _part(id="a", source_id="sa", layer="5", timestamp=1,
+                  operation={"kind": "set_colors", "value": ["B"]},
+                  depends_on=["b"], dependency_reason="test cross-layer dependency"),
+            _part(id="b", source_id="sb", layer="6", timestamp=1,
+                  operation={"kind": "remove_all_abilities"}),
+        ],
+    )
+    assert result["ok"] is False
+    assert "depends_on" in result["error"]
+    assert "same layer" in result["error"]
+
+
+def test_refuses_depends_on_naming_an_unknown_part_id():
+    # Never raises: an unresolvable reference is refused, not a KeyError.
+    result = resolve_layers(
+        base=WAYWARD_ANGEL_BASE,
+        effects=[
+            _part(id="a", source_id="sa", layer="5", timestamp=1,
+                  operation={"kind": "set_colors", "value": ["B"]},
+                  depends_on=["does_not_exist"], dependency_reason="test"),
+        ],
+    )
+    assert result["ok"] is False
+    assert "depends_on" in result["error"]
+
+
+def test_refuses_shared_timestamp_still_refused_without_any_dependency():
+    # Regression: the original Slice-1 refusal (no dependency at all between
+    # the tied parts) must still fire.
+    result = resolve_layers(
+        base=WAYWARD_ANGEL_BASE,
+        effects=[
+            _part(id="a", source_id="sa", layer="5", timestamp=1,
+                  operation={"kind": "set_colors", "value": ["B"]}),
+            _part(id="b", source_id="sb", layer="5", timestamp=1,
+                  operation={"kind": "set_colors", "value": ["U"]}),
+        ],
+    )
+    assert result["ok"] is False
+    assert "timestamp" in result["error"]
+
+
+# --- Part 3: source_on_this_object replaces text matching --------------------
+# rg3868/rg807/rg811's regression coverage lives in their existing test
+# functions above (updated to declare source_on_this_object explicitly); the
+# test below is the case the fix specifically targets.
+
+
+def test_source_on_this_object_flag_is_immune_to_case_drift_that_broke_text_matching():
+    # The bug this Part fixes: under the OLD text-matching design, a
+    # source's ability was only trackable for CR 613.6 purposes if the
+    # model's chosen source_id string matched the actual ability text
+    # EXACTLY (see the removed docstring convention: "pre-seeded ... source_id
+    # is deliberately written to match one of the object's own printed
+    # ability strings"). Here the base's printed ability is "Trample"
+    # (capital T) and the model names the pump effect's source_id "trample"
+    # (lowercase) -- ordinary wording drift, not a malformed input.
+    #
+    # Under the OLD mechanism: removed_at would have been recorded under the
+    # key "Trample" (from the base-text pre-seed), which never matches the
+    # part's own source_id "trample" in the is_active lookup -- so the gate
+    # would wrongly report "never removed" (r is None -> True) and apply the
+    # pump despite it never having started before its generating ability was
+    # stripped.
+    #
+    # Under the NEW explicit source_on_this_object flag, case never enters
+    # the computation at all: the flag says outright that "trample" is an
+    # ability on this object, so remove_all_abilities correctly marks it
+    # removed, and since "trample"'s only part (a 7c pump) never started
+    # before that removal, CR 613.6's converse applies and it correctly
+    # never begins applying.
+    base = {**WAYWARD_ANGEL_BASE, "abilities": ["Trample"], "power": 2, "toughness": 2}
+    result = resolve_layers(
+        base=base,
+        effects=[
+            _part(id="strip", source_id="remover", layer="6", timestamp=1,
+                  operation={"kind": "remove_all_abilities"}),
+            _part(id="pump", source_id="trample", layer="7c", timestamp=2,
+                  operation={"kind": "modify_pt", "power": 1, "toughness": 1},
+                  source_on_this_object=True),
+        ],
+    )
+    assert result["ok"] is True, result
+    assert result["result"]["power"] == 2
+    assert result["result"]["toughness"] == 2
+    assert result["skipped_count"] == 1
+    assert result["skipped"][0]["id"] == "pump"
+    assert "613.6" in result["skipped"][0]["why"]
+
+
+def test_source_on_this_object_false_is_never_stripped_by_ability_removal():
+    # The converse of the fix: a source that does NOT declare
+    # source_on_this_object never gets removed_at set for it by an
+    # ability-removal effect, no matter what its ability text looks like --
+    # this is Muraganda Petroglyphs' situation in rg3868 (its ability is on
+    # a different permanent, not on the object being resolved).
+    base = {**WAYWARD_ANGEL_BASE, "abilities": [], "power": 2, "toughness": 2}
+    result = resolve_layers(
+        base=base,
+        effects=[
+            _part(id="strip", source_id="remover", layer="6", timestamp=1,
+                  operation={"kind": "remove_all_abilities"}),
+            _part(id="pump", source_id="external", layer="7c", timestamp=2,
+                  operation={"kind": "modify_pt", "power": 1, "toughness": 1},
+                  source_on_this_object=False),
+        ],
+    )
+    assert result["ok"] is True, result
+    assert result["result"]["power"] == 3
+    assert result["result"]["toughness"] == 3
+    assert result["skipped_count"] == 0
+
+
+def test_refuses_non_bool_source_on_this_object():
+    result = resolve_layers(
+        base=WAYWARD_ANGEL_BASE,
+        effects=[_part(id="e1", layer="6", timestamp=1,
+                        operation={"kind": "remove_all_abilities"},
+                        source_on_this_object="yes")],
+    )
+    assert result["ok"] is False
+    assert "source_on_this_object" in result["error"]
