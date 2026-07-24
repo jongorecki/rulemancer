@@ -1,6 +1,16 @@
 # Plan — Rulings-recall: the hard-cutoff retrieval-recall gap behind c011
 
-**DRAFT under Rule 0 — DESIGN ONLY. Nothing built. Awaiting Jon's review.**
+**DRAFT under Rule 0 — DESIGN ONLY. Nothing built.**
+
+**JON'S RULING 2026-07-23: SHELVED.** Diagnosis kept on record, build nothing.
+Rationale: it rests on 3 known misses (c010/c011/c019) with no formal metric,
+and c011 — its anchor case — is frozen evidence, so fixing retrieval so that
+c011 passes would be fitting to a single point. The cheapest candidate (cross-
+signal with the CR RAG) is also near-dead: 0 of 190 measured rulings cite a CR
+rule number. Revisit only if more ruling-recall misses surface, or if a rulings
+gold instrument gets built for other reasons. Not deleted — the distribution
+finding (median 8 rulings/card, 89% of ruling-bearing eval cards exceed TOP_N=3)
+is real and worth keeping.
 
 ## 0. Scope note
 
