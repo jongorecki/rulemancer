@@ -62,14 +62,28 @@ Three eval arms + one build slice were running when this was written. Check
    merge until arms 1-3 finish** (it edits the runners they use). Built to be
    merged, then future runs are diagnosable without capture-file archaeology.
 
-### The first analysis to run once the above land
-Cross-reference the recall pass's per-question hit@15 (arm `vec+rw1-haiku`, the
-production retrieval) against the RulesGuru answer verdicts (`judge_rulesguru.py`
-auto-judges; you spot-check disagreements). That cross-ref **is** the
-miss-partition read at n=134: graded-wrong × gold-retrieved = reasoning failure;
-graded-wrong × gold-absent = retrieval failure. This is the number that decides
-whether the rerank plan or the cost-calculator is the real next lever. Caveat:
-tight-but-not-byte-identical until the logging slice makes retrieval exact.
+### The first analysis to run once the above land — SEQUENCE MATTERS
+The miss-partition needs "was gold in the generator's window", and the window is
+`TOP_K=15`. **The recall pass canNOT supply this directly:** its per-question
+matrix is hardcoded at **hit@5** (`per_q5`, `hit_at(...,5)`) and `KS=(1,5,10,20,
+50)` does not even include 15. Crossing the hit@5 matrix against verdicts would
+partition at the wrong window — the same recall@5-vs-15 trap that bit the
+bakeoff. Do NOT do that.
+
+Correct sequence:
+1. Current RulesGuru arms finish → `judge_rulesguru.py` for answer-quality by
+   level, and the recall pass for the **overfit check** (does rw-v2 generalise
+   off the 31 it was tuned on — recall@10/@20 bracket the window).
+2. **Merge the retrieved-id logging slice.**
+3. **Re-run the RulesGuru sonnet answer pass WITH logging** (~$0.30, don't ask).
+   Each row now carries `retrieved_rule_ids` — the EXACT set the model saw.
+4. Cross each graded-wrong row's gold ids against its own `retrieved_rule_ids`:
+   gold present = reasoning failure, gold absent = retrieval failure, gold
+   present-but-late = the near-miss bucket. **That** is the clean n=134
+   partition, at the true window, and it decides rerank-vs-cost-calculator.
+
+(A quick-and-dirty first read from the hit@5 matrix is fine as a preview, but
+label it @5 and don't let it drive the rerank/cost-calc decision.)
 
 ## THE FIVE PLANS (all Rule-0, your review gates every build)
 
