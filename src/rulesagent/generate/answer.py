@@ -9,6 +9,7 @@ Reads ANTHROPIC_API_KEY from the environment (.env). Model is pinned for
 reproducible answer evals -- see DECISIONS.md.
 """
 
+import json
 import logging
 import re
 
@@ -21,6 +22,7 @@ from rulesagent.index.store import VectorStore
 from rulesagent.retrieve.crossrefs import expand_crossrefs
 from rulesagent.retrieve.hybrid import rrf_fuse
 from rulesagent.retrieve.rewrite import rewrite_query
+from rulesagent.tools.cost_calculator import calculate_cost
 from rulesagent.tools.ruling_retrieval import ruling_id, select_rulings, select_rulings_union
 from rulesagent.tools.scryfall import ATTRIBUTION, get_card, parse_card_refs
 
@@ -742,6 +744,146 @@ def _card_symbol_text(cards: list[Card]) -> str:
     return " ".join(parts)
 
 
+# --- calculate_cost tool (docs/plan-cost-calculator-tool.md Sec 3b) --------
+#
+# The codebase's first real model-facing tool-use round trip. The plan's own
+# spike (docs/spike-tool-use-findings.md) settled the SDK-level question --
+# `client.messages.parse(tools=..., output_format=Answer)` needs no separate
+# "tools-off final call"; the same call shape is reissued each round of
+# RulesAgent.answer()'s tool loop below.
+#
+# Gated behind a deterministic per-question TRIGGER (_needs_cost_tool),
+# rather than attached on every call: production's non-tool path must stay
+# byte-behaviour-identical (task requirement), which a tool schema + extra
+# system sentence on EVERY call would break, and the plan's own Sec 6/8
+# flags that a round trip is not free and needs measuring rather than
+# assuming free on every query. This mirrors the existing precedent for
+# "when" -- the selective symbol-injection seam at build_prompt (Sec 3b.3
+# cites this exact precedent) -- rather than the plan's alternative reading
+# (an always-on system sentence with tools always attached); that reading
+# was rejected here specifically because it cannot satisfy "byte-identical
+# on the non-tool path."
+CALCULATE_COST_TOOL = {
+    "name": "calculate_cost",
+    "description": (
+        "Given a spell or ability's base mana cost and a list of "
+        "cost-modifying effects you have already identified from the rules "
+        "and card text (each labeled reduction, increase, or floor_total, "
+        "with an amount and a short cite), computes the exact resulting "
+        "cost per CR 601.2f -- optionally across a range of {X} values. "
+        "This tool does NOT decide which effects apply or what kind they "
+        "are -- identify that from the provided rules/card data first, "
+        "then call this only for the arithmetic. Never state a combined "
+        "or compared cost without calling this tool when more than one "
+        "cost-modifying effect is in play."
+    ),
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "base_cost": {
+                "type": "object",
+                "description": "The printed base mana cost, decomposed.",
+                "properties": {
+                    "generic": {"type": "integer", "minimum": 0},
+                    "colored": {
+                        "type": "object",
+                        "properties": {
+                            c: {"type": "integer", "minimum": 0}
+                            for c in ("W", "U", "B", "R", "G", "C")
+                        },
+                        "additionalProperties": False,
+                    },
+                    "x_coefficient": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "description": "Number of {X} symbols in the printed cost (0 if none).",
+                    },
+                },
+                "required": ["generic", "colored", "x_coefficient"],
+                "additionalProperties": False,
+            },
+            "modifiers": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "kind": {
+                            "type": "string",
+                            "enum": ["reduction", "increase", "floor_total"],
+                        },
+                        "amount": {"type": "integer", "minimum": 1},
+                        "cite": {"type": "string"},
+                    },
+                    "required": ["kind", "amount", "cite"],
+                    "additionalProperties": False,
+                },
+            },
+            "x_values": {
+                "type": ["array", "null"],
+                "items": {"type": "integer", "minimum": 0},
+                "description": "Required (non-empty) when base_cost.x_coefficient > 0.",
+            },
+        },
+        "required": ["base_cost", "modifiers"],
+        "additionalProperties": False,
+    },
+}
+
+TOOL_TRIGGER_SENTENCE = (
+    "- When a question requires combining more than one cost-changing "
+    "effect, or comparing a cost across different values of {X}, call "
+    "calculate_cost with the modifiers you've identified (each labeled "
+    "reduction, increase, or floor_total) rather than doing that "
+    "arithmetic yourself."
+)
+
+TOOL_ROUND_CAP = 3
+# Guard against a confused model looping (plan Sec 3d / spike Sec 3): round
+# trips = tool calls + 1, and the spike observed clean 2-3-round convergence
+# on a toy tool. 3 covers one chained pair of tool calls (spike Case B)
+# plus the terminal structured-Answer turn; calculate_cost's real use case
+# (one call per question) converges in 2. Not measured at production
+# complexity -- see the report's "if messier than the spike" note.
+
+_COST_TRIGGER_RE = re.compile(r"costs?\s*\{?\d+\}?\s*(less|more)\b", re.IGNORECASE)
+
+
+def _needs_cost_tool(question: str, cards: list[Card]) -> bool:
+    """Deterministic v1 trigger: fires only when BOTH an {X} symbol AND a
+    cost-reduction/increase phrase ("costs {N} less/more") are present in
+    the cards' oracle text/mana costs or the question -- the shape of a
+    genuine multi-modifier cost question (c014: "...cost {1} less... cast
+    it with X=0..."). Deliberately narrow, not an exhaustive detector of
+    every possible cost-math question: a false negative just means the
+    model does the arithmetic in prose as it does today (no regression);
+    a false positive costs one extra system sentence + tool schema on that
+    call. Reuses the same cards+question text _symbols_present already
+    scans for symbol injection, so this never diverges from what the model
+    can already see."""
+    text = f"{_card_symbol_text(cards)} {question}"
+    if "{X}" not in _symbols_present(text):
+        return False
+    return bool(_COST_TRIGGER_RE.search(text))
+
+
+def _run_calculate_cost(input_: dict) -> dict:
+    """Dispatch one calculate_cost tool_use block. calculate_cost() itself
+    never raises on malformed input (returns {"ok": False, "error": ...});
+    this also guards against a tool_use block whose `input` doesn't even
+    have the expected keys (e.g. base_cost missing entirely), same
+    broad-except posture as get_card's own fetch-error handling
+    (tools/scryfall.py) -- a tool-dispatch crash must never take down the
+    whole generation call."""
+    try:
+        return calculate_cost(
+            base_cost=input_.get("base_cost"),
+            modifiers=input_.get("modifiers") or [],
+            x_values=input_.get("x_values"),
+        )
+    except Exception as e:  # pragma: no cover - defensive
+        return {"ok": False, "error": f"calculate_cost failed on malformed input: {e!r}"}
+
+
 def _format_context(retrieved: list[Retrieved]) -> str:
     return "\n\n".join(f"[{r.chunk.source_id}] {r.chunk.text}" for r in retrieved)
 
@@ -1005,6 +1147,15 @@ class RulesAgent:
         # a Card, either a confirmed Scryfall miss or a fetch exception (the
         # latter previously crashed the whole request). Same lifecycle/
         # pattern as last_crossref -- read right after answer() by the API.
+        self.last_tool_calls: list[dict] | None = None
+        # Set on every answer() call (plan Sec 5.4): None when the
+        # calculate_cost trigger didn't fire this turn (no tool round trip
+        # attempted at all); otherwise a list of {"name", "input", "result"}
+        # dicts, one per calculate_cost invocation on the attempt that
+        # produced the returned Answer -- so "did it use the calculator, and
+        # what did it compute" is answerable from telemetry without
+        # re-running the question, same pattern as last_crossref/
+        # last_ruling_selection.
 
     def answer(self, question: str, history: list[dict] | None = None) -> Answer:
         """`history` (optional): prior conversation turns, oldest first, each
@@ -1181,23 +1332,85 @@ class RulesAgent:
                              if self.show_rewrite and self.last_rewritten is not None
                              else None),
         )
-        msgs: list[dict] = [{"role": "user", "content": user}]
+        # calculate_cost tool gate (docs/plan-cost-calculator-tool.md Sec 3b):
+        # only when the trigger fires does the call gain `tools=` and the
+        # extra system sentence -- see _needs_cost_tool's docstring for why
+        # this is gated rather than always-on. `call_system`/`extra_kwargs`
+        # are exactly what changes; `system`/`user` from build_prompt above
+        # are completely untouched either way, so build_prompt's own output
+        # (and every existing test/fixture that checks it) is unaffected.
+        use_cost_tool = _needs_cost_tool(question, cards)
+        call_system = system
+        extra_kwargs: dict = {}
+        if use_cost_tool:
+            call_system = system + "\n" + TOOL_TRIGGER_SENTENCE
+            extra_kwargs["tools"] = [CALCULATE_COST_TOOL]
+        base_msgs: list[dict] = [{"role": "user", "content": user}]
+        self.last_tool_calls = None
         parsed, response = None, None
         weak = None  # best parseable-but-degenerate draw, kept as a fallback
         for _attempt in range(2):
-            try:
-                response = self.client.messages.parse(
-                    model=self.model,
-                    max_tokens=16384,
-                    system=system,
-                    messages=msgs,
-                    output_format=Answer,
-                )
-                parsed = response.parsed_output
-            except ValidationError:
-                # messages.parse RAISES on empty content rather than returning
-                # parsed_output=None -- treat both the same: retry, then degrade.
-                parsed = None
+            attempt_msgs = list(base_msgs)
+            attempt_tool_calls: list[dict] = []
+            response = None
+            for _round in range(TOOL_ROUND_CAP):
+                try:
+                    response = self.client.messages.parse(
+                        model=self.model,
+                        max_tokens=16384,
+                        system=call_system,
+                        messages=attempt_msgs,
+                        output_format=Answer,
+                        **extra_kwargs,
+                    )
+                except ValidationError:
+                    # messages.parse RAISES on empty content rather than
+                    # returning parsed_output=None -- treat both the same:
+                    # retry, then degrade. This attempt is over.
+                    response = None
+                    break
+                # Only ever check stop_reason when tools were actually
+                # attached this call -- the model can't return "tool_use"
+                # otherwise, so the non-tool path never touches this
+                # attribute at all (byte-identical old behavior; also means
+                # a bare fake response stub with no .stop_reason, as several
+                # existing tests use, keeps working unchanged).
+                if use_cost_tool and getattr(response, "stop_reason", None) == "tool_use":
+                    # Tool round trip (spike-verified shape, docs/spike-
+                    # tool-use-findings.md Sec 2): append the assistant's
+                    # tool_use turn, execute every tool call locally, append
+                    # the tool_result turn, and reissue the SAME call shape.
+                    # Never reached when use_cost_tool is False -- no tools
+                    # are attached, so the model can't return "tool_use".
+                    attempt_msgs = attempt_msgs + [
+                        {"role": "assistant", "content": response.content}
+                    ]
+                    tool_results = []
+                    for block in response.content:
+                        if getattr(block, "type", None) == "tool_use":
+                            result = _run_calculate_cost(block.input)
+                            attempt_tool_calls.append(
+                                {"name": block.name, "input": block.input, "result": result}
+                            )
+                            tool_results.append({
+                                "type": "tool_result",
+                                "tool_use_id": block.id,
+                                "content": json.dumps(result),
+                            })
+                    attempt_msgs = attempt_msgs + [{"role": "user", "content": tool_results}]
+                    continue
+                break
+            else:
+                # TOOL_ROUND_CAP rounds all came back tool_use -- a confused
+                # model looping. Guard fires: this attempt is treated as
+                # failed (same as a ValidationError) rather than looping
+                # further or returning an unpopulated response.
+                response = None
+
+            if use_cost_tool:
+                self.last_tool_calls = attempt_tool_calls
+
+            parsed = response.parsed_output if response is not None else None
             if parsed is not None and _degenerate(parsed):
                 # Parsed fine but it's a degenerate non-answer (answered=false,
                 # no citations, ~empty text) -- the weak-draw class the old
