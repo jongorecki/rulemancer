@@ -7,7 +7,7 @@ ask" whenever the state moves; the rest is stable.
 
 We're continuing work on Rulemancer, the MTG rules RAG bot at D:\Job_hunt\mtg-rules-bot.
 
-First: read docs/HANDOFF-development.md in full. It *replaced* the prior handoff rather than prepending — don't dig through git for superseded blocks. It opens with "THE ONE THING TO DO FIRST" and a short strategy section; read those, then the plan it names (`docs/plan-combat-damage-tool.md`, including its §11 build-prep research).
+First: read docs/HANDOFF-development.md in full. It *replaced* the prior handoff rather than prepending — don't dig through git for superseded blocks. It opens with "THE ONE THING TO DO FIRST" (plan the layer-system tool) and a short strategy section; read those. Also skim the shelved combat plan's **§11 build-prep research** in `docs/plan-combat-damage-tool.md` — it's why combat was shelved and it carries the loop-gating trap and the CR-grounding lesson that both apply to the layers plan you'll write.
 
 Where we are in one line: the **cost tool is shipped and reliability-hardened** (cap-exhaustion killed, malformed-answer guard added — empty-output 0/24 vs ~29%), Jon's RulesGuru regrade is folded in (**75.3%** held-out), combat-damage is **shelved** (plan complete but only ~7 real assignment questions in the corpus), and the **next tool is the layer-system resolver (CR 613) — Jon ruled it the next lever — which needs a plan.**
 
