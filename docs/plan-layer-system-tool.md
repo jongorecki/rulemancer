@@ -353,13 +353,48 @@ having done the engine's job. Three ways out:
   spends a second tool round on every conditional question and pushes straight into
   the `TOOL_ROUND_CAP` question (§3d).
 
-**I recommend B, capped hard at those six predicates.** The reason is that B makes
-the tool correct on 613.5's canonical example by construction, where A gets it right
-only when the model happens to guess right. The cost is real and I want it named:
-six more validated fields, and a new way for the model to be confidently wrong (a
-mis-declared predicate silently gates an effect out). If Jon prefers the smaller
-surface, A is a legitimate v1 and §9 Slice 2 is written so B can be added later
-without reshaping the schema.
+**I recommend B, capped hard at those six predicates, plus the `expect` field
+below.** B makes the tool correct on 613.5's canonical example by construction, where
+A gets it right only when the model happens to guess right.
+
+**The silent-gating problem, and why it makes B *safer* than A rather than riskier.**
+The obvious objection to B is that a mis-declared predicate silently gates an effect
+out, producing a coherent, fully-traced, wrong answer. That objection is right about
+the failure and wrong about which option is exposed to it. Under **A there is nothing
+to cross-check** — the model asserts a boolean and the engine takes it. Under B the
+engine independently evaluates the condition against real state, which means the
+engine and the model *can disagree*, and a disagreement is a countable signal. Four
+mechanisms turn the silent skip into a loud one:
+
+1. **The trace records non-applications, not just applications**, with the evaluated
+   reason and the state checked against:
+   ```json
+   {"layer": "7c", "skipped": "e3a",
+    "why": "applies_if {\"has_no_abilities\": true} evaluated FALSE",
+    "state_checked": {"abilities": ["Flying"]}}
+   ```
+2. **A top-level `skipped_count` / `skipped` list.** A nested trace entry gets skimmed
+   past; a top-level counter does not.
+3. **An `expect` boolean on `applies_if`** — the model declares what it expects the
+   predicate to evaluate to. Engine/model disagreement returns a **warning**, not a
+   refusal (the engine is right; the model's expectation was the wrong thing):
+   ```
+   "warnings": ["e3a: expected to apply, but at layer 7c the object had
+                 abilities ['Flying'], so it was skipped"]
+   ```
+   This is the mechanism A structurally cannot have, and it doubles as the validation
+   instrument: a high disagreement rate means the predicate vocabulary is wrong, and
+   that shows up before shipping rather than after.
+4. **Telemetry** — skip and warning data rides in the existing `last_tool_calls`
+   channel, the same posture the repo already took for the rg6636 word-salad case
+   (`last_uncited_success`): monitorable, not silently trusted.
+
+**Honest limit:** these make the failure *visible*, not *correct*. The model can read
+the warning and ignore it. But a measurable mismatch rate is a categorically better
+position than an invisible one, and it is measurable from Slice 2 onward with no API
+call. If Jon prefers the smaller surface, A remains a legitimate v1 and §9 Slice 2 is
+sequenced so B can be added later without reshaping the schema — but A forfeits
+mechanism 3 permanently.
 
 **Return shape** mirrors `cost_calculator`'s tagged dict exactly:
 
@@ -372,6 +407,9 @@ without reshaping the schema.
             "state_after": {"colors": ["B"]}},
            {"layer": "7c", "applied": "e1c", "why": "CR 613.6 - source ability e1 was removed in layer 6 but had already applied in layer 5, so it continues",
             "state_after": {"power": 4, "toughness": 4}}],
+ "warnings": [],
+ "skipped_count": 0,
+ "skipped": [],
  "dependencies_declared": false}
 ```
 
@@ -699,7 +737,16 @@ for the cost tool. It is the strongest argument against building this, and it is
 
 Mitigations, none of them complete: the `trace` makes the failure inspectable; the
 refusal list (§3b) catches structurally impossible payloads rather than computing
-them; equal timestamps refuse instead of tie-breaking.
+them; equal timestamps refuse instead of tie-breaking; and under option B the
+`expect`/warning mechanism (§3a) surfaces predicate mistakes as countable
+disagreements.
+
+Worth naming the asymmetry that limits all of them: a **structurally impossible**
+payload gets refused, but a **structurally valid, semantically wrong** one gets
+computed faithfully. Layer assignment, timestamp order and `source_id` grouping all
+fall in the second category — the engine has no way to know a plausible layer is the
+wrong layer. That is the irreducible residue, and the regression arm is the only
+instrument that measures it.
 
 ### 5.2. Dependency is the soft spot
 
@@ -744,9 +791,32 @@ consistency failure rather than a knowledge gap, and prompts do not fix consiste
 failures the way engines do. But that is a hypothesis, and it is cheap to test:
 one prompt variant, the same four questions, a handful of reps.
 
-**Recommendation: run the control arm as Slice 0, before Slice 1.** If it recovers
-all three reliably across reps, this plan should be closed and the win taken for the
-price of one bullet.
+**RULED (Jon, 2026-07-24): the tool must TIE OR BEAT the control arm.** Not
+strictly beat.
+
+The reasoning corrects something I had backwards. I had written that if the prompt
+bullet recovers all three, the plan should close and the free win be taken. That was
+too generous to the control arm, because **the two interventions do not carry
+symmetric risk**:
+
+- A **system-prompt bullet applies to every question in the corpus.** It is a global
+  change, and it can regress questions that have nothing to do with layers.
+- The **tool only fires when triggered** (§3c). Its blast radius is bounded to
+  questions that trip both conjuncts.
+
+So a tie is genuinely enough to prefer the tool: same win, smaller blast radius.
+
+**Consequence for the measurement:** the control arm is *not* free and does not get
+to skip the regression check. Slice 0 measures the prompt variant on the four seeds
+**and** on a non-layers regression sample. Slice 5 does the same for the tool
+(§6.2). Both arms report win-rate *and* regression, and they are compared on both
+numbers — not on the seed recoveries alone.
+
+**Recommendation: still run the control arm as Slice 0, before Slice 1.** Its value
+is now diagnostic rather than a kill switch: if a bullet recovers all three, the
+613.6 failure is a prompting problem and the tool's job gets easier to size; if it
+does not, that confirms §1.2's read that this is a consistency failure rather than a
+knowledge gap.
 
 ### 6.2. The real test set
 
@@ -795,11 +865,11 @@ Pure correct by construction rather than by the model guessing ahead. Cost: six 
 validated fields and a new silent-gating failure mode. A is a legitimate smaller v1
 and §9 is sequenced so B can land later without a schema reshape.
 
-**8.2. Does the tool have to beat the §6.1 prompt-bullet control arm?**
-I think it should have to, and I think it will. But if Jon wants the tool built
-regardless — the demo value of a second instance of the tool pattern is real and was
-part of combat's §9 rationale — that is a legitimate call and changes the sequencing,
-not the design.
+**8.2. Control arm — RULED (Jon, 2026-07-24): tie or beat.** The tool must match or
+exceed the §6.1 prompt-bullet arm, not strictly beat it, because the prompt bullet is
+a global change with its own regression exposure while the tool's blast radius is
+bounded to triggered questions. Both arms now carry a regression measurement (§6.1,
+§6.2). Nothing further to rule on here.
 
 **8.3. `TOOL_ROUND_CAP` — I recommend leaving it at 3**, against the handoff's
 "likely needs raising." Reasoning and the combat contrast are in §3d. Flagging
@@ -826,8 +896,10 @@ never bind or kill it. **No agent runs `git add -A` or `git add .`; every commit
 stages named paths only.**
 
 **Slice 0 — the control arm (§6.1).** No tool code. One prompt variant with 613.6 +
-611.3a quoted, the four seeds, several reps, aggregated. Blocked on the API cap.
-Gate: if it recovers all three 613.6 misses reliably, stop here and report.
+611.3a quoted, run on the four seeds *and* on a non-layers regression sample, several
+reps, aggregated. Blocked on the API cap. Per the §8.2 ruling this is no longer a
+kill switch — it is the baseline the tool must tie or beat on **both** win-rate and
+regression.
 
 **Slice 1 — the pure engine, layers 4/5/6 only.**
 Create `src/rulesagent/tools/layer_resolver.py`, `tests/test_layer_resolver.py`.
@@ -840,7 +912,13 @@ that isolates ordering with nothing else moving.
 
 **Slice 2 — layer 7a–7d and the 613.6 gate.** The `is_active` gate from §3b, then
 the four seed traces from §3b.5 as exact expected outputs, then CR 613.4d's three
-switch examples verbatim. Under option B, `applies_if` lands here.
+switch examples verbatim. Under option B, `applies_if` lands here **together with all
+four anti-silent-gating mechanisms** (§3a): skip entries in the trace, top-level
+`skipped_count`/`skipped`, the `expect` field and its disagreement warning, and the
+telemetry hook. They are not a later hardening pass — a predicate without its skip
+signal is the exact failure mode the mechanisms exist to prevent, so they ship in the
+same commit. Tests must include a deliberate expectation mismatch asserting a warning
+is emitted and `ok` stays `true`.
 
 **Slice 3 — 613.8b dependency ordering + the full refusal list (§3b).** Includes the
 loop-falls-back-to-timestamp case, which 613.8b states and the CR never illustrates.
@@ -853,7 +931,13 @@ asserting a `resolve_layers` block does **not** reach `_run_calculate_cost` is
 mandatory (fix 4). No live API call anywhere in this slice.
 
 **Slice 5 — live validation (§6.2).** Blocked on the API cap. Tool-on vs tool-off
-over the COMPUTE bucket, plus the regression arm. Frozen judge.
+over the 51-row COMPUTE bucket, plus the regression arm, compared against Slice 0's
+control arm on **both** win-rate and regression (§8.2 ruling). Frozen judge. Also
+record, free with this run, the **round-usage histogram** — how many layers attempts
+consume both tool-capable rounds. That is the measurement that settles §8.3: near
+zero means `TOOL_ROUND_CAP = 3` is right; a meaningful share reaching the forced
+round with an unfinished tool sequence means raise it, with data rather than
+assumption.
 
 Slices 1–4 are fully unblocked by the API cap. Slices 0 and 5 are not.
 
@@ -866,8 +950,13 @@ Slices 1–4 are fully unblocked by the API cap. Slices 0 and 5 are not.
    in §3c (≥60% recall, <10% false firing). Blocks Slice 4, not Slice 1. This is now
    the most likely place the plan fails, since §3c's finding removed the obvious
    signal.
-3. **`applies_if` fork** — Jon rules (§8.1).
-4. **Control-arm result** (§6.1) — blocked on the API cap.
+3. **`applies_if` fork** — **the only design question still open.** Jon rules
+   (§8.1). Recommendation is option B *plus* the four anti-silent-gating mechanisms;
+   the silent-gating objection is answered, and answering it is what makes B the
+   safer option rather than the riskier one.
+4. ~~Does the tool have to beat the control arm?~~ — **RULED: tie or beat** (§8.2).
+   Both arms now carry a regression measurement. The control-arm *result* is still
+   blocked on the API cap.
 5. **613.8c non-implementation** (§2) — documented limitation; revisit only if the
    COMPUTE bucket shows real cases needing mid-walk re-evaluation.
 6. **rg1268** was listed as a possible fifth seed. It is **not** a layer-system
