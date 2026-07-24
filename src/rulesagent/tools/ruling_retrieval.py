@@ -18,10 +18,30 @@ from rulesagent.contracts import Card
 from rulesagent.index.embed import embed_documents, embed_query
 
 RULING_MODEL = "voyage-4-large"  # same embedding space as the rules index
-TOP_N = 3
+TOP_N = 5
 # Cap the number of rulings included, so a card carrying ~25 near-duplicate
 # mechanic-boilerplate rulings (a Duskmourn Room) can't flood the prompt even if
 # several clear the floor.
+#
+# RAISED 3 -> 5 (Jon, 2026-07-24: "only grabbing the top 3 rulings feels like it
+# could be biting us. even 5 probably fixes it"). Measured on the 20-question card
+# eval AFTER the ruling_emb cache purge (see below) -- the pre-purge numbers were
+# scored against corrupted embeddings and are not comparable:
+#
+#   - c011 (Valki / cascade) GAINS ITS LOAD-BEARING RULING at rank 4: "To determine
+#     whether it is legal to play a modal double-faced card, consider only the
+#     characteristics of the face you're playing and ignore the other face's
+#     characteristics." That is precisely the ruling the question turns on.
+#   - c010 and c019 are NOT fixed. c010's ranks 4-5 are about skipping turns and a
+#     player losing the game -- irrelevant to its protection-from-instants question;
+#     c019's ranks 4-5 don't clear the floor at all. The comment below listing
+#     c010/c011/c019 as "outside top-3" stands, but only one of the three was a
+#     cap problem. The other two are the genuine semantic-mismatch limit it names.
+#   - Cost: +36% ruling text, ~63 tokens/question average, 213 worst case (c016).
+#
+# So this is a real but narrow win, bought cheaply. Note select_rulings_union()
+# defaults to TOP_N + 1, so it moves 4 -> 6 with this change, consistent with its
+# documented "a union of queries deserves one more slot" intent.
 
 COSINE_FLOOR = 0.38
 # CALIBRATED on the 19-question card eval (2026-07-21). Across the ruling-bearing
@@ -39,6 +59,25 @@ _cache = KVCache("ruling_emb")
 # format). Frozen once written -- embeddings are stable enough and we want
 # reproducible SELECTION. Per-op connections fix the old load-whole-dict /
 # dump-whole-dict cache race (never run two writers at once -- now moot).
+#
+# ⚠️ POSITIONAL-KEY HAZARD (bit us 2026-07-24, purged and verified clean).
+# The key is oracle_id#INDEX, i.e. a position in a list owned by an external data
+# source. When the Scryfall local-bulk merge landed, the local store returned each
+# card's rulings in a DIFFERENT ORDER than the live API had, so every cached vector
+# stayed bolted to an index whose text had moved: 175 of 190 cached embeddings
+# across the card-eval pool (92%) no longer matched the text at their index.
+# Selection scored stale vectors while the prompt printed whatever text sat at the
+# chosen index. It does NOT self-heal -- _card_ruling_embeddings() below only
+# embeds keys that are MISSING and never checks that a cached vector still matches
+# its text. Nothing crashed; the only thing that caught it was the byte-identity
+# fixture in tests/test_prompt_identity.py.
+#
+# Fixed for now by purging the ruling_emb table (1,375 rows) and letting it
+# repopulate: re-verified 0/190 mismatched afterwards. The DURABLE fix -- making
+# ruling_id() content-derived instead of positional -- is NOT done, because
+# ruling_id is what the rulings-recall gold points at and changing it means
+# migrating that gold. Until then: ANY change to the ruling data source or its
+# ordering requires purging this table.
 
 
 def ruling_id(card: Card, i: int) -> str:

@@ -1798,3 +1798,61 @@ diagnostic tell, not a success. Near-zero firing alongside low recall means a pa
 is failing to match text it was written to match. Buckets are now persisted to
 `evals/_layers_buckets.json` (A=54, B=1, C=13) so the denominator never has to be
 re-derived by hand again.
+
+## 2026-07-24 — Positional ruling cache corrupted by the Scryfall merge; purged
+
+**Found while measuring an unrelated question.** `ruling_id()` is `oracle_id#index`
+and the `ruling_emb` cache is keyed by it and "frozen once written". The Scryfall
+local-bulk merge (landed this session at Jon's direction) made `get_card` serve
+rulings from the local store, which returns them in a **different order** than the
+live API did. Every cached embedding stayed bolted to an index whose text had moved.
+
+**Measured: 175 of 190 cached ruling embeddings across the card-eval pool (92%) no
+longer matched the text at their index.** Ruling selection was scoring stale vectors
+while the prompt printed whatever text sat at the selected index, which also
+invalidated the `COSINE_FLOOR = 0.38` calibration for affected cards.
+
+It does **not** self-heal: `_card_ruling_embeddings()` embeds only keys that are
+MISSING and never checks that a cached vector still matches its text. Nothing
+crashed and selection kept returning three plausible rulings with plausible cosines.
+The only thing that caught it was the byte-identity fixture in
+`tests/test_prompt_identity.py` — the class of test usually deleted as brittle.
+
+**Jon's call: "purge away."** Done — 1,375 rows deleted (backed up first), cache
+repopulated on demand, **re-verified 0/190 mismatched**.
+
+**NOT done, still open for Jon:** making `ruling_id()` content-derived rather than
+positional. That is the durable fix and it also fixes citation stability — which
+matters because the planned L2 re-test intends to *measure* citation stability. It is
+deferred because `ruling_id` is what the rulings-recall gold points at, so changing
+it means migrating that gold. **Until then, any change to the ruling data source or
+its ordering requires purging `ruling_emb`.** Recorded in the module comment.
+
+**Consequence left deliberately red:** `test_prompt_identity` still fails. Its
+fixture was frozen against the pre-merge ruling order and IDs. It is NOT being
+recaptured yet — recapturing a byte-identity guard is what would have hidden this
+bug, and recapturing now would bake in positional IDs that may be about to change.
+
+## 2026-07-24 — TOP_N raised 3 -> 5 for per-card ruling selection
+
+Jon: *"only grabbing the top 3 rulings feels like it could be biting us. even 5
+probably fixes it."* Measured on the 20-question card eval **after** the purge above
+(pre-purge numbers were scored against corrupted embeddings and are not comparable).
+
+**Result is real but narrower than "fixes it":**
+
+- **c011 (Valki / cascade) gains its load-bearing ruling at rank 4** — *"To determine
+  whether it is legal to play a modal double-faced card, consider only the
+  characteristics of the face you're playing and ignore the other face's
+  characteristics."* That is exactly what the question turns on.
+- **c010 and c019 are NOT fixed.** c010's ranks 4-5 concern skipping turns and a
+  player losing the game, irrelevant to its protection-from-instants question; c019's
+  ranks 4-5 don't clear the floor at all. The existing calibration note listing
+  c010/c011/c019 as having load-bearing rulings outside top-3 stands, but only one of
+  the three was a *cap* problem — the other two are the semantic-mismatch limit that
+  note already identified.
+- **Cost: +36% ruling text, ~63 tokens/question average, 213 worst case.** Cheap
+  enough that a one-in-three win is worth it.
+
+`select_rulings_union` defaults to `TOP_N + 1` and so moves 4 -> 6, consistent with
+its documented intent.
