@@ -61,6 +61,34 @@ questions where they differ, all via rulings/type-line text only).
 
 Usage:  PYTHONIOENCODING=utf-8 .venv/Scripts/python.exe evals/build_prompts_variant.py
         (add --check to verify existing files without rewriting them)
+
+Parameterised source/output (added for c020's own capture, so a second
+question's derivation can never collide with the frozen four-file evidence
+base from the first paid experiment):
+  --src PATH          capture to derive from (default: _prompts_C.json,
+                       unchanged).
+  --out-prefix PREFIX output filenames are PREFIX + {A,B,C,D}.json (default:
+                       "_prompts_variant_", unchanged).
+  --variants A,B,C,D  comma-separated subset of variant letters to derive
+                       (default: all four, unchanged).
+  --force             allow overwriting an output file that already exists.
+                       Without it, ANY existing output file at a target path
+                       aborts the whole run before anything is written --
+                       this is what makes the existing four
+                       _prompts_variant_*.json files unclobberable by
+                       accident.
+
+All four flags are additive: with none of them passed, behaviour is
+byte-for-byte identical to before they existed. The five gates below no
+longer assume a fixed 50-question / 19-card-question source -- their
+expectations are derived from what's actually in the loaded capture (see
+QIDS / card_qids below), except gate 1 (the v3 digest), which is a content
+check, not a count, and is untouched.
+
+Example, deriving only variants A and D for a c020-only capture:
+  PYTHONIOENCODING=utf-8 .venv/Scripts/python.exe evals/build_prompts_variant.py \\
+      --src evals/answers/_prompts_c020_capture.json \\
+      --out-prefix _prompts_c020_variant_ --variants A,D
 """
 import argparse
 import hashlib
@@ -114,8 +142,54 @@ def load(path: Path) -> dict:
     return json.loads(io.open(path, encoding="utf-8").read())
 
 
-def out_path(letter: str) -> Path:
-    return OUT_DIR / f"_prompts_variant_{letter}.json"
+def out_path(letter: str, out_prefix: str = "_prompts_variant_") -> Path:
+    return OUT_DIR / f"{out_prefix}{letter}.json"
+
+
+def build_arg_parser() -> argparse.ArgumentParser:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--check", action="store_true",
+                    help="verify existing output files instead of rewriting them")
+    ap.add_argument("--src", type=Path, default=SRC,
+                    help=f"capture to derive from (default: {SRC})")
+    ap.add_argument("--out-prefix", default="_prompts_variant_",
+                    help="output filenames are PREFIX + {A,B,C,D}.json "
+                         "(default: %(default)r)")
+    ap.add_argument("--variants", default="A,B,C,D",
+                    help="comma-separated subset of variant letters to "
+                         "derive, e.g. A,D (default: %(default)s)")
+    ap.add_argument("--force", action="store_true",
+                    help="overwrite an existing output file instead of "
+                         "refusing to run")
+    return ap
+
+
+def resolve_variant_letters(raw: str) -> list[str] | None:
+    """Parse --variants into an ordered, deduped list of letters, all valid
+    keys of VARIANTS. Returns None (not a ValueError) for anything invalid
+    or empty so callers can print a clean CLI error instead of a
+    traceback."""
+    letters = [v.strip() for v in raw.split(",") if v.strip()]
+    if not letters:
+        return None
+    seen: set[str] = set()
+    ordered = [v for v in letters if not (v in seen or seen.add(v))]
+    if any(v not in VARIANTS for v in ordered):
+        return None
+    return ordered
+
+
+def check_no_clobber(paths: list[Path], force: bool) -> list[Path]:
+    """Paths that already exist on disk and would be silently overwritten.
+    Empty when `force` is set, or when nothing collides. Callers are
+    expected to call this BEFORE writing anything and abort if it's
+    non-empty and not forced -- that's what makes an existing output file
+    unclobberable by an ordinary invocation (one without --force),
+    regardless of whether it was produced by a prior run of this script or
+    by anything else."""
+    if force:
+        return []
+    return [p for p in paths if p.exists()]
 
 
 # ---------------------------------------------------------------------
@@ -201,19 +275,41 @@ def reconstruct_cards_for_gate3(qid: str, cards_raw: list, card_block_text: str)
     return rebuilt, integrity_rows
 
 
-def main() -> int:
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--check", action="store_true",
-                    help="verify existing output files instead of rewriting them")
-    args = ap.parse_args()
+def main(argv: list[str] | None = None) -> int:
+    ap = build_arg_parser()
+    args = ap.parse_args(argv)
     failures: list[str] = []
 
-    src = load(SRC)
+    variant_letters = resolve_variant_letters(args.variants)
+    if variant_letters is None:
+        print(f"ERROR: --variants {args.variants!r} must be a comma-separated "
+              f"subset of {sorted(VARIANTS)}")
+        return 1
+    selected_variants = {letter: VARIANTS[letter] for letter in variant_letters}
+
+    src_path: Path = args.src
+    out_prefix: str = args.out_prefix
+
+    # Refuse to overwrite -- checked BEFORE any file is read or written, so
+    # a bad invocation (e.g. running against a new capture with the old
+    # default naming) aborts immediately instead of clobbering evidence.
+    # `--check` never writes, so the guard doesn't apply to it.
+    if not args.check:
+        target_paths = [out_path(letter, out_prefix) for letter in selected_variants]
+        clobber = check_no_clobber(target_paths, args.force)
+        if clobber:
+            print("\nERROR: refusing to overwrite existing output file(s) "
+                  "(pass --force to overwrite):")
+            for p in clobber:
+                print(f"  - {p}")
+            return 1
+
+    src = load(src_path)
     prompts = src["prompts"]
     cards_jsonl = {json.loads(line)["id"]: json.loads(line)
                    for line in io.open(CARDS_JSONL, encoding="utf-8")}
 
-    print(f"source          : {SRC.name}")
+    print(f"source          : {src_path.name}")
     print(f"rewrite_version : {src.get('rewrite_version')!r}")
     print(f"ruling_query_mode: {src.get('ruling_query_mode')!r}")
 
@@ -230,13 +326,26 @@ def main() -> int:
     if not ok_v3:
         failures.append("captured system is not the recorded v3 SYSTEM")
 
-    # id set completeness
+    # id set completeness. QIDS is what the REST of the script iterates
+    # over -- derived from the loaded capture itself, not a hardcoded
+    # count, so a single-question source (e.g. a c020-only capture) works
+    # the same way a 50-question one does. Against the untouched default
+    # source, this is still checked against lib_v3ab.ALL_QIDS (the known
+    # "should have all 50" oracle) -- byte-identical to the old gate. For
+    # any other --src, there is no external oracle for what the id set
+    # "should" be, so the expectation is just the source's own id set (a
+    # self-consistency check: missing/extra can never fire, which is the
+    # honest answer when there's nothing to compare against).
     ids = set(prompts)
-    missing, extra = set(L.ALL_QIDS) - ids, ids - set(L.ALL_QIDS)
-    print(f"\nquestion ids: {len(ids)} (expect {len(L.ALL_QIDS)}); "
+    QIDS = sorted(ids)
+    using_default_src = (src_path == SRC)
+    expected_qids = L.ALL_QIDS if using_default_src else QIDS
+    missing, extra = set(expected_qids) - ids, ids - set(expected_qids)
+    print(f"\nquestion ids: {len(ids)} (expect {len(expected_qids)}); "
           f"missing={sorted(missing) or 'none'} extra={sorted(extra) or 'none'}")
     if missing or extra:
-        failures.append("id set does not match ALL_QIDS")
+        failures.append("id set does not match ALL_QIDS" if using_default_src
+                         else "id set does not match itself (should be impossible)")
 
     if failures:
         print("\nABORT (pre-derivation gates failed):")
@@ -246,17 +355,20 @@ def main() -> int:
 
     # ---------------- marker-structure sanity (spec's "already
     # validated" claim, asserted here rather than trusted blind) --------
-    card_qids = sorted(k for k in cards_jsonl if k.startswith("c") and k <= "c019")
-    rules_qids = sorted(qid for qid in L.ALL_QIDS if qid not in card_qids)
+    # "card question" == present in cards.jsonl AND present in this
+    # capture -- derived from QIDS, not a hardcoded "<= c019" cutoff, so a
+    # c020-only source correctly gets card_qids == ["c020"] instead of [].
+    card_qids = sorted(qid for qid in QIDS if qid in cards_jsonl)
+    rules_qids = sorted(qid for qid in QIDS if qid not in card_qids)
     marker_bad = []
-    for qid in L.ALL_QIDS:
+    for qid in QIDS:
         user = prompts[qid]["user"]
         n_card = user.count(CARD_MARKER)
         n_q = user.count(QUESTION_MARKER)
         expect_card = 1 if qid in card_qids else 0
         if n_card != expect_card or n_q != 1:
             marker_bad.append(qid)
-    print(f"\nmarker structure: {len(L.ALL_QIDS) - len(marker_bad)}/{len(L.ALL_QIDS)} "
+    print(f"\nmarker structure: {len(QIDS) - len(marker_bad)}/{len(QIDS)} "
           f"as expected ({len(card_qids)} card qids w/ 1x 'Card data:', "
           f"{len(rules_qids)} rules qids w/ 0x, all w/ exactly 1x 'Question:')")
     if marker_bad:
@@ -264,7 +376,7 @@ def main() -> int:
         print("ABORT:", marker_bad)
         return 1
 
-    # ---------------- resolve real cards for the 19 card questions -----
+    # ---------------- resolve real cards for the card_qids -------------
     # Order matters (it's the order _format_cards renders them in, gate 3
     # checks byte equality): production resolves cards in FIRST-APPEARANCE
     # order of the `[Bracket]` tokens in the question (RulesAgent.answer(),
@@ -308,7 +420,7 @@ def main() -> int:
     # ---------------- per-question derivation (source of truth for the
     # injected variants, and for gates 2-5) -----------------------------
     derived: dict[str, dict] = {}
-    for qid in L.ALL_QIDS:
+    for qid in QIDS:
         user = prompts[qid]["user"]
         before, question = split_question(user)
         rules_context_text, card_block_text = split_before(before)
@@ -330,10 +442,10 @@ def main() -> int:
             "symbols": symbols, "block": block,
         }
 
-    # ---------------- build (or load, under --check) the 4 variants ----
+    # ---------------- build (or load, under --check) the selected variants
     outs: dict[str, dict] = {}
-    for letter, (sysver, inject) in VARIANTS.items():
-        path = out_path(letter)
+    for letter, (sysver, inject) in selected_variants.items():
+        path = out_path(letter, out_prefix)
         if args.check:
             if not path.exists():
                 print(f"\n--check: {path.name} does not exist")
@@ -342,12 +454,12 @@ def main() -> int:
             continue
         system_text = SYSTEM_VERSIONS[sysver]
         out_prompts = {}
-        for qid in L.ALL_QIDS:
+        for qid in QIDS:
             d = derived[qid]
             user = splice(d["before"], d["block"], d["question"]) if inject else d["user"]
             out_prompts[qid] = {"system": system_text, "user": user}
         outs[letter] = {
-            "derived_from": SRC.name,
+            "derived_from": src_path.name,
             "variant": letter,
             "system_version": sysver,
             "inject": inject,
@@ -364,9 +476,9 @@ def main() -> int:
     # ---------------- gate 2: user-block equality -----------------------
     print(f"\n[gate 2] user-block equality (non-injected byte-identical to "
           f"source; injected byte-identical to source after removing the splice):")
-    for letter, (sysver, inject) in VARIANTS.items():
+    for letter, (sysver, inject) in selected_variants.items():
         equal = 0
-        for qid in L.ALL_QIDS:
+        for qid in QIDS:
             out_user = outs[letter]["prompts"][qid]["user"]
             d = derived[qid]
             if inject:
@@ -377,12 +489,12 @@ def main() -> int:
             if not same:
                 print(f"    {letter}/{qid}: FAIL")
                 failures.append(f"{letter}/{qid} user block mismatch")
-        status = "PASS" if equal == len(L.ALL_QIDS) else "FAIL"
+        status = "PASS" if equal == len(QIDS) else "FAIL"
         print(f"    variant {letter} (sys={sysver}, inject={inject}): "
-              f"{equal}/{len(L.ALL_QIDS)} -> {status}")
+              f"{equal}/{len(QIDS)} -> {status}")
 
     # also verify the written system string is single and correct per variant
-    for letter, (sysver, inject) in VARIANTS.items():
+    for letter, (sysver, inject) in selected_variants.items():
         out_systems = {e["system"] for e in outs[letter]["prompts"].values()}
         expect = SYSTEM_VERSIONS[sysver]
         ok = len(out_systems) == 1 and next(iter(out_systems)) == expect
@@ -436,7 +548,7 @@ def main() -> int:
     violations = 0
     exclusion_active = 0
     c014_report = None
-    for qid in L.ALL_QIDS:
+    for qid in QIDS:
         d = derived[qid]
         cards_and_q = d["symbols"]
         whole_text = d["before"] + " " + d["question"]
@@ -460,9 +572,9 @@ def main() -> int:
             failures.append(f"{qid} gate4 over-trigger")
         if qid == "c014":
             c014_report = (len(whole_symbols), len(cards_and_q))
-    print(f"    {len(L.ALL_QIDS) - violations}/{len(L.ALL_QIDS)} clean "
+    print(f"    {len(QIDS) - violations}/{len(QIDS)} clean "
           f"-> {'PASS' if violations == 0 else 'FAIL'}")
-    print(f"    {exclusion_active}/{len(L.ALL_QIDS)} questions have >=1 symbol found "
+    print(f"    {exclusion_active}/{len(QIDS)} questions have >=1 symbol found "
           f"ONLY in rules context (the exclusion is doing real work on these)")
     if c014_report:
         print(f"    c014 cross-check vs plan Sec 5a: whole-block distinct symbols="
@@ -473,7 +585,7 @@ def main() -> int:
     print(f"\n[gate 5] production parity (real build_prompt() on structured "
           f"inputs reproduces the derivation's reference block):")
     parity_ok = 0
-    for qid in L.ALL_QIDS:
+    for qid in QIDS:
         d = derived[qid]
         cards = cards_raw.get(qid, [])
         _sys2, user2 = build_prompt(d["question"], [], cards)
@@ -511,8 +623,8 @@ def main() -> int:
         if not same:
             print(f"    {qid}: FAIL (reference block differs from build_prompt's own)")
             failures.append(f"{qid} gate5 parity mismatch")
-    print(f"    {parity_ok}/{len(L.ALL_QIDS)} identical -> "
-          f"{'PASS' if parity_ok == len(L.ALL_QIDS) else 'FAIL'}")
+    print(f"    {parity_ok}/{len(QIDS)} identical -> "
+          f"{'PASS' if parity_ok == len(QIDS) else 'FAIL'}")
 
     # ---------------- final verdict / write -------------------------------
     if failures:
@@ -522,24 +634,24 @@ def main() -> int:
         return 1
 
     if not args.check:
-        for letter in VARIANTS:
-            path = out_path(letter)
+        for letter in selected_variants:
+            path = out_path(letter, out_prefix)
             io.open(path, "w", encoding="utf-8").write(
                 json.dumps(outs[letter], ensure_ascii=False, indent=1))
             print(f"\nwrote {path} ({path.stat().st_size} bytes)")
 
     # ---------------- cost table -------------------------------------------
     print(f"\ncost table (measured total input chars = SYSTEM + user, all "
-          f"{len(L.ALL_QIDS)} questions):")
+          f"{len(QIDS)} questions):")
     print(f"    {'variant':8} {'sys_chars':>10} {'sum_user_chars':>15} "
           f"{'total_chars':>12} {'avg/query':>10} {'injected_qs':>12}")
-    for letter, (sysver, inject) in VARIANTS.items():
+    for letter, (sysver, inject) in selected_variants.items():
         sys_chars = len(SYSTEM_VERSIONS[sysver])
         user_chars = sum(len(e["user"]) for e in outs[letter]["prompts"].values())
-        total = sys_chars * len(L.ALL_QIDS) + user_chars
-        n_injected = sum(1 for qid in L.ALL_QIDS if inject and derived[qid]["block"])
+        total = sys_chars * len(QIDS) + user_chars
+        n_injected = sum(1 for qid in QIDS if inject and derived[qid]["block"])
         print(f"    {letter:8} {sys_chars:>10} {user_chars:>15} {total:>12} "
-              f"{total / len(L.ALL_QIDS):>10.1f} {n_injected:>12}")
+              f"{total / len(QIDS):>10.1f} {n_injected:>12}")
 
     print(f"\nDONE -- all gates PASS.")
     return 0
