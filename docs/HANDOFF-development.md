@@ -82,6 +82,8 @@ superseded (`plan-v5-and-gold-discovery.md` Slices A and B are replaced by
 | `228aa24` | Progress heartbeats + incremental writes |
 | `3f5e961` | Slice 3 — the grid derivation, all five gates passing |
 | `5900392` | Plan: measured cost table + Jon's no-pre-commitment ruling |
+| `a5e33f9` | Resume-guard fix + watcher percentage/total (**227 tests**) |
+| `441e565` | This handoff, rewritten lean |
 
 **v4 is NO-GO and reverted.** It failed its own go criterion: sonnet 46 → 46
 with **zero** judge-detectable divergence across all 50 questions and both runs,
@@ -155,15 +157,27 @@ per-query token cost beside each cell's correct-count.
   incremental-write resume compared model/rewrite_version/ruling_query_mode/
   reasoning — every one of which is identical across all four grid cells, which
   differ *only* by prompt file. Reusing an `--out` path would have silently
-  served rows from a different prompt. A fix was dispatched (guard must include
-  the prompts-cache identity and HARD-ERROR on mismatch) but had not reported
-  at handoff time. **VERIFY THIS BEFORE THE RUN** — check the resume guard in
-  `evals/run_openrouter_arm.py` compares the prompts cache, and that
-  `evals/watch_runs.py` shows a percentage column and a grand total. If either
-  is missing, finish it first; the grid is exactly the scenario that trips it.
+  served rows from a different prompt. **FIXED and verified** (`a5e33f9`): both
+  runners now record the prompts-cache path plus a digest computed from the
+  cache's own content — not from an author-declared field, so a future builder
+  using different key names cannot defeat it — and hard-error with exit 1 on a
+  mismatch. Other field mismatches keep the old soft full-regenerate, which was
+  never dangerous. `run_answer_eval.py` was worse (no per-row `model` at all,
+  so it could not even detect a `--model` change); also fixed.
 - **Verify agent self-reports against the filesystem.** Every agent report this
   session was accurate, but the two defects that mattered were both found by
   reading the code rather than the report.
+
+### ONE-TIME SCHEMA ADDITION TO RUN OUTPUT FILES (`a5e33f9`)
+
+Run output files are no longer byte-identical to pre-`228aa24` files. Added:
+`summary.prompts_cache` and `summary.prompts_cache_sha256` (OpenRouter arm),
+and `model` / `prompts_cache` / `prompts_cache_sha256` per row
+(`run_answer_eval.py`). A structural diff confirmed everything *else* is
+identical, and every current consumer (`build_arm_review.py`,
+`judge_agreement.py`, `opus_grader_calibration.py`, …) accesses by known key
+rather than comparing key sets — so this is safe today. **If you add a
+consumer that does an exhaustive key comparison, it will break on these.**
 
 ### STILL QUEUED
 
