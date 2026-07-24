@@ -12,6 +12,14 @@ data/logs/
 data/cache.db
 data/cache.db-wal
 data/cache.db-shm
+# Scryfall local bulk snapshot (docs/plan-scryfall-local-bulk.md) -- a
+# versioned snapshot rebuilt by scripts/refresh_scryfall_bulk.py, same
+# never-commit reasoning as cache.db above. .tmp is the in-progress build
+# target before the atomic os.replace() swap (Sec 5).
+data/scryfall.db
+data/scryfall.db-wal
+data/scryfall.db-shm
+data/scryfall.db.tmp
 !data/raw/.gitkeep
 !data/parsed/.gitkeep
 
