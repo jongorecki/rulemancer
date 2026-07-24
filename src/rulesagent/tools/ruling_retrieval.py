@@ -9,6 +9,7 @@ alone. The grounding call (Jon): the need-signal comes from the corpus
 which is why this always runs rather than gating on a low-confidence answer.
 """
 
+import hashlib
 import json
 
 import numpy as np
@@ -55,36 +56,59 @@ COSINE_FLOOR = 0.38
 
 _cache = KVCache("ruling_emb")
 # L3 (docs/plan-l3-sqlite-caches.md): data/cache.db's `ruling_emb` table,
-# keyed by oracle_id#index -> JSON list[float] embedding (matches the old
-# format). Frozen once written -- embeddings are stable enough and we want
-# reproducible SELECTION. Per-op connections fix the old load-whole-dict /
-# dump-whole-dict cache race (never run two writers at once -- now moot).
+# keyed by ruling_id() (see below) -> JSON list[float] embedding. Frozen once
+# written -- embeddings are stable enough and we want reproducible SELECTION.
+# Per-op connections fix the old load-whole-dict / dump-whole-dict cache race
+# (never run two writers at once -- now moot).
 #
-# ⚠️ POSITIONAL-KEY HAZARD (bit us 2026-07-24, purged and verified clean).
-# The key is oracle_id#INDEX, i.e. a position in a list owned by an external data
-# source. When the Scryfall local-bulk merge landed, the local store returned each
-# card's rulings in a DIFFERENT ORDER than the live API had, so every cached vector
-# stayed bolted to an index whose text had moved: 175 of 190 cached embeddings
-# across the card-eval pool (92%) no longer matched the text at their index.
-# Selection scored stale vectors while the prompt printed whatever text sat at the
-# chosen index. It does NOT self-heal -- _card_ruling_embeddings() below only
-# embeds keys that are MISSING and never checks that a cached vector still matches
-# its text. Nothing crashed; the only thing that caught it was the byte-identity
-# fixture in tests/test_prompt_identity.py.
+# ⚠️ POSITIONAL-KEY HAZARD (bit us 2026-07-24, purged and verified clean;
+# RESOLVED 2026-07-24 -- durable fix landed, see below).
+# The key USED TO BE oracle_id#INDEX, i.e. a position in a list owned by an
+# external data source. When the Scryfall local-bulk merge landed, the local
+# store returned each card's rulings in a DIFFERENT ORDER than the live API
+# had, so every cached vector stayed bolted to an index whose text had moved:
+# 175 of 190 cached embeddings across the card-eval pool (92%) no longer
+# matched the text at their index. Selection scored stale vectors while the
+# prompt printed whatever text sat at the chosen index. It does NOT self-heal
+# -- _card_ruling_embeddings() below only embeds keys that are MISSING and
+# never checks that a cached vector still matches its text. Nothing crashed;
+# the only thing that caught it was the byte-identity fixture in
+# tests/test_prompt_identity.py.
 #
-# Fixed for now by purging the ruling_emb table (1,375 rows) and letting it
-# repopulate: re-verified 0/190 mismatched afterwards. The DURABLE fix -- making
-# ruling_id() content-derived instead of positional -- is NOT done, because
-# ruling_id is what the rulings-recall gold points at and changing it means
-# migrating that gold. Until then: ANY change to the ruling data source or its
-# ordering requires purging this table.
+# Stopgap at the time was purging the ruling_emb table (1,375 rows) and
+# letting it repopulate: re-verified 0/190 mismatched afterwards.
+#
+# RESOLVED: ruling_id() is now content-derived (a hash of the ruling text,
+# not its list position -- see its docstring below), so a data-source reorder
+# can no longer move an id and this table no longer needs purging when that
+# happens. The old positional rows (key shape oracle_id#<digits>) were
+# deleted as a one-off cleanup when this landed, since the new key format
+# makes them permanently unreachable -- dead weight, not silently wrong.
 
 
 def ruling_id(card: Card, i: int) -> str:
-    """Stable id for one ruling: oracle_id + its index in the card's rulings
-    list. Survives reprints (oracle_id is cross-printing) and is what the
-    rulings-recall gold points at."""
-    return f"{card.oracle_id}#{i}"
+    """Stable id for one ruling: oracle_id + a hash of the ruling TEXT at
+    index `i` (first 12 hex chars of SHA-256 of the text, stripped of
+    leading/trailing whitespace only -- no lowercasing, no punctuation
+    stripping, since two rulings differing only in case are genuinely
+    different text and should get different ids). The oracle_id prefix keeps
+    ids groupable per card and debuggable; it plays no role in collision
+    avoidance, which SHA-256 already gives.
+
+    Stable against: reordering a card's rulings list (a data-source change
+    like the Scryfall local-bulk merge that returns rulings in a different
+    order no longer moves any id) and reprints (oracle_id is cross-printing).
+    NOT stable against: an edit to the ruling text itself -- that correctly
+    produces a new id, because it IS different text with a different
+    embedding.
+
+    Was positional (oracle_id#index) until 2026-07-24, when a data-source
+    reorder silently mismatched 92% of the cached embeddings against their
+    text -- see the POSITIONAL-KEY HAZARD comment above and DECISIONS.md.
+    This is the durable fix."""
+    text = card.rulings[i].strip()
+    digest = hashlib.sha256(text.encode("utf-8")).hexdigest()[:12]
+    return f"{card.oracle_id}#{digest}"
 
 
 def _card_ruling_embeddings(card: Card) -> np.ndarray:
