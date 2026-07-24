@@ -1575,3 +1575,57 @@ a *weaker* retrieval test than c002, not a stronger one.
 **What would change my mind:** c002 flipping under a future prompt would be
 informative about that prompt even though it does not score — which is exactly why
 Jon kept it running rather than deleting it.
+
+## 2026-07-23 — RulesGuru gold accepted wholesale as canonical
+
+**What:** Jon's ruling. The 134 golded RulesGuru questions (219 distinct CR rule
+ids) and all 150 human-written `answer_gold` reference answers are accepted as
+**canonical gold, equal in status to Jon's own encoded gold** — not merely
+advisory. This is an explicit, deliberate exception to the standing "gold is
+Jon's alone to encode" rule, made because RulesGuru is judge-curated by the
+site's rules authorities and Jon chose to trust that curation rather than
+re-encode 134 questions by hand.
+
+**Verified before acceptance:** all 219 gold ids resolve against the repo's own
+parsed CR corpus (`{c.source_id for c in chunk_rules(...)}`), 219/219, zero
+missing — so this gold is expressible in our retrieval index, not just plausible.
+
+**The one caveat that survives the ruling — comparability, not validity:**
+RulesGuru is uniformly `match: "any"` (a question hits if ANY of its ~2.16 gold
+ids is retrieved). `evals/questions.jsonl` is 71% "any" / 29% "all". So a
+RulesGuru recall number is on a looser bar than 29% of the legacy set, and the
+two cannot be dropped into one table without going through `run_eval.py`'s
+`--match-both`, which scores both bars from one pass. Accepting the gold as
+canonical does not make the bars the same; it makes the gold trustworthy.
+
+**What this unlocks:** RulesGuru becomes a real held-out instrument at n=134
+(1 question = 0.75pp vs the legacy set's 3.2pp), and the only instrument in the
+repo capable of detecting overfitting to the 31-question set the rewriter prompt
+was tuned on. See `docs/plan-rulesguru-as-instrument.md`.
+
+## 2026-07-23 — symbol injection RATIFIED as production (cell B is production)
+
+**What:** Jon's ruling: keep symbol injection ON in production, deliberately.
+`answer.py:792-795` appends the per-symbol reference block with no
+`PROMPT_VERSION` gate, so production has been **v3 bullets + injection = cell B**
+since Slice 2 shipped, not the un-injected cell A the v5 plan labels "production
+baseline." Jon ratifies that state rather than reverting it.
+
+**Why it's defensible:** injection is measured at **0 added tokens on 31 of 50
+questions** (it emits nothing when no symbol is present) and +93 tokens on card
+questions, and it is harmless where it fires (correct per-symbol definitions
+verified against the CR at build time). The v5 grid showed cell D (v5, the full
+v4nl bullets on top of injection) fixed nothing on sonnet, so the *bullets* are
+not worth their +510 tokens — but injection alone is nearly free.
+
+**Consequence for c020:** c020's comparison is now **cell B (production) vs
+cell D (v5)**, not "v3 vs v5." Its capture, taken from live production, correctly
+contains injection — which is exactly why `build_prompts_variant.py`'s gate 3
+rejected deriving a clean v3 arm from it. That gate rejection was correct
+behaviour, not a bug. c020 phase 2 is therefore NOT a blind re-run: its
+derivation must be redesigned for a capture that already injects, which is
+plan-level work, not an overnight run. Flagged, not executed.
+
+**What would change my mind:** if a future measurement shows injection ever
+*hurts* an answer (it has not in any run to date), or if prompt caching lands and
+changes the token calculus for the fuller cell-D bullets.
