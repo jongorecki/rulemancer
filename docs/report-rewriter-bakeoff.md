@@ -45,6 +45,35 @@ Regressions vs the pure-vector baseline at hit@5 — lower is better:
 Clarification rate (bar: <= 5 of 31) — every arm passes: haiku 0/31, sonnet
 1/31 (q020), gpt5mini 1/31 (q016).
 
+## CORRECTION — recall@5 is the wrong headline metric
+
+`TOP_K = 15` (`src/rulesagent/generate/answer.py:32`). **The generator reads 15
+chunks.** Recall@5 measures a window the system never uses, and optimising it is
+how you buy a retrieval win that changes no answers. The decision-relevant
+figures are the ones bracketing 15 — @10 and @20:
+
+| arm | @5 (originally reported) | **@10** | **@20** |
+|---|---|---|---|
+| `vec+rw1-haiku` (control) | 71% | **87%** | **94%** |
+| `vec+rw1-sonnet` | **77%** | **87%** | **94%** |
+| `vec+rw1-gpt5mini` | 71% | **81%** | **81%** |
+| `vec+rw3-gpt5mini` | 71% | **77%** | **87%** |
+
+Two conclusions change:
+
+1. **Sonnet's apparent 6-point lead disappears.** At both depths bracketing the
+   operational window it is *identical* to the shipped control — 87% and 94%.
+   The earlier sections of this report treated that lead as real-but-unresolvable
+   noise. It is better described as an **artefact of measuring at a depth the
+   generator does not read.** Nothing about it needed a stability argument.
+2. **gpt-5-mini goes from "ties the control" to clearly worse.** The @5 tie
+   flattered it; at the operational window it sits at 81% against the control's
+   87-94%, and `rw3-gpt5mini` is worse still at @10.
+
+The direction of the original finding is unchanged and its strength is
+*increased*. But the honest note is that the tempting positive result in this
+report was never real, and the reason was a metric choice rather than sampling.
+
 ## Finding
 
 **gpt-5-mini does not beat the shipped haiku rewriter.** It ties exactly at
