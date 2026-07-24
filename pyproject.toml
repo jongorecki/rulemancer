@@ -13,12 +13,25 @@ dependencies = [
     "python-dotenv",
     "voyageai>=0.5.0",
     "anthropic>=0.117.0",
+    "rapidfuzz",
 ]
 
 [dependency-groups]
 dev = [
     "pytest",
 ]
+
+[tool.pytest.ini_options]
+# CRITICAL for worktree isolation: the shared .venv has `rulesagent` installed
+# editable, pointing at the ORIGINAL repo's src/ (see the editable .pth file).
+# Without this, pytest run from a worktree silently imports and tests the
+# ORIGINAL repo's code (and its DEFAULT_DB paths resolve into the original
+# repo's data/ dir) while collecting THIS worktree's test files -- a working
+# copy that can never be exercised, and real risk of touching the original
+# repo's live data. `pythonpath` puts this worktree's own src/ first in
+# sys.path so `import rulesagent` resolves locally, worktree-over-editable-
+# install, every time -- no per-invocation PYTHONPATH juggling required.
+pythonpath = ["src"]
 
 [build-system]
 requires = ["hatchling"]
