@@ -1664,3 +1664,70 @@ needs raising too.
 sub-computation the tool can own. CR 613's 7-layer + sublayer + dependency +
 timestamp system is far more than arithmetic; if layer resolution can't be made
 deterministic and bounded, it isn't tool-shaped and the slot reopens.
+
+## 2026-07-24 — Lever rulings: v5 no-go, rewriter held, L2 deferred to post-tools
+
+Jon ruled on all three pending levers after a full evidence review.
+
+**Lever 1 — v5: STAY ON CELL B.** Production remains v3 bullets + symbol
+injection. v5 (cell D) is not adopted. The evidence: cell D fixed **0 of 3**
+sonnet misses and produced **0 stable flips** on gpt-5-mini, at **+603 tok/query**
+(card) / **+509** (rules) over v3 — and since production is already cell B, the
+real delta is **+510 tok/query for nothing measured**. There is no prompt caching
+anywhere in the codebase, so that cost is paid in full on every query forever.
+Cell D is also v4nl + injection, and the v4 bullets were already ruled NO-GO on
+2026-07-25 (`PROMPT_VERSION 4 -> 3`) — adopting v5 would partially reinstate a
+rejected change. Jon's framing: stick with B for now, **plan to A/B things later
+if we think it's useful** — this is a "not now," not a permanent close.
+
+Caveat kept on record: the v5 grid ran only each arm's existing misses, so it
+measured *repair*, not regression across the 44 questions never run. That cuts
+against adoption rather than for it (unknown regression risk + zero measured
+upside + permanent per-query cost).
+
+**Lever 3 — rewriter: HOLD for the pure-rules eval.** No rewriter change. The
+31-question bakeoff showed haiku and sonnet **identical at the operational depth**
+(TOP_K=15; @10 87/87, @20 94/94), while the 134-question holdout showed a real
+sonnet coverage gain (@10 56% vs 43%, @50 75% vs 63%). The conflict is not
+resolvable yet because the holdout set is 98% card questions — only ~3 are ones
+where CR-rule retrieval is genuinely load-bearing. So the measured coverage gain
+has **unmeasured value**. The instrument that would settle it is the pure-rules
+eval set (below), which is why this waits on it rather than on more retrieval runs.
+
+**Lever 2 — L2 generator: DEFERRED to post-tools, on Jon's reasoning.** Not
+"sonnet pinned." Jon's argument, which supersedes my recommendation to pin: the
+tool roadmap moves exact sub-computations out of the model and into Python, so the
+generator's job after tools is materially different from the job the 22-question
+held-out gap was measured on. Deciding the model now measures a pipeline that is
+being actively replaced. Goal stated: **get product quality up without spending a
+lot doing it** — and at ~$0.0059/query (mini) vs ~$0.048 (sonnet), even a
+tool-heavy mini path costing 2x its current rate is "about a penny per question
+instead of a nickel."
+
+**What would change the answer:** the re-test is defined in the handoff — after
+the layers tool ships, re-run the L2 comparison on the tool-triggering subset,
+measuring three things rather than one (accuracy, tool-call well-formedness, and
+citation stability). The specific risk to watch is that tools trade *reasoning*
+burden for *structured-output precision*, and gpt-5-mini's measured weak spot is
+exactly there (six-arm bakeoff 2026-07-22: **stable citations 2/50**, no
+temperature control) — on a since-superseded prompt, so it needs re-measuring, not
+treating as a verdict.
+
+**Measurement gap — approach agreed.** The missing held-out *pure-rules* eval set
+will be built by generalizing existing card questions into rules questions,
+stripping the oracle-text confound. Jon approves each generalization for whether it
+states the same thing. Two constraints on record: (1) eval questions and gold stay
+do-not-delegate, so throughput is bounded by Jon's review; (2) **derived gold does
+not inherit RulesGuru gold's authority** — the DECISIONS.md carve-out makes
+RulesGuru canonical because certified judges wrote it, whereas a generalized gold
+is a restatement. Mitigation: only generalize where the original gold already
+states the rules content explicitly, so the derived gold is a paraphrase rather
+than a new ruling. First source batch: the 68 CR-613-citing rows in
+`evals/_layers_union_slice.jsonl`, whose golds are already rules-heavy.
+
+**ENVIRONMENT CORRECTION: the API usage cap is CLEARED**, verified live this
+session with a real `claude-sonnet-5` call (16 in / 4 out, `stop_reason=end_turn`).
+The prior handoff's claim that every live run 400s until 2026-08-01 was stale.
+Credentials load from `.env` via `load_dotenv()` and are not in the ambient shell
+environment — a bare `python -c` without `load_dotenv()` fails with "Could not
+resolve authentication method," which is an auth error, not a cap.

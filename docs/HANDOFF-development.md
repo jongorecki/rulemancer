@@ -61,8 +61,8 @@ three coupled changes (details below). Empty-output dropped from ~29% to **0/24*
   (`data/raw/MagicCompRules 20260619.txt`), Scryfall via
   `rulesagent.tools.scryfall.get_card`, or a live check. Pricing via claude-api.
 - **Billing:** Claude-labour on subscription subagents; API spend is for
-  product/eval arms only. **The account API usage cap is currently the binding
-  constraint** — see ENVIRONMENT.
+  product/eval arms only. The API cap that was the binding constraint is
+  **cleared** — see ENVIRONMENT.
 - Commit per slice on master, heredoc messages, `Co-Authored-By: Claude Opus 4.8`
   trailer (repo convention). `.venv/Scripts/python.exe`, `PYTHONIOENCODING=utf-8`.
   Jon runs the app on port 8000 — never bind/kill it.
@@ -180,10 +180,14 @@ earns its keep (RulesGuru is 98% card questions, so oracle text confounds it).
 
 ## ENVIRONMENT & GOTCHAS
 
-- **API usage cap** — the account hit its Anthropic API usage limit 2026-07-24;
-  **resets 2026-08-01** (Jon can raise it sooner). Until then, every live
-  sonnet-5 eval/harness/product-arm run 400s. Subscription subagent labour is
-  unaffected. This gates the combat-tool validation and any repro.
+- **API usage cap — CLEARED (verified live 2026-07-24).** An earlier version of
+  this handoff said the account was capped until 2026-08-01 and that every live
+  sonnet-5 run 400s. **That is no longer true.** Verified with a real
+  `claude-sonnet-5` call (16 in / 4 out tokens, `stop_reason=end_turn`), so live
+  eval/harness/product-arm runs work. Credentials load from `.env` via
+  `load_dotenv()` — they are NOT in the ambient shell environment, so a bare
+  `python -c` without `load_dotenv()` fails with "Could not resolve
+  authentication method." That auth error is not a cap.
 - ~17+ merged agent worktrees may remain; prune with `git worktree remove`. **KEEP
   `agent-a818653b08eb516a4`** (Scryfall, unmerged).
 - Answer object field for the answer text is **`.text`**, not `.answer`.
