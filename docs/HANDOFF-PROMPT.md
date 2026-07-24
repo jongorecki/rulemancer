@@ -1,50 +1,61 @@
 # Handoff prompt (paste this into a fresh session)
 
-Updated 2026-07-24 (session 2). Update the "Where we are" line and the "first
+Updated 2026-07-24 (session 3). Update the "Where we are" line and the "first
 ask" whenever the state moves; the rest is stable.
 
 ---
 
 We're continuing work on Rulemancer, the MTG rules RAG bot at D:\Job_hunt\mtg-rules-bot.
 
-First: read docs/HANDOFF-development.md in full. It *replaced* the prior handoff rather than prepending — don't dig through git for superseded blocks. It opens with "THE ONE THING TO DO FIRST" (plan the layer-system tool) and a short strategy section; read those. Also skim the shelved combat plan's **§11 build-prep research** in `docs/plan-combat-damage-tool.md` — it's why combat was shelved and it carries the loop-gating trap and the CR-grounding lesson that both apply to the layers plan you'll write.
+First: read docs/HANDOFF-development.md in full. It *replaced* the prior handoff rather than prepending — don't dig through git for superseded blocks. It opens with a correction you must absorb before anything else, then "THE ONE THING TO DO FIRST." Also read docs/plan-layer-system-tool.md §3c (the trigger), §3b (the algorithm and the CR 613.6 gate), and §9-§10 (build slices and open items) — that plan is approved and half-built, and §10 item 2 is your first task.
 
-Where we are in one line: the **cost tool is shipped and reliability-hardened** (cap-exhaustion killed, malformed-answer guard added — empty-output 0/24 vs ~29%), Jon's RulesGuru regrade is folded in (**75.3%** held-out), combat-damage is **shelved** (plan complete but only ~7 real assignment questions in the corpus), and the **next tool is the layer-system resolver (CR 613) — Jon ruled it the next lever — which needs a plan.**
+## Before you believe anything about the API
+
+The handoff before last claimed the account API cap blocked every live sonnet-5 run until 2026-08-01. **That was false and it gated real work across two sessions.** The cap is cleared — verified with a live call. Credentials load from `.env` via `load_dotenv()`, NOT the ambient shell, so a bare `python -c` without it fails with "Could not resolve authentication method," which reads exactly like a cap. If you ever conclude the API is blocked, test it with a real call before writing that down.
+
+## Where we are in one line
+
+The layer-system resolver (CR 613) is planned and half-built — Slices 1-2 shipped and lead-verified (419 tests green), Slices 3-4 remain; all three lever decisions are ruled (v5 no-go, rewriter held, L2 deferred to post-tools); the pure-rules eval set is started with batch 1 approved 8/8 unedited; and the tool has never been run against a live model.
 
 ## The first ask
 
-**Plan the layer-system resolver tool (CR 613).** This is a NEW tool → **Rule 0: write `docs/plan-layer-system-tool.md` (design only), and don't build anything until I've reviewed it and ruled.** I ruled layers the next tool over combat (combat's ROI is thin — only ~7 real assignment questions in the whole corpus; layers recurred on four of my regrade misses and targets the weakest tier, Corner Case 50% — see DECISIONS.md). The plan must:
+**Calibrate the layers trigger** (plan §3c, §10 item 2). It gates Slice 4 and is the likeliest place this plan fails, so it comes before more building.
 
-- **Ground in CR 613** from `data/raw/MagicCompRules 20260619.txt` — never from memory (grounding caught three wrong CR citations in the combat plan this session).
-- Use my regrade layers misses as the seed validation set: **rg3868, rg807, rg811, rg633** — read their questions/gold.
-- **Scope the deterministic sub-computation carefully — this is the hard part and the whole question.** Layers (CR 613) is a 7-layer + sublayer + dependency + timestamp system, not arithmetic like cost/combat. Prove there's a *bounded, deterministic* computation the tool can own; if there genuinely isn't, say so — that reopens the slot rather than forcing a tool-shaped answer onto a non-tool-shaped problem.
-- Account for the **loop-gating trap**: the tools-off terminal round (commit 1dfe6d4) is keyed to `use_cost_tool` (`answer.py` ~1452/1475/1507); a layers trigger must broaden that gating or it reinherits the cap-exhaustion bug, and `TOOL_ROUND_CAP` likely needs raising.
+The problem: layers questions contain no layers vocabulary. Across all 1,409 corpus questions, `\blayer\b` appears once (and that row is bucket-B order-only); `timestamp`, `depend`, and `continuous effect` appear zero times. 62 of 68 CR-613 rows match no keyword at all. §3c proposes a two-conjunct replacement — characteristic-readout phrasing AND ≥2 loaded cards with continuous-effect-shaped oracle text.
 
-Combat is shelved — its plan (incl. §11 research) stays in `docs/plan-combat-damage-tool.md` for later.
+Measure it against (a) the 51 bucket-A questions in evals/_layers_union_slice.jsonl and (b) the 16 bucket-C rows plus a random 100-row non-layers sample. **The bar is already written into the plan: ≥60% recall on bucket A with <10% firing on the non-layers sample.** If conjunct 2 can't hit that, say so plainly — the blocker is the trigger, not the engine, and the plan's own fallback is the question-classification step (roadmap item 5), not a wider regex.
 
-Heads up: the account **API usage cap is hit until 2026-08-01** (I can raise it sooner) — every live sonnet-5 eval/harness/product-arm run 400s until then. Planning doesn't need it; building/validation will.
+**Slice 3 is disjoint from this and can run in parallel** (engine code vs. a corpus measurement). Its spec is in the handoff and includes a fix flagged during Slice 2 review: replace the fragile ability-text string matching in the CR 613.6 `removed_at` bookkeeping with an explicit `source_on_this_object` flag.
 
-## Read this part before you do anything
+## Read this before you do anything
 
-**USE SUBAGENTS.** Dispatch scoped implementation to Sonnet subagents against the written plan; keep the lead model for judgment, review, and talking to me. Haiku for bulk fetch/filter/verify with compact returns.
+USE SUBAGENTS. Dispatch scoped implementation to Sonnet against the written plan; keep the lead for judgment, review, and talking to me. Haiku for bulk fetch/filter/verify with compact returns.
 
-- **If your harness tells you not to use the Agent tool, say so immediately and ask me.** Don't silently absorb the work inline.
-- Parallelise only across **disjoint file sets**; forbid `git add -A` / `git add .` in every agent prompt — the real hazard with concurrent agents is staging collisions.
-- **A subagent running a long (~15 min) live harness must POLL its log in-turn until done — not background it and return a "standing by" placeholder.** That bit us repeatedly this session; be explicit in the prompt.
-- **Worktree agents MUST set `PYTHONPATH=<worktree>\src`** or they silently test the ORIGINAL repo's code. `data/raw/` and `evals/answers/` are gitignored (absent in worktrees) — run on master when the CR corpus / vector store / eval data are needed.
-- Demand **evidence, not assertions**: real pasted output, real counts. Tell agents to STOP and report if the spec is wrong. Many did this session and were right.
-- Don't read subagent transcript files — wait for the completion notification. (Reading a harness's own *log* on disk is fine.)
+- If your harness tells you not to use the Agent tool, say so immediately and ask me. Don't silently absorb the work inline.
+- Parallelise only across disjoint file sets; forbid `git add -A` / `git add .` in every agent prompt — staging collisions are the real hazard with concurrent agents.
+- **Verify agents' claims yourself — this bit us twice last session.** Both build agents reported green suites that were contaminated by the *other* agent's uncommitted files. Neither was independent evidence. Re-run on a clean tree, and hand-check deliverables against the plan's own expected outputs rather than the agent's tests. Doing that last session caught a real bug in my own plan spec.
+- A subagent running a long harness must POLL its log in-turn, not background it and return a "standing by" placeholder.
+- Worktree agents MUST set `PYTHONPATH=<worktree>\src` or they silently test the ORIGINAL repo's code. `data/raw/` and `evals/answers/` are gitignored (absent in worktrees) — run on master when the CR corpus or eval data are needed.
+- Tell agents to STOP and report if the spec is wrong. Several did last session and were right.
+- Don't read subagent transcript files — wait for the completion notification.
 
 Respect the "HOW JON WORKS" section of the handoff exactly — especially:
 
-- **Rule 0: plan before code.** Nothing gets built until I've reviewed the plan and ruled. A bug-fix on approved code uses systematic-debugging; a NEW tool needs a plan and a ruling.
-- **The judge instrument is FROZEN** (judge_bakeoff prompt + gpt-5-mini). Never reword it.
-- **Grading verdicts are mine alone; reading failures is not delegated** — the lead reads the garbled/failed outputs itself. Tools route and rank; they never assign a verdict. (Exception on record: RulesGuru gold is canonical because its authors are certified judges — see DECISIONS.md.)
-- **Never assert an MTG or model fact from memory** — ground in the repo CR (`data/raw/MagicCompRules 20260619.txt`), Scryfall via `rulesagent.tools.scryfall.get_card`, or a live check. Model pricing via the claude-api skill. (This session, grounding caught three wrong CR citations in the combat plan.)
-- **Billing:** batch Claude-labour as in-session subagents on my subscription. API spend is for product/eval arms only — and is currently capped (above).
-- **Verify your own writes.** `str.replace()` no-ops silently on a missed anchor — re-read and assert. Heredoc for commit messages. **Never pipe a long run through `| tail`** (masks the exit code) — use `PYTHONUNBUFFERED=1` + a log file. **A single favourable run is not a rate** — aggregate before claiming reliability.
+- Rule 0: plan before code. A NEW tool needs a plan and a ruling; a bug-fix on approved code uses systematic-debugging.
+- The judge instrument is FROZEN (judge_bakeoff prompt + gpt-5-mini). Never reword it.
+- Grading verdicts are mine alone; reading failures is not delegated — the lead reads the garbled/failed outputs itself. Tools route and rank; they never assign a verdict.
+- Never assert an MTG or model fact from memory — ground in the repo CR (data/raw/MagicCompRules 20260619.txt), Scryfall via `rulesagent.tools.scryfall.get_card`, or a live check. Model facts via the claude-api skill; that skill is how rg3391's root cause got found.
+- Verify your own writes. `str.replace()` no-ops silently on a missed anchor — re-read and assert. Heredoc for commit messages. Never pipe a long run through `| tail` (masks the exit code). A single favourable run is not a rate.
 - Python is `.venv/Scripts/python.exe`, `PYTHONIOENCODING=utf-8`. I run the app on port 8000 — never bind or kill it. Commit per slice on master with the `Co-Authored-By: Claude Opus 4.8` trailer.
 
-Waiting on me, not you: the **held Scryfall merge** (complete on its branch — but the `answer.py` conflict is now THREE-way after this session's reliability fix; keep all three), and the **lever decisions** (v5 go/no-go, L2 generator, rewriter-on-the-retrieval-side). See the handoff's HELD / STILL QUEUED blocks.
+## Standing grant on the pure-rules eval
 
-Start by confirming you've read the handoff, then give me your plan for the layer-system tool — grounded in CR 613 and my regrade layers misses, and honest about whether layer resolution is genuinely tool-shaped. Don't build until I rule.
+You can draft generalizations freely and in large batches (15-20+), pulling from any tagged slice — not just the CR-613 rows. I approve in bulk. The one rule that binds: only generalize where the original gold ALREADY states the rules mechanism explicitly, so derived gold is a paraphrase rather than a new ruling. Workflow and the approval-UI commands are in the handoff.
+
+## Waiting on me, not you
+
+The held Scryfall merge — complete on its branch, but the `answer.py` conflict is now FOUR-way after last session's seam generalisation (keep all four). I want it landed as soon as it doesn't require stopping something already in progress, so if no agent owns `answer.py`, raise it.
+
+Also queued and unblocked whenever you want them: Slice 0 (the prompt-bullet control arm the tool must tie or beat), the rg3391 streaming fix, and the two small `answer.py` follow-ons (sentinel de-conflation, rg6916).
+
+Start by confirming you've read the handoff, then give me the trigger calibration result — honestly, including if it misses the bar.
