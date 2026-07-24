@@ -354,6 +354,13 @@ def main() -> None:
                 else:
                     ans = agent.answer(q.question)
                 rewritten = agent.last_rewritten  # None when --no-rewrite, or when using --prompts-cache
+                # agent.last_retrieved: list[Retrieved] (rulesagent.contracts) set by
+                # RulesAgent.answer() right before the generation call -- None when
+                # --prompts-cache bypassed answer() entirely via
+                # _answer_from_frozen_prompt() above, same honest-gap treatment as
+                # rewrite_queries/clarification just above.
+                retrieved_rule_ids = ([r.chunk.source_id for r in agent.last_retrieved]
+                                      if agent.last_retrieved is not None else [])
 
                 gold_text = {g: chunk_map[g].text for g in q.gold if g in chunk_map}
                 cited_text = {c: chunk_map[c].text for c in ans.citations if c in chunk_map}
@@ -390,6 +397,12 @@ def main() -> None:
                     # in the output, not just via a side channel.
                     "rewrite_queries": rewritten.queries if rewritten else [],
                     "clarification": rewritten.clarification if rewritten else None,
+                    # New: what retrieval actually returned for this question, in
+                    # RANK ORDER (the miss-partition diagnostic's near-miss bucket
+                    # needs rank, not just membership) -- Chunk.source_id per hit,
+                    # NOT rule_id (Chunk has no such field). Additive only: every
+                    # field above is unchanged in name/shape/value.
+                    "retrieved_rule_ids": retrieved_rule_ids,
                 }
                 if q.id in answer_gold:
                     # Carried through only for questions that have it (RulesGuru
