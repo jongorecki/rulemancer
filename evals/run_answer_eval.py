@@ -28,6 +28,7 @@ sys.path.insert(0, str(Path(__file__).parent))  # so `from run_eval import ...` 
 # sys.path explicitly rather than relying on script-directory auto-insertion.
 
 from progress import Heartbeat, atomic_write_json, prompts_cache_sha256  # noqa: E402
+from qidfilter import QidFilterError, select_qids  # noqa: E402
 from run_eval import CR_PATH, PARSED_DIR, VECTOR_MODEL, load_questions  # noqa: E402
 
 from rulesagent.contracts import Answer  # noqa: E402
@@ -207,6 +208,12 @@ def parse_args() -> argparse.Namespace:
         help="answer only the first N questions (default: all) -- for cheap smoke slices",
     )
     p.add_argument(
+        "--qids", type=str, default=None,
+        help="comma-separated list of specific question ids to run (e.g. c012,c014,c015) "
+        "-- a scattered subset, unlike --limit's prefix; run in master-questions-file order "
+        "regardless of the order given here. Mutually exclusive with --limit.",
+    )
+    p.add_argument(
         "--rewrite-version", choices=["v1", "v2"], default="v2",
         help="rewriter SYSTEM prompt version, threaded into RulesAgent(rewrite_version=...) "
         "(default: v2 -- the shipped default; prompt-v3 A/B condition B needs v1, docs/"
@@ -292,7 +299,17 @@ def main() -> None:
 
     questions = load_questions(args.questions)
     answer_gold = load_answer_gold(args.questions)
-    if args.limit is not None:
+    if args.qids is not None and args.limit is not None:
+        print("[ERROR] --qids and --limit cannot be used together -- they are two "
+              "different subsetters and the precedence would be ambiguous; pick one")
+        sys.exit(1)
+    if args.qids is not None:
+        try:
+            questions = select_qids(questions, args.qids)
+        except QidFilterError as e:
+            print(f"[ERROR] {e}")
+            sys.exit(1)
+    elif args.limit is not None:
         questions = questions[: args.limit]
     print(
         f"Generating {len(questions)} answers | model={args.model} "

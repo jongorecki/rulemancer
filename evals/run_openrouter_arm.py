@@ -56,6 +56,7 @@ sys.path.insert(0, str(Path(__file__).parent))  # so `from run_eval import ...` 
 # regardless of the caller's cwd -- same reasoning as run_answer_eval.py's identical line.
 
 from progress import Heartbeat, atomic_write_json, prompts_cache_sha256  # noqa: E402
+from qidfilter import QidFilterError, select_qids  # noqa: E402
 from run_eval import CR_PATH, PARSED_DIR, VECTOR_MODEL, load_questions  # noqa: E402
 
 from rulesagent.generate import openrouter_backend  # noqa: E402
@@ -480,6 +481,12 @@ def parse_args() -> argparse.Namespace:
                     help="answer only the first N questions of the COMBINED (questions+cards) "
                          "set (default: all) -- for cheap smoke slices; 0 skips the main loop "
                          "entirely (useful with --variance for a spot-check-only run)")
+    p.add_argument("--qids", type=str, default=None,
+                    help="comma-separated list of specific question ids to run (e.g. "
+                         "c012,c014,c015) -- a scattered subset of the COMBINED "
+                         "(questions+cards) set, unlike --limit's prefix; run in "
+                         "master-questions-file order regardless of the order given here. "
+                         "Mutually exclusive with --limit.")
     p.add_argument("--variance", action="store_true",
                     help="also run the q001/q014/c015 x3-draw spot-check (Task 3) and store it "
                          "under the 'variance' key of the output JSON")
@@ -742,7 +749,17 @@ def main() -> None:
         prompts_cache_digest = prompts_cache_sha256(prompts_cache)
 
     questions = load_questions(args.questions) + load_questions(args.cards)
-    if args.limit is not None:
+    if args.qids is not None and args.limit is not None:
+        print("[ERROR] --qids and --limit cannot be used together -- they are two "
+              "different subsetters and the precedence would be ambiguous; pick one")
+        sys.exit(1)
+    if args.qids is not None:
+        try:
+            questions = select_qids(questions, args.qids)
+        except QidFilterError as e:
+            print(f"[ERROR] {e}")
+            sys.exit(1)
+    elif args.limit is not None:
         questions = questions[: args.limit]
 
     print(
