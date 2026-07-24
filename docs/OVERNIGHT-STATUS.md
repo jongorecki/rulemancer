@@ -35,8 +35,66 @@ Jon's and are listed at the bottom.
       regression guard was proven to fire via a deliberate probe, then removed.
       **268 tests pass on master, and `_progress/` holds 17 files before and
       after the suite.**
-- [ ] c020 phase 2 capture + 8 generations at v3 and v5
-      *(blocked on the `build_prompts_variant.py` parameterisation — running)*
+- [x] judge-compare COMPLETE and merged (`judge_v5.py`). 64/64 judge calls,
+      0 exceptions, 0 judge errors. Frozen judge imported unchanged.
+- [ ] **c020 phase 2 — BLOCKED, deliberately. See "injection is live" below.**
+
+## RESULT — the v5 grid, routed (verdicts are still Jon's)
+
+| arm | cell | no flip | stable flip | unstable | c002 (monitored) |
+|---|---|---|---|---|---|
+| sonnet | A (v3 control) | 2 | **0** | 1 | — |
+| sonnet | B (v3+inject) | 3 | **0** | 0 | — |
+| sonnet | C (v4nl) | 3 | **0** | 0 | — |
+| sonnet | D (**v5**) | 3 | **0** | 0 | — |
+| gpt-5-mini | A (v3 control) | 3 | **0** | 1 | unstable x1 |
+| gpt-5-mini | B (v3+inject) | 2 | **1** -> c011 | 1 | **stable x1** |
+| gpt-5-mini | C (v4nl) | 1 | **2** -> c011, c015 | 1 | unstable x1 |
+| gpt-5-mini | D (**v5**) | 3 | **0** | 1 | **stable x1** |
+
+Cell A is the negative control (v3 vs v3) and shows **0 stable flips on both
+arms**, so the zeros elsewhere are real rather than a broken comparison.
+
+**Jon's grading queue:** c011 (cell B); c011 and c015 (cell C); plus the two
+monitored c002 flips at B and D, which never enter a count.
+
+**The controller is NOT making the v5 call.** The fact in the table is that
+cell D produced zero scoring flips on either arm, at +603 tok/card query and
++509 tok/rules query. What that means is Jon's to decide, alongside the answers.
+
+## STOP — symbol injection is ALREADY LIVE in production, ungated
+
+`answer.py:792-795` appends the symbol-reference block to the user message with
+**no `PROMPT_VERSION` gate**:
+
+```python
+symbols = _symbols_present(f"{_card_symbol_text(cards)} {question}")
+symbol_block = _symbol_reference_block(symbols)
+if symbol_block:
+    user += f"\n\n{symbol_block}"
+```
+
+`PROMPT_VERSION = 3` selects the SYSTEM text only. So **production today is v3
+bullets + injection, which is cell B — not cell A.** The plan labels cell A
+"v3 — production baseline"; that label stopped being true when Slice 2 shipped.
+
+This does **not** invalidate the grid. The grid ran from `_prompts_C.json`,
+frozen BEFORE Slice 2, so all four cells are exactly what they claim. It is
+*production* that drifted, and it drifted to the candidate arm before the
+experiment meant to decide that arm was graded.
+
+**How it surfaced:** c020's fresh capture failed gate 3 on all 20 card
+questions — including c001-c019, which pass 19/19 against the frozen capture.
+The card block in a capture taken *today* ends with the injected "Symbol
+reference" section, so the derivation's segment count no longer matches the
+card count. **The gate refused to write anything and exited 1**; the four
+existing variant files were verified byte-identical afterward.
+
+**Consequence: c020 phase 2 cannot run tonight**, and shouldn't. Deriving its
+v3 arm from a capture that already contains injection would mean its "v3" arm
+is really cell B, and the c020 experiment would compare cell B against cell D
+while calling it v3 vs v5. Jon needs to rule on whether injection stays in
+production first — that ruling determines what a c020 capture even means.
 - [ ] rewriter bakeoff — **ONE pass, not three.** See the cache finding below.
 - [ ] judge-compare the v5 grid -> Jon's grading queue *(agent running)*
 - [x] gold discovery — **STOPPED, correctly.** `plan-v5-symbol-injection.md`
