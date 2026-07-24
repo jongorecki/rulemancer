@@ -146,8 +146,37 @@ silently measures against the wrong baseline.
   empty. Zero symbols → zero tokens.
 - Called inside `build_prompt` (:287) scanning **the cards** (mana_cost +
   oracle_text, all faces) **and the question text** — never the retrieved rules
-  context. Placement: immediately after the `Card data:` block, before
-  `\n\nQuestion:`.
+  context. Placement: immediately before `\n\nQuestion:` — **not** nested
+  inside the `if cards:` branch, so a card-less question that names a
+  symbol in its text still gets injection (Jon's ruling #7). Corrected
+  2026-07-25: the original wording said "after the `Card data:` block",
+  which is undefined for the 31 questions that have no card block.
+
+**Cost, MEASURED after Slice 2.** Stripping the legend does *not* return SYSTEM
+near v3 — v4's non-legend bullets are themselves ~2,039 chars, so `v4nl` renders
+to 7,228 vs v3's 5,189. Injected blocks measure 206–373 chars across the six
+card misses. Per-query overhead against v3:
+
+| variant | card questions | the 31 rules questions |
+|---|---|---|
+| v4 (reverted) | +1,214 tok | +1,214 tok |
+| **cell D = v5** (v4nl + injection) | +603 tok | +509 tok |
+| **cell B** (v3 + injection) | +93 tok | **0 tok** |
+
+**NO pre-commitment on the tie-break — Jon's ruling, 2026-07-25.** The
+controller proposed a rule (cell D must beat cell B by enough to justify the
+~510 tokens/query between them; a tie ships cell B). Jon declined it and will
+decide from the numbers and the actual answers — consistent with every prior
+model call, including 2026-07-23 pre-commitment #3, which likewise reserves the
+L2 decision for his review of the flipped answers rather than an automatic
+threshold.
+
+**What replaces the rule: the cost must be unmissable at decision time.** The
+report MUST put each cell's per-query token cost directly beside its
+correct-count, in the same table, so the trade is visible in one glance. It
+must also state plainly that the ~510 tokens separating cell B from cell D buy
+v4's bullets, whose only measured effect on sonnet was zero divergence across
+all 50 questions and both runs.
 
 **Why scanning cards and not the assembled context is load-bearing, now
 measured rather than argued.** CR 107.4 is a single chunk enumerating every
