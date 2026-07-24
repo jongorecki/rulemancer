@@ -23,14 +23,38 @@ Jon's and are listed at the bottom.
       D `474aa0ebcfb0`. The grid is four real variants, not four copies.
 - [x] c011 stale-ruling diagnosis merged (`f841582`, plan doc only, no source)
 - [x] rewriter slice merged to master — **267 tests pass** with the real corpus
-- [ ] **A** — mark c002 non-scoring in `cards.jsonl`, add c020 row *(agent running)*
-- [ ] **B** — stop tests leaking heartbeats into the real `_progress/` *(agent running)*
-- [ ] c020 phase 2 capture + 8 generations at v3 and v5 *(depends on A)*
+- [x] **A** — c002 marked non-scoring, c020 added. Merged. Verified: 20 rows,
+      ids c001-c020 contiguous, c002's question/gold untouched (still Charging
+      Rhino), c020's question byte-identical to Jon's wording. Both cards
+      re-verified live via Scryfall: Stampeding Rhino `{4}{G}` with trample,
+      Vampire Nighthawk `{1}{B}{B}` flying/deathtouch/lifelink. **`gold` left
+      empty — gold is Jon's to encode.**
+- [x] **B** — heartbeat test pollution fixed and merged. Source was 4 tests in
+      `test_resume_prompts_cache_guard.py` calling the runners end-to-end
+      without redirecting `PROGRESS_DIR`. Fixed with an autouse fixture; the
+      regression guard was proven to fire via a deliberate probe, then removed.
+      **268 tests pass on master, and `_progress/` holds 17 files before and
+      after the suite.**
+- [ ] c020 phase 2 capture + 8 generations at v3 and v5
+      *(blocked on the `build_prompts_variant.py` parameterisation — running)*
 - [ ] rewriter bakeoff — **ONE pass, not three.** See the cache finding below.
-- [ ] judge-compare the v5 grid -> Jon's grading queue
-- [ ] gold discovery — proposals only, nothing written
-- [ ] merge Scryfall local-bulk slice (agent running)
-- [ ] merge citation-filter Rule-0 plan + evidence table (agent running)
+- [ ] judge-compare the v5 grid -> Jon's grading queue *(agent running)*
+- [ ] gold discovery — proposals only, nothing written *(agent running)*
+- [ ] merge Scryfall local-bulk slice *(agent running)*
+- [ ] merge citation-filter Rule-0 plan + evidence table
+
+## Why c020 needed a code slice first
+
+`--assemble-only` deliberately ignores `--limit`/`--questions`/`--cards` and
+always captures the FULL combined question set, overwriting its target rather
+than merging — the comment says this is so a condition's cache can never become
+"a stitched-together mix of two capture sessions." With c020 added that set is
+now 51 questions. Separately, `build_prompts_variant.py` hardcoded both its
+source (`_prompts_C.json`) and its output names (`_prompts_variant_{A..D}.json`).
+Deriving c020's variants with the script as-written would have **overwritten the
+four variant files the completed v5 grid was built from** — which are now
+evidence. Hence a parameterisation slice with a refuse-to-clobber guard before
+any c020 work.
 
 ## Operational findings paid for tonight
 
