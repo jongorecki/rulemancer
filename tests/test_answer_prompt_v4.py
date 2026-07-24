@@ -1,7 +1,8 @@
 # Tests for generator prompt v4 (docs/plan-prompt-v4.md Sec 2 (4a-4e) + Sec 3
 # row 3b, docs/plan-v4e-execution-tasks.md Task 1). Replaces
-# tests/test_answer_prompt_v3.py's SYSTEM-content assertions (v3's exact
-# phrases no longer exist in the live SYSTEM -- v3 survives only inside the
+# tests/test_answer_prompt_v3.py's SYSTEM-content assertions (v3 is
+# production again as of 2026-07-25 and lives in SYSTEM_VERSIONS[3]; it is
+# no longer reachable only through the
 # frozen eval capture, evals/answers/_prompts_C.json) while keeping that
 # file's RulesAgent-config tests (ruling_query_mode dispatch, rewrite_version
 # threading), which are orthogonal to SYSTEM content and unaffected by the
@@ -22,12 +23,17 @@ from rulesagent.contracts import Card
 from rulesagent.generate import answer as ans
 
 
-def test_prompt_version_is_4():
-    assert ans.PROMPT_VERSION == 4
+def test_v4_is_selectable_but_not_production():
+    # v4 was REVERTED from production 2026-07-25 (it failed its own go
+    # criterion) but is retained as a runnable prompt because the v5 grid
+    # generates from it. Assert it is still selectable, and that it is NOT
+    # what production ships -- test_answer_prompt_v3 owns that assertion.
+    assert 4 in ans.SYSTEM_VERSIONS
+    assert ans.PROMPT_VERSION != 4
 
 
 def test_system_contains_3b_intro_clause():
-    s = ans.SYSTEM
+    s = ans.SYSTEM_VERSIONS[4]
     assert "State assumptions when the context doesn't cover something" in s
 
 
@@ -36,13 +42,13 @@ def test_system_contains_1a_untouched_full_card_names_bullet():
     prompt_v3.py (removed in this bump), which asserted both phrases below;
     the fix-loop review flagged that "substitute its full name instead" lost
     coverage when that file was deleted, so it's restored here."""
-    s = ans.SYSTEM
+    s = ans.SYSTEM_VERSIONS[4]
     assert "never by a role word" in s
     assert "substitute its full name instead" in s
 
 
 def test_system_contains_4a_notation_legend_both_tiers():
-    s = ans.SYSTEM
+    s = ans.SYSTEM_VERSIONS[4]
     # CORE tier: generic/colorless/colored/hybrid/Phyrexian/{X}/tap/untap.
     assert "Notation legend, CORE tier" in s
     assert "N generic mana, payable with any color or with colorless mana" in s
@@ -77,7 +83,7 @@ def test_system_contains_scryfall_hybrid_families_and_mana_value_rule():
     hybrid sentences, plus the mana-value COUNTING rule (highest-value
     addition per Jon/the coordinator -- targets the c014 cluster's
     mana-arithmetic failures)."""
-    s = ans.SYSTEM
+    s = ans.SYSTEM_VERSIONS[4]
     assert "a colorless hybrid symbol such as {C/W} is paid with one " \
            "colorless mana or one mana of the named color" in s
     assert "a hybrid Phyrexian symbol such as {W/U/P} is paid with one " \
@@ -106,7 +112,7 @@ def test_system_contains_scryfall_hybrid_families_and_mana_value_rule():
 
 
 def test_system_contains_reference_tier_rare_and_nonmana_symbols():
-    s = ans.SYSTEM
+    s = ans.SYSTEM_VERSIONS[4]
     assert "{L} means one mana from a legendary source" in s
     assert "{Y} and {Z} work like {X} as extra variables" in s
     assert "{PW} marks a planeswalker" in s
@@ -125,14 +131,14 @@ def test_system_contains_reference_tier_rare_and_nonmana_symbols():
 
 
 def test_system_contains_4b_revised_multiplayer_bullet():
-    s = ans.SYSTEM
+    s = ans.SYSTEM_VERSIONS[4]
     assert "state each outcome separately and say which is which" in s
     assert "\"defending player(s)\" (plural-aware)" in s
     assert "do not invent multiplayer rules that weren't provided" in s
 
 
 def test_system_contains_4c_generalized_assumption_bullet_alongside_1d():
-    s = ans.SYSTEM
+    s = ans.SYSTEM_VERSIONS[4]
     # 1d (timing) stays, unchanged, its own bullet.
     assert "say plainly which timing you're assuming" in s
     assert "Never resolve an ambiguous timing question as if only one order were" in s
@@ -142,12 +148,12 @@ def test_system_contains_4c_generalized_assumption_bullet_alongside_1d():
 
 
 def test_system_contains_4d_answer_intended_question_bullet():
-    s = ans.SYSTEM
+    s = ans.SYSTEM_VERSIONS[4]
     assert "Answer the practical question a player is actually asking" in s
 
 
 def test_system_contains_4e_no_false_starts_clause_on_1f():
-    s = ans.SYSTEM
+    s = ans.SYSTEM_VERSIONS[4]
     assert "Open the text field with a direct, unmistakable answer" in s
     assert ("Never write a claim in the text field that you're about to "
             "contradict a sentence later") in s
@@ -160,7 +166,7 @@ def test_system_bullet_order_matches_v4_insert_points():
     4b sits where 1c did. 1d stays put, unchanged; 4c sits immediately after
     it, still before the card-data bullet. 4d sits immediately before 1f
     (which now also carries 4e's appended clause) and before tldr."""
-    s = ans.SYSTEM
+    s = ans.SYSTEM_VERSIONS[4]
     i_3b = s.index("State assumptions when the context doesn't cover something")
     i_1a = s.index("never by a role word")
     i_cite = s.index("Cite the exact rule numbers")

@@ -31,16 +31,24 @@ GEN_MODEL = "claude-sonnet-5"  # pinned; one-line swap to A/B other models
 TOP_K = 15  # pure-vector top-15 (raised from 10: near-miss rules like a
 # multiplayer clause at rank ~13 were just outside the old window)
 
-PROMPT_VERSION = 4
+PROMPT_VERSION = 3
 # Bump on EVERY change to SYSTEM or the Answer schema, and note what changed.
 # Stamped into the public-demo query log so feedback stays interpretable
 # across deploys (plan-limitations-and-deploy.md L8).
+#
+# ALL SYSTEM texts are kept and selectable via SYSTEM_VERSIONS below, the same
+# way rewrite.py keeps rw-v1 alongside rw-v2. A version that has been reverted
+# in production must stay a fully runnable prompt, not a historical comment --
+# the A/B harness needs to generate from it (docs/plan-v5-symbol-injection.md
+# Slice 1). PROMPT_VERSION selects which one production ships.
+#
 #   v1: through the 31/31 grade + trust-the-ruling + transcript-in-message.
 #   v2: L8 batch -- tldr, suggested_followups, cite-rulings-by-label.
 #   v3: docs/plan-prompt-tuning.md Sec 1 (Jon-approved 2026-07-22) -- six
 #   bullets targeting F1 full-card-names, F2 mana-symbol semantics, F4
 #   multiplayer defaults (replaces the old bullet), F5 timing-assumption
 #   disclosure, F7 card-text-overrides-rules, and F3/F6 direct-answer-first.
+#   *** CURRENT PRODUCTION *** -- see the v4 note below.
 #   v4: docs/plan-prompt-v4.md (Jon-approved 2026-07-23, six rulings) -- 4a
 #   REPLACES the v3 mana bullet with a full Scryfall/CR-notation legend
 #   (CORE tier: generic/colorless/colored/hybrid/Phyrexian/{X}/tap/untap,
@@ -53,6 +61,13 @@ PROMPT_VERSION = 4
 #   answer-the-intended-question bullet before the direct-answer bullet;
 #   4e appends a no-false-starts clause to that bullet; 3b adds a short
 #   redundant-emphasis assumption-disclosure clause to the intro paragraph.
+#   NOT IN PRODUCTION -- shipped 2026-07-23, REVERTED 2026-07-25 after its
+#   own A/B failed the go criterion: sonnet 46 -> 46 with ZERO divergence
+#   across all 50 questions and both runs, for ~+1,215 tokens on every query
+#   (no prompt caching exists on either path, so that is paid in full), and
+#   gpt-5-mini 45 -> 43. It never moved c014, the mana-arithmetic failure the
+#   legend was built for. Retained here because the v5 grid generates from it
+#   (evals/report-v4e.md, DECISIONS.md 2026-07-25).
 
 # Plan #3a: the winning rewriter config from evals/run_eval.py's 2x2 grid
 # (rewrite count x rewriter model, see docs/plan-3a-query-rewriting.md).
@@ -65,7 +80,105 @@ REWRITE_FUSION_DEPTH = 100  # candidates pulled per rewrite before RRF fusion
 # retrieval is fused at the same depth the eval actually measured, not a
 # smaller ad hoc one.
 
-SYSTEM = (
+SYSTEM_V3 = (
+    "You are a Magic: The Gathering rules expert. Answer the user's question "
+    "using ONLY the numbered rules provided in the context below. Rules are "
+    "labeled with their number in brackets, e.g. [104.3a].\n"
+    # 1a (F1 card-role confusion) -- new first bullet, before the old [1].
+    "- Always refer to a card by its exact full name, every time you mention "
+    "it in your reasoning and in the answer text -- never by a role word "
+    "(\"the attacker,\" \"the blocker,\" \"the creature,\" \"it\") once two or "
+    "more named cards are in the question. If you find yourself about to "
+    "write a role word for a card, stop and substitute its full name "
+    "instead.\n"
+    "- Cite the exact rule numbers you relied on in the citations field. Every "
+    "rule number you reference anywhere in the answer text MUST also appear in "
+    "the citations field, and whenever answered is true the citations field MUST "
+    "be non-empty -- that field is what makes the answer verifiable, so an "
+    "answer that relies on rules can never leave it blank. If you genuinely "
+    "cannot ground the answer in any provided rule, set answered to false "
+    "instead of answering without citations.\n"
+    "- If the provided rules don't contain enough to answer, set answered to "
+    "false and say what's missing -- do NOT fill the gap with outside "
+    "knowledge or guesses.\n"
+    "- Define any key term the question hinges on (e.g. what 'phasing' means) "
+    "so the answer stands on its own.\n"
+    # 1b (F2 mana-symbol semantics) -- new, right after the define-key-term
+    # bullet.
+    "- Mana symbols are not interchangeable. {N} (a plain number) means N "
+    "generic mana, payable with any color or with colorless mana. {C} means "
+    "colorless mana specifically -- it is NOT generic and NOT interchangeable "
+    "with {N}. {G}/{U}/{B}/{R}/{W} mean mana of that one color specifically. "
+    "When a cost-reduction or cost-increase effect says it reduces or "
+    "increases \"the mana cost\" or \"the generic mana\" of a spell, only the "
+    "generic portion changes -- any colored or colorless symbols in the cost "
+    "are unaffected. When you state a resulting total cost, break it out by "
+    "symbol rather than only giving a lump number.\n"
+    "- Name the specific zones, steps, or objects involved rather than "
+    "referring to them vaguely (e.g. the command zone and exile are separate "
+    "zones).\n"
+    # 1c (F4 multiplayer defaults) -- REPLACES the old "If the provided rules
+    # cover multiplayer or Commander cases..." bullet.
+    "- Unless the question specifies exactly two players, don't assume a "
+    "two-player game. If the provided context includes any rule about "
+    "multiplayer play (choosing a defending player, \"each opponent,\" turn "
+    "order among more than two players, etc.), say how the answer differs, if "
+    "at all, between two players and more than two. If the context contains "
+    "ONLY two-player-framed rules, say plainly that your answer is for the "
+    "two-player case and that a multiplayer table may follow different rules "
+    "-- do not invent multiplayer rules that weren't provided.\n"
+    "- Keep the answer accurate and to the point; a player should be able to "
+    "act on it.\n"
+    # 1d (F5 unstated timing/ordering assumptions) -- new, right after the
+    # accurate-and-to-the-point bullet.
+    "- If the order or timing of events in the question is ambiguous (for "
+    "example, exactly when damage was marked relative to a spell being cast "
+    "or resolving), say plainly which timing you're assuming, then add one "
+    "short sentence on how the answer would change under a different timing. "
+    "Never resolve an ambiguous timing question as if only one order were "
+    "possible without saying so.\n"
+    "- You may also be given specific cards' oracle text and rulings, "
+    "labeled \"Card data\" below the rules context. Treat that as additional "
+    "ground truth alongside the rules -- if you rely on a card, cite it by "
+    "name in the citations field, the same way you cite rule numbers.\n"
+    # 1e (F7 card-text-overrides-rules) -- new, right after the card-data
+    # bullet.
+    "- A card's own printed rules text always wins over a general rule it "
+    "contradicts. If a card's text says something that conflicts with how a "
+    "general rule would otherwise apply, follow the card's text and say so "
+    "explicitly (name the specific text and note that card text overrides "
+    "the general rule) rather than applying the general rule as if the card "
+    "were silent.\n"
+    "- A provided ruling is itself authoritative, self-sufficient grounding. If "
+    "a ruling directly states what happens in the interaction, rely on it and "
+    "answer -- do NOT decline or hedge just because the underlying numbered rule "
+    "isn't also in the context. (You still must not invent rules or rulings that "
+    "weren't provided.)\n"
+    "- Card rulings in the context are labeled like \"[Card Name ruling #4]\". "
+    "When you rely on a ruling, put that exact label in the citations field, "
+    "the same way you cite rule numbers.\n"
+    # 1f (F3 intent misses + F6 answer clarity, merged) -- new, right after
+    # the ruling-label bullet and before tldr.
+    "- Open the text field with a direct, unmistakable answer to the "
+    "question -- the first sentence or two should say plainly what happens, "
+    "not lead with caveats or setup. Put reasoning, assumptions, and "
+    "secondary discussion after that direct answer, never before it. If the "
+    "question can reasonably be read two ways (for example, \"who gets "
+    "priority\" could mean right after a spell is cast or right after it "
+    "resolves), answer the reading actually asked first and explicitly, then "
+    "briefly cover the other reading if it's a likely point of confusion -- "
+    "don't let a second reading delay or bury the direct answer to the "
+    "first.\n"
+    "- Fill the tldr field with one or two plain sentences that directly answer "
+    "the question for a player in a hurry -- no rule numbers, no hedging "
+    "boilerplate. If answered is false, the tldr plainly says the provided "
+    "rules don't settle it.\n"
+    "- Fill suggested_followups with two or three short natural next questions "
+    "a curious player might ask after reading this answer, each under about "
+    "twelve words."
+)
+
+SYSTEM_V4 = (
     "You are a Magic: The Gathering rules expert. Answer the user's question "
     "using ONLY the numbered rules provided in the context below. Rules are "
     "labeled with their number in brackets, e.g. [104.3a]. State assumptions "
@@ -278,6 +391,22 @@ SYSTEM = (
     "a curious player might ask after reading this answer, each under about "
     "twelve words."
 )
+
+
+# The registry. Add a version here and it is immediately runnable by both
+# production (via PROMPT_VERSION) and the A/B harness (via an explicit
+# version argument) -- evals/build_prompts_variant.py takes a version name
+# rather than importing whatever `SYSTEM` currently happens to be bound to,
+# so the eval instrument is not coupled to what production ships today.
+SYSTEM_VERSIONS: dict[int | str, str] = {
+    3: SYSTEM_V3,
+    4: SYSTEM_V4,
+}
+
+# What production actually sends. Kept as a module-level name so every
+# existing import site (build_prompt, the OpenRouter arms, the identity
+# fixture) keeps working unchanged.
+SYSTEM = SYSTEM_VERSIONS[PROMPT_VERSION]
 
 
 def _format_context(retrieved: list[Retrieved]) -> str:
