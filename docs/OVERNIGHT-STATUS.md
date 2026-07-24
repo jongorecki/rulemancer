@@ -39,9 +39,57 @@ Jon's and are listed at the bottom.
       *(blocked on the `build_prompts_variant.py` parameterisation — running)*
 - [ ] rewriter bakeoff — **ONE pass, not three.** See the cache finding below.
 - [ ] judge-compare the v5 grid -> Jon's grading queue *(agent running)*
-- [ ] gold discovery — proposals only, nothing written *(agent running)*
-- [ ] merge Scryfall local-bulk slice *(agent running)*
-- [ ] merge citation-filter Rule-0 plan + evidence table
+- [x] gold discovery — **STOPPED, correctly.** `plan-v5-symbol-injection.md`
+      says Slice C "stays queued", the source plan is DESIGN ONLY, and Slice C
+      Stage 2 needs live paid calls to generate proposals at all. Build spec
+      committed instead. *(The controller mis-scoped this when offering it as
+      "proposals only" — there was no proposal path that avoided paid calls.)*
+      Useful measurement it took rather than assumed: only **2 of 20** card
+      questions have hand-curated gold (c004, c011), so Slice C's own
+      "required" validation gate has exactly two targets.
+- [x] citation-filter Rule-0 plan merged (`a511d37`, cherry-picked)
+- [ ] **Scryfall local-bulk — BUILT BUT NOT MERGED. See below. Jon's call.**
+
+## STOP — the Scryfall local-bulk slice found a real regression
+
+The slice is fully built and tested in branch
+`worktree-agent-a818653b08eb516a4` (5 commits, 56 new tests, 283 passing).
+**It is deliberately NOT merged**, and master is verified clean of it:
+`src/rulesagent/tools/scryfall_store.py` does not exist, `data/scryfall.db`
+does not exist, `scryfall.py` is untouched.
+
+**The regression:** resolving `Valki, God of Lies` — the exact card `c011`
+references, and the codebase's own flagship RAG example — **works today and
+misses under local bulk.** Verified both directions by the controller, not
+taken on report:
+
+- Today: `get_card("Valki, God of Lies")` -> `Valki, God of Lies // Tibalt,
+  Cosmic Impostor`. Resolves.
+- Under local bulk: 28/29 eval card names hit; Valki is the one miss.
+
+**Root cause, diagnosed not guessed.** Scryfall carries two cards with that
+name — the real `modal_dfc` and a non-playable `art_series` decoy — and
+neither's full combined name exact-matches a bare `"Valki, God of Lies"`.
+On fuzzy fallback the unrelated real card **"Loki, God of Lies" scores 91.4,
+above the true target at 90.0**, inside the 3-point ambiguity margin, so the
+guard refuses rather than picking wrong. **The guard is working correctly; the
+missing piece is a per-face-name lookup tier**, which the approved plan never
+discusses. The agent confirmed live that Scryfall's production fuzzy endpoint
+(today's mechanism) resolves this string correctly, so this is a demonstrated
+regression, not a hypothetical.
+
+**Jon's options:** (a) add a per-face-name lookup tier — the natural fix, but
+new surface beyond what he ruled on; (b) require full combined names for
+split-card bracket tokens — breaks today's single-face reference pattern and
+would mean editing c011; (c) ship as-is relying on the honest-miss debug
+surface. Note (b) touches an eval input that carries three verdict files.
+
+**Second finding from the same slice:** the plan's `UNIQUE INDEX ON name_norm`
+does not survive real data — **497 colliding rows across 219 distinct names**
+(tokens, art series, joke cards). Handled defensively as first-seen-wins so
+import doesn't crash, but the plan's schema was wrong. Excluding non-spell
+layouts would reduce the collisions and, measured, would **not** fix Valki:
+Loki still outscores the real target with the decoy removed.
 
 ## Why c020 needed a code slice first
 
