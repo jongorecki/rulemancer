@@ -7,35 +7,38 @@ completed the combat-damage plan's deferred research.**
 
 ## THE ONE THING TO DO FIRST
 
-**Jon rules on whether to build the combat-damage assigner — the completed
-build-prep research made the case genuinely weaker, so this is a real
-go/shelve/pivot decision, not a rubber stamp.** `docs/plan-combat-damage-tool.md`
-§1-10 is the design; **§11 (build-prep research)** grounded it and found:
+**Plan the layer-system resolver tool (CR 613).** Jon ruled it the next tool over
+combat-damage (2026-07-24 — see DECISIONS.md): combat's build-prep research found
+only **7 genuinely assignment-shaped questions** in the whole corpus, while layers
+recurred on **four regrade misses** AND targets the weakest tier (Corner Case,
+50%). This is a NEW tool → **Rule 0: write `plan-layer-system-tool.md` (design
+only); Jon reviews and rules before any code.**
 
-- **ROI is thin.** Only **7 of 164** combat-tagged rows are genuinely
-  assignment-shaped (~0.5% of the 1,409-row corpus): rg78, rg86, rg581, rg1917,
-  rg2079, rg3195, rg5308 (rg3195/rg5308 hit all three target rules — strong test
-  cases). Rare enough to weaken the ROI per the plan's own §8 bar. Weigh against
-  the demo/articulation value in §9 (a second "found a recurring failure class,
-  built a deterministic tool for it" is a real story even at low volume).
-- **The plan's CR citations were wrong (grounding caught it):** 509.2 is priority
-  timing, not the assignment-order rule (that's 510.1c alone); **510.5 does not
-  exist**; first strike is 702.7, not 702.4 (which is double strike only). Fix in
-  the docstring if built.
-- **The proposed trigger regex misses 6 of 7 real examples** — real phrasing is
-  "what is the maximum damage… can deal/assign," not "how much." §11 has a
-  4-branch regex that catches 7/8 (rg86 "will both blockers die?" has no damage
-  word — needs a different trigger).
-- **⚠️ Loop-gating trap:** the tools-off terminal-round machinery from `1dfe6d4`
-  is keyed specifically to `use_cost_tool` in three places (`answer.py` ~1452,
-  ~1475, ~1507), NOT "any tool fired." A combat trigger added without broadening
-  those checks would **silently reinherit the exact cap-exhaustion bug we just
-  fixed.** And `TOOL_ROUND_CAP` (3 → only 2 tool rounds) likely needs raising for
-  a double-strike two-call sequence.
+Inputs for the plan:
 
-**Given the weak ROI, the live question is combat vs. the layer-system tool** —
-Jon's own regrade reinforced layers on four separate misses, and layers targets
-the weakest tier (Corner Case, 50%). That's Jon's lever call.
+- **Ground in CR 613** (the layer system) from `data/raw/MagicCompRules
+  20260619.txt` — never from memory (grounding caught three wrong CR citations in
+  the combat plan this session).
+- **Real failure examples / seed validation set:** the regrade layers misses
+  **rg3868, rg807, rg811, rg633** (Jon's notes: "layers issue," "classic layers,"
+  "timestamp order and layers is genuinely super weird"). Read their
+  questions/gold. Possibly rg1268 (P/T wrong but "becomes a creature" right).
+- **⚠️ Scope the deterministic sub-computation carefully — this is the hard part.**
+  Layers is NOT arithmetic like cost/combat: CR 613 is a 7-layer + sublayer
+  (7a-d) + dependency + timestamp system. The plan's central job is proving there
+  is a **bounded, deterministic** computation the tool can OWN (e.g. given a set
+  of continuous effects with layer/timestamp/dependency data the model has
+  identified, compute the final characteristics). If it can't be made
+  deterministic and bounded, it isn't tool-shaped — say so (that's DECISIONS.md's
+  "what would change my mind" on this ruling).
+- **Loop-gating trap (any new tool inherits this):** the tools-off terminal round
+  from `1dfe6d4` is keyed to `use_cost_tool` (`answer.py` ~1452/1475/1507). A
+  layers trigger must broaden that gating or reinherit cap-exhaustion; size
+  `TOOL_ROUND_CAP` accordingly.
+
+**Combat is shelved** (plan complete in `plan-combat-damage-tool.md` incl. §11;
+revisit if the ROI improves). **The cost-tool reliability defect that was the
+prior task #1 is DONE** (`1dfe6d4`) — details below.
 
 **Task #1 from the prior handoff — the cost-tool reliability defect — is DONE**
 (commit `1dfe6d4`). Root cause was **cap-exhaustion**, not the payload/parse
@@ -87,15 +90,16 @@ sub-computations it narrates right and then botches.
 
 1. **Cost calculator — SHIPPED + HARDENED** (`da0449e`, `e763e91`, `1dfe6d4`).
    Reliable now; the loop it uses is the shared machinery for every later tool.
-2. **Combat-damage assigner — PLANNED, plan complete but ROI now looks thin**
-   (`plan-combat-damage-tool.md`, §11: only 7 genuinely assignment-shaped
-   questions exist in the corpus). Jon's go/shelve/pivot call — see THE ONE
-   THING; if built, mind the `use_cost_tool` loop-gating trap.
+2. **Combat-damage assigner — SHELVED** (Jon 2026-07-24). Plan complete
+   (`plan-combat-damage-tool.md` incl. §11), but build-prep research found only 7
+   genuinely assignment-shaped questions in the corpus — thin ROI. Revisit if that
+   rises; mind the `use_cost_tool` loop-gating trap if resurrected.
 3. **State-based-action checker** — idea, not planned.
-4. **Layer-system resolver (CR 613)** — idea; targets the weakest tier (Corner
-   Case, 50%). **Reinforced this session:** Jon's regrade flagged layers on four
-   separate misses (rg3868, rg807, rg811, rg633 — "timestamp order and layers is
-   genuinely super weird").
+4. **Layer-system resolver (CR 613) — NEXT TOOL; plan it** (Jon ruled 2026-07-24,
+   DECISIONS.md). Targets the weakest tier (Corner Case, 50%); reinforced by four
+   regrade misses (rg3868, rg807, rg811, rg633). Hardest design question: can
+   layer resolution be scoped as a bounded, deterministic sub-computation? See
+   THE ONE THING.
 5. **Question-classification pipeline step** (Jon's idea) — route to the right
    tool + boost relevant rules. ADDITIVE (offer-more, never restrictive),
    deterministic-first. Not yet planned.

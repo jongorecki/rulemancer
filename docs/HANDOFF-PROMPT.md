@@ -9,13 +9,20 @@ We're continuing work on Rulemancer, the MTG rules RAG bot at D:\Job_hunt\mtg-ru
 
 First: read docs/HANDOFF-development.md in full. It *replaced* the prior handoff rather than prepending — don't dig through git for superseded blocks. It opens with "THE ONE THING TO DO FIRST" and a short strategy section; read those, then the plan it names (`docs/plan-combat-damage-tool.md`, including its §11 build-prep research).
 
-Where we are in one line: the **cost tool is shipped and now reliability-hardened** (cap-exhaustion killed, malformed-answer guard added — empty-output 0/24 vs ~29%), Jon's RulesGuru regrade is folded in (**75.3%** held-out), and the **combat-damage tool plan is complete — but its build-prep research made the ROI look thin (only 7 genuinely assignment-shaped questions in the whole corpus), so building it is now a real go/shelve/pivot decision.**
+Where we are in one line: the **cost tool is shipped and reliability-hardened** (cap-exhaustion killed, malformed-answer guard added — empty-output 0/24 vs ~29%), Jon's RulesGuru regrade is folded in (**75.3%** held-out), combat-damage is **shelved** (plan complete but only ~7 real assignment questions in the corpus), and the **next tool is the layer-system resolver (CR 613) — Jon ruled it the next lever — which needs a plan.**
 
 ## The first ask
 
-**Review the combat-damage plan and rule on it (Rule 0).** Read `docs/plan-combat-damage-tool.md` §1-10 (design) and especially **§11 (build-prep research)** — the thin ROI (7 of 164 tagged rows), the corrected CR citations (509.2/510.5/702.4 were wrong), the recalibrated trigger regex, and the **loop-gating trap** (the tools-off terminal round from commit 1dfe6d4 is keyed to `use_cost_tool` specifically — a combat trigger added naively reinherits the cap-exhaustion bug). Then tell me your read: is combat worth building given ~7 real questions, or does the **layer-system tool** (which my regrade reinforced four times, and which targets the weakest tier) win the slot? Don't build anything until I rule. If I say build combat, do it under TDD per the plan, fix the CR citations, broaden the `use_cost_tool` gating, and raise `TOOL_ROUND_CAP`.
+**Plan the layer-system resolver tool (CR 613).** This is a NEW tool → **Rule 0: write `docs/plan-layer-system-tool.md` (design only), and don't build anything until I've reviewed it and ruled.** I ruled layers the next tool over combat (combat's ROI is thin — only ~7 real assignment questions in the whole corpus; layers recurred on four of my regrade misses and targets the weakest tier, Corner Case 50% — see DECISIONS.md). The plan must:
 
-Heads up: the account **API usage cap is hit until 2026-08-01** (I can raise it sooner) — every live sonnet-5 eval/harness/product-arm run 400s until then. Plan around it.
+- **Ground in CR 613** from `data/raw/MagicCompRules 20260619.txt` — never from memory (grounding caught three wrong CR citations in the combat plan this session).
+- Use my regrade layers misses as the seed validation set: **rg3868, rg807, rg811, rg633** — read their questions/gold.
+- **Scope the deterministic sub-computation carefully — this is the hard part and the whole question.** Layers (CR 613) is a 7-layer + sublayer + dependency + timestamp system, not arithmetic like cost/combat. Prove there's a *bounded, deterministic* computation the tool can own; if there genuinely isn't, say so — that reopens the slot rather than forcing a tool-shaped answer onto a non-tool-shaped problem.
+- Account for the **loop-gating trap**: the tools-off terminal round (commit 1dfe6d4) is keyed to `use_cost_tool` (`answer.py` ~1452/1475/1507); a layers trigger must broaden that gating or it reinherits the cap-exhaustion bug, and `TOOL_ROUND_CAP` likely needs raising.
+
+Combat is shelved — its plan (incl. §11 research) stays in `docs/plan-combat-damage-tool.md` for later.
+
+Heads up: the account **API usage cap is hit until 2026-08-01** (I can raise it sooner) — every live sonnet-5 eval/harness/product-arm run 400s until then. Planning doesn't need it; building/validation will.
 
 ## Read this part before you do anything
 
@@ -40,4 +47,4 @@ Respect the "HOW JON WORKS" section of the handoff exactly — especially:
 
 Waiting on me, not you: the **held Scryfall merge** (complete on its branch — but the `answer.py` conflict is now THREE-way after this session's reliability fix; keep all three), and the **lever decisions** (v5 go/no-go, L2 generator, rewriter-on-the-retrieval-side). See the handoff's HELD / STILL QUEUED blocks.
 
-Start by confirming you've read the handoff, then give me your read on the combat-vs-layers decision (with the §11 ROI evidence) — don't build until I rule.
+Start by confirming you've read the handoff, then give me your plan for the layer-system tool — grounded in CR 613 and my regrade layers misses, and honest about whether layer resolution is genuinely tool-shaped. Don't build until I rule.

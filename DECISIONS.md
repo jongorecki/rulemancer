@@ -1635,3 +1635,32 @@ plan-level work, not an overnight run. Flagged, not executed.
 **What would change my mind:** if a future measurement shows injection ever
 *hurts* an answer (it has not in any run to date), or if prompt caching lands and
 changes the token calculus for the fuller cell-D bullets.
+
+## 2026-07-24 — Layer-system tool is the next tool; combat-damage shelved
+
+Jon ruled: the **layer-system resolver (CR 613)** is the next tool to plan and
+build, over the combat-damage assigner.
+
+**Why:** the combat tool's build-prep research (`plan-combat-damage-tool.md` §11)
+found only **7 genuinely assignment-shaped questions** in the whole 1,409-row
+corpus (~0.5%) — a thin ROI per the combat plan's own §8 bar. Meanwhile Jon's
+manual regrade of the 42 RulesGuru misses flagged **layers on four separate
+questions** (rg3868, rg807, rg811, rg633 — "timestamp order and layers is
+genuinely super weird"), and layers targets the weakest difficulty tier (Corner
+Case, 50%). Higher failure volume + weakest tier = the higher-value lever.
+
+**Combat is shelved, not killed:** the plan is complete (§1-10 design + §11
+research, including corrected CR citations and a calibrated trigger). Revisit if
+the assignment-question base rate rises or the §9 demo value (two independent
+instances of the same tool pattern) becomes worth the low volume.
+
+**Build constraint carried to whatever tool ships next:** the tools-off
+terminal-round machinery from commit `1dfe6d4` is keyed to `use_cost_tool`
+specifically (`answer.py` ~1452/1475/1507). Any new tool's trigger must broaden
+that gating or it reinherits the cap-exhaustion bug; `TOOL_ROUND_CAP` likely
+needs raising too.
+
+**What would change my mind:** a layers plan that can't scope a *deterministic*
+sub-computation the tool can own. CR 613's 7-layer + sublayer + dependency +
+timestamp system is far more than arithmetic; if layer resolution can't be made
+deterministic and bounded, it isn't tool-shaped and the slot reopens.
