@@ -393,6 +393,11 @@ def test_final_round_forces_tool_choice_none_and_recovers_a_real_answer():
     for earlier_call in client.calls[:-1]:
         assert "tool_choice" not in earlier_call
 
+    # Forced to answer, the stubborn model complies -- a real, non-empty
+    # answer, not the cap-exhaustion degraded sentinel.
+    assert result is _REAL_ANSWER
+    assert result.answered is True
+
 
 # --- Cap semantics pinned at the new value (docs/plan-layer-system-tool.md
 # Sec 8.3, Jon's ruling): raised from 3 to 4. Rounds 0-2 are tool-capable
@@ -419,10 +424,5 @@ def test_tool_round_cap_is_four_with_three_tool_capable_rounds_then_forced_answe
     assert forced_answer_round["tool_choice"] == {"type": "none"}
     assert forced_answer_round["tools"] == [ans.CALCULATE_COST_TOOL]
 
-    assert result is _REAL_ANSWER
-    assert result.answered is True
-
-    # Forced to answer, the stubborn model complies -- a real, non-empty
-    # answer, not the cap-exhaustion degraded sentinel.
     assert result is _REAL_ANSWER
     assert result.answered is True
