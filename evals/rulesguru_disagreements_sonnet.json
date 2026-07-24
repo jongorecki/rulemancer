@@ -1,0 +1,867 @@
+[
+  {
+    "id": "rg6583",
+    "level": "0",
+    "complexity": "Simple",
+    "tags": [
+      "The stack",
+      "Evergreen keywords",
+      "Resolving objects",
+      "Targets"
+    ],
+    "url": "https://rulesguru.org/?6583RGBwnIII2gxxdJGG",
+    "gold_rule_ids": [
+      "405.2",
+      "405.5",
+      "608.2b"
+    ],
+    "question": "Abdullah casts [Telemin Performance] targeting Nico. In response, Nico casts [Veil of Summer]. Abdullah responds with their own Veil of Summer. What happens?",
+    "answer": "Direct answer: Both Veil of Summer spells resolve before Telemin Performance does (the stack resolves last-in, first-out), so Abdullah's Veil of Summer resolves first, then Nico's Veil of Summer, and only after that does Telemin Performance try to resolve against Nico. Here's exactly what each spell does, and where the provided rules run out.\n\nStack order: Abdullah casts Telemin Performance targeting Nico (bottom of stack). Nico responds with Veil of Summer (middle). Abdullah responds with a second Veil of Summer (top). A cast spell \"becomes the topmost object on the stack\" and \"remains on the stack until it resolves\" [601.2a], which is why the most recently cast spell — Abdullah's Veil of Summer — resolves first.\n\n1. Abdullah's Veil of Summer resolves. Per Veil of Summer's text, it checks \"if an opponent has cast a blue or black spell this turn.\" Abdullah's opponent is Nico, and Nico's only spell this turn (Veil of Summer) is green, so Abdullah does not draw a card. The other two effects still happen unconditionally: \"Spells you control can't be countered this turn\" (this now protects Telemin Performance, still on the stack, from being countered for the rest of the turn) and \"You and permanents you control gain hexproof from blue and from black until end of turn,\" so Abdullah gains hexproof from blue/black [Veil of Summer]. Note that Veil of Summer \"has no effect until it resolves\" [Veil of Summer ruling #1], so none of this happened while it was sitting on the stack.\n\n2. Nico's Veil of Summer resolves next. Now Nico's opponent is Abdullah, who did cast a blue spell this turn (Telemin Performance), so Nico draws a card — only one card, even though only one qualifying spell was cast [Veil of Summer ruling #0]. Nico's spells also can't be countered this turn (moot, since Nico has no other spell on the stack), and Nico and Nico's permanents gain hexproof from blue and from black until end of turn [Veil of Summer].\n\n3. Finally, Telemin Performance tries to resolve, still targeting Nico, who by now has hexproof from blue (and Telemin Performance is a blue sorcery). Here the provided rules stop short of a full answer: they tell us hexproof means Nico \"can't be the target[] of blue... spells... opponents control\" going forward [Veil of Summer], but none of the rules given to me state whether a spell already legally targeting a player is rechecked for target legality at resolution and fails if the target has since become illegal. That specific rule (the general target-legality check performed when a spell resolves) is not among the rules provided here, so I can't confirm from this rule set whether Telemin Performance fizzles against Nico or still goes through. I don't want to guess at that mechanic without a supporting rule.\n\nWhat I can say for certain: Abdullah's Veil of Summer does not net a card draw, gives Abdullah hexproof from blue/black and protects Abdullah's spells (including Telemin Performance) from being countered this turn; Nico's Veil of Summer nets Nico one card draw and gives Nico hexproof from blue/black. Whether that hexproof stops the already-targeting Telemin Performance is the one piece this rule set doesn't settle.\n\nCard data from Scryfall (scryfall.com).",
+    "answer_gold": "Abdullah's Veil of Summer resolves first. Then Nico's resolves and draws them a card. Then Telemin Performance tries to resolve and fails, since it has an illegal target.\n\n(Abdullah's Veil of Summer didn't accomplish anything useful.)",
+    "auto_verdict": "different",
+    "judge_reason": "The candidate declines to rule whether Telemin Performance fizzles after both Veils resolve, whereas the reference states it fails to resolve due to Nico having gained hexproof, so the final conclusions differ."
+  },
+  {
+    "id": "rg6743",
+    "level": "0",
+    "complexity": "Simple",
+    "tags": [
+      "Reading cards"
+    ],
+    "url": "https://rulesguru.org/?6743RGBwnIII2gv2k3GG",
+    "gold_rule_ids": [],
+    "question": "Athena controls [Teferi, Time Raveler] and Nicholas flashes in [The Wandering Emperor] on Athena's turn. Can Nicholas activate its abilities this turn?",
+    "answer": "Yes. Nicholas can activate one loyalty ability of The Wandering Emperor on Athena's turn, at instant speed, because The Wandering Emperor's own text overrides the normal timing restriction — and Teferi, Time Raveler's static ability doesn't stop him, since that ability only restricts casting spells, not activating loyalty abilities.\n\nNormally, loyalty abilities (rule 606.1, 606.2) can only be activated \"any time [the controller] has priority and the stack is empty during a main phase of their turn\" (rules 606.3, 209.2). Since Nicholas flashed The Wandering Emperor in during Athena's turn, this turn isn't a main phase of Nicholas's own turn, so that default rule wouldn't normally let him activate anything until his next turn.\n\nHowever, The Wandering Emperor's printed ability states: \"As long as The Wandering Emperor entered this turn, you may activate her loyalty abilities any time you could cast an instant.\" This is card text that specifically overrides the general timing restriction of rule 606.3/209.2 (card text beats a general rule it contradicts). Because instants can be cast on any player's turn, this permission lets Nicholas activate a loyalty ability of The Wandering Emperor right away on Athena's turn, as long as he otherwise has priority (rule 117.1b) — for example, in response to something, or whenever priority passes to him.\n\nTeferi, Time Raveler's static ability (\"Each opponent can cast spells only any time they could cast a sorcery\") restricts Nicholas's ability to *cast spells*, not his ability to *activate abilities*. Activating a loyalty ability is not casting a spell, so this restriction simply does not apply here. The Teferi, Time Raveler ruling about \"precedence\" only concerns situations where an effect tries to let an opponent cast a spell as though it had flash (i.e., actual spellcasting) — it's not about activating a permanent's abilities, so it doesn't extend to block The Wandering Emperor's loyalty-ability permission.\n\nOne caveat: per The Wandering Emperor's own ruling, Nicholas may still only activate one of her loyalty abilities during the turn she entered the battlefield (consistent with the \"no player has previously activated a loyalty ability of that permanent that turn\" restriction in rule 606.3/209.2). So he gets exactly one activation this turn, but he can do it at instant speed rather than waiting for his own main phase.\n\nThis answer assumes Nicholas is an opponent of Athena in a two-player game; the rules given are all framed for a single active player's main phase and don't specify anything different for a multiplayer table beyond that any player with priority may act, so the same reasoning would apply in a multiplayer game as well.\n\nCard data from Scryfall (scryfall.com).",
+    "answer_gold": "This can't happen as described. Nicholas cannot cast The Wandering Emperor on Athena's turn due to Teferi, Time Raveler's effect.",
+    "auto_verdict": "different",
+    "judge_reason": "The candidate allows activating The Wandering Emperor's loyalty ability after it was flashed in, whereas the reference says casting it on Athena's turn is prevented by Teferi, so the conclusions conflict."
+  },
+  {
+    "id": "rg6725",
+    "level": "1",
+    "complexity": "Intermediate",
+    "tags": [
+      "Resolving objects",
+      "State-based actions",
+      "Replacement effects",
+      "Timing and priority"
+    ],
+    "url": "https://rulesguru.org/?6725RGBwnIIIjYzjabmxGG",
+    "gold_rule_ids": [
+      "117.3b",
+      "117.5",
+      "608.2n",
+      "616.1",
+      "704.3"
+    ],
+    "question": "Ariel controls [Rest in Peace] and targets Nataly's [Dauthi Voidwalker] with [Lightning Bolt]. What happens to each card?",
+    "answer": "Both Lightning Bolt and Dauthi Voidwalker end up in exile, not in any graveyard — but for different reasons tied to Rest in Peace, not to Dauthi Voidwalker's own ability.\n\nWhat happens to Dauthi Voidwalker: Lightning Bolt deals 3 damage to Dauthi Voidwalker (a 3/2), which is lethal damage. Under rule [704.5g], a creature with lethal damage marked on it \"has been dealt lethal damage and is destroyed\" as a state-based action, and this destruction event is normally what sends it to the graveyard, satisfying the definition of \"dies\" in [700.4] (put into a graveyard from the battlefield). However, Rest in Peace's ability — \"If a card or token would be put into a graveyard from anywhere, exile it instead\" — is a replacement effect ([614.1]) that intercepts this event and sends Dauthi Voidwalker to exile instead of to Nataly's graveyard.\n\nImportantly, Dauthi Voidwalker's own ability (\"If a card would be put into an opponent's graveyard from anywhere, instead exile it with a void counter on it\") does NOT apply to itself here: Dauthi Voidwalker is owned/controlled by Nataly, and it would be going to Nataly's own graveyard, not \"an opponent's\" graveyard from Nataly's perspective (its controller). So the only applicable replacement effect is Ariel's Rest in Peace, and no APNAP choice ([101.4], [616.1f]) is even needed since just one effect applies — Dauthi Voidwalker is simply exiled with no void counter, and no \"dies\" trigger occurs because it never reaches a graveyard.\n\nWhat happens to Lightning Bolt: after Lightning Bolt finishes resolving, it would normally be put into Ariel's graveyard as a used instant. Rest in Peace's text explicitly covers \"a card or token\" being put into a graveyard \"from anywhere,\" which includes spells going to the graveyard after resolving — this is confirmed by Rest in Peace's own ruling that even a spell destroying Rest in Peace itself still gets exiled afterward instead of hitting the graveyard [Rest in Peace ruling #1]. So Lightning Bolt is exiled instead of going to Ariel's graveyard.\n\nNote on card text overriding general rules: Rest in Peace's printed replacement effect overrides the normal graveyard-bound outcome that rules [704.5g] and [700.4] would otherwise produce, and it takes priority over Dauthi Voidwalker's ability simply because Dauthi Voidwalker's ability doesn't apply to this particular event at all (it only affects opponents' cards from its controller's point of view). This analysis holds the same whether the game has two players or more, since Dauthi Voidwalker's ability is defined relative to its own controller regardless of table size, and only one replacement effect (Rest in Peace) is actually competing for this event.\n\nCard data from Scryfall (scryfall.com).",
+    "answer_gold": "Ariel chooses whether Lightning Bolt goes to exile with or without a counter.\n\nThere are two replacement effects attempting to replace Lightning Bolt going to the graveyard with it going to exile, so its controller gets to choose which to apply.\n\nThen state-based actions are checked and Dauthi Voidwalker is put into exile.",
+    "auto_verdict": "different",
+    "judge_reason": "The candidate denies that Dauthi Voidwalker's replacement ability can apply to Lightning Bolt (and omits the controller's choice), while the reference says both replacement effects apply to the Bolt so its controller chooses whether it is exiled with a void counter."
+  },
+  {
+    "id": "rg3126",
+    "level": "1",
+    "complexity": "Simple",
+    "tags": [
+      "Activated abilities",
+      "Casting spells",
+      "Mana abilities"
+    ],
+    "url": "https://rulesguru.org/?3126RGBwnIII2hck2OGG",
+    "gold_rule_ids": [
+      "601.2g",
+      "602.2",
+      "602.2a",
+      "602.2b"
+    ],
+    "question": "Arjun controls [Thermopod] and has no cards in their graveyard. Assuming they have enough mana, can they activate [Molten-Tail Masticore]'s first activated ability?",
+    "answer": "No, Arjun cannot activate Molten-Tail Masticore's first activated ability. That ability costs \"{4}, Exile a creature card from your graveyard: This creature deals 4 damage to any target,\" and exiling a creature card from the graveyard is part of the activation cost. Under rule 118.3, a player can't pay a cost without having the necessary resources to pay it fully — since Arjun's graveyard has no cards at all, there is no creature card available to exile, so this cost cannot be paid, and the ability can't legally be activated (rule 602.5 confirms a player can't even begin to activate an ability that's prohibited/impossible to pay for). Thermopod's own abilities (its {S} haste ability and its 'Sacrifice a creature: Add {R}' mana ability) don't change this — they could help produce mana or fill the graveyard with a non-creature card via sacrifice, but sacrificing Thermopod itself would put a creature card in the graveyard, which isn't what's happening here since Arjun currently has zero cards in the graveyard when the question is posed. As stated, with an empty graveyard, the additional cost simply cannot be met.\n\nCard data from Scryfall (scryfall.com).",
+    "answer_gold": "Yes. Arjun first puts the ability onto the stack, after which it won't matter if Molten-Tail Masticore is on the battlefield anymore. Arjun then has a chance to activate mana abilities, at which point they can sacrifice Molten-Tail Masticore. Then Arjun pays the cost of the spell, exiling Molten-Tail Masticore from their graveyard.",
+    "auto_verdict": "different",
+    "judge_reason": "The candidate reaches the opposite conclusion—saying the activation is illegal because the exile-from-graveyard cost can't be paid with an empty graveyard, whereas the reference says the activation is legal."
+  },
+  {
+    "id": "rg1232",
+    "level": "1",
+    "complexity": "Simple",
+    "tags": [
+      "Graveyard",
+      "Casting spells",
+      "Split cards"
+    ],
+    "url": "https://rulesguru.org/?1232RGBwnIII2woZHcGG",
+    "gold_rule_ids": [
+      "709.4c"
+    ],
+    "question": "Alivia has [Road // Ruin] in their graveyard. Alivia casts [Torrential Gearhulk]. Which side of Road // Ruin can Alivia cast with its trigger?",
+    "answer": "Alivia can only cast Road, the instant half of Road // Ruin - not Ruin, the sorcery/aftermath half. Torrential Gearhulk's triggered ability reads 'you may cast target instant card from your graveyard without paying its mana cost,' so it can only target and cast a card using its instant characteristics. While Road // Ruin sits in the graveyard (not on the stack), it has the combined characteristics of both halves - it is simultaneously an instant card and a sorcery card, per the card's own ruling (Road // Ruin ruling #3: 'While not on the stack, the characteristics of a split card are the combination of its two halves... it is both an instant card and a sorcery card'). That combined status makes it a legal target for Torrential Gearhulk's ability. However, per rule 601.3e, when an effect lets you cast a spell using only a subset of its characteristics (here, 'instant card'), only the alternative/qualifying characteristics are used to determine what can legally be cast - the rule's own Melek, Izzet Paragon example shows that an effect restricted to casting instants can only cast the instant-type option of a card with mixed characteristics, not the other side. Applying that logic here, Torrential Gearhulk's ability lets Alivia cast only the Road face (the instant), not the Ruin face (a sorcery). This also lines up with Road // Ruin ruling #0, which confirms that when you cast a split card you put only the half you're casting onto the stack, with the other half's characteristics ignored - so Alivia would be casting Road alone, as an instant spell, without paying its mana cost. Separately, Ruin could never be cast this way regardless, since Ruin has aftermath and can normally only be cast from the graveyard as its own sorcery spell (Road // Ruin ruling #5 notes that if another effect lets you cast a split card with aftermath from a zone other than the graveyard, you can't cast the aftermath half at all) - but here the deciding factor is simply that Torrential Gearhulk's ability only ever authorizes casting the instant portion. Finally, per Torrential Gearhulk ruling #0, this casting happens immediately as part of the ability's resolution - Alivia cannot hold Road to cast it later in the turn.\n\nCard data from Scryfall (scryfall.com).",
+    "answer_gold": "Either side. Torrential Gearhulk has a targeting restriction that requires Alivia to select an instant in their graveyard. Split cards have the type of both sides simultaneously. Therefore Road // Ruin is both an instant and a sorcery card and satisfies the targeting restriction on Torrential Gearhulk. When Alivia goes to cast Road // Ruin, nothing cares about which half is cast, so either is legal.",
+    "auto_verdict": "different",
+    "judge_reason": "The reference says either half may be cast, while the candidate insists only the instant half (Road) can be cast, so they reach different conclusions."
+  },
+  {
+    "id": "rg3717",
+    "level": "1",
+    "complexity": "Simple",
+    "tags": [
+      "Control-changing effects",
+      "Resolving objects",
+      "Multiplayer",
+      "Targets"
+    ],
+    "url": "https://rulesguru.org/?3717RGBwnIII746zxFyKGG",
+    "gold_rule_ids": [
+      "608.2b"
+    ],
+    "question": "Autumn controls [Captain Mar-Vell, Space-Born] and casts [Tempted by the Oriq] targeting Breanna's and Case's Soldier tokens. Before it resolves, Autumn casts [Insurrection]. What happens?",
+    "answer": "Autumn's attempt to cast Insurrection is illegal, so it never actually gets cast, and Tempted by the Oriq stays on the stack to resolve normally targeting the Soldier tokens.\n\nHere's why: Insurrection is a sorcery, and sorceries can normally only be cast when a player could cast a sorcery — with an object (Tempted by the Oriq) already on the stack, Autumn does not otherwise have permission to cast it. Captain Mar-Vell, Space-Born's Cosmic Awareness ability reads, \"As long as an opponent has cast a spell this turn, you may cast spells as though they had flash.\" The only spell cast this turn so far is Tempted by the Oriq, and Autumn herself cast it — it was not cast by an opponent (Breanna or Case). Because the ability's condition requires an *opponent* to have cast a spell, and that hasn't happened, Cosmic Awareness does not grant Autumn flash permission at this moment. Captain Mar-Vell's printed text is what defines this condition, and it overrides nothing here since no general rule contradicts it — it simply isn't satisfied.\n\nSince Autumn is not legally allowed to cast Insurrection at that time, rule [601.2a] applies: a player must be legally allowed to cast a spell to begin the casting process, and if the requirements can't be met, the casting is illegal and \"the game returns to the moment before the casting of that spell was proposed.\" So the illegal casting of Insurrection is unwound completely — it goes back to Autumn's hand as if she never attempted to cast it, no mana is paid, and no priority passes for it.\n\nTempted by the Oriq remains the only spell on the stack, controlled by Autumn. Once players return to that point and pass priority in succession, it will resolve per [608.1]/[117.4], checking at that time under [608.2b] whether Breanna's and Case's Soldier tokens are still legal targets (still controlled by those players, mana value 3 or less, etc.) before Autumn gains control of them.\n\nOne clarifying note on the multiplayer aspect: this scenario has three players (Autumn, Breanna, Case), so it's a multiplayer game. Nothing here changes because of that under the standard single-stack model — rule [405.2] describes one shared stack where objects are added to the top regardless of how many players there are. If your table is instead using a variant like Grand Melee with multiple simultaneous stacks [807.5b], the specific stack a spell is put on matters (e.g., it would need to match the stack of anything it targets), but that variant isn't indicated here, so this answer assumes the normal single-stack multiplayer game.\n\nCard data from Scryfall (scryfall.com).",
+    "answer_gold": "Insurrection resolves and Autumn gains control of all the Soldier tokens. Then Tempted by the Oriq begins to resolve, but its targets are now illegal, so it does not resolve and is removed from the stack.",
+    "auto_verdict": "different",
+    "judge_reason": "The candidate concludes Insurrection cannot be cast and therefore Tempted resolves, which contradicts the reference that Insurrection resolves first giving Autumn control of the tokens and making Tempted's targets illegal."
+  },
+  {
+    "id": "rg3868",
+    "level": "2",
+    "complexity": "Simple",
+    "tags": [
+      "Abilities",
+      "Color-changing effects",
+      "Continuous effects",
+      "Layers",
+      "Static abilities"
+    ],
+    "url": "https://rulesguru.org/?3868RGBwnIIIiTuSCqXhGG",
+    "gold_rule_ids": [
+      "613.1",
+      "613.1e",
+      "613.1f",
+      "613.3",
+      "613.4",
+      "613.4b",
+      "613.4c",
+      "613.6",
+      "613.7",
+      "613.7a"
+    ],
+    "question": "Amara controls [Muraganda Petroglyphs] and [Wayward Angel], and has more than 7 cards in their graveyard. Nehemiah casts and resolves [Humility]. What are Wayward Angel's characteristics?",
+    "answer": "After Humility resolves, Wayward Angel becomes a black, ability-less 3/3 creature — Angel Horror named \"Wayward Angel\" with mana cost {4}{W}{W}.\n\nHere's why, working through Magic's layer system (rule 613.1, 613.2c):\n\n1. Wayward Angel's threshold clause (\"As long as there are seven or more cards in your graveyard, this creature gets +3/+3, is black, has trample, and has '...sacrifice a creature'\") is a static ability, not a characteristic-defining ability, because it only sets characteristics *conditionally* on graveyard count — rule [604.3a] explicitly excludes abilities that \"set the values of such characteristics only if certain conditions are met\" from being CDAs. That matters because a real CDA can't be stripped by a 'loses all abilities' effect, but a normal granted ability can be [113.12].\n\n2. Because more than seven cards are in Amara's graveyard, threshold is active, so before Humility resolves Wayward Angel's color-setting effect (layer 5) already makes it black — per the Wayward Angel ruling, it is black and not white-and-black [Wayward Angel ruling #0].\n\n3. Humility's static ability \"All creatures lose all abilities and have base power and toughness 1/1\" is a layer 6 (abilities) and layer 7b (set P/T) effect. Layer 5 (color) is calculated before layer 6 (abilities) in the fixed layer order, so the color already locked in during layer 5 is not retroactively undone when the threshold ability is stripped in layer 6 — this mirrors exactly how the Humility/Opalescence interaction works, where an earlier layer's result (e.g., the layer 4 type-change) survives even though the source permanent loses its abilities in layer 6 [Humility ruling #0][Humility ruling #2][613.2c]. So Wayward Angel remains black.\n\n4. In layer 6, however, Humility (with a later timestamp than Wayward Angel, since Wayward Angel was already on the battlefield when Humility was cast) strips away Wayward Angel's flying, vigilance, and the entire threshold ability itself (trample, the upkeep sacrifice ability, and the ability that would have produced +3/+3). Once the threshold ability is gone, none of its not-yet-applied effects (the +3/+3 boost, which is a layer 7c effect) can occur, since the source ability no longer exists by the time layer 7 is reached. Wayward Angel ends layer 6 with no abilities at all.\n\n5. In layer 7b, Humility's own ability (Humility is not itself a creature here, so it keeps its own ability) sets Wayward Angel's base power and toughness to 1/1, overwriting the printed 4/4 [208.4b].\n\n6. In layer 7c, Muraganda Petroglyphs checks whether Wayward Angel \"has no abilities.\" Since step 4 stripped every ability Wayward Angel had, it now qualifies, and Muraganda Petroglyphs' own ability (which belongs to Muraganda Petroglyphs, not to Wayward Angel, so it doesn't itself grant Wayward Angel an ability — see the Runeclaw Bear/'is red' example in [113.12]) applies +2/+2. Final power/toughness: 1/1 base + 2/+2 = 3/3.\n\nSo Wayward Angel is: name Wayward Angel, mana cost {4}{W}{W}, card type Creature — Angel Horror, color black, no abilities (no flying, vigilance, trample, threshold, or the sacrifice trigger), and power/toughness 3/3.\n\nThis conclusion doesn't depend on how many players are in the game — nothing here involves opponent choice, turn order, or other multiplayer-specific rules, so the same result holds in a two-player or multiplayer game.\n\nOne timing note: this assumes Wayward Angel was already on the battlefield with threshold active before Humility was cast (so Wayward Angel has the earlier timestamp for layer 6/7 ordering purposes). If Humility had instead entered the battlefield first and Wayward Angel entered afterward, the timestamp order for the layer-6 'loses all abilities' vs. Wayward Angel's own printed abilities could differ, but since Humility's effect is a continuous 'lose all abilities' effect that keeps re-applying to whatever creature is on the battlefield, Wayward Angel would still end up losing its abilities either way — the black color from layer 5 is the one detail sensitive to relative timing, and only applies if threshold's color-setting effect was 'in effect' before layer 6 strips the ability that produces it, which is guaranteed by the fixed layer order regardless of timestamps.\n\nCard data from Scryfall (scryfall.com).",
+    "answer_gold": "Wayward Angel is a Black, 6/6 creature with no abilities. The rest of its characteristics remain the same as printed on the card. \nWayward Angel's threshold ability changes both its color, abilities, and P/T. Therefore, it applies in layers 5, 6, and 7 with the appropriate parts applying in their appropriate layers, and the layers are applied in order. Similarly, Humility's effect is applied in layers 6 and 7, as appropriate. \nApplying layers in order:\n- In layer 5, Wayward Angel becomes black. \n- In layer 6 there are two contending effects: Wayward Angel's ability giving it trample and an upkeep triggered ability, and Humility's ability removing all abilities from Wayward Angel. There is no dependency between the two, since Wayward Angel's ability has already started applying in a previous layer, and will continue to apply even if removed by Humility's ability. The effects are then applied in timestamp order with Wayward Angel's ability applying first, since it has an earlier timestamp. So in layer 6, Wayward Angel first gains trample and \"At the beginning of your upkeep, sacrifice a creature.\", and then loses all abilities to Humility.\n- In layer 7, P/T setting effects are applied first, so that Humility first turns Wayward Angel into a 1/1. Then effects modifying P/T are applied, of which there are two: Wayward Angel's own ability that, even though removed, continues to apply and gives it +3/+3, and Muraganda Petroglyphs's ability giving Wayward Angel +2/+2 since it now has no abilities. Wayward Angel's P/T is finally 6/6.",
+    "auto_verdict": "different",
+    "judge_reason": "The candidate concludes Wayward Angel is a black, ability-less 3/3, while the reference concludes it is a black, ability-less 6/6 — the two reach different final power/toughness rulings due to conflicting layer/ability treatment."
+  },
+  {
+    "id": "rg3518",
+    "level": "2",
+    "complexity": "Simple",
+    "tags": [
+      "Casting spells",
+      "Costs",
+      "Additional Costs"
+    ],
+    "url": "https://rulesguru.org/?3518RGBwnIII2iPFWdGG",
+    "gold_rule_ids": [
+      "601.2b",
+      "601.2f"
+    ],
+    "question": "Nayeli controls [Trinisphere]. Ainsley casts [Noxious Revival], paying 2 life for the Phyrexian mana. What is the total cost of the Noxious Revival?",
+    "answer": "The total cost Ainsley must pay is 2 life (for the {G/P} symbol, which Ainsley chose to pay via life) plus {2} of generic mana added by Trinisphere — i.e., the equivalent of a {2}{G/P} cost, paid as {2} generic mana plus 2 life.\n\nHere's why: Noxious Revival's mana cost is just {G/P}, a single Phyrexian mana symbol. For purposes of determining a spell's total cost, a Phyrexian mana symbol is treated as one unit of the mana component of the cost regardless of how it's ultimately paid (this is the same principle behind rule [202.3g] and [Noxious Revival ruling #1], which count a Phyrexian symbol as 1 toward mana value no matter the payment method). Since Trinisphere's effect triggers on 'each spell that would cost less than three mana to cast' ([Trinisphere ruling #0] confirms you check the mana component of the cost against three mana), and {G/P} amounts to only 1 mana, Trinisphere increases the cost to three mana total. Just as Trinisphere's own text illustrates that a {1}{B} spell becomes {2}{B} (adding generic mana to reach three, while leaving the colored symbol untouched), a {G/P} spell becomes {2}{G/P} — Trinisphere adds {2} generic mana, and the original {G/P} symbol is unaffected in kind.\n\nUnder rule [601.2b], the player announces whether to pay 2 life or a colored mana for each Phyrexian symbol before the total cost is finally locked in under [601.2f]; Ainsley announced paying 2 life for the {G/P}. That choice doesn't change how Trinisphere evaluates the mana component of the cost (it's still counted as contributing 1 'mana' to the pre-Trinisphere cost) — it only determines how that symbol is actually paid. So the resulting total cost, once locked in per [601.2f] and [Total Cost], is: 2 life (paid instead of {G} for the Phyrexian symbol) + {2} generic mana (Trinisphere's increase, payable with any color of mana or colorless mana, per Trinisphere's own reminder text and [107.4f]/[106.9] on Phyrexian symbols being colored, one-color-only, not generic).\n\nNote: the spell's mana value remains 1, unaffected by Trinisphere's cost increase or by how the Phyrexian symbol is paid ([Trinisphere ruling #0], [202.3g]).\n\nCard data from Scryfall (scryfall.com).",
+    "answer_gold": "{3} and 2 life. While casting Noxious Revival, Ainsley chooses whether to pay life or mana for each Phyrexian mana symbol in the cost. Trinisphere is applied afterwards and increases the cost up to the minimum of 3 mana.",
+    "auto_verdict": "different",
+    "judge_reason": "The candidate concludes the cost is {2} plus 2 life, whereas the correct ruling is {3} plus 2 life, so the final costs do not match."
+  },
+  {
+    "id": "rg3391",
+    "level": "2",
+    "complexity": "Complicated",
+    "tags": [
+      "Auras",
+      "Continuous effects",
+      "Copy effects",
+      "Abilities",
+      "State-based actions",
+      "Layers"
+    ],
+    "url": "https://rulesguru.org/?3391RGBwnIIIHCkb9FTrnL7zfKUJxyGG",
+    "gold_rule_ids": [],
+    "question": "Anakin controls [Mycosynth Lattice], an [Animate Dead] attached to a [Maritime Guard] that it returned to the battlefield, and a [Mizzium Transreliquat] that is currently a copy of [Sakashima of a Thousand Faces] due to its second ability. Anakin casts [Clever Impersonator], choosing to copy the Mizzium Transreliquat and then choosing to copy the Animate Dead with its new copy ability as it enters the battlefield. They choose to enchant a [Balduvian Barbarians] in their graveyard. After Clever Impersonator's trigger resolves and returns the Balduvian Barbarians to the battlefield, Anakin activates the ability of the Clever Impersonator to turn it into a copy of Maritime Guard. What happens?",
+    "answer": "(no structured answer: the model returned empty output twice, stop_reason=max_tokens -- try again)",
+    "answer_gold": "This can't happen as described. When Clever Impersonator enters the battlefield and copies Sakashima of a Thousand Faces, it then hard Sakashima of a Thousand Faces's ability to enter the battlefield as a copy of a creature, but it's attempting to copy an enchantment. This is illegal, since Sakashima of a Thousand Faces can only copy creatures, not enchantments.",
+    "auto_verdict": "different",
+    "judge_reason": "The candidate gave no answer, so it fails to reach the reference conclusion that the play is illegal because Sakashima's copy ability can only copy creatures, not enchantments."
+  },
+  {
+    "id": "rg1268",
+    "level": "2",
+    "complexity": "Simple",
+    "tags": [
+      "Type-changing effects",
+      "Double-faced cards"
+    ],
+    "url": "https://rulesguru.org/?1268RGBwnIIIhYw248JNGG",
+    "gold_rule_ids": [
+      "205.1b",
+      "611.1",
+      "712.17"
+    ],
+    "question": "Amirah controls Azors Gateway with 4 different CMC cards exiled by it. They targets it with [Karn's Touch]. After that resolves, they activates [Azor's Gateway], and transforms it into [Sanctum of the Sun]. What are the characteristics of the new object after it has transformed?",
+    "answer": "After Azor's Gateway // Sanctum of the Sun transforms, the resulting object is still the same permanent as before (rule [712.18]: transforming does not create a new object), so the continuous effect from Karn's Touch keeps applying to it.\n\nConcretely, the permanent is now:\n- The back face, Sanctum of the Sun (a Legendary Land), which untapped and transformed as part of resolving its own ability (\"gain 5 life, untap Azor's Gateway, and transform it\").\n- Still an artifact creature, because Karn's Touch's effect (\"Target noncreature artifact becomes an artifact creature with power and toughness each equal to its mana value until end of turn\") was already applied while it was Azor's Gateway, and per rule [712.18] and rule [112.4] that continuous effect keeps applying to the permanent even after it transforms. So Sanctum of the Sun is a Legendary Artifact Land Creature until end of turn.\n- Its power and toughness are still defined as \"equal to its mana value.\" Since Sanctum of the Sun has no printed mana cost, its mana value is 0, so as the permanent's mana value changes with the new face, the effect recalculates and the creature is 0/0.\n- It retains all its abilities, as Karn's Touch explicitly notes (\"It retains its abilities\"), so it still has Sanctum of the Sun's ability, \"{T}: Add X mana of any one color, where X is your life total,\" plus whatever base characteristics the land face has (it's colorless, since neither face gives it a color and Karn's Touch does not change color).\n\nNote: the provided rules do not include the state-based action for creatures with 0 toughness, so I can't confirm from the given rules whether a 0/0 creature would then be put into the graveyard — that would require a rule not present in this context.\n\nCard data from Scryfall (scryfall.com).",
+    "answer_gold": "Sanctum of the Sun is a 2/2 Legendary artifact creature land with the ability \"{T}: Add X mana of any one color, where X is your life total\". The requirement that Azor's Gateway be an artifact is part of the targeting restriction of the spell, after the spell resolves, it creates a continuous effect on the permanent that was targeted (in this case Azor's Gateway) that lasts until end of turn. When a double-faced card transforms it doesn't become a new object, and any effects that applied to it before the transformation will continue to apply afterwards.",
+    "auto_verdict": "different",
+    "judge_reason": "The candidate concludes Sanctum of the Sun becomes a 0/0 artifact creature (ma nv alue 0) after transforming, while the reference states it is a 2/2, so they reach different conclusions about its power/toughness."
+  },
+  {
+    "id": "rg241",
+    "level": "2",
+    "complexity": "Intermediate",
+    "tags": [
+      "Auras",
+      "Zone-changes",
+      "Evergreen keywords"
+    ],
+    "url": "https://rulesguru.org/?241RGBwnIIIlMnL25843lOuDGG",
+    "gold_rule_ids": [
+      "303.4f",
+      "702.11b",
+      "702.16c"
+    ],
+    "question": "Aryana controls [Ascended Lawmage] and [Cemetery Gate]. Nicholas controls [Onakke Ogre] enchanted by their [Paralyze]. Aryana casts [Sudden Disappearance] targeting Nicholas. When the trigger resolves at the beginning of the next end step, what can Paralyze enchant?",
+    "answer": "At the beginning of that end step, Nicholas (Paralyze's controller) chooses what Paralyze enchants, and the only legal choices are Onakke Ogre or Ascended Lawmage — Paralyze cannot attach to Cemetery Gate.\n\nHere's why. Sudden Disappearance exiled all nonland permanents Nicholas controlled — that includes both Onakke Ogre and Paralyze, since Paralyze was a permanent Nicholas controlled (even though it enchanted his own creature). All the exiled cards return to the battlefield simultaneously at the beginning of the next end step, under each card's owner's control. Sudden Disappearance's return effect does not say what Paralyze will be attached to when it comes back, so rule [303.4f] governs: when an Aura enters the battlefield under a player's control by a means other than resolving as an Aura spell, and the effect putting it onto the battlefield doesn't specify what it enchants, that player (Nicholas, since Paralyze returns under its owner's control) chooses what it enchants, and must choose a legal object according to Paralyze's enchant ability ('Enchant creature') and any other applicable effects.\n\nBecause Onakke Ogre is returning to the battlefield at the same moment via the same effect, it is available as a choice — Nicholas may simply have Paralyze come back attached to his own Onakke Ogre. Alternatively, Paralyze's enchant ability only says 'creature,' with no controller restriction, so any other creature on the battlefield is also eligible. Ascended Lawmage has hexproof, but hexproof only stops it from being the target of spells or abilities an opponent controls — the choice a player makes under [303.4f] as an Aura enters the battlefield is not a targeting event, so hexproof does not prevent Nicholas from choosing to enchant Ascended Lawmage with Paralyze.\n\nCemetery Gate, however, has protection from black printed on it, and Paralyze is a black Aura ({B} cost). Protection's 'can't be enchanted by' component is an 'applicable effect' under [303.4f] that makes Cemetery Gate an illegal object for Paralyze to enchant, so Nicholas cannot choose it.\n\nIf Nicholas were to somehow fail to attach Paralyze to any legal creature (there is no reason he would, since two legal choices exist), the state-based action in [704.5m] would send the unattached Aura straight to its owner's graveyard.\n\nThis answer assumes there is no other creature relevant to the game state besides these three; if any other creature is present, it would also be a legal target subject to the same protection/hexproof analysis.\n\nCard data from Scryfall (scryfall.com).",
+    "answer_gold": "Just Ascended Lawmage. Cemetery Gate has protection from black, so it can't be enchanted by anything black. Onakke Ogre isn't on the battlefield when Nicholas chooses what to enchant. Hexproof doesn't prevent an Aura from becoming attached to the Ascended Lawmage.",
+    "auto_verdict": "different",
+    "judge_reason": "The candidate says Paralyze can attach to Onakke Ogre when it returns, whereas the reference states Onakke Ogre isn't on the battlefield when the attachment choice is made, so the candidate reaches a different conclusion."
+  },
+  {
+    "id": "rg1660",
+    "level": "2",
+    "complexity": "Intermediate",
+    "tags": [
+      "Replacement effects",
+      "Non-evergreen keywords",
+      "Counters"
+    ],
+    "url": "https://rulesguru.org/?1660RGBwnIIIu4FpgZ97P7xFMGG",
+    "gold_rule_ids": [
+      "614.1c",
+      "614.5"
+    ],
+    "question": "Alex controls [Rhythm of the Wild], [Grumgully, the Generous], [Renata, Called to the Hunt], and [Hardened Scales]. Alex then casts [Grizzled Outrider]. If they chooses to put a counter on Grizzled Outrider for Rhythm of the Wild, how many +1/+1 counters will it enter with in total?",
+    "answer": "Grizzled Outrider will enter the battlefield with 6 +1/+1 counters on it (assuming Alex chooses the +1/+1 counter option from Rhythm of the Wild's riot rather than haste).\n\nHere's why: Grizzled Outrider (a nontoken, non-Human creature) is affected by three separate \"enters the battlefield with an additional/chosen +1/+1 counter\" replacement effects that modify how it enters the battlefield: Rhythm of the Wild's riot (Alex chooses the +1/+1 counter option), Grumgully, the Generous's \"each other non-Human creature you control enters with an additional +1/+1 counter,\" and Renata, Called to the Hunt's \"each other creature you control enters with an additional +1/+1 counter.\" None of these conflict with each other (they don't try to modify the exact same instance of the event in mutually exclusive ways), so per rule 614.12b and 616.1f, Alex (as the affected object's controller) chooses the order in which to apply them, and all three end up applying, one after another, until none are left.\n\nHardened Scales reads \"If one or more +1/+1 counters would be put on a creature you control, that many plus one +1/+1 counters are put on it instead.\" Under rule 614.16, this kind of replacement effect applies not just to a spell or ability's own counter-placement, but also to a counter placement caused by another replacement effect. Since each of the three enter-with-a-counter effects (Rhythm of the Wild, Grumgully, and Renata) independently causes a \"1 or more +1/+1 counters would be put on this creature\" event, Hardened Scales applies separately to each of those three events, per Hardened Scales ruling #0 (\"if a creature you control would enter the battlefield with a number of +1/+1 counters on it, it enters with that many plus one instead\") and ruling #1 (the controller chooses the order in which multiple counter-modifying effects apply).\n\nSo the math is:\n- Rhythm of the Wild's riot counter: 1 counter → boosted by Hardened Scales to 2\n- Grumgully, the Generous's additional counter: 1 counter → boosted by Hardened Scales to 2\n- Renata, Called to the Hunt's additional counter: 1 counter → boosted by Hardened Scales to 2\n\nTotal: 2 + 2 + 2 = 6 +1/+1 counters on Grizzled Outrider as it enters the battlefield.\n\n(If Alex had instead chosen haste from Rhythm of the Wild's riot for that instance, only Grumgully's and Renata's counters would apply, each boosted to 2 by Hardened Scales, for a total of 4 counters.)\n\nCard data from Scryfall (scryfall.com).",
+    "answer_gold": "Four. Every card on the battlefield has a replacement effect that modifies how Grizzled Outrider will enter the battlefield. When applying replacement effects, each effect has a chance to apply once and only once, so even though Alex can choose which order to apply the effects in, Hardened Scales will only get one chance to modify how many counters Grizzled Outrider enters the battlefield with, and will only ever add one additional counter.",
+    "auto_verdict": "different",
+    "judge_reason": "The candidate claims 6 counters, but the correct result is 4 because Hardened Scales only applies once to the enter-with-counters replacement (it doesn't add a counter for each separate enter-with effect)."
+  },
+  {
+    "id": "rg7215",
+    "level": "2",
+    "complexity": "Simple",
+    "tags": [
+      "Replacement effects",
+      "Zone-changes"
+    ],
+    "url": "https://rulesguru.org/?7215RGBwnIII1WYl9rGG",
+    "gold_rule_ids": [
+      "614.12"
+    ],
+    "question": "Ayla controls [Living Plane] and plays [Minas Tirith]. Does it enter tapped or untapped?",
+    "answer": "Minas Tirith enters the battlefield untapped in this scenario. Minas Tirith's ability reads \"Minas Tirith enters tapped unless you control a legendary creature.\" This is a replacement effect that modifies how Minas Tirith enters the battlefield [614.1c]. To determine whether that condition is met, rule [614.12] says you check the characteristics of the entering permanent as it would exist on the battlefield, taking into account continuous effects that already exist and would apply to it. Living Plane's static ability, \"All lands are 1/1 creatures that are still lands,\" is already active on the battlefield before Minas Tirith is played, and per [611.3c] a continuous effect that modifies characteristics of a permanent does so the moment the permanent is on the battlefield, not after a delay. So as Minas Tirith enters, it's already a 1/1 creature - and since Minas Tirith is a Legendary Land, it's a legendary creature the instant it hits the battlefield. That satisfies its own \"unless you control a legendary creature\" clause, so the enters-tapped replacement doesn't apply, and Minas Tirith enters untapped.\n\nThis is different from the situation described in [Minas Tirith ruling #0], where the land requires a legendary creature to already be on the battlefield beforehand, and simultaneous entry of a separate legendary creature doesn't count (that land would enter tapped). Here there's no second permanent entering at the same time - Living Plane is already an established, pre-existing continuous effect on the battlefield, so it's not a case of two objects entering simultaneously; it's a pre-existing effect that shapes what Minas Tirith looks like the instant it becomes a permanent, which is exactly the situation rule [614.12] is written to handle. I'm assuming Living Plane was already on the battlefield before Minas Tirith was played (as the question states, \"Ayla controls Living Plane and plays Minas Tirith\"); if instead Living Plane were being put onto the battlefield at the exact same time as Minas Tirith, that would be a simultaneous-entry case and, per the logic of ruling #0, Minas Tirith would enter tapped instead.\n\nCard data from Scryfall (scryfall.com).",
+    "answer_gold": "Tapped. When applying an enters-the-battlefield replacement effect, the game considers the characteristics of the permanent as it would exist on the battlefield, so it sees that it would be a creature, but it doesn't consider the permanent to actually <b>be</b> on the battlefield yet. Effectively, a legendary creature is entering the battlefield.",
+    "auto_verdict": "different",
+    "judge_reason": "The candidate concludes Minas Tirith enters untapped (arguing Living Plane makes it a legendary creature as it enters), which contradicts the reference ruling that it enters tapped."
+  },
+  {
+    "id": "rg633",
+    "level": "2",
+    "complexity": "Simple",
+    "tags": [
+      "Layers",
+      "Continuous effects",
+      "Type-changing effects"
+    ],
+    "url": "https://rulesguru.org/?633RGBwnIIIeBjWBq91GG",
+    "gold_rule_ids": [
+      "613.1d",
+      "613.7"
+    ],
+    "question": "Andy controls [Badlands] and [Conversion]. Andy then casts [Magus of the Moon]. After that resolves, what color(s) of mana can Badlands tap for?",
+    "answer": "Badlands ends up as a Plains and can be tapped only for {W}.\n\nHere's why: Badlands is a nonbasic land whose printed subtype is Swamp Mountain, and it normally has \"{T}: Add {B} or {R}\" from those two basic land types (Badlands ruling #0). Both Magus of the Moon's \"Nonbasic lands are Mountains\" and Conversion's \"All Mountains are Plains\" are continuous effects that set a land's subtype (layer 4 type-setting effects). Because Badlands is nonbasic (it never had the basic supertype, and setting its subtype doesn't add or remove supertypes per [305.7]), Magus of the Moon's effect keeps applying to it even after its type changes -- and because Conversion's effect only cares about whatever is currently a Mountain, which set of lands counts as \"Mountains\" is itself determined by Magus of the Moon's effect. That makes Conversion's effect dependent on Magus of the Moon's effect, so Magus of the Moon's type-setting is applied first, and Conversion's is applied afterward using the result.\n\nStep 1 -- Magus of the Moon: Badlands is nonbasic, so its subtype is set to Mountain. Per [305.7], it loses its old subtypes (Swamp and Mountain) along with the abilities generated by them, and gains the land type Mountain plus \"{T}: Add {R}\" (Magus of the Moon ruling #2; see also ruling #4, which confirms Magus of the Moon's type-changing effect keeps applying even under complications).\n\nStep 2 -- Conversion: Badlands is now literally a Mountain, so Conversion's \"All Mountains are Plains\" applies to it. Again per [305.7], its subtype is set to Plains, it loses the Mountain type and the {T}: Add {R} ability that came with it, and it gains the Plains type and the intrinsic \"{T}: Add {W}\" ability (see [305.6] and Conversion ruling #1, which confirms Conversion's effect is a continuous, immediately-applied type change).\n\nBadlands remains a nonbasic land throughout (Conversion doesn't add the basic supertype -- see [113.12] on characteristic-setting effects not granting or removing supertypes), so this reasoning is stable: it stays eligible for Magus of the Moon's \"nonbasic lands\" clause the whole time, but its actual current type after both effects settle is Plains. Badlands ruling #2 confirms that a land-type-changing effect on a dual land removes the old land types completely, which is what happens twice here.\n\nThis is a two-player-neutral interaction (nothing about player count changes how continuous effects layer), so the same result holds whether Andy is in a two-player game or a multiplayer game.\n\nNote: the specific rule governing how to order two effects that are 'dependent' on each other (i.e., which one is applied first when the timestamp order alone wouldn't give a consistent answer) wasn't included in the rules text I was given, so my ordering above is inferred from how [305.7] describes basic-type-setting effects interacting, plus the card rulings for Magus of the Moon, Conversion, and Badlands, which together describe exactly this chain of type changes.\n\nCard data from Scryfall (scryfall.com).",
+    "answer_gold": "Only {R}. Both Magus of the Moon and Conversion only apply in layer 4. The effects are applied in timestamp order, resulting in Conversion applying first to make Badlands a Plains, then Magus of the Moon applies making it a Mountain. ",
+    "auto_verdict": "different",
+    "judge_reason": "The candidate concludes Badlands becomes a Plains tapping for {W}, whereas the correct ruling is that it becomes a Mountain and can tap only for {R}."
+  },
+  {
+    "id": "rg85",
+    "level": "2",
+    "complexity": "Simple",
+    "tags": [
+      "Resolving objects",
+      "Control-changing effects",
+      "Auras"
+    ],
+    "url": "https://rulesguru.org/?85RGBwnIII3stAjXHXk6wGG",
+    "gold_rule_ids": [],
+    "question": "Amy controls a [Trigon of Corruption] enchanted by Neil's [Curse Artifact]. In response to the trigger during Amy's upkeep, they cast [Aura Graft] to attach the Curse Artifact to [Sungrass Egg]. Which artifact does Amy have the choice to sacrifice as the trigger resolves?",
+    "answer": "Amy has the choice to sacrifice Sungrass Egg when Curse Artifact's triggered ability resolves — not Trigon of Corruption. Curse Artifact's ability reads \"unless they sacrifice that artifact,\" where \"that artifact\" refers back to \"enchanted artifact.\" Per rule [303.4m], any reference to the \"enchanted [object]\" refers to whatever object the Aura is currently attached to, and this is a dynamic reference rather than something locked in when the ability triggered (this situation isn't one of the zone-change or unattached-trigger exceptions that would require looking back in time, per [603.10c] and [603.6e]). Because Aura Graft was cast in response to the trigger, it resolves first (spells and abilities resolve in last-in-first-out order), moving Curse Artifact from Trigon of Corruption to Sungrass Egg and giving it a new timestamp under [701.3c]. Once attached to Sungrass Egg, Curse Artifact's ability that \"modifies\" or references the enchanted permanent now applies to Sungrass Egg instead of Trigon of Corruption, consistent with the general principle in [604.4] that an Aura's effects move with it to whatever it's newly attached to. So when Curse Artifact's upkeep trigger finally resolves, \"enchanted artifact\" is read as Sungrass Egg, and Amy's choice is whether to sacrifice Sungrass Egg (not Trigon of Corruption) to avoid the 2 damage. Note: the player who takes the damage/must sacrifice (\"that player\") was fixed at the moment the ability triggered as the controller of the then-enchanted Trigon of Corruption — that was Amy, so Amy remains the player facing the choice; it's only the identity of the artifact referenced by \"that artifact\" that updates to Sungrass Egg by the time the ability resolves.\n\nCard data from Scryfall (scryfall.com).",
+    "answer_gold": "Trigon of Corruption. The \"that artifact\" that the trigger on the stack refers to is the one that Curse Artifact was attached to as the ability triggered.",
+    "auto_verdict": "different",
+    "judge_reason": "The reference says the artifact referenced is the one Curse Artifact was attached to when the ability triggered (Trigon of Corruption), while the candidate says it updates to whatever it's attached to when the ability resolves (Sungrass Egg), so they reach opposite conclusions."
+  },
+  {
+    "id": "rg463",
+    "level": "2",
+    "complexity": "Simple",
+    "tags": [
+      "Replacement effects",
+      "Zone-changes"
+    ],
+    "url": "https://rulesguru.org/?463RGBwnIIIeZzgfYuiGG",
+    "gold_rule_ids": [
+      "614.15",
+      "616.1",
+      "616.1a"
+    ],
+    "question": "Alex casts [Brainstorm] using the ability of [Jace, Telepath Unbound]. Nina casts [Memory Lapse] and counters Brainstorm. Where does Brainstorm go?",
+    "answer": "Brainstorm is exiled, not put on top of Alex's library. When Nina's Memory Lapse counters Brainstorm, it is removed from the stack as a countered spell [701.6a]. Normally a countered spell goes to its owner's graveyard [404.1], but two replacement effects are competing to change that destination here: Memory Lapse's own text (\"put it on top of its owner's library instead of into that player's graveyard\") and Jace, Telepath Unbound's -3 ability, which put Brainstorm on the stack from Alex's graveyard and stipulates \"If that spell would be put into your graveyard, exile it instead.\" The Memory Lapse rulings tell us exactly how this kind of clash resolves: Memory Lapse's self-replacement effect normally intercepts the graveyard-bound event first, but when the spell was set up to go to exile instead of the graveyard because of the way it was cast (the ruling specifically cites flashback, which uses the same 'would be put into your graveyard, exile it instead' wording that Jace, Telepath Unbound's -3 ability uses), that exile replacement wins and the spell ends up in exile instead of the library [Memory Lapse ruling #0]. Since Jace, Telepath Unbound's -3 ability uses that identical pattern, Brainstorm's own countered-spell destination is overridden the same way: it goes to exile rather than to the top of Alex's library. Note that Nina, as the Memory Lapse's controller, doesn't get any say here beyond having countered the spell — the actual final zone is dictated by Jace, Telepath Unbound's replacement effect on Brainstorm itself. Also, per rule 733.1/701.6b there's no refund of the mana Alex spent casting Brainstorm regardless of where it ends up. This answer doesn't depend on the number of players at the table, since it turns purely on replacement-effect interaction on a single spell rather than on turn order or opponent choices.\n\nCard data from Scryfall (scryfall.com).",
+    "answer_gold": "Alex's library.\n\nTwo replacement effects are trying to replace the same event. Since Memory Lapse's effect is a self-replacement effect, it applies first. Once it's applied, Brainstorm is moving to the library and Jace, Telepath Unbound's effect no longer applies.",
+    "auto_verdict": "different",
+    "judge_reason": "The candidate concludes Brainstorm is exiled due to Jace's replacement effect winning, whereas the reference states Memory Lapse's self-replacement applies first and Brainstorm goes to Alex's library, so the final rulings conflict."
+  },
+  {
+    "id": "rg494",
+    "level": "3",
+    "complexity": "Simple",
+    "tags": [
+      "Zone-changes",
+      "Face-down objects",
+      "Counters"
+    ],
+    "url": "https://rulesguru.org/?494RGBwnIIIkWSeoTcrGG",
+    "gold_rule_ids": [
+      "122.2",
+      "406.3"
+    ],
+    "question": "Nixon has a [Southern Elephant] and a [Skullbriar, the Walking Grave] with 3 +1/+1 counters in their graveyard. Addison casts [Ghastly Conscription], targeting Nixon. What happens to the counters on the Skullbriar, the Walking Grave? Will Nixon know which manifested card is which?",
+    "answer": "The three +1/+1 counters stay on Skullbriar, the Walking Grave through the whole process, and that fact lets Nixon tell the two manifested creatures apart even though Ghastly Conscription tries to disguise them.\n\nWalking through it: Ghastly Conscription exiles all creature cards from the target graveyard face down, shuffles that face-down pile, then manifests each card (put onto the battlefield face down as a 2/2 creature, per the card's own text). That's two zone changes for Skullbriar, the Walking Grave: graveyard → exile, and exile → battlefield. Skullbriar's own ability reads 'Counters remain on Skullbriar as it moves to any zone other than a player's hand or library.' Neither of those two moves is to a hand or a library, so under that ability the +1/+1 counters travel with the card each time, arriving on the battlefield already in place when it's manifested [Skullbriar, the Walking Grave ruling #1]. Ruling #6 confirms that when a card carrying Skullbriar's counter-retention text leaves the battlefield (or, as here, changes zones with that text active) the counters remain on it, and ruling #4 confirms it becomes a brand-new object each time but the counters themselves still stick around unless the card goes to a hand or library.\n\nOnce it lands on the battlefield as a manifested permanent, though, it's face down, and rule [708.2a] says a face-down permanent (absent other instructions) is 'a 2/2 face-down creature with no text, no name, no subtypes, and no mana cost' — manifest doesn't grant it any different base characteristics. So the object no longer has Skullbriar's name or its counter ability once face down; it's just a nameless 2/2 with three +1/+1 counters already sitting on it, making it a 5/5 face-down creature. The Southern Elephant, by contrast, is manifested as a plain 2/2 face-down creature with no counters.\n\nBecause of that size difference, Nixon (and anyone watching) can immediately tell the two manifested creatures apart: the 5/5 (2/2 plus three +1/+1 counters) is Skullbriar, the Walking Grave, and the 2/2 with no counters is Southern Elephant. Ghastly Conscription's shuffle is meant to hide which pile member is which [Ghastly Conscription ruling #0], but rule [708.6] requires a player to be able to easily differentiate their own face-down permanents at all times, and here the counters themselves are exactly such a distinguishing feature — so the shuffle doesn't actually conceal Skullbriar's identity from its own controller.\n\nThis assumes the graveyard-to-exile and exile-to-battlefield movements both occur as part of Ghastly Conscription's resolution with no player having priority to remove the counters in between (there's no chance to respond to a resolving spell's internal instructions), so the counters have no opportunity to be stripped off along the way.\n\nCard data from Scryfall (scryfall.com).",
+    "answer_gold": "When in the graveyard, Skullbriar, the Walking Grave had the ability that allowed it to keep its counters, so it is exiled and shuffled with 3 +1/+1 counters. When it's moved to the battlefield, it's face down and no longer has that ability, so the counters cease to exist. It had the counters immediately before entering the battlefield however, so Nixon will know which face-down permanent is the Skullbriar, the Walking Grave and which is the Southern Elephant.",
+    "auto_verdict": "different",
+    "judge_reason": "The candidate says the +1/+1 counters remain on Skullbriar after it becomes a face-down manifested permanent, but the reference states the counters cease to exist once it enters the battlefield face down (even though Nixon can still deduce which is which)."
+  },
+  {
+    "id": "rg117",
+    "level": "3",
+    "complexity": "Simple",
+    "tags": [
+      "Tokens",
+      "Control-changing effects",
+      "Zone-changes",
+      "Replacement effects"
+    ],
+    "url": "https://rulesguru.org/?117RGBwnIIInXLyx7yrGG",
+    "gold_rule_ids": [
+      "111.2"
+    ],
+    "question": "Asa casts [Chatterstorm]. In response, Nico casts [Gather Specimens]. After everything resolves, Asa activates the second ability of [Homeward Path]. Who gains control of the token?",
+    "answer": "Nico ends up controlling the token both before and after Homeward Path is activated — activating Homeward Path doesn't change anything here. Here's why: Chatterstorm creates a 1/1 green Squirrel creature token. Normally, per rule [111.2], the player who creates a token is its owner, and the token enters the battlefield under that player's control — that would be Asa. However, Nico's Gather Specimens is already resolved and its replacement effect is active for the rest of the turn: \"If a creature would enter the battlefield under an opponent's control this turn, it enters under your control instead.\" Since the Squirrel token would enter under Asa's control, and Asa is Nico's opponent, Gather Specimens replaces that and the token enters the battlefield under Nico's control instead. Because the token's actual owner is defined by whose control it entered under (as clarified by [Homeward Path ruling #1], \"The owner of a token is the player under whose control the token was put onto the battlefield\"), Nico is both the owner and the controller of the Squirrel token. When Asa later activates Homeward Path's second ability, \"Each player gains control of all creatures they own,\" the Squirrel token is owned by Nico, so this ability causes Nico to gain control of it — which Nico already has. Asa's own creatures (if any) would return to Asa, but the Squirrel token stays with Nico throughout. This scenario is only defined for two players (Asa and Nico); no multiplayer-specific rule was given here, so if a third player's creatures were also on the battlefield, Homeward Path would still just return each player's own creatures to them per its plain text, but I don't have multiplayer-specific rules text to note any variation beyond that.\n\nCard data from Scryfall (scryfall.com).",
+    "answer_gold": "Asa does. Tokens are owned by the player that created them. Asa still created the token, regardless of under whose control it entered the battlefield.",
+    "auto_verdict": "different",
+    "judge_reason": "The candidate incorrectly states Nico owns the token due to Gather Specimens and thus keeps control, contradicting the correct ruling that the token is owned by its creator Asa and so Asa gains control via Homeward Path."
+  },
+  {
+    "id": "rg899",
+    "level": "3",
+    "complexity": "Simple",
+    "tags": [
+      "Replacement effects",
+      "Non-evergreen keywords",
+      "Damage",
+      "Zone-changes"
+    ],
+    "url": "https://rulesguru.org/?899RGBwnIIImpZlrmzmGG",
+    "gold_rule_ids": [
+      "616.1g",
+      "702.89a"
+    ],
+    "question": "Neil controls [Willow Elf] enchanted with [Felidar Umbra]. Ainsley casts [Anger of the Gods]. What happens?",
+    "answer": "Willow Elf (a 1/1) is dealt 3 damage by Anger of the Gods, which is lethal, so as a state-based action Willow Elf would be destroyed. At that moment two replacement effects are competing to modify what happens to Willow Elf: Felidar Umbra's umbra armor ability (\"If enchanted permanent would be destroyed, instead remove all damage from it and destroy this Aura\") and Anger of the Gods' own replacement (\"If a creature dealt damage this way would die this turn, exile it instead\"). Because both effects are trying to modify the same event affecting the same object, rule 616.1e/616.1f says Neil — as the controller of Willow Elf, the affected permanent — chooses which one to apply first, and once one is applied, the other is checked again and may no longer be applicable.\n\nIf Neil applies Felidar Umbra's umbra armor first: Willow Elf is never actually destroyed. Instead, all damage is removed from Willow Elf and Felidar Umbra itself is destroyed (put into Neil's graveyard) [702.89a, Felidar Umbra ruling #3, Felidar Umbra ruling #4]. Because Willow Elf never dies, Anger of the Gods' \"exile instead of dying\" clause has nothing left to modify and does nothing [Anger of the Gods ruling #0, 615.1... effectively 616.1f's rule that an already-resolved replacement leaves the other one moot]. Willow Elf survives on the battlefield, undamaged, with no Aura attached.\n\nIf Neil instead applies Anger of the Gods' replacement first: Willow Elf's would-be death (going to the graveyard) is replaced with exile instead [Anger of the Gods ruling #0]. Since Willow Elf was never destroyed in the graveyard-bound sense that umbra armor cares about, umbra armor's replacement no longer has anything to apply to, so Felidar Umbra is not saved by that ability. Willow Elf is exiled instead of dying. (What then happens to Felidar Umbra, now enchanting nothing, isn't covered by any rule given here, so I can't state its exact fate with a citation — only that Willow Elf itself ends up in exile under this branch.)\n\nEither way, this is a single choice made by Willow Elf's controller (Neil); since only one player's permanent is involved, this works the same whether the game has two players or more than two — the APNAP ordering rule (101.4) only matters when multiple players must make such choices simultaneously, which isn't the case here.\n\nCard data from Scryfall (scryfall.com).",
+    "answer_gold": "Felidar Umbra is destroyed and moves to the graveyard. Willow Elf remains on the battlefield. If it would die later in the turn, it'll be exiled instead. Felidar Umbra's effect replaces the \"destroy\" event while Anger of the Gods's effect replaces the \"die\" event, so Felidar Umbra has to be applied first.",
+    "auto_verdict": "different",
+    "judge_reason": "The candidate says the creature's controller can choose which replacement applies (allowing either survival or exile), while the reference concludes Felidar Umbra must apply first so Willow Elf survives, so the final rulings conflict."
+  },
+  {
+    "id": "rg608",
+    "level": "3",
+    "complexity": "Simple",
+    "tags": [
+      "Triggered abilities",
+      "Zone-changes",
+      "Abilities",
+      "Resolving objects"
+    ],
+    "url": "https://rulesguru.org/?608RGBwnIII2rxrrfvmm5ZGG",
+    "gold_rule_ids": [
+      "113.6",
+      "603.10",
+      "603.6c"
+    ],
+    "question": "Noah controls [Compost]. Ainsley controls [Dune Beetle] and a token that was created as a copy of [Bogstomper]. Ainsley casts [Soulscour]. How many times does Compost trigger?",
+    "answer": "Compost triggers exactly once. Compost's trigger condition is \"Whenever a black card is put into an opponent's graveyard from anywhere.\" When Ainsley's Soulscour resolves, it destroys all nonartifact permanents at once, which is a single event, but per rule [603.2c] a triggered ability \"can trigger repeatedly if one event contains multiple occurrences\" — so Compost checks each qualifying occurrence within that mass-destruction event separately. Ainsley controls two nonartifact permanents that die simultaneously: Dune Beetle and a token that was created as a copy of Bogstomper.\n\nDune Beetle is an actual black card, so its being put into Ainsley's graveyard is one qualifying occurrence, and Compost triggers for it.\n\nThe token copy of Bogstomper, however, is not a card at all — it's a token. The rules consistently distinguish \"permanent\" from \"permanent card\" (see the terminology used in [700.11], which specifically talks about \"permanent cards\" being put into a graveyard as distinct from permanents generally), reflecting that tokens are permanents but are not cards. Compost's trigger explicitly requires a black *card* to be put into the graveyard, not merely a black permanent. Since the Bogstomper token isn't a card, its death (it briefly hits the graveyard and then ceases to exist as a state-based action) doesn't satisfy Compost's trigger condition, so it does not generate a second trigger.\n\nSo out of the two black permanents Ainsley loses to Soulscour, only Dune Beetle actually causes Compost to trigger, giving Noah one opportunity to draw a card. This holds whether the game is two-player or multiplayer, since Compost only cares about cards going to \"an opponent's\" graveyard, and Ainsley is an opponent of Noah either way; the number of other players at the table doesn't change this count.\n\nCard data from Scryfall (scryfall.com).",
+    "answer_gold": "0. Soulscour destroys all permanents simultaneously. Compost's trigger checks immediately after the event in question to see if it should trigger. However by that time Compost is in the graveyard, and its ability doesn't function there.\n\n(Compost doesn't fit the \"leaves-the-battlefield\" trigger exception because it's a \"from anywhere\" trigger.)",
+    "auto_verdict": "different",
+    "judge_reason": "The candidate says Compost triggers once (for Dune Beetle), but the reference says it triggers zero times because Compost is in the graveyard after Soulscour's mass destruction and its ability can't function there, so the conclusions differ."
+  },
+  {
+    "id": "rg559",
+    "level": "3",
+    "complexity": "Simple",
+    "tags": [
+      "Control-changing effects"
+    ],
+    "url": "https://rulesguru.org/?559RGBwnIII2efML5GG",
+    "gold_rule_ids": [
+      "722.4"
+    ],
+    "question": "Albert, Brielle, and Campbell are playing a multiplayer game. Brielle controls [Stalking Leonin]. Albert casts [Worst Fears] to take control of Brielle's next turn. After Brielle begins their turn, can Albert see which player was chosen for the Stalking Leonin?",
+    "answer": "Yes. Because Albert is controlling Brielle during Brielle's turn (per Worst Fears), rule [723.4] applies: any information about an object in the game that would be visible to the player being controlled (Brielle) is visible to both Brielle and the player controlling her (Albert). The identity of the opponent secretly chosen when Stalking Leonin entered the battlefield is information about an object in the game (Stalking Leonin) that Brielle, as its controller, already knows. Since that information is visible to Brielle, it becomes visible to Albert as well while he controls her.\n\nNote that this only covers information about game objects — if Stalking Leonin's chosen opponent had instead been recorded via some off-game method involving cards outside the game, rule [723.4] specifies that information about cards outside the game is visible only to the controlled player, not the controller. But the Stalking Leonin ruling [Stalking Leonin ruling #0] confirms the secret choice can be tracked by writing the name on paper kept with the card, which is information tied to the permanent (an in-game object), so it falls under the first sentence of [723.4] and is shared with Albert.\n\nThis also holds regardless of whether this is a two-player or multiplayer game, since [723.4] doesn't depend on player count — it's purely about what information the controlled player can see, which Albert then also sees.\n\nCard data from Scryfall (scryfall.com).",
+    "answer_gold": "No. The choice was made as Stalking Leonin entered the battlefield, which already happened- it's no longer visible to Brielle. Albert can choose to activate the ability (at which point all players will know who was chosen), but otherwise the choice is not visible to any player.",
+    "auto_verdict": "different",
+    "judge_reason": "The candidate concludes Albert can see the secret choice (misapplying rule 723.4 and treating the selection as visible), whereas the reference states the choice was made when Stalking Leonin entered the battlefield and remains hidden, so the conclusions conflict."
+  },
+  {
+    "id": "rg1095",
+    "level": "3",
+    "complexity": "Simple",
+    "tags": [
+      "Replacement effects",
+      "Zone-changes",
+      "Counters"
+    ],
+    "url": "https://rulesguru.org/?1095RGBwnIII24PJniGG",
+    "gold_rule_ids": [
+      "614.12a",
+      "614.1a",
+      "614.1c",
+      "614.6"
+    ],
+    "question": "Abdullah controls [Primal Vigor] and casts [Rescuer Sphinx], choosing to return Primal Vigor to their hand. How many +1/+1 counters will Rescuer Sphinx enter the battlefield with?",
+    "answer": "Rescuer Sphinx will enter the battlefield with only 1 +1/+1 counter, not 2 -- Primal Vigor's doubling effect does not apply here.\n\nRescuer Sphinx's ability reads: \"As this creature enters, you may return a nonland permanent you control to its owner's hand. If you do, this creature enters with a +1/+1 counter on it.\" Per [Rescuer Sphinx ruling #0], the choice of what to return is made while Rescuer Sphinx is entering the battlefield, and \"no player may take actions between the time you choose which permanent to return and the time Rescuer Sphinx is on the battlefield with a +1/+1 counter.\" This means the return of the chosen permanent to its owner's hand is resolved first, and only then does Rescuer Sphinx actually enter the battlefield with its counter.\n\nBecause Abdullah chose to return Primal Vigor itself, Primal Vigor is no longer on the battlefield by the time Rescuer Sphinx's counter is actually placed. Under rule [614.12], to determine which replacement effects apply to a permanent as it enters, you check continuous effects from static abilities \"that already exist and would apply to the permanent\" -- and Primal Vigor's doubling ability (\"If one or more +1/+1 counters would be put on a creature, twice that many...are put on that creature instead\") is a continuous effect generated only while Primal Vigor is on the battlefield. Since Primal Vigor has already left the battlefield (been bounced to hand) before the counter is put on Rescuer Sphinx, its doubling effect is not present to apply, and Rescuer Sphinx simply enters with the single +1/+1 counter its own ability grants.\n\nNote the timing assumption: this relies on the sequencing given explicitly in [Rescuer Sphinx ruling #0] that the return happens before Rescuer Sphinx is on the battlefield with the counter, all as part of one uninterrupted replacement-effect application (consistent with rule [614.1c] describing such effects as applying continuously as the permanent enters, not as separate events with priority in between). If Primal Vigor were instead left on the battlefield (i.e., some other permanent were bounced), Primal Vigor's own doubling text and [Primal Vigor ruling #2] confirm the counter would be doubled to 2.\n\nCard data from Scryfall (scryfall.com).",
+    "answer_gold": "Two. Both cards have a replacement effect. Abdullah will choose whether they are returning a permanent, but won't actually complete the action until Rescuer Sphinx enters the battlefield. Therefore Primal Vigor will still apply to the +1/+1 counter being from Rescuer Sphinx's ability.",
+    "auto_verdict": "different",
+    "judge_reason": "The candidate reaches the opposite conclusion—saying Primal Vigor won’t double the counter (1) while the reference correctly states replacement effects are applied as Rescuer Sphinx enters so Primal Vigor still doubles it to 2."
+  },
+  {
+    "id": "rg1953",
+    "level": "3",
+    "complexity": "Simple",
+    "tags": [
+      "Costs",
+      "Activated abilities"
+    ],
+    "url": "https://rulesguru.org/?1953RGBwnIIInfnCm2TSGG",
+    "gold_rule_ids": [
+      "601.2f"
+    ],
+    "question": "Anson controls [Zirda, the Dawnwaker], [Sundial, Dawn Tyrant], and [Mobilized District]. How much does Anson have to pay to activate the second ability of Mobilized District?",
+    "answer": "Anson pays {1} (one generic mana) to activate Mobilized District's second ability. Mobilized District's ability reads \"{4}: This land becomes a 3/3 Citizen creature with vigilance until end of turn. It's still a land. This ability costs {1} less to activate for each legendary creature and planeswalker you control.\" Anson controls two legendary creatures – Zirda, the Dawnwaker and Sundial, Dawn Tyrant – so Mobilized District's own built-in reduction lowers the base {4} cost by {2}, bringing it to {2} [Mobilized District ruling #0]. Mobilized District itself is not legendary, so it doesn't count toward its own reduction. Next, Zirda, the Dawnwaker's static ability applies: \"Abilities you activate that aren't mana abilities cost {2} less to activate. This effect can't reduce the mana in that cost to less than one mana.\" Activating Mobilized District's ability isn't a mana ability, so Zirda, the Dawnwaker's reduction applies, but per Zirda, the Dawnwaker's own text and its ruling, Zirda, the Dawnwaker's {2} reduction can't push the cost below one mana [Zirda, the Dawnwaker ruling #6]. Since the cost is already down to {2} after Mobilized District's own reduction, Zirda, the Dawnwaker's effect only reduces it by {1} (not the full {2}), leaving a final cost of {1}. These cost reductions are all applied while determining the total cost, per the rules for determining and locking in a total cost [601.2f], and the general floor rule confirms a cost can't be reduced below {0} except where a specific effect (here, Zirda, the Dawnwaker's own text) sets a higher floor of one mana [118.7]. The same process for activating an ability (paying its activation cost) that applies to spells applies here as well [602.2b]. So Anson must pay {1} generic mana total to activate Mobilized District's second ability.\n\nCard data from Scryfall (scryfall.com).",
+    "answer_gold": "Anson can either pay {1} or {0}.\n\nThere are two effects that are reducing the cost of the second ability of Mobilized District. Because of this, Anson can choose the order in which they will apply. If Anson applies the reduction of effect from Mobilized District first then from Zirda, the Dawnwaker, Anson will pay {1} because Zirda, the Dawnwaker can't reduce a cost to less than one mana. Alternatively, Anson can apply the reduction from Zirda, the Dawnwaker first then from Mobilized District. This would require Anson to spend {0} because the effect from Zirda, the Dawnwaker reduces the cost to {2} then the reduction for Mobilized District reduces it to {0}.",
+    "auto_verdict": "different",
+    "judge_reason": "The candidate incorrectly concludes the cost must be {1}, but the correct ruling allows choosing the order of reductions so the cost can be either {1} or {0}."
+  },
+  {
+    "id": "rg549",
+    "level": "3",
+    "complexity": "Simple",
+    "tags": [
+      "Mana",
+      "Mana abilities"
+    ],
+    "url": "https://rulesguru.org/?549RGBwnIII25HFfVGG",
+    "gold_rule_ids": [
+      "106.7"
+    ],
+    "question": "Anderson controls [Quirion Explorer]. Nico controls [Crumbling Vestige]. If Anderson taps Quirion Explorer, what type(s) of mana can it produce?",
+    "answer": "Tapping Quirion Explorer will produce no mana at all in this situation. Quirion Explorer's ability reads \"{T}: Add one mana of any color that a land an opponent controls could produce.\" Nico's only land is Crumbling Vestige, which has two abilities: a one-shot triggered ability (\"When this land enters, add one mana of any color\") and a repeatable mana ability (\"{T}: Add {C}\"). Under rule [106.7], to determine what a permanent \"could produce,\" you look at what an ability of that permanent would produce if it resolved right now, ignoring whether its costs could be paid. Crumbling Vestige's color-producing ability is tied to it entering the battlefield — it already entered (or, if it is entering right now, that's a separate timing question addressed below) — so that one-shot trigger isn't something that can be made to resolve 'at this time' the way a repeatable activated ability can. The only ability of Crumbling Vestige that can actually be considered as producing mana right now is its repeatable \"{T}: Add {C}\" ability, and {C} is colorless mana, not a color. Since Crumbling Vestige has no color it could presently produce, there is no color for Quirion Explorer's ability to copy, so by rule [106.5] (an ability that would produce mana of an undefined type produces no mana instead), activating Quirion Explorer produces nothing. This exact scenario is confirmed by the card's own ruling: 'If the opponent only has lands that produce colorless or no mana, this card's ability can still be activated; it just won't produce any mana' [Quirion Explorer ruling #0]. Note the timing assumption: if instead Crumbling Vestige were entering the battlefield at this very moment (its ETB trigger about to resolve), that delayed/triggered ability [603.7a] could define a color once it actually resolves and a choice is made, but that's a different moment in time than simply tapping Quirion Explorer while Crumbling Vestige just sits on the battlefield as already-resolved land. This ruling applies regardless of how many players are in the game, since it only concerns what Crumbling Vestige itself could produce.\n\nCard data from Scryfall (scryfall.com).",
+    "answer_gold": "Any color. Quirion Explorer checks to see what mana Crumbling Vestige could produce if any of its abilities were to resolve at that time. That includes triggered abilities.",
+    "auto_verdict": "different",
+    "judge_reason": "The candidate concludes Quirion Explorer produces no mana by ignoring Crumbling Vestige's ETB triggered ability, whereas the reference states that triggered abilities count and thus Quirion Explorer can produce any color."
+  },
+  {
+    "id": "rg1718",
+    "level": "3",
+    "complexity": "Simple",
+    "tags": [
+      "Drawing a card",
+      "Turn structure",
+      "Turn-based actions",
+      "Triggered abilities",
+      "Starting the game"
+    ],
+    "url": "https://rulesguru.org/?1718RGBwnIII1UCCr7GG",
+    "gold_rule_ids": [
+      "103.8a"
+    ],
+    "question": "Andi controls [Karn Liberated], which has exiled an [Anvil of Bogardan]. They activate Karn Liberated's -14 ability, and restarts the game. How many cards will they draw during their first turn?",
+    "answer": "This can't be fully answered from the rules provided, because a necessary piece is missing: the general rule about whether the player who goes first skips their draw step on the game's first turn. Here's what the given rules do establish. When Andi activates Karn Liberated's −14 ability, the game restarts (727.1, 104.6). The new game begins following normal starting-game procedure, with Andi as the starting player because they controlled the ability that restarted the game (727.1a). As part of starting the new game, each player draws seven cards (727.3) — that draw happens before the first turn even begins, so it isn't 'during their first turn.' Karn Liberated's −14 ability then finishes resolving 'just before the first turn's untap step' (727.4), putting Anvil of Bogardan onto the battlefield under Andi's control at that point — so Anvil of Bogardan is already in play by the time the first turn's untap and draw steps occur. Anvil of Bogardan's own text says 'At the beginning of each player's draw step, that player draws an additional card, then discards a card,' so if Andi actually has a draw step on turn one, that trigger would fire and Andi would draw one extra card (and discard one) in addition to whatever their normal turn-one draw is. The catch is that none of the rules given here state whether the starting player's very first draw step is skipped (a rule that, in a normal two-player game, would mean Andi has no draw step at all on turn one, so Anvil of Bogardan's ability would never trigger and Andi would draw zero cards that turn). Because that draw-step rule isn't included in the provided rules text, I can't say with certainty whether the number of cards Andi draws during turn one is 0 (no draw step at all) or 2 (a normal draw plus Anvil of Bogardan's extra draw, if the draw step isn't skipped). I'd need the rule governing whether the first turn's draw step is skipped for the starting player (and whether that differs between two-player and multiplayer games) to give a definitive count.\n\nCard data from Scryfall (scryfall.com).",
+    "answer_gold": "0. Their entire draw step is skipped. Andi will be the starting player in the new game. Because they is the starting player they'll skip their first draw step. Anvil of Bogardan triggers at the beginning of the draw step, but it doesn't get a chance to trigger if that step is skipped. \n",
+    "auto_verdict": "different",
+    "judge_reason": "The candidate refused to reach the definitive ruling and gave two possibilities instead of concluding that the starting player's first draw step is skipped so Andi draws 0."
+  },
+  {
+    "id": "rg1124",
+    "level": "3",
+    "complexity": "Simple",
+    "tags": [
+      "Replacement effects",
+      "Costs",
+      "\"Can't\" effects",
+      "Activated abilities",
+      "Counters"
+    ],
+    "url": "https://rulesguru.org/?1124RGBwnIIIkSU5PupSGG",
+    "gold_rule_ids": [
+      "614.17b",
+      "614.17c"
+    ],
+    "question": "Nico controls [Solemnity]. Aimee controls [Vizier of Remedies] and a tapped [Barrenton Medic]. Can Aimee untap Barrenton Medic with its own ability?",
+    "answer": "Yes. Aimee can activate Barrenton Medic's untap ability, and the cost can actually be paid even though Nico controls Solemnity, because Aimee's own Vizier of Remedies changes what the cost does.\n\nBarrenton Medic's ability is \"Put a -1/-1 counter on this creature: Untap this creature.\" The counter placement is the activation cost, paid when the ability is activated (as confirmed for this exact ability by [Barrenton Medic ruling #0]). Solemnity reads \"Counters can't be put on artifacts, creatures, enchantments, or lands.\" Under rule [614.17b], if an event can't happen, a player can't choose to pay a cost that includes that event -- so normally Solemnity would make this cost impossible to pay, and under [118.3] a player can't pay a cost without the ability to fulfill it, meaning the ability couldn't even be activated.\n\nHowever, Aimee's Vizier of Remedies has a replacement effect: \"If one or more -1/-1 counters would be put on a creature you control, that many -1/-1 counters minus one are put on it instead.\" Barrenton Medic's cost would put exactly one -1/-1 counter on it, and Vizier of Remedies is a creature Aimee controls (Barrenton Medic is too), so the replacement effect applies to that event, changing it from \"put 1 counter\" to \"put 1 minus 1 = 0 counters.\" Since only one modifying effect (Vizier of Remedies) actually changes the quantity of counters here, rule [616.1] about choosing among multiple replacement effects isn't even needed to resolve a conflict -- Vizier of Remedies simply reduces the event to zero counters before it happens. Putting zero counters is not \"putting a counter\" at all, so Solemnity's \"counters can't be put on... creatures\" restriction has nothing to stop -- no counter-placement event occurs for it to prevent.\n\nBecause the cost event (as modified) is legal to perform (putting zero counters), Aimee is able to pay the cost, satisfying rule [118.3], and the ability isn't prohibited from being activated under rule [602.5]. The cost is considered paid even though no actual -1/-1 counter ends up on Barrenton Medic, so Barrenton Medic untaps and never accumulates damage from -1/-1 counters, meaning Aimee could repeat this activation as often as she likes.\n\nThis is a two-player-neutral interaction (nothing about opponents or turn order is at issue), so the answer is the same whether there are two players or more at the table.\n\nCard data from Scryfall (scryfall.com).",
+    "answer_gold": "No. Since Solemnity prevents counters from being put on creatures, Aimee can't activate Barrenton Medic's ability, as its cost cannot legally be paid. Vizier of Remedies's replacement effect won't apply as events that can't happen can only be replaced by self-replacement effects.",
+    "auto_verdict": "different",
+    "judge_reason": "The candidate concludes the ability can be activated because Vizier reduces the counter placement to zero, but the reference correctly states Solemnity prevents counters being put so the cost cannot legally be paid and the ability can't be activated."
+  },
+  {
+    "id": "rg517",
+    "level": "3",
+    "complexity": "Simple",
+    "tags": [
+      "Mana",
+      "Mana abilities",
+      "Replacement effects"
+    ],
+    "url": "https://rulesguru.org/?517RGBwnIIIitrY2aVzGG",
+    "gold_rule_ids": [
+      "106.12"
+    ],
+    "question": "Anson controls [Mana Reflection] and [Deathrite Shaman]. They activate Deathrite Shaman's first ability, exiling a [Watery Grave] from Nola's graveyard. How much mana is produced?",
+    "answer": "Anson gets 2 mana of a single color of their choice, not 2 mana of two different colors. Deathrite Shaman's first ability reads “{T}: Exile target land card from a graveyard. Add one mana of any color,” which is a mana ability because it includes {T} in its activation cost and produces mana. Mana Reflection's text states, \"If you tap a permanent for mana, it produces twice as much of that mana instead,\" and this triggers here because Anson is tapping Deathrite Shaman as part of paying that ability's activation cost. Since the ability normally lets Anson choose one color and add one mana of that color, Mana Reflection causes it to instead produce two mana of that same chosen color -- Anson still only picks one color, and both mana produced are of that color, per Mana Reflection ruling #2, which explains that any restrictions the source ability places on its mana (here, that it's a single chosen color) apply to all the doubled mana. The fact that the exiled land card is Watery Grave is irrelevant to the amount or type of mana produced, since Deathrite Shaman's ability doesn't scale off the exiled card's own mana abilities -- it simply requires exiling *some* land card from a graveyard as a cost, and independently grants 'one mana of any color,' which Mana Reflection then doubles to two mana of that chosen color. If Anson controlled a second Mana Reflection, the mana would be quadrupled per Mana Reflection ruling #3, but with just one Mana Reflection in play the result is 2 mana of one color.\n\nCard data from Scryfall (scryfall.com).",
+    "answer_gold": "Just 1. Deathrite Shaman's ability is not a mana ability, and activating it is not \"tapping it for mana\".",
+    "auto_verdict": "different",
+    "judge_reason": "The candidate treats Deathrite Shaman's activated ability as a mana ability that Mana Reflection doubles to two mana, but the reference ruling states the ability is not a \"tap for mana\" mana ability and therefore only produces one mana."
+  },
+  {
+    "id": "rg807",
+    "level": "Corner Case",
+    "complexity": "Simple",
+    "tags": [
+      "Layers",
+      "Abilities",
+      "Color-changing effects",
+      "Static abilities"
+    ],
+    "url": "https://rulesguru.org/?807RGBwnIII2m4ekTGG",
+    "gold_rule_ids": [
+      "613.1e",
+      "613.1f",
+      "613.6",
+      "613.7",
+      "613.7b",
+      "613.7d"
+    ],
+    "question": "Avery controls [Wayward Angel] and has 7 cards in their graveyard. Nathan casts [Turn to Frog], targeting Wayward Angel. What are Wayward Angel's characteristics after Turn to Frog resolves?",
+    "answer": "After Turn to Frog resolves, Wayward Angel becomes a blue Frog creature with base power and toughness 1/1 and has no abilities at all — no Flying, no Vigilance, no Trample, no \"sacrifice a creature\" trigger, and no Threshold ability, even though Avery still has seven or more cards in their graveyard.\n\nHere's why. Wayward Angel's Threshold ability is a static ability that, while the graveyard condition is met, (1) sets Wayward Angel's color to black, (2) gives it +3/+3, and (3) grants it Trample and the upkeep sacrifice trigger. Per rule [113.12], \"is black\" is a characteristic-setting effect rather than a granted ability, but the +3/+3 boost and the Trample/sacrifice-trigger grants are genuine granted abilities/effects that only exist because the Threshold ability itself is present on Wayward Angel.\n\nTurn to Frog says Wayward Angel \"loses all abilities and becomes a blue Frog with base power and toughness 1/1\" until end of turn. \"Loses all abilities\" strips away Flying, Vigilance, and the Threshold ability itself. Once the Threshold ability is gone, it can no longer generate its color-setting, +3/+3, Trample, or sacrifice-trigger effects.\n\nThe timing of this within the continuous-effects/layer system matters, and Turn to Frog's own ruling about the Theros Gods spells this out directly: a type- or color-changing effect generated by an ability is computed in an earlier layer than the removal of abilities, so it still \"happens\" before the ability disappears, but any effect (like a power/toughness boost) that's computed after the ability-removal layer no longer applies once that ability is gone [Turn to Frog ruling #5]. Concretely: Wayward Angel's Threshold-based black color is calculated before the ability-removal step, but Turn to Frog's own instruction to become blue is a newer effect and overwrites it anyway, so the color ends up blue either way. The +3/+3 bonus, however, is a power/toughness-modifying effect computed after abilities are removed, so once Threshold itself has been stripped by \"loses all abilities,\" the +3/+3 no longer applies — Wayward Angel is left at the base power/toughness Turn to Frog sets, 1/1 [Turn to Frog ruling #1]. Trample and the sacrifice trigger are abilities granted by Threshold, so \"loses all abilities\" removes them along with Flying and Vigilance.\n\nOn the type line, Turn to Frog's wording (\"becomes a blue Frog\") does not say \"in addition to its other types,\" unlike the examples in rule [205.1b] that preserve prior types with that phrasing. So Wayward Angel's prior subtypes (Angel, Horror) are replaced, and it becomes simply a Frog.\n\nIf Wayward Angel were to gain a new ability after Turn to Frog resolves, it would keep that new ability [Turn to Frog ruling #3], but that doesn't apply here since nothing else is granting it anything. This scenario doesn't involve more than two players in any way that changes the outcome; the reasoning is the same regardless of table size.\n\nCard data from Scryfall (scryfall.com).",
+    "answer_gold": "It's a 4/4 blue Frog with no abilities. Wayward Angel's last ability begins to apply in layer 5. It's removed by Turn to Frog in layer 6, but since it's already started to apply, it will continue doing so in later layers. Wayward Angel has the earlier timestamp, so it gives itself trample and \"At the beginning of your upkeep, sacrifice a creature\" before Turn to Frog removes its abilities in layer 6.",
+    "auto_verdict": "different",
+    "judge_reason": "The candidate says Angel becomes a 1/1 with no abilities, whereas the reference says it is a 4/4 blue Frog with no abilities (the +3/+3 from Threshold persists), so they reach different final rulings."
+  },
+  {
+    "id": "rg475",
+    "level": "Corner Case",
+    "complexity": "Simple",
+    "tags": [
+      "Starting the game"
+    ],
+    "url": "https://rulesguru.org/?475RGBwnIIIdDPGG",
+    "gold_rule_ids": [],
+    "question": "Aubrey casts [Shahrazad]. As the subgame begins, Aubrey wins the die roll. Can Aubrey choose to play second?",
+    "answer": "Yes. Winning the random determination for the Shahrazad subgame gives Aubrey the choice of who takes the first turn, not an automatic requirement that Aubrey goes first. Rule 729.2 says that as the subgame starts, the game \"randomly determine[s] which player goes first,\" and Shahrazad ruling #3 clarifies what that means in practice: the random method (here, the die roll) determines which player *chooses* to go first or draw first, mirroring the normal procedure in rule 103.1 for starting a game (where the winner of the initial random method chooses who takes the first turn, and that choice need not be themselves). Since Aubrey won the die roll, Aubrey is the one empowered to make that choice, and Aubrey may choose to have the opponent take the first turn instead — effectively 'playing second' in the subgame. The subgame is otherwise run under all the normal rules in rule 103, \"Starting the Game\" (per rule 729.2), so nothing about being a subgame changes this option. This is a two-player-framed answer since Shahrazad's mechanics and the cited rules here are given in terms of two players; the context doesn't provide multiplayer-specific rules for subgame starting-player determination, so if more than two players were involved in the subgame the procedure might differ.\n\nCard data from Scryfall (scryfall.com).",
+    "answer_gold": "No. The starting player in a subgame is determined randomly.",
+    "auto_verdict": "different",
+    "judge_reason": "The candidate contradicts the reference by saying the die-roll winner may choose who goes first in the subgame, whereas the correct ruling states the starting player is determined randomly and cannot be chosen."
+  },
+  {
+    "id": "rg470",
+    "level": "Corner Case",
+    "complexity": "Simple",
+    "tags": [
+      "Leaving the game",
+      "Multiplayer"
+    ],
+    "url": "https://rulesguru.org/?470RGBwnIIIbY5GG",
+    "gold_rule_ids": [
+      "100.1a",
+      "103.8a",
+      "726.1"
+    ],
+    "question": "Autumn, Bethany, and Chaim started playing a multiplayer game. Chaim lost the game, and then Autumn restarted the game with [Karn Liberated]. Will Autumn draw a card on the first turn of the restarted game?",
+    "answer": "With the rules provided, this can't be fully settled — here's what we can determine and what's missing. First, because Chaim lost the game before Karn Liberated's ultimate resolved, he is no longer \"in the game\" and will not be involved in the restarted game — a player who leaves the game before it's restarted isn't included in the new game [Karn Liberated ruling #9]. That leaves only Autumn and Bethany in the restarted game. Autumn controlled the ability that restarted the game, so she is the starting player in the new game [727.1a, Karn Liberated ruling #2]. Each player then draws a seven-card opening hand as part of starting the new game [727.4, 103.5, Karn Liberated ruling #2], and may take mulligans as normal [103.5]. However, the question of whether Autumn specifically draws a card during her draw step *on the first turn* of the new game depends on the turn-structure rule about whether the starting player skips their first draw step, and whether that skip applies given that only two players remain. None of the rules given here address the draw step or any first-turn draw skip for the starting player, so I can't confirm or rule out whether Autumn draws during her draw step on turn one. What's missing is the rule governing the starting player's first draw step (and whether it differs between two-player and multiplayer games).\n\nCard data from Scryfall (scryfall.com).",
+    "answer_gold": "No. The game began with 2 players, so it is a two-player game.. Autumn will skip their draw step.",
+    "auto_verdict": "different",
+    "judge_reason": "The candidate declines to apply the rule that the starting player in the restarted two-player game skips their first draw, so it fails to reach the correct conclusion that Autumn will skip her draw."
+  },
+  {
+    "id": "rg289",
+    "level": "Corner Case",
+    "complexity": "Simple",
+    "tags": [
+      "Mana",
+      "Activated abilities",
+      "Costs"
+    ],
+    "url": "https://rulesguru.org/?289RGBwnIII1SAKbwGG",
+    "gold_rule_ids": [
+      "602.1a",
+      "602.2b"
+    ],
+    "question": "Allyson controls [Ice Cauldron]. Nico controls [Suppression Field]. Allyson activates Ice Cauldron's first ability with X=1, paying {C}{C}{C}. On Allyson's next turn, they activate Ice Cauldron's second ability. How much mana do they add?",
+    "answer": "Allyson adds {C}{C}{C} (three colorless mana), usable only to cast the last card Ice Cauldron exiled. Here's why: Ice Cauldron's second ability - \"{T}, Remove a charge counter from this artifact: Add this artifact's last noted type and amount of mana\" - is a mana ability, since it's an activated ability whose effect is to add mana and it doesn't target and isn't a loyalty ability [605.1]. Suppression Field's tax (\"Activated abilities cost {2} more to activate unless they're mana abilities\") explicitly exempts mana abilities, and its own ruling confirms it 'doesn't affect static abilities, triggered abilities, or mana abilities' [Suppression Field ruling #1]. So the second ability costs only {T} plus removing a charge counter - no extra {2}.\n\nThe first ability, by contrast, is NOT a mana ability (it lets Allyson exile and later cast a card, it doesn't add mana), so Suppression Field's +{2} did apply to it when Allyson activated it. With X=1, the base activation cost was {1}, {T}; Suppression Field increased that to {1}{2}, {T} = {3} generic plus tapping, per how cost increases are folded into the total cost before it's locked in [601.2f]. Allyson paid that {3} generic requirement entirely with colorless mana, {C}{C}{C}.\n\nIce Cauldron's own text says its controller must 'note the type and amount of mana spent to pay this activation cost' - and per Ice Cauldron's ruling, the Cauldron only cares about what was actually spent, not the value of X and not whatever cost-modifying effects were in play: 'if you spent {C}{C}{R}{R} on X, you get {C}{C}{R}{R} later even if X was 6' [Ice Cauldron ruling #0]. So the noted type and amount here is {C}{C}{C}, exactly what Allyson spent, regardless of the fact that Suppression Field inflated the cost beyond the literal X value.\n\nWhen Allyson later activates the second ability, it adds that noted {C}{C}{C} to their mana pool, restricted so it can be spent only to cast the specific card most recently exiled by Ice Cauldron [Ice Cauldron ruling #2]. If there had been multiple cards exiled since, only the most recently exiled one could be paid for with this mana.\n\nCard data from Scryfall (scryfall.com).",
+    "answer_gold": "Just {C}. The activation cost of Ice Cauldron's first ability is \"{X}, {T}\". The additional cost imposed by Suppression Field is not part of the activation cost, and the mana spent on it isn't noted when the ability resolves.",
+    "auto_verdict": "different",
+    "judge_reason": "The candidate says the Cauldron will add {C}{C}{C} (including Suppression Field's extra {2}), but the reference says only {C} (just the {X} portion) is noted and later added."
+  },
+  {
+    "id": "rg811",
+    "level": "Corner Case",
+    "complexity": "Simple",
+    "tags": [
+      "Layers",
+      "Abilities",
+      "Non-evergreen keywords",
+      "Face-down objects",
+      "Static abilities",
+      "Color-changing effects"
+    ],
+    "url": "https://rulesguru.org/?811RGBwnIII2m4ekTGG",
+    "gold_rule_ids": [
+      "613.1e",
+      "613.1f",
+      "613.3",
+      "613.6",
+      "613.7",
+      "613.7b",
+      "613.7f"
+    ],
+    "question": "Aimee controls a manifested [Wayward Angel] and has 7 cards in their graveyard. Noah casts [Turn to Frog], targeting Wayward Angel. After that resolves, Aimee turns Wayward Angel face up. What are Wayward Angel's characteristics afterwards?",
+    "answer": "Right after Aimee turns Wayward Angel face up, Wayward Angel is a 4/4 black Frog creature (no other creature types) named Wayward Angel, with flying, vigilance, trample, \"At the beginning of your upkeep, sacrifice a creature,\" and its own Threshold ability — all still affected by Turn to Frog's until-end-of-turn duration.\n\nHere's why. While manifested, Wayward Angel was face down, so by rule [708.2a] it had no characteristics other than the default manifest ones: a 2/2 colorless creature with no name, types, abilities, or mana cost. Its Threshold ability did not exist in that state, so it had no effect even though Aimee's graveyard had 7+ cards.\n\nWhen Noah's Turn to Frog resolved targeting the face-down Wayward Angel, it applied its continuous effect (loses all abilities; becomes a blue Frog; base power/toughness 1/1) to that 2/2 face-down object. Since it already had no abilities, the ability-loss did nothing extra at that moment, but the type (Frog), color (blue), and base P/T (1/1) changes locked in with an early timestamp.\n\nWhen Aimee then turns Wayward Angel face up, rule [708.8] says its copiable values revert to the printed Wayward Angel values (name, mana cost {4}{W}{W}, type Creature — Angel Horror, P/T 4/4, flying, vigilance, and the Threshold ability), while \"any effects that have been applied to the face-down permanent still apply to the face-up permanent\" — meaning Turn to Frog's effect keeps going. Because Aimee's graveyard still has 7+ cards, Wayward Angel's own Threshold ability becomes active again, granting +3/+3, black color, trample, and the sacrifice-trigger ability [Wayward Angel ruling #0].\n\nLayer by layer: (1) Type/layer 4 — Turn to Frog's \"becomes a...Frog\" effect is still the only type-setting effect in play, so Wayward Angel is still just a Frog, not an Angel Horror, until end of turn. (2) Color/layer 5 — Turn to Frog set it blue with an earlier timestamp; Threshold's \"is black\" is regained only once Wayward Angel turns face up, which happens later, so under normal timestamp ordering the later black effect wins, matching how Turn to Frog's own ruling treats things gained after it resolves [Turn to Frog ruling #3]: newly gained abilities/effects that arise after Turn to Frog resolves stick. (3) Abilities/layer 6 — Turn to Frog's \"loses all abilities\" only stripped what existed at the time it resolved (nothing, since it was face down); flying, vigilance, the Threshold ability, trample, and the sacrifice trigger are all gained afterward (at the moment of turning face up) and are explicitly kept per [Turn to Frog ruling #3]. (4) Power/toughness/layer 7 — Turn to Frog sets base P/T to 1/1 in sublayer 7b; Threshold's \"+3/+3\" is a modifying (not setting) effect in sublayer 7c, which is always applied after 7b regardless of timestamp [Turn to Frog ruling #1] [613.1], giving a final 4/4.\n\nSo until end of turn, Wayward Angel is a 4/4 black Frog with flying, vigilance, trample, \"At the beginning of your upkeep, sacrifice a creature,\" and its Threshold ability (still checking the graveyard count). When Turn to Frog's effect ends at cleanup, if Aimee still has 7+ cards in the graveyard, Wayward Angel will revert to being a 7/7 black Angel Horror with flying, vigilance, trample, and the sacrifice trigger (base 4/4 +3/+3, per its own printed text).\n\nCard data from Scryfall (scryfall.com).",
+    "answer_gold": "It's a 4/4 black Frog with trample and \"At the beginning of your upkeep, sacrifice a creature\", but no other abilities. Wayward Angel receives a new timestamp when it turns face up, so its ability is applied before Turn to Frog in each layer. Wayward Angel's last ability is removed by Turn to Frog in layer 6, but since it's already started to apply in layer 5 to change its color to black, it will continue doing so in later layers. Turn to Frog has the earlier timestamp, so it makes Wayward Angel blue before it becomes black in layer 5 and removes Wayward Angel's abilities in layer 6 before it gains trample and \"At the beginning of your upkeep, sacrifice a creature\".",
+    "auto_verdict": "different",
+    "judge_reason": "The candidate says Wayward Angel retains/gains flying, vigilance, and its Threshold ability (keeping all printed abilities), while the reference concludes Turn to Frog strips those printed abilities so it ends up only as a 4/4 black Frog with trample and the upkeep-sacrifice ability."
+  },
+  {
+    "id": "rg60",
+    "level": "Corner Case",
+    "complexity": "Simple",
+    "tags": [
+      "Leaving the game",
+      "Multiplayer",
+      "Zone-changes",
+      "Triggered abilities",
+      "Non-evergreen keywords"
+    ],
+    "url": "https://rulesguru.org/?60RGBwnIIIel4HF9WuGG",
+    "gold_rule_ids": [
+      "702.26b",
+      "702.26k",
+      "800.4a"
+    ],
+    "question": "Bobbie has 1 life and controls a phased-out [Angel of Sanctions] that exiled Conrad's [Rotted Hystrix]. Alana casts [Lava Axe], targeting Bobbie. What happens as Bobbie loses the game?",
+    "answer": "When Bobbie loses the game and leaves it, Angel of Sanctions also leaves the game with them, and that satisfies the \"until this creature leaves the battlefield\" duration on its exile effect — so Rotted Hystrix immediately returns to the battlefield under Conrad's control, even though Angel of Sanctions was phased out at the time.\n\nStep by step: This is a multiplayer game (Bobbie, Conrad, and Alana are all named), so when Bobbie loses, Bobbie leaves the game rather than the whole game ending [800.4]. By rule [800.4a], when a player leaves the game, all objects that player owns leave the game as well. Rule [901.10] confirms this happens immediately, not as a state-based action. Because Angel of Sanctions is phased out but still owned by Bobbie, rule [702.26k] specifically says phased-out permanents owned by a leaving player also leave the game (and this does not cause any zone-change triggers to fire).\n\nAngel of Sanctions's own text exiles a nonland permanent \"until this creature leaves the battlefield.\" That's a one-shot, non-stack duration effect, not a triggered ability — Angel of Sanctions ruling #3 confirms the exiled card returns immediately after Angel of Sanctions leaves the battlefield, with nothing happening in between (not even state-based actions). Angel of Sanctions ruling #4 directly addresses this exact scenario: if Angel of Sanctions's owner leaves the game, the exiled card still returns to the battlefield, because the returning effect isn't an ability on the stack and so isn't wiped out along with the leaving player's stack objects under rule [800.4a]. So even though Bobbie (the owner) is leaving the game and taking Angel of Sanctions with them, Rotted Hystrix still pops back onto the battlefield under Conrad's control (its owner) right as Angel of Sanctions leaves the game.\n\nMeanwhile, Alana's Lava Axe has already resolved and finishes doing its job (dealing the 5 damage that put Bobbie's life at -4); Lava Axe itself doesn't care what happens to Bobbie afterward. The game then continues between Conrad and Alana under rule [800.4], since multiplayer games can continue after a player leaves.\n\nOne timing note: I'm assuming Bobbie's loss (and thus leaving the game) is processed as a state-based action after Lava Axe fully resolves, which is the normal sequencing — if instead something checked life totals mid-resolution that wouldn't change the outcome here, since Lava Axe has only one effect (5 damage) and nothing else depends on Bobbie's life total before the spell finishes resolving.\n\nCard data from Scryfall (scryfall.com).",
+    "answer_gold": "All objects owned by Bobbie leave the game. However the game treats phased-out permanents as nonexistent, and does not see the leaves-the-battlefield event happen. Rotted Hystrix will not return to the battlefield.",
+    "auto_verdict": "different",
+    "judge_reason": "The candidate incorrectly says Rotted Hystrix returns when Bobbie leaves, but the correct ruling is that a phased-out Angel is treated as nonexistent so no leaves-the-battlefield event occurs and the exiled card does not return."
+  },
+  {
+    "id": "rg100",
+    "level": "Corner Case",
+    "complexity": "Simple",
+    "tags": [
+      "Damage",
+      "Zone-changes",
+      "Continuous effects",
+      "Prevention effects"
+    ],
+    "url": "https://rulesguru.org/?100RGBwnIII1UUlr7GG",
+    "gold_rule_ids": [
+      "400.7c"
+    ],
+    "question": "Adelaide casts a [Keldon Champion]. In response, Nico casts [Hallow], targeting the Keldon Champion. When Adelaide attacks with the Keldon Champion that turn, will the damage be prevented?",
+    "answer": "No. Nico's Hallow will not prevent combat damage dealt later when Keldon Champion attacks. Hallow reads \"Prevent all damage target spell would deal this turn,\" and it can only target an object that is currently a spell — here, the Keldon Champion creature spell on the stack (rule 117.7 confirms Hallow, cast in response, resolves first). But under rule 400.7a, when the Keldon Champion spell resolves it becomes a new object (the Keldon Champion permanent) with no memory of, or relation to, its previous existence as a spell. The only exceptions to that rule are effects that change the characteristics or controller of the permanent (rule 400.7a, rule 112.4) — a damage-prevention effect is neither of those, so it does not carry over to the permanent. Once Keldon Champion is a permanent, any damage it deals (its 'enters the battlefield' triggered ability dealing 3 damage, or its combat damage when it attacks) is dealt by that permanent/its ability, not by 'the spell' Hallow targeted. In fact, a creature spell itself never deals damage as it resolves — it just enters the battlefield — so Hallow's prevention effect ends up with nothing to prevent from the spell, and it has no bearing on the creature's later combat damage. So when Keldon Champion attacks, its combat damage goes through normally and is not prevented by Hallow. (This same reasoning also means the 3 damage from Keldon Champion's enters-the-battlefield trigger is not prevented by Hallow, for the same reason — that damage is dealt by a triggered ability of the permanent, not by 'the spell.')\n\nCard data from Scryfall (scryfall.com).",
+    "answer_gold": "Yes. Effects that apply to damage from a spell on the stack continue to apply to damage from the permanent that spell becomes.",
+    "auto_verdict": "different",
+    "judge_reason": "The candidate concludes Hallow will not prevent the creature's later damage, which directly contradicts the reference ruling that the prevention effect on the spell continues to apply to the damage dealt by the permanent it becomes."
+  },
+  {
+    "id": "rg5863",
+    "level": "Corner Case",
+    "complexity": "Simple",
+    "tags": [
+      "Non-evergreen keywords",
+      "Casting spells",
+      "Special actions"
+    ],
+    "url": "https://rulesguru.org/?5863RGBwnIII2mzOlpGG",
+    "gold_rule_ids": [
+      "702.62a"
+    ],
+    "question": "Amelia attacks with [Wildfire Eternal], which isn't blocked. As the trigger resolves, can they choose to suspend [Shivan Meteor]?",
+    "answer": "No. Suspending Shivan Meteor is a special action, not casting a spell, so it can't satisfy Wildfire Eternal's triggered ability, which only lets Amelia cast an instant or sorcery spell from her hand without paying its mana cost. Under rule [116.2f], exiling a card using suspend is a special action available any time a player has priority (and only if they could begin to cast it) — it explicitly does not use the stack and is not the act of casting. Rule [702.62a] confirms suspend's first ability lets you 'exile it' rather than cast it. Shivan Meteor's own ruling reinforces this: 'Exiling a card with suspend isn't casting that card. This action doesn't use the stack and can't be responded to' (Shivan Meteor ruling #3). Wildfire Eternal's second ability specifically grants permission to *cast* a spell for free as the trigger resolves — per Wildfire Eternal ruling #1, 'you must cast a spell at that time if you wish to cast one without paying its mana cost.' Since suspending Shivan Meteor is not casting it, choosing to suspend it does not fulfill that ability. Additionally, rule [601.2b] states a player can't apply two alternative methods of casting or two alternative costs to a single spell — Wildfire Eternal's 'cast without paying its mana cost' is itself a cost-substitution, and it can't be combined with Shivan Meteor's Suspend 2—{1}{R}{R} alternative cost even if suspend did involve casting (which it doesn't). So as Wildfire Eternal's trigger resolves, Amelia's only options are to cast Shivan Meteor outright for free (dealing 13 damage to a target creature) or decline to cast anything; she cannot use this trigger to suspend it.\n\nCard data from Scryfall (scryfall.com).",
+    "answer_gold": "Yes. The suspend special action can be taken whenever Shivan Meteor could be cast from Amelia's hand. Normally that's only when Amelia has priority on their turn with an empty stack, but in this case the effect of Wildfire Eternal is letting that happen while the ability resolves.\n\n(They still have to pay the suspend cost, and afterwards they can choose to cast a different spell from hand without paying its mana cost.)",
+    "auto_verdict": "different",
+    "judge_reason": "The candidate forbids using suspend during Wildfire Eternal's triggered ability, which contradicts the reference ruling that suspend is a special action available while that trigger resolves and thus can be taken then."
+  },
+  {
+    "id": "rg1933",
+    "level": "Corner Case",
+    "complexity": "Simple",
+    "tags": [
+      "Transform",
+      "Auras",
+      "Double-faced cards"
+    ],
+    "url": "https://rulesguru.org/?1933RGBwnIII3jWK1bvSobkGG",
+    "gold_rule_ids": [
+      "701.3b",
+      "702.140e",
+      "704.5m",
+      "729.2a"
+    ],
+    "question": "Ariel controls [Soul Seizer] (back face [Ghastly Haunting])which has been mutated with [Everquill Phoenix]. Everquill Phoenix is the top component. Naomi controls [Axegrinder Giant]. Ariel then attacks Naomi with the merged permanent. Naomi declared no blockers and the merged permanent deals damage to Naomi. What happens when the transformation trigger resolves if Ariel elects to transform the merged permanent and targets Axegrinder Giant?",
+    "answer": "When Ariel elects to transform the merged permanent (Soul Seizer/Ghastly Haunting merged with Everquill Phoenix) and targets Axegrinder Giant, the result is: Soul Seizer's component turns face up as Ghastly Haunting, Everquill Phoenix stays as it is, and the whole merged permanent becomes attached to Axegrinder Giant while remaining a creature (not an Enchantment) — and because the Ghastly Haunting ability is now part of the merged permanent, Ariel gains control of Axegrinder Giant.\n\nHere's why. A mutated permanent (the Everquill Phoenix / Soul Seizer merge) is a single permanent represented by more than one card, with 'all abilities of each card and token that represents it,' but its other characteristics (power, toughness, card types, etc.) are derived only from the topmost card — here, Everquill Phoenix [702.140e]. Soul Seizer's triggered ability ('When this creature deals combat damage to a player, you may transform it. If you do, attach it to target creature that player controls') is one of the abilities the merged permanent has, since it comes from the Soul Seizer/Ghastly Haunting component. You chose the target (Axegrinder Giant) when the ability triggered, and you choose whether to transform when the ability resolves [Soul Seizer // Ghastly Haunting ruling #0].\n\nBecause Soul Seizer is a double-faced card and is a component of this merged permanent, transforming the merged permanent causes that component to turn so its Ghastly Haunting face is up; Everquill Phoenix, not being double-faced, is unaffected and can't itself transform [730.2i, 712.9]. Transforming is not the same action as an object leaving the battlefield or becoming a new object — the merged permanent doesn't leave the battlefield, and any ongoing effects on it (e.g., it's still attacking, still has any counters, etc.) continue to apply [712.18, 701.27g, 701.27b].\n\nHowever, since the merged permanent's 'other characteristics' still come from the topmost card, Everquill Phoenix, the merged permanent remains a 4/4 flying Creature — Phoenix; it does NOT become an Enchantment — Aura just because its Ghastly Haunting face turned up [702.140e]. What does carry over is the ability text: the merged permanent now has Ghastly Haunting's ability, 'You control enchanted creature,' as one of the abilities granted by that component [702.140e], and the resolving trigger instructs you to attach it to Axegrinder Giant. So the merged permanent becomes attached to Axegrinder Giant (functioning like an Aura for attachment purposes even though it's still a creature by type), and because it's now 'enchanting' Axegrinder Giant, its 'You control enchanted creature' ability gives Ariel control of Axegrinder Giant.\n\nNote: this is a two-player scenario as described (Ariel attacking Naomi); nothing here depends on multiplayer-specific rules, but with more than two players the same mechanics for merging, transforming, and control-changing would apply per player interactions, only the choice of defending player/opponents would differ, which isn't at issue here.\n\nCard data from Scryfall (scryfall.com).",
+    "answer_gold": "The component that consists of Soul Seizer is transformed. The merged permanent is still a creature. It is not attached to anything. The merged permanent has the abilities in the text box of the back half of Soul Seizer instead of the front half.\n\nWhen Ariel chooses to transform the merged permanent, all double-faced components are transformed. The merged permanent now has the abilities of the back half of Soul Seizer instead of the front half. ([702.140e]) The merged permanent is still a creature as Everquill Phoenix is still the topmost card. When the transformation trigger tries to attach the merged permanent to Axegrinder Giant, it can't attach because the merged permanent is still a creature. It remains on the battlefield because the state-based action that puts auras not attached to anything into the graveyard is looking for the \"Aura\" subtype, not the \"Enchant\" keyword.",
+    "auto_verdict": "different",
+    "judge_reason": "The candidate incorrectly says the merged permanent can attach and gain control of Axegrinder Giant, whereas the correct ruling is the transformed component gains the back-face abilities but the merged permanent remains a creature and cannot attach as an Aura, so it does not become attached or gain control."
+  },
+  {
+    "id": "rg72",
+    "level": "Corner Case",
+    "complexity": "Simple",
+    "tags": [
+      "Copy effects",
+      "Replacement effects",
+      "Zone-changes",
+      "Resolving objects",
+      "Control-changing effects"
+    ],
+    "url": "https://rulesguru.org/?72RGBwnIIIgV3mOl9EGG",
+    "gold_rule_ids": [
+      "616.1",
+      "616.1b"
+    ],
+    "question": "Nadia has cast a [Gather Specimens] earlier in the turn. Ashley controls a [Peacewalker Colossus] that is currently a creature due to its own ability, and casts a [Clever Impersonator], choosing to have it copy Peacewalker Colossus. What happens?",
+    "answer": "Clever Impersonator enters the battlefield under Ashley's control as a copy of Peacewalker Colossus — an Artifact — Vehicle, 6/6, with \"Crew 4\" and \"{1}{W}: Another target Vehicle you control becomes an artifact creature until end of turn.\" It does NOT enter as a creature, so Nadia's Gather Specimens never applies, and there is no control-swap.\n\nHere's why: Peacewalker Colossus's printed type line is Artifact — Vehicle, not Artifact Creature — Vehicle. The fact that Ashley's Peacewalker Colossus is *currently* a creature is because of a temporary, non-copy effect (its own {1}{W} ability making it a creature until end of turn, or crewing). Clever Impersonator ruling #2 explicitly states that Clever Impersonator \"copies exactly what is printed on the chosen permanent... it doesn't copy any non-copy effects that have changed that permanent's power, toughness, types, color, abilities, or so on.\" This matches rule [707.2], which says a copy uses the copiable values derived from the printed text, and that \"other effects (including type-changing and text-changing effects)... are not copied.\"\n\nUnder rule [707.5], an object that enters the battlefield as a copy of another object becomes that copy as it enters — it doesn't enter first and then transform. So as Clever Impersonator enters, it is already an Artifact — Vehicle, 6/6, not a creature (the crew/activated 'becomes a creature' effect on Ashley's Peacewalker Colossus is a separate, non-copied effect that doesn't carry over per rule [707.3] and the ruling above).\n\nNadia's Gather Specimens reads, \"If a creature would enter the battlefield under an opponent's control this turn, it enters under your control instead.\" Because Clever Impersonator is entering as a noncreature Vehicle (not a creature), the trigger condition \"a creature would enter\" is never met, so Gather Specimens simply does nothing here — Ashley keeps Clever Impersonator, which is a 6/6 Artifact — Vehicle named Peacewalker Colossus that isn't currently a creature (it could later become one via its own {1}{W} ability targeting another Vehicle it doesn't have, or by being crewed, since it retains the Crew 4 ability as part of its copied text).\n\nThis analysis assumes a standard two-player game between Nadia and Ashley; the outcome (no creature enters, so Gather Specimens is irrelevant) would be the same at a multiplayer table too, since the trigger condition for Gather Specimens still requires an actual creature to be entering.\n\nCard data from Scryfall (scryfall.com).",
+    "answer_gold": "This can't happen as described. As Clever Impersonator begins to resolve, Nadia gains control of it before any other choices are made. Nadia will make the choice of what to copy as it enters the battlefield.",
+    "auto_verdict": "different",
+    "judge_reason": "The candidate says the Impersonator enters under Ashley's control (so Gather Specimens doesn't apply), while the reference says Nadia gains control as it enters and gets to choose what it copies."
+  },
+  {
+    "id": "rg5539",
+    "level": "Corner Case",
+    "complexity": "Simple",
+    "tags": [
+      "Combat",
+      "Turn structure"
+    ],
+    "url": "https://rulesguru.org/?5539RGBwnIIIgT1hQzj5GG",
+    "gold_rule_ids": [
+      "508.1",
+      "508.1c",
+      "508.1j"
+    ],
+    "question": "Aubrey controls a [Gaea's Liege], [Rhonas the Indomitable], and 1 [Forest]. Noel controls 5 Forest. Can Aubrey attack with the Gaea's Liege and Rhonas the Indomitable?",
+    "answer": "Yes. Aubrey can declare both Gaea's Liege and Rhonas the Indomitable as attackers this combat, because once Gaea's Liege is declared an attacker its power/toughness immediately becomes 5/5 (equal to the number of Forests Noel, the defending player, controls), which satisfies Rhonas the Indomitable's attack restriction.\n\nHere's the sequencing: under [508.1a], the active player (Aubrey) first chooses which creatures will attack – she can choose both Gaea's Liege and Rhonas the Indomitable, since both are untapped and have been under her control since the turn began. The act of being declared an attacker is what makes a creature 'attacking' (tapping is merely a consequence of that declaration, per [508.1f], not a prerequisite for the 'attacking' state). Gaea's Liege's own text overrides the default characteristics rule here: 'As long as Gaea's Liege is attacking, its power and toughness are each equal to the number of Forests defending player controls.' Since Noel controls 5 Forests, as soon as Gaea's Liege is declared as an attacker it becomes 5/5.\n\nNext, under [508.1c], the game checks restrictions on the chosen attackers. Rhonas the Indomitable's printed text says 'Rhonas can't attack or block unless you control another creature with power 4 or greater.' At this point in the declare-attackers turn-based action, Gaea's Liege is already an attacking 5/5, so Aubrey does control another creature with power 4 or greater, satisfying Rhonas the Indomitable's restriction. [Rhonas the Indomitable ruling #1] confirms that the other power-4-or-greater creature does not itself need to be attacking to satisfy this clause — but here Gaea's Liege only reaches power 4+ because it is attacking (its non-attacking power/toughness would just be 1, from Aubrey's single Forest), so both creatures need to be declared as attackers together for this to work.\n\nIf instead Aubrey tried to attack with only Rhonas the Indomitable while leaving Gaea's Liege back, Gaea's Liege would remain at 1/1 (based on Aubrey's own 1 Forest), and Rhonas the Indomitable's restriction would not be satisfied, making that attack illegal under [508.1c] (the whole declaration would be undone per [733.1]). But attacking with both together is legal.\n\nNote: this analysis assumes normal two-player rules as presented; if this is a multiplayer game, Aubrey would still need to choose which defending player each attacker is attacking, but the mechanics of Gaea's Liege's and Rhonas the Indomitable's restrictions work the same way relative to whichever player is being attacked.\n\nCard data from Scryfall (scryfall.com).",
+    "answer_gold": "No. All creatures are declared as attackers at the same time. Checking to see if any restrictions affect a potentially-attacking creature is done before the creature becomes an \"attacking creature\".",
+    "auto_verdict": "different",
+    "judge_reason": "The candidate concludes both creatures can attack, contradicting the reference which states restrictions are checked before creatures become attacking so Rhonas' requirement would not be met."
+  },
+  {
+    "id": "rg279",
+    "level": "Corner Case",
+    "complexity": "Intermediate",
+    "tags": [
+      "Turn structure",
+      "Triggered abilities",
+      "Damage",
+      "Non-evergreen keywords",
+      "Timing and priority",
+      "State-based actions"
+    ],
+    "url": "https://rulesguru.org/?279RGBwnIIIvOgZKOqkNtLjyGG",
+    "gold_rule_ids": [
+      "514.2",
+      "514.3a",
+      "704.5f"
+    ],
+    "question": "Ariyah casts [Stonewood Invocation] targeting [Skeletal Crocodile], and then attacks with the Skeletal Crocodile. Noah blocks it with a [Baron Sengir], which has gained infect due to their [Phyresis] and indestructible due to their [Valorous Stance]. What happens at the end of the turn?",
+    "answer": "By the end of the turn, Baron Sengir survives (it's not destroyed despite taking lethal combat damage), and Skeletal Crocodile is left with five permanent -1/-1 counters on it once the Stonewood Invocation pump wears off — whether that actually finishes off Skeletal Crocodile is the one piece I can't confirm from the rules given to me (see the note at the end).\n\nStep by step:\n\n1) Combat damage is dealt simultaneously. Skeletal Crocodile (pumped to 10/6 by Stonewood Invocation's +5/+5) has no infect, so its 10 damage to Baron Sengir is marked normally [302.7], [120.6]. Baron Sengir is a 5/5, so 10 marked damage is well over its toughness — normally lethal — but Baron Sengir has indestructible from Valorous Stance, so it \"can't be destroyed\" and \"ignore[s] the state-based action that checks for lethal damage\" [702.12b], [704.5g]. Baron Sengir survives the combat step with 10 damage marked on it but is not destroyed.\n\n2) Baron Sengir has infect (from Phyresis), so its 5 combat damage to Skeletal Crocodile is never marked as damage. Instead, Noah (Baron Sengir's controller) puts five -1/-1 counters on Skeletal Crocodile [702.90c], [120.3d], [702.90e]. Skeletal Crocodile's shroud (from Stonewood Invocation) only stops it from being *targeted* by spells/abilities — it does nothing to prevent combat damage or the resulting counters, so this happens normally. During combat, Skeletal Crocodile is 10/6 minus five -1/-1 counters = 5/1, which is still alive (toughness 1 > 0, and it has no marked damage triggering the lethal-damage SBA).\n\n3) At the cleanup step, two things happen simultaneously: all damage marked on permanents is removed, and all \"until end of turn\" effects end [514.2]. This removes Baron Sengir's 10 marked damage (so no lethal-damage check applies to it at all after this point) and ends both Stonewood Invocation's +5/+5-and-shroud and Valorous Stance's indestructible. Phyresis is a permanently-attached Aura, not an \"until end of turn\" effect, so Baron Sengir keeps infect going forward.\n\n4) The five -1/-1 counters on Skeletal Crocodile are counters, not damage, so cleanup does *not* remove them [514.2 only removes damage and \"until end of turn\" effects; counters persist]. Once the +5/+5 wears off, Skeletal Crocodile reverts to its base 5/1 with five -1/-1 counters still on it, making it a 0/-4.\n\nHere's the gap: whether a creature with 0-or-less toughness is actually put into the graveyard is normally a state-based action, and Baron Sengir's own triggered ability (\"Whenever a creature dealt damage by Baron Sengir this turn dies, put a +2/+2 counter on Baron Sengir\") would matter if Skeletal Crocodile does die this turn — but the specific state-based action for 0-or-less toughness creatures, and the cleanup-step rule about re-checking state-based actions/triggers, were not among the rules provided to me. So I can't cite a rule confirming Skeletal Crocodile is actually put into the graveyard or that Baron Sengir gets its +2/+2 counter, even though the counters clearly drop its toughness below 1.\n\nSummary of what's certain: Baron Sengir ends the turn undamaged (marked damage cleared) and keeps infect permanently; Skeletal Crocodile ends the turn back at its base size plus five permanent -1/-1 counters (net 0/-4 stats), with its actual survival/death not confirmable from the rules given here.\n\nCard data from Scryfall (scryfall.com).",
+    "answer_gold": "The effect from Stonewood Invocation wears off, but the -1/-1 counters on Skeletal Crocodile remain. Skeletal Crocodile dies. It was dealt damage that turn by Baron Sengir, so Baron Sengir triggers.",
+    "auto_verdict": "different",
+    "judge_reason": "The candidate fails to conclude that Skeletal Crocodile dies when the pump ends and therefore misses that Baron Sengir's death-trigger occurs, which disagrees with the reference ruling."
+  },
+  {
+    "id": "rg1014",
+    "level": "Corner Case",
+    "complexity": "Simple",
+    "tags": [
+      "Replacement effects",
+      "Zone-changes",
+      "Face-down objects"
+    ],
+    "url": "https://rulesguru.org/?1014RGBwnIII2516nvGG",
+    "gold_rule_ids": [
+      "406.3a",
+      "614.4"
+    ],
+    "question": "Alejandra owns a face-down [Progenitus] in exile. Nicolas uses [Ruin Processor] to put Progenitus into Alejandra's graveyard. Where does Progenitus move to?",
+    "answer": "Progenitus does not end up in Alejandra's graveyard at all. Progenitus's own printed replacement effect says, \"If Progenitus would be put into a graveyard from anywhere, reveal Progenitus and shuffle it into its owner's library instead.\" Ruin Processor's ability tries to put the exiled Progenitus into Alejandra's graveyard, but that movement is a case of a card being 'put into a graveyard,' so Progenitus's replacement effect intercepts it: Progenitus is revealed (even though it was exiled face down) and is shuffled into Alejandra's library instead of going to her graveyard. Nicolas still gets to choose whether to gain 5 life as part of Ruin Processor's ability, since the ability's instruction to 'put a card... into that player's graveyard' is what's being replaced — the act of attempting it is what triggers Progenitus's replacement, similar to how Ruin Processor ruling #1 describes a replacement effect that changes where a card ends up when something tries to put it into a graveyard from exile. Progenitus's card text overrides the general outcome you'd otherwise expect from Ruin Processor's ability, since a card's own printed rules text always wins over how a general effect would otherwise apply. This is a two-player scenario (Nicolas and Alejandra), and nothing here depends on player count, so the same result would hold at a multiplayer table as well.\n\nCard data from Scryfall (scryfall.com).",
+    "answer_gold": "The graveyard. Replacement effects must exist before the event in question in order to affect it. Progenitus has no abilities in exile, so there is no replacement effect that would apply to it moving to the graveyard.",
+    "auto_verdict": "different",
+    "judge_reason": "The candidate incorrectly applies Progenitus's replacement effect while it's in exile (face-down), claiming it shuffles into the library instead of going to the graveyard, which contradicts the reference ruling that it has no replacement effect in exile."
+  },
+  {
+    "id": "rg5785",
+    "level": "Corner Case",
+    "complexity": "Simple",
+    "tags": [
+      "Combat",
+      "Turn structure"
+    ],
+    "url": "https://rulesguru.org/?5785RGBwnIIIgT1n91SQGG",
+    "gold_rule_ids": [
+      "508.1c",
+      "508.1j"
+    ],
+    "question": "Aurora controls a [Gaea's Liege] and 3 [Snow-Covered Forest]s. Nico controls a [Reverence] and 1 Snow-Covered Forest. Can Aurora attack with the Gaea's Liege?",
+    "answer": "No — Aurora cannot legally declare Gaea's Liege as an attacker against Nico while Reverence is on the battlefield, because the act of declaring it attacking causes its own power to drop low enough to trigger Reverence's restriction.\n\nHere's why: Gaea's Liege's power/toughness are characteristic-defining. While it is *not* attacking, it's a */* equal to the number of Forests Aurora controls (3 Snow-Covered Forests, since Snow-Covered Forest has the basic land type Forest), making it a 3/3. But the moment Aurora chooses to declare it as an attacker, it becomes an 'attacking' creature per the declare-attackers process (rule 508.1), and Gaea's Liege's ability then reads 'its power and toughness are each equal to the number of Forests defending player controls.' Nico, the defending player, controls only 1 Snow-Covered Forest, so as soon as Gaea's Liege becomes an attacking creature it is a 1/1.\n\nReverence reads 'Creatures with power 2 or less can't attack you' — this is a Restriction (see the Restriction definition and rules 508.1c/509.1b). Restrictions on attacking are checked during the declare-attackers step: the active player checks each creature they control for restrictions, and if any restriction is being disobeyed, the whole declaration of attackers is illegal (rule 508.1c). Since Gaea's Liege's power becomes 1 (≤2) the instant it's declared attacking Nico, declaring it as an attacker against Nico violates Reverence's restriction, making the attack declaration illegal. If Aurora tried to do this, the game would treat it as an illegal action and roll back to before the declaration (rule 733.1).\n\nThis answer assumes a two-player game between Aurora and Nico, since Nico is the only opponent mentioned. If this were a multiplayer game and Aurora had other opponents within her range of influence (rule 801.3), Gaea's Liege could still be declared attacking one of those other opponents (or their planeswalkers/battles) instead, where its power/toughness would be based on that other defending player's Forests, and Reverence — which only restricts attacks against Nico specifically — would not apply to those attacks (rule 802.3a: restrictions that apply to attacking a specific player only apply to creatures attacking that player).\n\nCard data from Scryfall (scryfall.com).",
+    "answer_gold": "Yes. Checking to see if any restrictions affect a potentially-attacking creature is done before the creature becomes an \"attacking creature\".",
+    "auto_verdict": "different",
+    "judge_reason": "The candidate reaches the opposite conclusion, incorrectly claiming the Liege's power changes upon declaration and is barred by Reverence, while the reference correctly states restrictions are checked before a creature becomes attacking so the Liege is a 3/3 and may attack."
+  },
+  {
+    "id": "rg842",
+    "level": "Corner Case",
+    "complexity": "Simple",
+    "tags": [
+      "Replacement effects",
+      "Turn structure"
+    ],
+    "url": "https://rulesguru.org/?842RGBwnIII2hVjEbGG",
+    "gold_rule_ids": [
+      "614.10",
+      "614.10b",
+      "614.1b"
+    ],
+    "question": "Autumn casts [Time Stretch]. Can they choose to skip both extra turns with [Time Vault]?",
+    "answer": "No. Time Vault's ability only lets Autumn skip a turn *if Time Vault is tapped* at the moment that turn would begin, and skipping a turn with Time Vault automatically untaps it. So Autumn can use Time Vault to skip at most one of the two extra turns from Time Stretch, not both.\n\nHere's the sequence: Time Stretch (\"Target player takes two extra turns after this one\") gives Autumn two extra turns, added one at a time directly after the current turn [500.7]. When the first of those extra turns would begin, if Time Vault is tapped, Autumn may choose to skip that turn instead — and if they do, Time Vault untaps immediately as part of that choice (Time Vault's own text: \"If you would begin your turn while this artifact is tapped, you may skip that turn instead. If you do, untap this artifact\"; confirmed by [Time Vault ruling #1], which notes the choice is made as the turn would begin, only while Time Vault is tapped, and Time Vault untaps before anything else happens next). Skipping a turn is a replacement effect [614.10a][614.10b][500.11] that simply causes the game to proceed as though that turn never happened.\n\nBecause Time Vault untaps the moment the first extra turn is skipped, it is no longer tapped when the second extra turn from Time Stretch would begin. Time Vault's skip ability only triggers off the artifact being tapped at that specific moment, so the condition isn't met for the second turn, and Autumn has no way to skip it with Time Vault (they'd need to tap it again first, e.g. by using its \"{T}: Take an extra turn after this one\" ability, but that generates yet another extra turn rather than letting them skip the pending one). So at most one of the two Time Stretch extra turns can be skipped this way, never both.\n\nCard data from Scryfall (scryfall.com).",
+    "answer_gold": "Yes. As their turn ends, they can apply Time Vault's replacement effect, which means the next turn gets skipped and Time Vault gets untapped as part of the next turn that actually happens. Then, since it's still tapped as Autumn's turn is ending, they can choose to skip the next turn again.",
+    "auto_verdict": "different",
+    "judge_reason": "The candidate concludes Autumn can skip at most one of Time Stretch's extra turns with Time Vault, while the reference says they can skip both, so the final rulings conflict."
+  }
+]
