@@ -12,19 +12,113 @@ keyboard-driven. Run: `uv run python evals/build_grading_ui.py [--in PATH]`
 
 import argparse
 import json
+import sys
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 PARSED = Path(__file__).parent.parent / "data" / "parsed"
 VERDICTS = Path(__file__).parent / "answer_verdicts.json"
+
+
+def _load_card_data(names: list[str]) -> list[dict]:
+    """Resolve each card name to the fields a human grader needs to check an
+    answer: mana cost, type line, P/T (or loyalty/defense), and oracle text.
+
+    PER FACE, deliberately (contracts.py CardFace, docs/plan-card-enrichment-
+    fields.md). A card's TOP-LEVEL power/toughness does not exist -- Card has
+    no such field, and for a modal DFC like Valki // Tibalt the top-level
+    mana_cost is empty while each face has its own. Reading only the top level
+    is the c014 miss in a different costume: the grader would show a creature
+    with no P/T and a DFC with no cost.
+
+    Local-first against data/scryfall.db. A miss returns a stub rather than
+    raising, so one unresolvable name can never cost you the whole grading UI.
+    """
+    from rulesagent.tools.scryfall import get_card  # local import: keeps the
+
+    # module importable (and --help working) on a machine with no scryfall.db
+    out = []
+    for name in names:
+        try:
+            card = get_card(name, no_refresh=True)
+        except Exception as e:  # noqa: BLE001 -- a grading UI must still build
+            out.append({"name": name, "error": f"{type(e).__name__}: {e}", "faces": []})
+            continue
+        if card is None:
+            out.append({"name": name, "error": "not found", "faces": []})
+            continue
+        faces = [
+            {
+                "name": f.name or card.name,
+                "mana_cost": f.mana_cost,
+                "type_line": f.type_line,
+                "oracle_text": f.oracle_text,
+                "power": f.power,
+                "toughness": f.toughness,
+                "loyalty": f.loyalty,
+                "defense": f.defense,
+            }
+            for f in (card.faces or [])
+        ]
+        if not faces:
+            # Single-faced card whose enrichment never populated faces[]:
+            # fall back to the whole-card fields so the panel is never blank.
+            faces = [{
+                "name": card.name, "mana_cost": card.mana_cost,
+                "type_line": card.type_line, "oracle_text": card.oracle_text,
+                "power": "", "toughness": "", "loyalty": "", "defense": "",
+            }]
+        out.append({"name": card.name, "error": None, "faces": faces})
+    return out
 
 
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--in", dest="inp", type=Path, default=PARSED / "review_split.json")
     ap.add_argument("--out", type=Path, default=PARSED / "grading.html")
+    ap.add_argument(
+        "--questions", type=Path, default=None,
+        help="source questions jsonl for the run. Supplies each question's `cards` "
+        "list (run output rows don't carry it) and backfills answer_gold when the "
+        "run predates that field. Without it the UI still builds -- it just has no "
+        "card panel.",
+    )
+    ap.add_argument(
+        "--no-cards", action="store_true",
+        help="skip Scryfall enrichment even when --questions is given",
+    )
     args = ap.parse_args()
 
     review = json.loads(args.inp.read_text(encoding="utf-8"))
+
+    # Join card names + judge ruling from the source questions file. The run
+    # output carries answer_gold but never `cards`, so without this the grader
+    # cannot show what the cards actually do.
+    if args.questions:
+        src = {}
+        for line in args.questions.read_text(encoding="utf-8").splitlines():
+            if line.strip():
+                q = json.loads(line)
+                src[q["id"]] = q
+        missing = 0
+        for r in review:
+            q = src.get(r["id"])
+            if not q:
+                missing += 1
+                continue
+            r.setdefault("answer_gold", q.get("answer_gold"))
+            r["level"] = q.get("level")
+            r["source_url"] = q.get("url")
+            names = q.get("cards") or []
+            r["cards"] = [] if args.no_cards else _load_card_data(names)
+            r["card_names"] = names
+        if missing:
+            print(f"[warn] {missing} row(s) had no match in {args.questions.name}")
+        if not args.no_cards:
+            n_cards = sum(len(r.get("cards") or []) for r in review)
+            n_bad = sum(1 for r in review for c in (r.get("cards") or []) if c["error"])
+            print(f"[cards] resolved {n_cards - n_bad}/{n_cards} across {len(review)} rows")
     prior = {}
     if VERDICTS.exists():
         prior = {v["id"]: v for v in json.loads(VERDICTS.read_text(encoding="utf-8"))}
@@ -96,6 +190,33 @@ _TEMPLATE = r"""<!doctype html>
   .rule .rid{font:12px ui-monospace,monospace;font-weight:600;display:block;margin-bottom:3px}
   .col.cite .rid{color:var(--cite)} .col.gold .rid{color:var(--gold)}
   .empty{color:var(--wrong);font-size:13px;font-style:italic}
+  /* Judge ruling -- the human-authored answer this is graded against. Gold
+     accent (same token as gold rules) and a left rule so it reads as the
+     reference, visually distinct from the model's answer directly above it. */
+  .ruling{border:1px solid var(--gold);border-left-width:3px;border-radius:8px;
+    padding:12px 14px;margin-bottom:14px;background:rgba(227,179,65,.06);
+    white-space:pre-wrap;font-size:14px}
+  .ruling h3{font-size:12px;text-transform:uppercase;letter-spacing:.05em;
+    color:var(--gold);margin:0 0 7px;font-weight:700}
+  /* Card panel. Grid so 1-3 cards sit side by side on desktop and stack on
+     narrow screens; each face is its own block because P/T and cost are
+     per-face. */
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));
+    gap:10px;margin-bottom:14px}
+  @media(max-width:680px){.cards{grid-template-columns:1fr}}
+  .mtgcard{border:1px solid var(--line);border-radius:8px;background:var(--panel2);
+    padding:11px 13px;font-size:13px}
+  .mtgcard .cname{font-weight:700;font-size:14px;display:block}
+  .mtgcard .cost{font:12px ui-monospace,monospace;color:var(--accent);float:right;
+    margin-left:8px}
+  .mtgcard .tline{color:var(--muted);font-size:12.5px;margin:2px 0 6px;font-style:italic}
+  .mtgcard .otext{white-space:pre-wrap;margin:0}
+  .mtgcard .pt{display:inline-block;margin-top:7px;font:12px ui-monospace,monospace;
+    font-weight:700;background:var(--panel);border:1px solid var(--line);
+    border-radius:6px;padding:2px 8px}
+  .mtgcard .face+.face{border-top:1px dashed var(--line);margin-top:9px;padding-top:9px}
+  .mtgcard.err{border-color:var(--wrong)}
+  .mtgcard.err .cname{color:var(--wrong)}
   .clar{border-left:3px solid var(--partial);padding:6px 12px;margin-bottom:14px;
     color:var(--muted);font-size:13.5px}
   .priornote{color:var(--muted);font-size:12.5px;margin-top:8px;font-style:italic}
@@ -149,6 +270,37 @@ function ruleList(ids, textMap, cls){
   }).join('');
 }
 
+// Cards: rendered PER FACE. A single-faced card has one face; a DFC/split/
+// adventure card has one per face, each with its own cost, type line and P/T.
+// Only emit the P/T badge for a face that actually has those values -- an
+// empty "/" on every instant would be noise.
+function faceBlock(f){
+  const pt = f.power !== '' && f.toughness !== '' ? `${esc(f.power)}/${esc(f.toughness)}`
+           : f.loyalty ? `loyalty ${esc(f.loyalty)}`
+           : f.defense ? `defense ${esc(f.defense)}` : '';
+  return `<div class="face">
+    ${f.mana_cost?`<span class="cost">${esc(f.mana_cost)}</span>`:''}
+    <span class="cname">${esc(f.name)}</span>
+    <div class="tline">${esc(f.type_line)}</div>
+    <p class="otext">${esc(f.oracle_text)}</p>
+    ${pt?`<span class="pt">${pt}</span>`:''}
+  </div>`;
+}
+function cardPanel(cards, names){
+  if(!cards || !cards.length){
+    // No enrichment available -- still name the cards the question references
+    // rather than silently showing nothing.
+    if(names && names.length)
+      return `<div class="cards"><div class="mtgcard"><span class="cname">${names.map(esc).join(', ')}</span>
+        <div class="tline">card text not loaded — rebuild with --questions</div></div></div>`;
+    return '';
+  }
+  return `<div class="cards">${cards.map(c=>c.error
+    ? `<div class="mtgcard err"><span class="cname">${esc(c.name)}</span>
+         <div class="tline">could not resolve: ${esc(c.error)}</div></div>`
+    : `<div class="mtgcard">${c.faces.map(faceBlock).join('')}</div>`).join('')}</div>`;
+}
+
 const list = document.getElementById('list');
 DATA.forEach(r=>{
   const el = document.createElement('div');
@@ -159,12 +311,15 @@ DATA.forEach(r=>{
       <span class="badge q">${r.id}</span>
       <span class="badge">${r.kind}</span>
       <span class="badge">match: ${r.match}</span>
+      ${r.level?`<span class="badge">level: ${esc(r.level)}</span>`:''}
       <span class="badge">answered:
         <b class="${r.answered?'flag-ok':'flag-no'}">${r.answered}</b></span>
       ${emptyCite?'<span class="badge flag-no">EMPTY CITATIONS</span>':''}
     </div>
     <div class="q">${esc(r.question)}</div>
+    ${cardPanel(r.cards, r.card_names)}
     <div class="ans">${refHighlight(r.answer)}</div>
+    ${r.answer_gold?`<div class="ruling"><h3>Judge ruling (gold answer)</h3>${refHighlight(r.answer_gold)}</div>`:''}
     ${r.clarification?`<div class="clar"><b>Clarification asked:</b> ${esc(r.clarification)}</div>`:''}
     <div class="cols">
       <div class="col cite"><h3>Cited by the answer</h3>${ruleList(r.citations, r.cited_text)}</div>
