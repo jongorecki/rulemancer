@@ -108,6 +108,16 @@ def main() -> None:
                 missing += 1
                 continue
             r.setdefault("answer_gold", q.get("answer_gold"))
+            # gold_groups is NOT on the run output row (run_answer_eval.py
+            # records `match` but not the groups), so without this join a
+            # correctly-labelled groups question would still render as a flat
+            # list -- the exact misrepresentation the panel exists to fix.
+            # `match` is joined too so a relabelled questions file shows its
+            # new mode against an older run.
+            if q.get("gold_groups"):
+                r["gold_groups"] = q["gold_groups"]
+            if q.get("match"):
+                r["match"] = q["match"]
             r["level"] = q.get("level")
             r["source_url"] = q.get("url")
             names = q.get("cards") or []
@@ -217,6 +227,29 @@ _TEMPLATE = r"""<!doctype html>
   .mtgcard .face+.face{border-top:1px dashed var(--line);margin-top:9px;padding-top:9px}
   .mtgcard.err{border-color:var(--wrong)}
   .mtgcard.err .cname{color:var(--wrong)}
+  /* Gold match-mode legend. One accent per mode so the scoring bar is
+     recognisable at a glance rather than read: any=blue (loosest),
+     all=red (strictest), groups=gold (structured). */
+  .gmode{display:flex;align-items:center;gap:8px;margin-bottom:9px;font-size:12px}
+  .gtag{font:11px ui-monospace,monospace;font-weight:700;letter-spacing:.06em;
+    border-radius:5px;padding:2px 7px;border:1px solid}
+  .gwhy{color:var(--muted)}
+  .gm-any .gtag{color:var(--accent);border-color:var(--accent-d);
+    background:rgba(110,168,254,.10)}
+  .gm-all .gtag{color:var(--wrong);border-color:var(--wrong);
+    background:rgba(248,81,73,.10)}
+  .gm-groups .gtag{color:var(--gold);border-color:var(--gold);
+    background:rgba(227,179,65,.10)}
+  /* Each OR-group is its own bordered block; the AND between them is an
+     explicit separator, not whitespace the reader has to infer. */
+  .ggroup{border:1px solid var(--line);border-left:3px solid var(--gold);
+    border-radius:8px;padding:9px 10px 2px}
+  .ghead{font:11px ui-monospace,monospace;font-weight:700;color:var(--gold);
+    text-transform:uppercase;letter-spacing:.05em;margin-bottom:7px}
+  .ghead .gjoin{color:var(--muted);font-weight:400;text-transform:none;
+    letter-spacing:0;margin-left:5px}
+  .gand{text-align:center;font:11px ui-monospace,monospace;font-weight:700;
+    color:var(--muted);letter-spacing:.1em;margin:7px 0}
   .clar{border-left:3px solid var(--partial);padding:6px 12px;margin-bottom:14px;
     color:var(--muted);font-size:13.5px}
   .priornote{color:var(--muted);font-size:12.5px;margin-top:8px;font-style:italic}
@@ -268,6 +301,39 @@ function ruleList(ids, textMap, cls){
     const t = (textMap && textMap[id]) || '(text not found as a chunk)';
     return `<div class="rule"><span class="rid">[${esc(id)}]</span>${esc(t)}</div>`;
   }).join('');
+}
+
+// Gold rules rendered ACCORDING TO THEIR MATCH MODE.
+//
+// A flat list misrepresents what is actually being scored: "any" means find
+// one of these, "all" means every one is required, and "groups" means an
+// AND-of-ORs. Three different bars, and a grader reading one undifferentiated
+// list cannot tell which one applies -- so they cannot tell whether a
+// retrieval that surfaced two of four ids passed or failed.
+function goldPanel(r){
+  const mode = r.match || 'any';
+  const legend = {
+    any:    ['ANY',    'find <b>any one</b> of these'],
+    all:    ['ALL',    '<b>every</b> rule is required'],
+    groups: ['GROUPS', '<b>all</b> groups, <b>any one</b> within each'],
+  }[mode] || ['ANY','find any one of these'];
+  const chip = `<div class="gmode gm-${esc(mode)}">
+      <span class="gtag">${legend[0]}</span><span class="gwhy">${legend[1]}</span></div>`;
+
+  if(mode === 'groups' && r.gold_groups && r.gold_groups.length){
+    const groups = r.gold_groups.map((g,i)=>`
+      <div class="ggroup">
+        <div class="ghead">Group ${i+1} <span class="gjoin">any one of</span></div>
+        ${ruleList(g, r.gold_text)}
+      </div>`).join('<div class="gand">AND</div>');
+    return chip + groups;
+  }
+  // groups declared with no gold_groups is a data bug, not a display case --
+  // say so rather than silently rendering it as a flat list.
+  if(mode === 'groups')
+    return chip + `<div class="empty">match is "groups" but gold_groups is empty — check the label</div>`
+                + ruleList(r.gold, r.gold_text);
+  return chip + ruleList(r.gold, r.gold_text);
 }
 
 // Cards: rendered PER FACE. A single-faced card has one face; a DFC/split/
@@ -323,7 +389,7 @@ DATA.forEach(r=>{
     ${r.clarification?`<div class="clar"><b>Clarification asked:</b> ${esc(r.clarification)}</div>`:''}
     <div class="cols">
       <div class="col cite"><h3>Cited by the answer</h3>${ruleList(r.citations, r.cited_text)}</div>
-      <div class="col gold"><h3>Gold rules</h3>${ruleList(r.gold, r.gold_text)}</div>
+      <div class="col gold"><h3>Gold rules</h3>${goldPanel(r)}</div>
     </div>
     <div class="verdict">
       <button class="vbtn" data-v="correct">Correct</button>
