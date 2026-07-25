@@ -1,107 +1,135 @@
-# Handoff — Rulemancer: layers tool fully built, never yet run against a live model
+# Handoff — Rulemancer: Slice 0 is 19% run, and it already found two things that change the plan
 
 **Replaces the prior handoff (git has every version). Written at the end of the
-2026-07-24 session, which landed the held Scryfall merge, calibrated the layers
-trigger (it FAILED as specified), finished Slices 3 and 4, and found two
-production bugs caused by the same defect.**
+2026-07-25 session, which built the Slice 0 harness, shipped a production cap
+raise on measured evidence, ran the first live arms of the layer-system tool
+work, and measured two numbers nobody had: within-arm noise, and gpt-5-mini's
+real standing against sonnet.**
 
-Suite is **519 passed, exit 0** on a clean tree. Nine commits: `c481292`,
-`8b90395`, `24f2bb9`, `061da94`, `17f4d16`, `7a316bd`, `4343848`, `6aae61f`,
-`4f028dd`.
+Suite is **537 passed, exit 0** on a clean tree. Six commits: `b46dd6e`,
+`3843b2b`, `7d2dec6`, `ce38d0d`, `80c6493`, `9508063`.
 
 ---
 
 ## ⚠️ FIRST, UNLEARN THIS
 
-**1. The trigger calibration is DONE, and the plan's own regex was broken.** The
-previous handoff made calibration "the one thing to do first" and named it the
-likeliest place the plan fails. It was right to. §3c's trigger scored **20.4%**
-bucket-A recall against its own ≥60% bar. Two of the three causes were *defects*,
-not design limits — a `get\s*` that never matched singular `"gets +N/+N"`, and a
-type-alternation blind to land subtypes (so **Blood Moon** and **Magus of the
-Moon**, the corpus's most common layer cards, were invisible). Fixing both still
-failed at 53.7%. Jon ruled the `>= 2` threshold down to `>= 1`. **Final: 77.8%
-recall (42/54) at 5.1% firing over the full 1,341-row non-layers pool.** Verified
-against the *shipped* function, not just the calibration script.
+**1. "The tool must tie or beat the control arm" now has a measured noise floor,
+and it is large.** Two BASE layers reps — identical config, identical 54 rows —
+disagree on **6 of 54 rows (11%)**: 66.7% vs 63.0%. Unstable rows are `rg126`,
+`rg132`, `rg1932`, `rg633`, `rg783`, `rg807`. **A 3-point difference between arms
+is indistinguishable from the same arm run twice.** Any §8.2 verdict has to clear
+this bar, and the paired McNemar test in `evals/report_layers_slice0.py` is there
+because pooled percentages invite over-reading. Empirically: b=8/c=2 gives
+p=0.11 (not significant); you need roughly b=10/c=0 before it is real.
 
-**2. The API is live.** Re-verified this session with a real `claude-sonnet-5`
-call (15 in / 3 out, `stop_reason=end_turn`). Credentials load from `.env` via
-`load_dotenv()`. **New gotcha:** bare `load_dotenv()` raises `AssertionError` when
-run from a `python -` heredoc, because `find_dotenv()` walks `frame.f_back` and
-there is no caller frame. Pass the path: `load_dotenv("D:/Job_hunt/mtg-rules-bot/.env")`.
-That failure looks nothing like auth and nothing like a cap — don't misread it as either.
+**2. Two of the four §1.1 seeds are no longer stably failing, and one is fixed by
+a model at a tenth the cost.** Per rep, under BASE (tool off): `rg3868` PASS/PASS,
+`rg811` fail/fail, `rg807` fail/PASS, `rg633` PASS/fail. So of the plan's four
+motivating failures, only **rg811** is stably wrong today. `rg3868` is stably
+right. The traces in §1.1 predate `TOP_N` 3→5, the Scryfall merge, and the cap
+raise — treat them as historical, not current.
 
-**3. "Pre-existing failure" is a claim to check, not accept.** A build agent
-reported a red test as "unrelated, pre-existing." It was unrelated to *its* change
-— and it was not pre-existing; the same suite had been green an hour earlier.
-Chasing it found a live production bug. Both times this session that an agent's
-green-suite or red-suite claim got checked, the check paid.
+**3. The API is live, but the account ran out of credit mid-run once.** A real
+400 (`Your credit balance is too low`, `req_011CdMuFRpSxasCFtEa6r4x4`) killed
+arm 1 at row 34. Jon topped it up and the run resumed. This is NOT the stale
+"capped until 2026-08-01" claim from two sessions ago — if you hit a wall, test
+with a real call and read the error before writing anything down.
 
 ---
 
 ## THE ONE THING TO DO FIRST
 
-**Run Slice 0, then Slice 5. The layers tool is fully built and has never met a
-live model.** Slices 1-4 are done, engine hand-verified against the plan's own
-traces, trigger verified against the corpus — but every bit of that is offline.
+**Finish Slice 0.** `uv run python evals/run_layers_slice0.py` — it is resumable
+on row count and will pick up mid-arm. 139 of 724 rows are done (~$12.73 spent);
+budget roughly **$25 and 9 hours** for the rest.
 
-- **Slice 0 — the control arm.** One prompt variant with CR 613.6 + 611.3a quoted,
-  run on the four seeds *and* a non-layers regression sample, several reps,
-  aggregated. **Per Jon's §8.2 ruling the tool must TIE OR BEAT this**, on both
-  win-rate and regression. Do it first: it is nearly free and it is the bar.
-- **Slice 5 — live validation.** Tool-on vs tool-off over the COMPUTE bucket, plus
-  the regression arm, against Slice 0 on **both** win-rate and regression. Frozen
-  judge. Free with the same run: the **round-usage histogram** — how many layers
-  attempts consume both tool-capable rounds. Near zero means `TOOL_ROUND_CAP` is
-  right; a meaningful share hitting the forced round with an unfinished tool
-  sequence means raise it, with data instead of assumption.
+```
+base_layers_r1     54/54  judged      <- complete
+base_layers_r2     54/54  judged      <- complete
+base_layers_r3     31/54  -           <- resumes here
+control_layers_r1..r3, base_regression_r1..r2, control_regression_r1..r2  not started
+```
 
-Both are unblocked. The cap never blocked them and the API is confirmed live.
+Then `uv run python evals/report_layers_slice0.py` for pooled rates, the paired
+McNemar, the four seeds per rep, and the truncation tally. **Grading verdicts are
+Jon's** — bring him the discordant pairs to read, not a grade.
 
-**Bucket-count note:** the plan says the COMPUTE bucket is 51 rows. The buckets
-were re-derived and *persisted* this session to `evals/_layers_buckets.json` and
-came out **A=54, B=1, C=13**. The re-derived A is slightly more inclusive. Use the
-file — it is the only durable record; the 51/1/16 hand-count was never saved.
+Everything needed for Slice 5 is already wired: `--no-layers-tool` for the
+tool-off arm, per-row `tool_rounds` for §8.3's round-usage histogram.
 
 ---
 
-## THE TWO BUGS — one defect, two costumes
+## WHAT SHIPPED THIS SESSION
 
-Both found this session, both caused by **an index into an externally-owned list,
-persisted as if it were an identifier.** The Scryfall local-bulk merge changed the
-order in which each card's rulings come back, and everything keyed on position
-silently pointed at the wrong text.
+**The Slice 0 harness** (`docs/spec-slice0-harness.md`, built by a Sonnet agent
+against the written spec, verified independently on a clean tree):
 
-**Bug 1 — the ruling embedding cache.** `ruling_id()` was `oracle_id#index` and
-`ruling_emb` was keyed by it and "frozen once written." After the merge, **175 of
-190 cached embeddings across the card-eval pool (92%) no longer matched the text
-at their index.** Selection scored stale vectors while the prompt printed whatever
-sat at the chosen index; `COSINE_FLOOR`'s calibration was invalidated for affected
-cards. It did **not** self-heal — `_card_ruling_embeddings()` only embeds *missing*
-keys and never checks a cached vector against its text. Nothing crashed.
-**FIXED** (`17f4d16` purge, `7a316bd` durable): `ruling_id()` is now
-`f"{oracle_id}#{sha256(text.strip())[:12]}"`.
+- `RulesAgent(layers_tool=False)` + `--no-layers-tool`. **Without this Slice 0 was
+  impossible** — the trigger fires on 77.8% of bucket A, so a "control" arm would
+  have silently carried the tool on ~42 of 54 rows.
+- `SYSTEM_VERSIONS["v3+613"]` + `--system-version`. CR 613.6 and 611.3a pasted
+  verbatim from `data/raw/MagicCompRules 20260619.txt`, curly quotes intact,
+  asserted against the corpus by a test. `PROMPT_VERSION` and `SYSTEM` unmoved.
+- Per-row telemetry: `stop_reason`, `tool_calls`, `tool_rounds`, `usage`,
+  `system_version`, `layers_tool`, `max_tokens`. Rows previously recorded **no
+  token usage at all**, so cost and truncation were invisible after the fact.
+- `_layers_regression_sample.jsonl` — 100 frozen non-layers rows, seed 613.
+  Verified by set comparison to be **identical** to `calibrate_layers_trigger.py`'s
+  plain sample (the `answer_gold` filter is a no-op on today's corpus), so the
+  regression arm runs on exactly the rows the 5.1% fire rate was measured against.
 
-**Bug 2 — the eval gold.** `LOAD_BEARING_RULINGS` in `evals/run_openrouter_arm.py`
-stores ruling *indices*. **All 14 questions pointed at the wrong ruling.** Only
-c014 (Trinisphere #0) survived. This is the worse one: the cache degraded silently
-at runtime, this degraded a **measurement**, which reports plausible wrong numbers
-with no error anywhere. **RE-DERIVED** (`6aae61f`) by matching each entry back to
-the prose description in its own `cards.jsonl` `note` — Jon's prose survived the
-reorder even though the numbers didn't.
+**`GEN_MAX_TOKENS` 16384 → 32768 in production** (Jon's call, on evidence). 8% of
+bucket-A rows truncated at 16384 and the failure mode is a **total loss**, not a
+short answer: `rg131` spent the whole cap on thinking twice and returned a
+98-char degrade sentinel. At 32768 it answered correctly. **The point is margin,
+not size** — the recovered run used 12,550 tokens, *under* the old cap. Thinking
+length is stochastic (`rg87` drew 12,419 then 10,206; `rg130` 15,712 then 7,266),
+so the old cap had no headroom for the tail. Confirmed at scale: **0 truncations
+in 138 rows** at the new cap, with one draw at 19,225 that would have died.
 
-**Ten of those re-derivations Jon has not individually reviewed** (he approved five
-plus two additions; the other nine turned out stale too and were fixed in the same
-pass). They are listed with their before→after in the commit message and inline
-comments. Worth a confirmation pass.
+**`GEN_REQUEST_TIMEOUT = 900.0`, and it is not optional.** The SDK refuses a
+non-streaming `messages.parse()` whose `max_tokens` implies >10 minutes
+(`_calculate_nonstreaming_timeout`), skipping that check only when a timeout is
+given per-request or the client's timeout differs from the SDK default. The two
+constants move together or every production call raises. `RulesAgent` now fails
+**at construction** with a message naming this class rather than dying mid-batch.
+Streaming is still the better long-term fix (residuals, rg3391).
 
-**Still open:** re-key `LOAD_BEARING_RULINGS` to `ruling_id()` instead of indices so
-it cannot rot again. Small, unblocked.
+**The gpt-5-mini head-to-head** — see the next section.
 
-**The lesson to carry:** what caught Bug 1 was a **byte-identity fixture** — the
-class of test usually deleted as brittle. Its brittleness was the entire point. Do
-not "fix" a red identity fixture by recapturing it until you have proved the delta
-is explained; recapturing first is exactly what would have buried this.
+---
+
+## THE HEAD-TO-HEAD, AND WHAT IT DID NOT SETTLE
+
+Jon's driver: sonnet is too expensive. Measured: **$0.0960/question vs
+$0.0098 — about 10x.**
+
+36 paired rows (18 sonnet misses + 18 level-matched hits from BASE r1), no tools
+either side: **7 recovered / 6 regressed, exact McNemar p = 1.0.** A tie.
+
+Read it with three corrections attached:
+
+- **The judge IS gpt-5-mini** (`judge_bakeoff` + `openai/gpt-5-mini`, frozen). This
+  arm was graded by its own family. A loss would be strong evidence; a tie is weak.
+- **Its regressions are mostly refusals** — 5/36 declines vs sonnet's **0/36**, and
+  4 of its 6 regressions *are* those declines.
+- **One of its two headline wins is not a win.** It answered `rg807` and `rg811`
+  correctly (verified by reading both against gold, not by trusting the judge) —
+  but sonnet passes `rg807` in rep 2. Only **rg811** is a row sonnet stably fails
+  and gpt-5-mini gets right.
+
+**It does not overturn the 15-point held-out gap.** These are bucket-A CR 613 rows,
+not a representative sample. If cost stays a live concern, the next spend is a
+head-to-head on a *representative* set (~150 rows ≈ $1.50 for gpt-5-mini), not
+more layers rows.
+
+**Do not build the OpenRouter tool port to chase this.** Measured: of gpt-5-mini's
+64 held-out misses, the layers tool fires on **4** and the cost tool on **0**. 60
+of 64 would get byte-identical prompts. That is combat's base rate (7 in 1,409 →
+shelved), not layers' (51 → cleared). The port itself is de-risked and viable —
+`docs/spike-tool-use-findings.md` §4 proves gpt-5-mini calls tools and honors
+`tools` + strict `response_format` together over OpenRouter, and scopes the work
+to three changes in `openrouter_backend.py` — but it would move at most 3 questions.
 
 ---
 
@@ -109,118 +137,95 @@ is explained; recapturing first is exactly what would have buried this.
 
 - **Rule 0: plan before code.** Every `plan-*.md` is design-only until Jon rules. A
   bug-fix on approved code uses systematic-debugging; a NEW tool needs a plan.
-- **USE SUBAGENTS.** Sonnet for scoped implementation against a written plan, Haiku
+- **USE SUBAGENTS.** Sonnet for scoped implementation against a written spec, Haiku
   for bulk fetch/filter/verify with compact returns. Lead keeps judgment, review,
-  and talking to Jon. This session ran 4.
+  and talking to Jon.
 - **Do-not-delegate:** eval questions, gold, grading verdicts, **reading failures**
-  (the lead reads the garbled/failed output itself). Tools route and rank; they
-  never assign a verdict.
-- **Verify agents' claims yourself.** Re-run on a clean tree and hand-check
-  deliverables against the plan's own expected outputs, not the agent's tests.
+  (the lead reads the failed output itself). Tools route and rank; never a verdict.
+- **Verify agents' claims yourself.** This session's agent was clean, but the check
+  still paid: it reported a "latent bug" in `build_prompt`'s `convo_ctx` branch that
+  was really a bug its own change would have introduced.
 - **Parallelise only across disjoint file sets.** Forbid `git add -A` / `git add .`
-  in every agent prompt — staging collisions are the real hazard. Concurrent agents
-  on master work fine if each stages named paths only.
+  in every agent prompt.
 - **Judge is FROZEN** (`judge_bakeoff` prompt + gpt-5-mini). Never reword.
 - **Never assert an MTG or model fact from memory.** Ground in the repo CR
   (`data/raw/MagicCompRules 20260619.txt`), Scryfall via
   `rulesagent.tools.scryfall.get_card`, or a live check. Model facts via the
-  claude-api skill.
-- Commit per slice on master, heredoc messages, `Co-Authored-By: Claude Opus 4.8`.
-  `.venv/Scripts/python.exe`, `PYTHONIOENCODING=utf-8`. Suite is `uv run pytest`.
-  Never pipe a long run through `| tail` — it masks the exit code.
+  claude-api skill — it was right about the SDK guard and the intro pricing.
+- Commit per slice on master, heredoc messages, `Co-Authored-By: Claude Opus 5`
+  (the trailer names the model that did the work; prior handoffs said 4.8 because
+  that was the model then). `.venv/Scripts/python.exe`, `PYTHONIOENCODING=utf-8`.
+  Suite is `uv run pytest`. Never pipe a long run through `| tail`.
   **Jon runs the app on port 8000 — never bind or kill it.**
 - Don't read subagent transcript files; wait for the completion notification.
 
 ---
 
-## THE STRATEGY (unchanged through-line)
+## THE LESSON TO CARRY
 
-A **card-interaction reasoning product.** Held-out (RulesGuru-150): sonnet **72%**
-raw / **75.3%** after Jon's regrade. Retrieval overfit badly (recall@50 100% tuned
-vs **63%** held-out) AND barely predicts correctness — the model answers card
-questions from **oracle text**, not retrieved CR rules. **So the levers are
-REASONING (tools) and CARD-DATA quality.**
+Last session's two bugs were one defect in two costumes: **an index into an
+externally-owned list, persisted as if it were an identifier.** This session
+produced three more of the same family, and none of them raised:
 
-## THE TOOL ROADMAP
+- The driver "completed" an 11-hour run in milliseconds, **exit 0**. The redirect
+  into a not-yet-created log dir failed and a trailing `echo` succeeded. Same
+  masked-exit-code hazard as `| tail`.
+- The CLI's `--request-timeout` defaulted to `None` and was passed **explicitly**,
+  silently defeating a new library default. Every call raised the SDK guard.
+- The row never recorded `max_tokens`, but the resume guard compared against it —
+  `None != 32768` on every row, **silently disabling resume**.
 
-The model orchestrates and reasons; deterministic tools own the exact
-sub-computations it narrates right and then botches.
+The shape: *a value that looks present but isn't, or a check that looks active but
+compares against nothing.* All three were caught by running the thing end to end
+and inspecting the artifact — none by reading the code. The fail-fast constructor
+check in `answer.py` converts one of them into a loud failure permanently.
 
-1. **Cost calculator — SHIPPED + HARDENED** (`da0449e`, `e763e91`, `1dfe6d4`).
-2. **Combat-damage — SHELVED** (only 7 assignment-shaped questions in 1,409).
-3. **Layer-system resolver (CR 613) — BUILT, Slices 1-4. Needs Slices 0 and 5.**
-4. **State-based-action checker** — idea, not planned.
-5. **Question-classification pipeline step** — Jon 2026-07-24: *"classification is
-   more durable and something we should do when it makes sense."* Still the
-   intended long-term answer for routing; the calibrated regex is the ship-now
-   mechanism, not a claim that regexes are right.
-6. Other ideas from regrade notes: trigger-type identifier (rg608), ability-type
-   definer (rg549, rg517), replacement-effect ordering (rg1095, rg1953).
-7. **DO NOT build the keyword-reminder-text tool** — already ruled out.
-
----
-
-## WHAT SHIPPED THIS SESSION
-
-- **Scryfall merge landed** (`c481292`, `8b90395`) — the held
-  `agent-a818653b08eb516a4` branch: local bulk store, per-face lookup tier (fixes
-  the c011/Valki miss), fuzzy-fallback debug surface, admin refresh endpoints,
-  local-first/live-fallback/self-heal. The feared "four-way `answer.py` conflict"
-  was **one hunk and additive on both sides** — `last_tool_calls` and
-  `last_fuzzy_fallbacks` registered at the same point in `__init__`. Kept both; all
-  four seams asserted by name after resolving.
-- **Trigger calibrated + ruled** (`24f2bb9`) — see above. Buckets persisted.
-- **Slice 3** (`061da94`) — CR 613.8b dependency ordering incl. the
-  loop-falls-back-to-timestamp case, the three missing refusals, and
-  `source_on_this_object` replacing fragile ability-text matching. Seed traces
-  hand-checked against §3b.5: rg3868 → black 6/6 no abilities, rg807 → 4/4 blue
-  Frog, rg811 → 4/4 black Frog with trample + upkeep trigger.
-- **Slice 4** (`4343848`) — `RESOLVE_LAYERS_TOOL`, `_needs_layers_tool`,
-  `_oracle_all_faces`, `_run_resolve_layers`, `_TOOL_DISPATCH` registration. All
-  four of §3d's must-fixes were **already present** from the earlier seam
-  generalisation; nothing re-applied.
-- **`TOP_N` 3 → 5** (`17f4d16`) per Jon. Honest result: **c011 gains its
-  load-bearing modal-DFC ruling at rank 4; c010 and c019 are NOT fixed.** One of
-  the three flagged questions was a cap problem; the other two are the
-  semantic-mismatch limit the existing calibration note already named. Cost ~63
-  tokens/question.
-- **Both bugs above, fixed** (`7a316bd`, `6aae61f`), and the fixture recaptured
-  once, after both, with the delta proved explained (`4f028dd`).
+Also: `test_prompt_identity` went red on the cap change. It was **not** recaptured.
+Every other field was digested before and after and proved byte-identical, then
+only `max_tokens` was edited. Do the same next time.
 
 ---
 
 ## RESIDUALS / OPEN ITEMS
 
-- **rg3391 — root-caused, fix not built.** Its degrade text says
-  `stop_reason=max_tokens`, so it IS truncation. But raising the number alone
-  doesn't work — `answer.py` records that `max_tokens=32768` trips the SDK's
-  non-streaming 10-minute-timeout guard. The fix is to **stream**
-  (`client.messages.stream()` + `.get_final_message()`). Aggravators: sonnet-5 runs
-  adaptive thinking by default when `thinking` is omitted and `max_tokens` caps
-  thinking + text together; sonnet-5's tokenizer emits ~30% more tokens than 4.6.
-  ⚠️ Do NOT "fix" this with `thinking: {"type": "disabled"}` — that makes sonnet-5
-  measurably *less* likely to reach for tools, which is exactly wrong here.
-- **Sentinel de-conflation** — `answer.py` collapses cap-exhaustion and
-  validation-empty into one `"error"` sentinel. Small, unblocked.
-- **rg6916 rep1** — leaked scratchpad text in an `answered=False` decline. Small.
-- **Re-key `LOAD_BEARING_RULINGS` to `ruling_id()`.** Small, unblocked.
-- **Confirm the ten unreviewed gold re-derivations** (see above).
-- **rg6636 rep3 word-salad** — deliberately left uncaught; monitored via
-  `last_uncited_success`. Not an open item.
-- **`evals/_phase1_costtool_repro.py`** has two stale `TOOL_ROUND_CAP (3)` comments.
-  Comments only, not exercised by the suite.
+- **`.gitattributes` now pins `_layers_regression_sample.jsonl` to `-text`.**
+  `core.autocrlf=true` would otherwise hand a clean clone CRLF while the builder
+  writes LF, reddening the byte test for a reason unrelated to its contents.
+  Apply the same to any future frozen fixture.
+- **One row has `stop_reason: None`** in `base_layers_r3` (the row in flight when
+  the run was stopped). Harmless; it will be regenerated on resume.
+- **rg3391 — stream instead of raising the cap.** Still the better fix; the cap
+  raise plus timeout override is the cheap one. `answer.py`'s comment at the
+  generation call was amended to stop over-generalising from the empty-output case.
+- **The verdict files don't record which judge produced them.** `JUDGE_SLUG` is
+  sent in the request but not written to the output, so "the judge is FROZEN" is a
+  property of the code at run time that the artifact cannot prove. Adding
+  `judge_model` + a prompt digest to the summary is two lines and does not reword
+  the instrument. **Jon was asked and has not ruled** — do not change the judge
+  mid-measurement without his say.
+- **Sonnet's 72%/75.3% held-out baseline is stale.** Measured 07-24 00:29 —
+  pre-tools, pre-cap-raise — and `stop_reason` wasn't recorded then, so there is no
+  way to tell how much of it was truncation. Re-running the 150 on today's pipeline
+  is ~$7-8 and refreshes the number the whole strategy argues from.
+- **Arm B of the head-to-head was never run** (gpt-5-mini as *rewriter* as well as
+  generator). Needs a `rewrite_model`/`rewrite_backend` knob on `RulesAgent`;
+  `rewrite_query()` already takes `model` and has a `backend == "openrouter"` branch.
+  The rewriter bakeoff predicts it loses (ties haiku @5, worse at every other depth).
+- Sentinel de-conflation, rg6916 rep1 leaked scratchpad, re-key
+  `LOAD_BEARING_RULINGS` to `ruling_id()`, and the ten unreviewed gold
+  re-derivations (commit `6aae61f`) are all still open and unblocked.
 
 ## HELD / BLOCKED ON JON
 
-- Nothing is blocked. The Scryfall merge that was held is landed.
+- Nothing blocks the work. Two open questions: the judge-provenance stamp above,
+  and whether to fund a representative-sample model head-to-head.
 
 ## STILL QUEUED
 
 `plan-sso.md` (tied to Jon's job-hunt auth-evidence goal), `plan-deploy.md`,
-Slice C gold discovery, `plan-c011-stale-rulings.md` (diagnosed, frozen), the
-miss-partition diagnostic (largely mooted), and the pure-rules eval set — batch 1
-is 8 approved pairs and **Jon's standing grant lets you draft 15-20+ at a time**,
-pulling from any tagged slice. The one binding rule: only generalize where the
+Slice C gold discovery, `plan-c011-stale-rulings.md` (diagnosed, frozen), and the
+pure-rules eval set — batch 1 is 8 approved pairs and **Jon's standing grant lets
+you draft 15-20+ at a time**. The one binding rule: only generalize where the
 original gold ALREADY states the rules mechanism explicitly, so derived gold is a
 paraphrase rather than a new ruling.
 
@@ -228,20 +233,31 @@ paraphrase rather than a new ruling.
 
 ## ENVIRONMENT & GOTCHAS
 
-- **`data/scryfall.db` exists locally** (76 MB, 38,336 cards, gitignored). The
-  merged local-first path resolves cards offline — no 180 MB self-heal download is
-  waiting. Do not run `scripts/refresh_scryfall_bulk.py` casually.
-- **The `agent-a818653b08eb516a4` worktree is now merged** and safe to remove.
+- **Cost, measured, at intro pricing ($2/$10 per MTok through 2026-08-31):** bucket-A
+  layers question ≈ **$0.096** (~90s); non-layers regression question ≈ **$0.023**
+  (~38s); gpt-5-mini via OpenRouter ≈ **$0.0098** (~36s). Full Slice 0 ≈ $37 and
+  ~11 hours **sequential** — `run_answer_eval.py` has no concurrency. 6-8 way
+  parallelism would cut it to ~2h and is the obvious next harness win, but it was
+  deliberately not built mid-measurement.
+- Adaptive thinking dominates output: rg3868 spent 10,622 output tokens on a
+  ~700-token answer. `max_tokens` bounds thinking **and** text together.
+- `data/scryfall.db` exists locally (76 MB, 38,336 cards, gitignored). Local-first
+  resolution works offline; don't run `scripts/refresh_scryfall_bulk.py` casually.
 - **Oracle text and P/T are per-face** — `Card.faces[i].oracle_text`.
   `getattr(card, "power")` returns `None` even for a plain creature.
-- Answer object field for the answer text is **`.text`**, not `.answer`.
-- `data/parsed/` is **gitignored**; generated UIs regenerate from their builders.
-- Chrome extension blocks `file://`; serve local HTML over `http.server`, **never
-  port 8000**. Don't click a button that fires `confirm()` while driving the page.
-- The RulesGuru API re-randomizes card/name text per refetch;
-  `rulesguru_full.jsonl` is a frozen snapshot (stable on gold/level/tags).
-- Worktree agents MUST set `PYTHONPATH=<worktree>\src` or they silently test the
-  ORIGINAL repo's code. `data/raw/` and `evals/answers/` are gitignored (absent in
-  worktrees) — run on master when the CR corpus or eval data are needed.
+- Answer object field for the answer text is **`.text`**, not `.answer`. The
+  OpenRouter arm rows call it `text` too and carry **no `answer_gold`** —
+  `evals/report_h2h.py` adapts that shape so the frozen judge is reused unchanged.
+- `evals/answers/` and `data/parsed/` are gitignored; verdict JSONs in `evals/` are
+  tracked.
+- `_answer_from_frozen_prompt()` runs **no tool loop** — a frozen-prompts arm cannot
+  be compared against a tool arm. It now inherits `agent._gen_client` and
+  `agent.max_tokens` so it can't drift to a different budget.
+- The calibration script's `CardCache` returns `_FakeCardForRegex` objects with no
+  `mana_cost`, so it can measure the layers trigger but not the cost trigger. For
+  both, resolve real cards via `rulesagent.tools.scryfall.get_card(name,
+  no_refresh=True)` against the local DB.
+- Chrome extension blocks `file://`; serve local HTML over `http.server`, never port
+  8000.
 - Doc-metadata / token-economy rules live in `D:\Job_hunt\CLAUDE.md` and
   `Token-Economy-Policy.md`.
