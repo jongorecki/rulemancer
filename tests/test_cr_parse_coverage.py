@@ -93,6 +93,63 @@ def test_no_gaps_in_rule_numbering(parsed):
     )
 
 
+# The CR skips "l" and "o" in subrule letters -- they read as "1" and "0".
+# Verified against this release: all 568 parents with lettered subrules run
+# consecutively through this alphabet with ZERO exceptions, so the check is
+# exact rather than heuristic. A naive a-b-c-d check instead flags 19 perfectly
+# healthy rules (every sequence that reaches "k" then jumps to "m"), and a test
+# that cries wolf 19 times is a test someone switches off.
+SUBRULE_ALPHABET = [c for c in "abcdefghijklmnopqrstuvwxyz" if c not in "lo"]
+
+
+def test_no_gaps_in_subrule_letters(parsed):
+    """Jon's check, and the strongest of the three: it reads only the PARSED
+    output, so it holds no matter what the source malformation looks like.
+
+    The two regexes in this module encode assumptions about how a broken line
+    still resembles a rule. This one doesn't -- 119.1c followed by 119.1e is a
+    hole whether the cause was a stray period, a missing space, or something
+    nobody has seen yet. It is also what would have caught 119.1d directly;
+    test_no_gaps_in_rule_numbering only inspects numeric minors and is blind to
+    lettered subrules entirely.
+    """
+    import re as _re
+
+    rules, _ = parsed
+    numbers = {r.number for r in rules}
+    children: dict[str, list[str]] = {}
+    for n in numbers:
+        m = _re.fullmatch(r"(\d+\.\d+)([a-z]+)", n)
+        if m:
+            children.setdefault(m.group(1), []).append(m.group(2))
+
+    gaps = []
+    for parent, letters in sorted(children.items()):
+        got = sorted(letters, key=lambda s: (len(s), s))
+        want = SUBRULE_ALPHABET[: len(got)]
+        if got != want:
+            missing = [f"{parent}{c}" for c in want if c not in got]
+            gaps.append(f"{parent}: missing {missing or want}")
+    assert not gaps, (
+        f"{len(gaps)} rule(s) have non-consecutive subrule letters, i.e. a "
+        f"subrule was dropped: {gaps[:10]}"
+    )
+
+
+def test_every_subrule_has_its_parent_rule(parsed):
+    """A lettered subrule implies its parent rule exists. If 704.5a parsed but
+    704.5 did not, the parent line was dropped."""
+    import re as _re
+
+    rules, _ = parsed
+    numbers = {r.number for r in rules}
+    orphans = sorted(
+        n for n in numbers
+        if (m := _re.fullmatch(r"(\d+\.\d+)[a-z]+", n)) and m.group(1) not in numbers
+    )
+    assert not orphans, f"subrule(s) whose parent rule is missing: {orphans[:10]}"
+
+
 def test_606_5_specifically_survives(parsed):
     """Regression pin for the rule that was actually lost. Its source line has
     no period after the number; if RULE_RE is ever tightened back, this fails
