@@ -197,12 +197,17 @@ only `max_tokens` was edited. Do the same next time.
 - **rg3391 — stream instead of raising the cap.** Still the better fix; the cap
   raise plus timeout override is the cheap one. `answer.py`'s comment at the
   generation call was amended to stop over-generalising from the empty-output case.
-- **The verdict files don't record which judge produced them.** `JUDGE_SLUG` is
-  sent in the request but not written to the output, so "the judge is FROZEN" is a
-  property of the code at run time that the artifact cannot prove. Adding
-  `judge_model` + a prompt digest to the summary is two lines and does not reword
-  the instrument. **Jon was asked and has not ruled** — do not change the judge
-  mid-measurement without his say.
+- ~~The verdict files don't record which judge produced them.~~ **DONE** (`15644d4`,
+  Jon ruled). Every verdict file now carries `judge_model` and
+  `judge_prompt_sha256` (currently `openai/gpt-5-mini` / `b54fbdb95565abf8`) in
+  its summary block. The prompt and model are untouched — this stamps what ran.
+  **Files written before 2026-07-25 carry no stamp**, including
+  `layers_slice0_verdicts_base_layers_r1/r2.json` and
+  `h2h_verdicts_gpt5mini.json`; read their provenance from git. They were
+  deliberately not backfilled — asserting provenance into an artifact after the
+  fact is the move that makes the stamp worthless. If a later run's digest ever
+  differs from `b54fbdb95565abf8`, the instrument moved: stop and find out why
+  before comparing anything across it.
 - **Sonnet's 72%/75.3% held-out baseline is stale.** Measured 07-24 00:29 —
   pre-tools, pre-cap-raise — and `stop_reason` wasn't recorded then, so there is no
   way to tell how much of it was truncation. Re-running the 150 on today's pipeline
