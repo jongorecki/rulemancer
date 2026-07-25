@@ -10,8 +10,27 @@ from pathlib import Path
 from rulesagent.contracts import GlossaryEntry, Rule
 
 SECTION_HEADER_RE = re.compile(r"^[1-9]\.\s+(.+)$")
-RULE_RE = re.compile(r"^(\d+\.\d+)\.\s+(.+)$")
-SUBRULE_RE = re.compile(r"^(\d+\.\d+[a-z]+)\s+(.+)$")
+# The trailing period is OPTIONAL because the source is not consistent about
+# it. `data/raw/MagicCompRules 20260619.txt` line 2719 reads "606.5 If the
+# total cost..." with no period, so the strict form silently skipped it: rule
+# 606.5 and its example were dropped from the corpus entirely -- not folded
+# into a child, simply absent, leaving a hole between 606.4 and 606.6. Nothing
+# raised. No retriever could surface it and no answer could cite it, which is
+# why rg4420 (whose judge answer quotes 606.5 verbatim) was unanswerable.
+#
+# Measured blast radius of relaxing it: 3617 chunks -> 3618, added ['606.5'],
+# removed []. A full sweep of the CR found exactly one line with this typo,
+# against 1,169 well-formed rule lines, so the tolerance costs nothing and
+# guards against the next one.
+RULE_RE = re.compile(r"^(\d+\.\d+)\.?\s+(.+)$")
+# Same tolerance as RULE_RE, for the mirror-image typo. Subrules normally carry
+# NO period after the letter, but line 1059 reads "119.1d. In a two-player Brawl
+# game..." with one, so the strict form skipped it and 119.1d vanished -- a hole
+# between 119.1c and 119.1e that nothing reported. Found by
+# tests/test_cr_parse_coverage.py the first time it ran, which is the argument
+# for that test existing: the 606.5 sweep only looked at top-level rules and
+# could never have seen this one.
+SUBRULE_RE = re.compile(r"^(\d+\.\d+[a-z]+)\.?\s+(.+)$")
 EXAMPLE_RE = re.compile(r"^Example:\s*(.+)$")
 SENSE_RE = re.compile(r"^\d+\.\s+(.+)$")
 
