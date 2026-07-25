@@ -12,6 +12,7 @@ keyboard-driven. Run: `uv run python evals/build_grading_ui.py [--in PATH]`
 
 import argparse
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -69,8 +70,59 @@ def _load_card_data(names: list[str]) -> list[dict]:
                 "type_line": card.type_line, "oracle_text": card.oracle_text,
                 "power": "", "toughness": "", "loyalty": "", "defense": "",
             }]
-        out.append({"name": card.name, "error": None, "faces": faces})
+        out.append({
+            "name": card.name, "error": None, "faces": faces,
+            # Rulings carry the PROMPT'S OWN INDEX, which is 0-based:
+            # answer.py:1867/1873 build the label with enumerate(...) and no
+            # start=1, so "[Card ruling #4]" is card.rulings[4] -- the fifth
+            # ruling. Numbering these 1..n here would silently misalign every
+            # citation by one. The index is a position into an externally-owned
+            # list (this repo's recurring defect shape; ruling_id() exists to
+            # replace it) -- mirrored rather than reinvented so the UI shows
+            # what the model was actually shown.
+            "rulings": [{"n": i, "text": t} for i, t in enumerate(card.rulings)],
+        })
     return out
+
+
+_RULING_CITE = re.compile(r"^(?P<card>.+?)\s+ruling\s+#(?P<n>\d+)$")
+
+
+def _resolve_ruling_citations(row: dict) -> int:
+    """Fill cited_text/gold_text entries for citations of the form
+    "<Card Name> ruling #N".
+
+    These are not CR chunks, so the UI rendered them as "(text not found as a
+    chunk)" -- the grader could see that a card ruling was cited but never what
+    it said. Resolved here, server-side, so the existing rule list renders them
+    with no template change.
+    """
+    by_name = {c["name"]: c for c in (row.get("cards") or []) if not c["error"]}
+    filled = 0
+    for field in ("cited_text", "gold_text"):
+        texts = row.setdefault(field, {})
+        ids = row.get("citations" if field == "cited_text" else "gold") or []
+        for cid in ids:
+            if cid in texts and texts[cid]:
+                continue
+            m = _RULING_CITE.match(cid)
+            if not m:
+                continue
+            card = by_name.get(m.group("card"))
+            if not card:
+                continue
+            n = int(m.group("n"))
+            if 0 <= n < len(card["rulings"]):
+                texts[cid] = card["rulings"][n]["text"]
+                filled += 1
+            else:
+                # A cited index the card doesn't have. Say so -- an out-of-range
+                # ruling citation is a real finding about the answer, not a
+                # rendering gap to paper over.
+                texts[cid] = (f"(cited ruling #{n} is out of range — "
+                              f"{card['name']} has {len(card['rulings'])} rulings, #0-#{len(card['rulings'])-1})")
+                filled += 1
+    return filled
 
 
 def main() -> None:
@@ -129,6 +181,11 @@ def main() -> None:
             n_cards = sum(len(r.get("cards") or []) for r in review)
             n_bad = sum(1 for r in review for c in (r.get("cards") or []) if c["error"])
             print(f"[cards] resolved {n_cards - n_bad}/{n_cards} across {len(review)} rows")
+            n_rul = sum(_resolve_ruling_citations(r) for r in review)
+            n_have = sum(len(c["rulings"]) for r in review for c in (r.get("cards") or [])
+                         if not c["error"])
+            print(f"[rulings] {n_have} card rulings available; "
+                  f"resolved {n_rul} '<card> ruling #N' citation(s) to their text")
     prior = {}
     if VERDICTS.exists():
         prior = {v["id"]: v for v in json.loads(VERDICTS.read_text(encoding="utf-8"))}
@@ -225,6 +282,14 @@ _TEMPLATE = r"""<!doctype html>
     font-weight:700;background:var(--panel);border:1px solid var(--line);
     border-radius:6px;padding:2px 8px}
   .mtgcard .face+.face{border-top:1px dashed var(--line);margin-top:9px;padding-top:9px}
+  /* Scryfall rulings. Numbered with the PROMPT'S 0-based index so a citation
+     like "[Card ruling #4]" can be matched by eye to the row labelled #4. */
+  .crulings{margin-top:9px;border-top:1px solid var(--line);padding-top:8px}
+  .crulings>h4{font:10px ui-monospace,monospace;font-weight:700;letter-spacing:.06em;
+    text-transform:uppercase;color:var(--muted);margin:0 0 6px}
+  .crul{display:flex;gap:7px;margin-bottom:6px;font-size:12.5px;line-height:1.45}
+  .crul>b{font:11px ui-monospace,monospace;color:var(--gold);flex:none;padding-top:1px}
+  .crul>span{color:var(--text)}
   .mtgcard.err{border-color:var(--wrong)}
   .mtgcard.err .cname{color:var(--wrong)}
   /* Gold match-mode legend. One accent per mode so the scoring bar is
@@ -352,6 +417,15 @@ function faceBlock(f){
     ${pt?`<span class="pt">${pt}</span>`:''}
   </div>`;
 }
+// Scryfall rulings, numbered with the prompt's own 0-based index (see the
+// Python side): "[Card ruling #4]" is rulings[4], the fifth one. Showing them
+// 1..n would misalign every citation by one.
+function rulingsBlock(c){
+  if(!c.rulings || !c.rulings.length) return '';
+  return `<div class="crulings"><h4>Scryfall rulings (${c.rulings.length})</h4>
+    ${c.rulings.map(r=>`<div class="crul"><b>#${r.n}</b><span>${esc(r.text)}</span></div>`).join('')}
+  </div>`;
+}
 function cardPanel(cards, names){
   if(!cards || !cards.length){
     // No enrichment available -- still name the cards the question references
@@ -364,7 +438,7 @@ function cardPanel(cards, names){
   return `<div class="cards">${cards.map(c=>c.error
     ? `<div class="mtgcard err"><span class="cname">${esc(c.name)}</span>
          <div class="tline">could not resolve: ${esc(c.error)}</div></div>`
-    : `<div class="mtgcard">${c.faces.map(faceBlock).join('')}</div>`).join('')}</div>`;
+    : `<div class="mtgcard">${c.faces.map(faceBlock).join('')}${rulingsBlock(c)}</div>`).join('')}</div>`;
 }
 
 const list = document.getElementById('list');
