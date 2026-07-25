@@ -30,6 +30,7 @@ Run: `uv run python evals/judge_rulesguru.py [--answers PATH] [--questions PATH]
 """
 
 import argparse
+import hashlib
 import json
 import os
 import re
@@ -179,6 +180,20 @@ def main() -> None:
     disagreements = [e["id"] for e in entries if e["verdict"] == "different"]
 
     summary = {
+        # PROVENANCE. "the judge is FROZEN" was previously a property of the
+        # code at run time that the ARTIFACT could not prove: JUDGE_SLUG went
+        # out in the request but was never written to the output, so two
+        # verdict files judged by different models were indistinguishable
+        # after the fact. Recording the model and a digest of the exact system
+        # prompt makes a silent instrument change detectable instead.
+        #
+        # This stamps what ran; it does NOT reword the prompt or change the
+        # model. Verdict files written before 2026-07-25 carry no stamp -- read
+        # their provenance from git, not from the file.
+        "judge_model": JUDGE_SLUG,
+        "judge_prompt_sha256": hashlib.sha256(
+            RULESGURU_JUDGE_SYS.encode("utf-8")
+        ).hexdigest()[:16],
         "n_judged": len(judged),
         "n_total": len(entries),
         "accuracy": accuracy,
@@ -201,6 +216,7 @@ def main() -> None:
     if unparsed:
         print(f"  unparsed/error: {unparsed}")
     print(f"  disagreements (spot-check these): {disagreements}")
+    print(f"  judge: {JUDGE_SLUG} prompt={summary['judge_prompt_sha256']}")
 
 
 if __name__ == "__main__":
