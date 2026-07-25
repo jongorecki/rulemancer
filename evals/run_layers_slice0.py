@@ -19,9 +19,12 @@ Reps: 3 on layers, 2 on regression. A single favourable run is not a rate
 (Sec 6.3), and the regression arm is looking for a material swing rather than a
 one-question difference, so it needs fewer.
 
-RESUMABLE: a run whose answers file already exists is skipped, so an
-interrupted run picks up where it stopped instead of re-spending. Delete the
-file to force a re-run.
+RESUMABLE, on ROW COUNT rather than file existence: an arm counts as done
+only when its answers file holds the full expected number of rows AND has been
+judged. A killed run leaves a partial file behind (run_answer_eval.py persists
+after every question), and that partial is resumed, not judged as if whole --
+judging it would compute a rate over the wrong denominator and report it with
+no error. Delete an answers file to force a full re-run.
 
 Run: `uv run python evals/run_layers_slice0.py [--dry-run] [--only ARM] [--sets SET]`
 """
@@ -60,6 +63,27 @@ SETS = {
 def bucket_a_ids() -> list[str]:
     buckets = json.loads(BUCKETS_PATH.read_text(encoding="utf-8"))
     return [qid for qid, bucket in buckets.items() if bucket == "A"]
+
+
+def _row_count(path: Path) -> int:
+    """Rows already written to an answers file, 0 if absent/unreadable.
+
+    run_answer_eval.py persists atomically after every question, so this is
+    the honest completeness signal -- file existence is not."""
+    if not path.exists():
+        return 0
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return 0
+    return len(data) if isinstance(data, list) else 0
+
+
+def _jsonl_len(path: Path) -> int:
+    """Non-blank lines in a .jsonl question file."""
+    return sum(
+        1 for line in path.read_text(encoding="utf-8").splitlines() if line.strip()
+    )
 
 
 def _run(cmd: list[str], log_path: Path, dry_run: bool) -> None:
@@ -109,16 +133,37 @@ def main() -> None:
 
     for set_name in sets:
         spec = SETS[set_name]
+        # How many rows a COMPLETE arm has: the bucket-A subset for the layers
+        # set, every row of the file for the regression set.
+        expected_n = (
+            len(qids.split(",")) if set_name == "layers"
+            else _jsonl_len(spec["questions"])
+        )
         for arm in arms:
             for rep in range(1, spec["reps"] + 1):
                 tag = f"{arm}_{set_name}_r{rep}"
                 out = ANSWERS / f"layers_slice0_{tag}.json"
                 verdicts = EVALS / f"layers_slice0_verdicts_{tag}.json"
 
-                if out.exists() and verdicts.exists():
-                    print(f"[skip] {tag} (already complete)", flush=True)
+                # "Complete" means the right NUMBER of rows, not merely that
+                # a file exists. run_answer_eval.py writes incrementally after
+                # every question, so a killed run leaves a PARTIAL answers
+                # file behind. Checking only existence meant skipping
+                # regeneration and then judging that partial as if it were a
+                # whole arm -- a rate computed over the wrong denominator,
+                # reported with no error anywhere. Same failure class as the
+                # two index-as-identifier bugs: plausible wrong numbers,
+                # nothing crashes.
+                have = _row_count(out)
+                complete = have == expected_n
+
+                if complete and verdicts.exists():
+                    print(f"[skip] {tag} ({have}/{expected_n} rows, judged)", flush=True)
                     skipped += 1
                     continue
+                if have and not complete:
+                    print(f"[resume] {tag} has {have}/{expected_n} rows -- regenerating "
+                          f"the remainder before judging", flush=True)
 
                 print(f"[run ] {tag}", flush=True)
                 gen = [
@@ -134,8 +179,14 @@ def main() -> None:
                 if set_name == "layers":
                     gen += ["--qids", qids]
 
-                if not out.exists():
+                if not complete:
                     _run(gen, LOG_DIR / f"{tag}.gen.log", args.dry_run)
+                    got = _row_count(out)
+                    if not args.dry_run and got != expected_n:
+                        raise SystemExit(
+                            f"{tag}: generation produced {got}/{expected_n} rows -- "
+                            f"refusing to judge an incomplete arm"
+                        )
 
                 judge = [
                     sys.executable, "evals/judge_rulesguru.py",

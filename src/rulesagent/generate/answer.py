@@ -32,6 +32,44 @@ load_dotenv()
 logger = logging.getLogger(__name__)
 
 GEN_MODEL = "claude-sonnet-5"  # pinned; one-line swap to A/B other models
+# Production generation cap. sonnet-5 runs adaptive thinking by default and
+# max_tokens bounds thinking AND visible text together, so on hard multi-step
+# questions most of this budget is thinking the user never sees.
+#
+# RAISED 16384 -> 32768 (Jon, 2026-07-24) on measured evidence. On the Slice 0
+# bucket-A arm 8% of rows truncated at 16384; the failure mode is a TOTAL LOSS,
+# not a short answer -- rg131 (Blood Moon + Life and Limb) spent the entire cap
+# on thinking twice over and returned a 98-char degrade sentinel. Re-run at
+# 32768 it answered correctly.
+#
+# The point is margin, not size. rg131's recovered run used 12,550 output
+# tokens -- UNDER the old cap. Adaptive thinking length is stochastic (rg87
+# drew 12,419 then 10,206; rg130 drew 15,712 then 7,266 on identical config),
+# so the old cap had no headroom for the tail of that distribution and a
+# variance spike fell off a cliff. Raising it is close to free: you are billed
+# for tokens generated, so only the runs that would have died cost more.
+GEN_MAX_TOKENS = 32768
+
+# Non-streaming requests are refused by the SDK when it ESTIMATES from
+# max_tokens that the call could exceed ~10 minutes -- which 32768 does. An
+# explicit per-request timeout suppresses that guard, so this constant is not
+# optional decoration: GEN_MAX_TOKENS cannot be raised without it, and setting
+# one without the other breaks every production call.
+#
+# 900s is ~7x the slowest generation observed at 32768 (132s), so it is
+# generous for real work while still bounding a hung connection -- relevant
+# because a stalled call inside a long unattended eval batch blocks the queue.
+# Streaming remains the better long-term fix (residuals, rg3391); this is the
+# cheap one and it leaves the messages.parse() structured-output path alone.
+GEN_REQUEST_TIMEOUT = 900.0
+
+# The largest max_tokens the SDK will accept on a NON-streaming call without an
+# explicit timeout. Derived from anthropic._base_client
+# ._calculate_nonstreaming_timeout: it raises when
+# (3600 * max_tokens / 128_000) > 600, i.e. above 128_000 * 600 / 3600.
+# Recomputed here rather than hardcoded so the reasoning is auditable; it is
+# used only for a fail-fast construction check, never to size a request.
+_SDK_NONSTREAMING_MAX_TOKENS = int(128_000 * 600 / 3600)
 TOP_K = 15  # pure-vector top-15 (raised from 10: near-miss rules like a
 # multiplayer clause at rank ~13 were just outside the old window)
 
@@ -1448,9 +1486,57 @@ class RulesAgent:
                  show_rewrite: bool = False, card_no_refresh: bool = False,
                  ruling_select: bool = True, rewrite_version: str = "v2",
                  ruling_query_mode: str = "raw", layers_tool: bool = True,
-                 system_version: int | str = PROMPT_VERSION):
+                 system_version: int | str = PROMPT_VERSION,
+                 max_tokens: int = GEN_MAX_TOKENS,
+                 request_timeout: float | None = GEN_REQUEST_TIMEOUT):
         self.store = store
         self.client = client or anthropic.Anthropic()
+        # Generation output cap, and the per-request timeout override that
+        # makes raising it possible at all.
+        #
+        # The comment at the generation call site says raising the cap "is not
+        # the fix and actively backfires" because 32768 trips the SDK's
+        # non-streaming 10-minute-timeout guard. That is accurate but
+        # incomplete: the guard is an ESTIMATE the SDK makes from max_tokens,
+        # and it is suppressible either by streaming or by passing an explicit
+        # timeout. Streaming is the better long-term fix (residuals, rg3391);
+        # this knob is the cheap one, and it leaves the structured-output
+        # `messages.parse()` path completely unchanged.
+        #
+        # These two defaults MOVE TOGETHER or not at all. 32768 without a
+        # timeout override is refused by the SDK before it ever reaches the
+        # API; a timeout without the raised cap is harmless but pointless.
+        # Passing request_timeout=None restores the SDK's own default and
+        # will therefore break at GEN_MAX_TOKENS -- only do that alongside a
+        # max_tokens low enough to clear the guard.
+        self.max_tokens = max_tokens
+        self.request_timeout = request_timeout
+        # with_options() is an SDK affordance the scripted test doubles don't
+        # implement (_ScriptedClient, _RecordingClient). Degrade to the client
+        # as-is rather than requiring every fake to grow the method: a double
+        # makes no HTTP request, so there is no timeout guard to suppress and
+        # nothing to configure. Real clients always have it, so production
+        # still gets the override it needs to run at GEN_MAX_TOKENS.
+        self._gen_client = self.client
+        if request_timeout is not None:
+            with_options = getattr(self.client, "with_options", None)
+            if with_options is not None:
+                self._gen_client = with_options(timeout=request_timeout)
+        elif max_tokens > _SDK_NONSTREAMING_MAX_TOKENS and hasattr(self.client, "with_options"):
+            # Fail HERE, not 40 minutes into an unattended batch. The SDK's
+            # messages.parse() refuses a non-streaming call whose max_tokens
+            # implies >10 min (_calculate_nonstreaming_timeout), and it only
+            # skips that check when a timeout is given per-request or the
+            # client's own timeout differs from the SDK default. Passing
+            # request_timeout=None explicitly (e.g. an argparse default) makes
+            # the raised cap unusable, and the resulting ValueError surfaces
+            # deep inside the generation call with no mention of this class.
+            raise ValueError(
+                f"max_tokens={max_tokens} exceeds the SDK's non-streaming limit of "
+                f"~{_SDK_NONSTREAMING_MAX_TOKENS} but request_timeout is None. Pass a "
+                f"request_timeout (production uses {GEN_REQUEST_TIMEOUT}s) or lower "
+                f"max_tokens; otherwise messages.parse() raises at call time."
+            )
         self.model = model
         self.k = k
         self.rewrite = rewrite
@@ -1775,9 +1861,19 @@ class RulesAgent:
         # claude-sonnet-5 (c018 came back empty on two eval runs, then answered
         # cleanly on retry -- diagnosed at ~600 thinking + ~1600 output tokens,
         # nowhere near the 16384 cap, so it is NOT budget/thinking exhaustion).
-        # So keep max_tokens at 16384 and RETRY once before degrading. Raising
-        # the cap is not the fix and actively backfires: max_tokens=32768 trips
-        # the SDK's non-streaming 10-minute-timeout guard and errors the call.
+        # So RETRY once before degrading -- that is the fix for THIS failure,
+        # and it is unrelated to the cap.
+        #
+        # AMENDED 2026-07-24: this comment used to end "so keep max_tokens at
+        # 16384; raising the cap is not the fix and actively backfires". The
+        # first half was over-generalised from the empty-output case above.
+        # There is a SECOND, distinct failure that IS budget exhaustion: rg131
+        # burned the full 16384 on thinking twice and returned the degrade
+        # sentinel, and 8% of the bucket-A arm truncated. The cap is now 32768
+        # (GEN_MAX_TOKENS) with an explicit request timeout to suppress the
+        # SDK guard. Do NOT conflate the two failures -- retry fixes the
+        # intermittent empty output, headroom fixes truncation, and neither
+        # substitutes for the other.
         # Multi-turn (docs/plan-multiturn-stability.md): the conversation goes
         # into the final user message as a condensed TRANSCRIPT block -- the
         # same clipped form the rewriter consumes -- NOT as real prose
@@ -1869,9 +1965,9 @@ class RulesAgent:
                 if use_any_tool and is_last_round:
                     round_kwargs = {**extra_kwargs, "tool_choice": {"type": "none"}}
                 try:
-                    response = self.client.messages.parse(
+                    response = self._gen_client.messages.parse(
                         model=self.model,
-                        max_tokens=16384,
+                        max_tokens=self.max_tokens,
                         system=call_system,
                         messages=attempt_msgs,
                         output_format=Answer,

@@ -33,7 +33,9 @@ from run_eval import CR_PATH, PARSED_DIR, VECTOR_MODEL, load_questions  # noqa: 
 
 from rulesagent.contracts import Answer  # noqa: E402
 from rulesagent.generate.answer import (  # noqa: E402
+    GEN_MAX_TOKENS,
     GEN_MODEL,
+    GEN_REQUEST_TIMEOUT,
     PROMPT_VERSION,
     RulesAgent,
     _degenerate,
@@ -67,7 +69,8 @@ def load_answer_gold(path: Path) -> dict[str, str]:
 
 
 def _load_resumable(out_path: Path, args: argparse.Namespace,
-                    prompts_cache_digest: str | None) -> dict[str, dict]:
+                    prompts_cache_digest: str | None,
+                    system_version_tag: int | str | None = None) -> dict[str, dict]:
     """qid -> already-written row, read off an existing output file at
     `out_path` from a prior (possibly killed) invocation of this exact
     command (docs/plan-run-progress.md Sec 4). This runner's output file is
@@ -119,11 +122,20 @@ def _load_resumable(out_path: Path, args: argparse.Namespace,
               f"same prompts file and (if it predates this check) start a fresh --out once.")
         sys.exit(1)
 
+    # system_version / layers_tool / max_tokens are in this guard because an
+    # arm is DEFINED by them: BASE and CONTROL differ only in system_version,
+    # and resuming across that difference would silently produce one file
+    # holding half of each arm. Rows generated before these fields existed
+    # read as None and mismatch, which correctly forces a fresh run rather
+    # than mixing old rows into a new experiment.
     if (first.get("model") != args.model
             or first.get("rewrite_version") != args.rewrite_version
             or first.get("ruling_query_mode") != args.ruling_query_mode
             or first.get("show_rewrite") != args.show_rewrite
             or first.get("condition") != args.condition
+            or first.get("system_version") != system_version_tag
+            or first.get("layers_tool") != args.layers_tool
+            or first.get("max_tokens") != args.max_tokens
             or first.get("run") != args.run):
         print(f"[resume] {out_path} exists but was generated with a different config "
               f"-- starting fresh rather than resuming from it")
@@ -135,7 +147,7 @@ def _load_resumable(out_path: Path, args: argparse.Namespace,
 
 
 def _answer_from_frozen_prompt(
-    client, model: str, system: str, user: str,
+    client, model: str, system: str, user: str, max_tokens: int = GEN_MAX_TOKENS,
 ) -> tuple[Answer, str | None, dict | None]:
     """Generate straight from an already-assembled (system, user) pair,
     bypassing RulesAgent.answer()'s retrieval/rewrite/assembly entirely --
@@ -170,7 +182,7 @@ def _answer_from_frozen_prompt(
     for _attempt in range(2):
         try:
             response = client.messages.parse(
-                model=model, max_tokens=16384, system=system, messages=msgs,
+                model=model, max_tokens=max_tokens, system=system, messages=msgs,
                 output_format=Answer,
             )
             parsed = response.parsed_output
@@ -278,6 +290,24 @@ def parse_args() -> argparse.Namespace:
         "recorded in each output row for provenance.",
     )
     p.add_argument(
+        "--max-tokens", type=int, default=GEN_MAX_TOKENS,
+        help=f"generation output cap (default: production's {GEN_MAX_TOKENS}). sonnet-5's "
+        "max_tokens bounds adaptive thinking AND visible text together, so on hard "
+        "multi-step questions the cap is spent mostly on thinking -- 8%% of the Slice 0 "
+        "bucket-A arm truncated at 16384, and rg131 returned a 98-char degrade sentinel "
+        "after burning the whole budget twice. Raising this REQUIRES --request-timeout: "
+        "the SDK refuses a non-streaming request whose max_tokens implies a >10-minute "
+        "run, so 32768 errors out on its own.",
+    )
+    p.add_argument(
+        "--request-timeout", type=float, default=GEN_REQUEST_TIMEOUT,
+        help="per-request timeout in SECONDS, passed to the SDK via with_options(). "
+        "Default: unset (SDK default, 10 min). Its real job here is suppressing the "
+        "SDK's non-streaming max_tokens timeout guard so --max-tokens can be raised "
+        "at all. Streaming is the better long-term fix (residuals, rg3391); this is "
+        "the cheap one and leaves the messages.parse() structured-output path alone.",
+    )
+    p.add_argument(
         "--prompts-cache", type=Path, default=None,
         help="path to a JSON {qid: {system, user}} prompt cache built by "
         "evals/run_openrouter_arm.py --assemble-only. When given, every question's "
@@ -323,6 +353,7 @@ def main() -> None:
         store, model=args.model, rewrite=args.rewrite, show_rewrite=args.show_rewrite,
         rewrite_version=args.rewrite_version, ruling_query_mode=args.ruling_query_mode,
         system_version=system_version, layers_tool=args.layers_tool,
+        max_tokens=args.max_tokens, request_timeout=args.request_timeout,
         # card_no_refresh=True: eval-reproducibility freeze mode (plan #3b) --
         # use any cached Scryfall entry regardless of TTL age. Previously
         # unset (defaulted False) on this native-sonnet path while
@@ -388,7 +419,7 @@ def main() -> None:
     # matching config -- skipped below rather than regenerated. Hard-errors
     # (sys.exit(1)) instead of returning on a prompts-cache identity
     # mismatch -- see _load_resumable()'s docstring.
-    resumable = _load_resumable(args.out, args, prompts_cache_digest)
+    resumable = _load_resumable(args.out, args, prompts_cache_digest, system_version)
 
     results = []
     start = time.time()
@@ -409,8 +440,15 @@ def main() -> None:
                               f"the cache doesn't cover this question set")
                         return
                     ans, stop_reason, usage = _answer_from_frozen_prompt(
-                        agent.client, args.model,
+                        # agent._gen_client, not agent.client: the raw client
+                        # has no timeout override, and GEN_MAX_TOKENS is above
+                        # the SDK's non-streaming guard, so the plain client
+                        # would be refused before reaching the API. Inheriting
+                        # agent.max_tokens also stops this path drifting to a
+                        # different budget than RulesAgent.answer() uses.
+                        agent._gen_client, args.model,
                         prompts_cache[q.id]["system"], prompts_cache[q.id]["user"],
+                        agent.max_tokens,
                     )
                     # No tool loop on this path at all -- the absence is real
                     # (docs/spec-slice0-harness.md Task 3), never faked as 0/1/[].
@@ -487,6 +525,11 @@ def main() -> None:
                     "usage": usage,
                     "system_version": system_version,
                     "layers_tool": args.layers_tool,
+                    # Recorded because _load_resumable() compares it: an arm
+                    # generated at a different cap is a different experiment,
+                    # and without this field the comparison is None != 32768 on
+                    # every row, which silently disables resume entirely.
+                    "max_tokens": args.max_tokens,
                 }
                 if q.id in answer_gold:
                     # Carried through only for questions that have it (RulesGuru
