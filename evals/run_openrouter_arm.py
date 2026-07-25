@@ -170,7 +170,15 @@ def _capture_prompt(store: VectorStore, question: str, rewrite_version: str = "v
     is set earlier in answer() than the generation call this intercepts, so it's
     always populated by the time control returns here."""
     client = _RecordingClient()
+    # rewrite_version="none" means skip the rewriter entirely -- the raw question
+    # goes to retrieval (docs/spec-effort-and-norewrite.md Task 2). RulesAgent
+    # already gates the rewriter on `rewrite` (answer.py: `if self.rewrite:`), so
+    # this needs no agent change; rewrite_version is inert once rewrite is False.
+    # Unlike run_answer_eval.py this runner exposes no separate --rewrite flag,
+    # so rewrite_version is the single source of truth here and the two cannot
+    # disagree.
     agent = RulesAgent(store, client=client, card_no_refresh=True,
+                       rewrite=(rewrite_version != "none"),
                        rewrite_version=rewrite_version, ruling_query_mode=ruling_query_mode)
     try:
         agent.answer(question)
@@ -541,7 +549,7 @@ def parse_args() -> argparse.Namespace:
                     help="also run the q001/q014/c015 x3-draw spot-check (Task 3) and store it "
                          "under the 'variance' key of the output JSON")
     p.add_argument(
-        "--rewrite-version", choices=["v1", "v2"], default="v2",
+        "--rewrite-version", choices=["v1", "v2", "none"], default="v2",
         help="rewriter SYSTEM prompt version, threaded into RulesAgent(rewrite_version=...) "
         "(default: v2 -- the shipped default; prompt-v3 A/B condition B needs v1, docs/"
         "plan-v3-execution-tasks.md Task 2)",

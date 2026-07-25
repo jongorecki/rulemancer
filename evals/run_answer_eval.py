@@ -33,6 +33,7 @@ from run_eval import CR_PATH, PARSED_DIR, VECTOR_MODEL, load_questions  # noqa: 
 
 from rulesagent.contracts import Answer  # noqa: E402
 from rulesagent.generate.answer import (  # noqa: E402
+    GEN_EFFORT_LEVELS,
     GEN_MAX_TOKENS,
     GEN_MODEL,
     GEN_REQUEST_TIMEOUT,
@@ -136,6 +137,11 @@ def _load_resumable(out_path: Path, args: argparse.Namespace,
             or first.get("system_version") != system_version_tag
             or first.get("layers_tool") != args.layers_tool
             or first.get("max_tokens") != args.max_tokens
+            # effort defines an arm exactly the way max_tokens does: a low-effort
+            # and a default-effort row are different experiments. Rows written
+            # before this field existed read as None, which correctly matches an
+            # unset --effort and correctly mismatches any explicit level.
+            or first.get("effort") != args.effort
             or first.get("run") != args.run):
         print(f"[resume] {out_path} exists but was generated with a different config "
               f"-- starting fresh rather than resuming from it")
@@ -251,10 +257,23 @@ def parse_args() -> argparse.Namespace:
         "regardless of the order given here. Mutually exclusive with --limit.",
     )
     p.add_argument(
-        "--rewrite-version", choices=["v1", "v2"], default="v2",
+        "--rewrite-version", choices=["v1", "v2", "none"], default="v2",
         help="rewriter SYSTEM prompt version, threaded into RulesAgent(rewrite_version=...) "
         "(default: v2 -- the shipped default; prompt-v3 A/B condition B needs v1, docs/"
-        "plan-v3-execution-tasks.md Task 2)",
+        "plan-v3-execution-tasks.md Task 2). 'none' skips the rewriter entirely -- maps to "
+        "RulesAgent(rewrite=False), so the raw question goes to retrieval and no "
+        "claude-haiku-4-5 rewriter call is made (docs/spec-effort-and-norewrite.md Task 2). "
+        "Recorded verbatim, so a no-rewrite run can never be read back as a v2 run.",
+    )
+    p.add_argument(
+        "--effort", choices=sorted(GEN_EFFORT_LEVELS), default=None,
+        help="output_config.effort for the generation call, threaded into "
+        "RulesAgent(effort=...). Default: NOT PASSED -- omitted from the request body "
+        "entirely, so a run without this flag is byte-identical to before (same "
+        "default-off discipline as run_openrouter_arm.py's --reasoning). Cost is ~90%% "
+        "thinking tokens, so this is the primary cost lever. Recorded per row and "
+        "enforced by the resume guard: an effort arm and a default arm are different "
+        "experiments (docs/spec-effort-and-norewrite.md Task 1).",
     )
     p.add_argument(
         "--ruling-query-mode", choices=["raw", "union"], default="raw",
@@ -324,6 +343,28 @@ def parse_args() -> argparse.Namespace:
 def main() -> None:
     args = parse_args()
 
+    # Collapse the TWO ways of turning the rewriter off into one derived truth,
+    # immediately, before anything reads either of them
+    # (docs/spec-effort-and-norewrite.md Task 2).
+    #
+    # This runner already had --no-rewrite (a BooleanOptionalAction feeding
+    # RulesAgent(rewrite=...)) before --rewrite-version gained "none". Left
+    # unreconciled they are two independent switches for one behaviour, and any
+    # disagreement between them writes a run file that lies: "--rewrite-version
+    # none" alone would record rewrite_version="none" while the rewriter still
+    # ran, and "--no-rewrite" alone would record "v2" for a run that never
+    # rewrote anything. Either way the provenance -- and the resume guard that
+    # reads it -- is wrong.
+    #
+    # Normalising onto args HERE means the agent construction, the per-row
+    # record, and the resume guard all read the same two fields and cannot
+    # disagree. Rewriting off is the sticky state: if either flag says off,
+    # it is off, and rewrite_version records "none".
+    if args.rewrite_version == "none":
+        args.rewrite = False
+    if not args.rewrite:
+        args.rewrite_version = "none"
+
     rules, glossary = parse_comprehensive_rules(CR_PATH)
     chunks = chunk_rules(rules, glossary)
     chunk_map = {c.source_id: c for c in chunks}
@@ -354,6 +395,7 @@ def main() -> None:
         rewrite_version=args.rewrite_version, ruling_query_mode=args.ruling_query_mode,
         system_version=system_version, layers_tool=args.layers_tool,
         max_tokens=args.max_tokens, request_timeout=args.request_timeout,
+        effort=args.effort,
         # card_no_refresh=True: eval-reproducibility freeze mode (plan #3b) --
         # use any cached Scryfall entry regardless of TTL age. Previously
         # unset (defaulted False) on this native-sonnet path while
@@ -530,6 +572,12 @@ def main() -> None:
                     # and without this field the comparison is None != 32768 on
                     # every row, which silently disables resume entirely.
                     "max_tokens": args.max_tokens,
+                    # Same reasoning as max_tokens directly above: _load_resumable()
+                    # compares it, and effort defines the arm. Records the value
+                    # actually passed -- None stays null rather than being
+                    # defaulted to a string, so a row predating this field
+                    # matches an unset --effort and mismatches any explicit level.
+                    "effort": args.effort,
                 }
                 if q.id in answer_gold:
                     # Carried through only for questions that have it (RulesGuru

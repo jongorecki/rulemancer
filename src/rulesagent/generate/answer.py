@@ -32,6 +32,11 @@ load_dotenv()
 logger = logging.getLogger(__name__)
 
 GEN_MODEL = "claude-sonnet-5"  # pinned; one-line swap to A/B other models
+# Valid output_config.effort levels (docs/spec-effort-and-norewrite.md Task 1).
+# NOT a production default -- production stays on the API's own default effort
+# unless a caller passes RulesAgent(effort=...) explicitly. Listed here so an
+# unknown level fails at agent construction instead of at the API.
+GEN_EFFORT_LEVELS = frozenset({"low", "medium", "high", "xhigh", "max"})
 # Production generation cap. sonnet-5 runs adaptive thinking by default and
 # max_tokens bounds thinking AND visible text together, so on hard multi-step
 # questions most of this budget is thinking the user never sees.
@@ -1488,7 +1493,8 @@ class RulesAgent:
                  ruling_query_mode: str = "raw", layers_tool: bool = True,
                  system_version: int | str = PROMPT_VERSION,
                  max_tokens: int = GEN_MAX_TOKENS,
-                 request_timeout: float | None = GEN_REQUEST_TIMEOUT):
+                 request_timeout: float | None = GEN_REQUEST_TIMEOUT,
+                 effort: str | None = None):
         self.store = store
         self.client = client or anthropic.Anthropic()
         # Generation output cap, and the per-request timeout override that
@@ -1538,6 +1544,38 @@ class RulesAgent:
                 f"max_tokens; otherwise messages.parse() raises at call time."
             )
         self.model = model
+        # Generation effort (docs/spec-effort-and-norewrite.md Task 1).
+        #
+        # Measured cost is ~90% thinking tokens (rg3868 spent 10,622 output
+        # tokens on a ~700-token answer), and every Anthropic call in this repo
+        # has until now run at the API's default effort. This is the knob that
+        # makes that cost expressible.
+        #
+        # None (the default) means the request body is BYTE-IDENTICAL to
+        # before: _effort_kwargs stays empty, so no output_config key is added
+        # at all and every existing caller/test/run-file is unaffected
+        # (guarded by tests/test_prompt_identity.py).
+        #
+        # Validated HERE rather than at call time, same discipline as
+        # system_version below and the max_tokens/request_timeout guard above:
+        # an unknown level must never surface 40 minutes into an unattended
+        # batch.
+        #
+        # Safe to merge with output_format=Answer: the SDK's messages.parse()
+        # does `{**output_config, "format": transformed_output_format}`
+        # (anthropic 0.117.0), so a caller-supplied effort survives into the
+        # request body rather than being dropped or overwriting the schema.
+        #
+        # Deliberately NOT applied to the rewriter call: REWRITE_MODEL is
+        # claude-haiku-4-5, which has no effort parameter at all.
+        if effort is not None and effort not in GEN_EFFORT_LEVELS:
+            raise ValueError(
+                f"unknown effort {effort!r}; valid levels: {sorted(GEN_EFFORT_LEVELS)}"
+            )
+        self.effort = effort
+        self._effort_kwargs: dict = (
+            {"output_config": {"effort": effort}} if effort is not None else {}
+        )
         self.k = k
         self.rewrite = rewrite
         self.show_rewrite = show_rewrite
@@ -1971,6 +2009,9 @@ class RulesAgent:
                         system=call_system,
                         messages=attempt_msgs,
                         output_format=Answer,
+                        # Empty dict when self.effort is None -- expands to
+                        # nothing, so the default call shape is unchanged.
+                        **self._effort_kwargs,
                         **round_kwargs,
                     )
                 except ValidationError:

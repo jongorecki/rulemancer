@@ -204,6 +204,11 @@ def test_run_answer_eval_schema_additive(tmp_path):
     new_keys = {
         "retrieved_rule_ids", "stop_reason", "tool_calls", "tool_rounds",
         "usage", "system_version", "layers_tool", "max_tokens",
+        # effort (docs/spec-effort-and-norewrite.md Task 1): additive, and null
+        # on every run that doesn't pass --effort. Recorded because the resume
+        # guard compares it -- an effort arm and a default-effort arm are
+        # different experiments, exactly like max_tokens.
+        "effort",
     }
     assert pre_existing_keys <= row.keys()
     assert row.keys() - pre_existing_keys == new_keys
