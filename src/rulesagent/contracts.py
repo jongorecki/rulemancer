@@ -351,3 +351,31 @@ class Answer(BaseModel):
     suggested_followups: list[str]
     # Two or three short natural next questions a player might ask after
     # this answer. Clickable pills in the frontend; empty list is fine.
+
+
+# --- source_id normalisation -------------------------------------------------
+
+_CURLY_APOSTROPHE = "\u2019"
+
+
+def normalize_source_id(source_id: str) -> str:
+    """Fold a chunk source_id / gold id / citation to a comparison form.
+
+    The Comprehensive Rules use the curly apostrophe U+2019 exclusively (2,995
+    occurrences, zero ASCII apostrophes), so three glossary chunks carry it in
+    their source_id: "City's Blessing", "Doctor's Companion", and "Attacks and
+    Isn't Blocked". Questions and Scryfall card names use the ASCII apostrophe
+    exclusively -- a clean split, not a mixture.
+
+    U+2019 and U+0027 are different characters, so `"City's Blessing" ==
+    "City's Blessing"` is False and every comparison silently fails: the gold
+    id never matches the retrieved chunk, the citation never resolves to its
+    text, and the chunk-existence validation rejects a real rule. Nothing
+    raises -- the question just scores as a miss.
+
+    Not yet observed in any run on disk (no straight-apostrophe glossary
+    citation has been made), so this closes a live trap rather than fixing a
+    known-bad number. Apostrophes only: source_ids are case-sensitive and
+    otherwise exact, so no casefolding or punctuation stripping happens here.
+    """
+    return source_id.replace(_CURLY_APOSTROPHE, "'")

@@ -17,7 +17,12 @@ import pickle
 from pathlib import Path
 
 from rulesagent.cache import KVCache
-from rulesagent.contracts import EvalQuestion, Retrieved, RewrittenQuery
+from rulesagent.contracts import (
+    EvalQuestion,
+    Retrieved,
+    RewrittenQuery,
+    normalize_source_id,
+)
 from rulesagent.generate.answer import TOP_K as GEN_TOP_K
 from rulesagent.ingest.parser import parse_comprehensive_rules
 from rulesagent.ingest.chunker import chunk_rules
@@ -162,8 +167,14 @@ def gold_groups(q: EvalQuestion) -> list[list[str]]:
 
 
 def hit_at(q: EvalQuestion, ranking: list[Retrieved], k: int) -> bool:
-    topk = {r.chunk.source_id for r in ranking[:k]}
-    return all(any(g in topk for g in group) for group in gold_groups(q))
+    # Normalised on BOTH sides: the three glossary chunks whose source_id
+    # carries the CR's curly apostrophe ("City's Blessing", "Doctor's
+    # Companion", "Attacks and Isn't Blocked") can otherwise never be matched
+    # by a gold id written with the ASCII apostrophe every question and card
+    # name uses. The comparison just fails; nothing raises.
+    topk = {normalize_source_id(r.chunk.source_id) for r in ranking[:k]}
+    return all(any(normalize_source_id(g) in topk for g in group)
+               for group in gold_groups(q))
 
 
 def rewrite_arm_name(label: str, n: int) -> str:
@@ -180,10 +191,10 @@ def hit_at_forced(q: EvalQuestion, ranking: list[Retrieved], k: int, mode: str) 
     levels of the same thing. Empty gold never hits, same as hit_at."""
     if not q.gold:
         return False
-    topk = {r.chunk.source_id for r in ranking[:k]}
+    topk = {normalize_source_id(r.chunk.source_id) for r in ranking[:k]}
     if mode == "any":
-        return any(g in topk for g in q.gold)
-    return all(g in topk for g in q.gold)
+        return any(normalize_source_id(g) in topk for g in q.gold)
+    return all(normalize_source_id(g) in topk for g in q.gold)
 
 
 def parse_args() -> argparse.Namespace:

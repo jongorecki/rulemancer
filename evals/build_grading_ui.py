@@ -144,6 +144,22 @@ def main() -> None:
 
     review = json.loads(args.inp.read_text(encoding="utf-8"))
 
+    # Apostrophe aliasing for the three glossary chunks whose source_id carries
+    # the CR's curly apostrophe. A citation written with the ASCII apostrophe
+    # would otherwise render "(text not found as a chunk)" for a rule that was
+    # retrieved perfectly well. Aliases are ADDED, never replacing the original
+    # key, so a citation in either form resolves.
+    from rulesagent.contracts import normalize_source_id
+    for r in review:
+        for field in ("cited_text", "gold_text"):
+            texts = r.get(field)
+            if not isinstance(texts, dict):
+                continue
+            for key, val in list(texts.items()):
+                alias = normalize_source_id(key)
+                if alias != key and alias not in texts:
+                    texts[alias] = val
+
     # Join card names + judge ruling from the source questions file. The run
     # output carries answer_gold but never `cards`, so without this the grader
     # cannot show what the cards actually do.
