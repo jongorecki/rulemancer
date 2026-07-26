@@ -1,274 +1,320 @@
-# Handoff — the eval instrument was measuring the easy half of the problem
+# Handoff — retrieval is the bottleneck, and the gold is good enough to prove it
 
 **Replaces the prior handoff (git has every version). Written at the end of the
-2026-07-25 session, which built the effort knob, measured opus-5 at effort low
-against sonnet, rebuilt the retrieval gold for the held-out 150, and found two
-rules that had never been in the corpus at all.**
+2026-07-25/26 session, which measured for the first time whether the RulesGuru
+answers can be derived from our gold at all, ran a properly controlled
+sonnet-vs-opus comparison, and found that the previous handoff's headline
+comparison was measured on two different question sets.**
 
-Suite is **554 passed, exit 0**. Seven commits: `579d544`, `314d6e4`, `c41a6f0`,
-`a1892e9`, `8b94ef5`, `7a5ca03`, `9e41d7d`, `2d212a7`.
+Suite: **573 passed, exit 0.** Commits this session: `a1c1bb8`, `a280f56`,
+`eb0d410`, `e116fc2`, `56990b3`, `0a36b83`.
 
 ---
 
 ## ⚠️ FIRST, UNLEARN THIS
 
-**1. "Retrieval is at 63% recall@50" was measuring one rule per question.**
-Every one of the 1,409 RulesGuru rows is labelled `match: "any"`, while 83 of
-the held-out 150 carry more than one gold id. So a question needing three rules
-scored a pass on one. Re-labelled with real structure, the same retriever on
-the same 150 questions splits like this:
+**1. "opus-low 75.0% vs sonnet 63.0/66.7% on the same bucket" was not the same
+bucket.** Sonnet's reps are `layers_slice0_base_layers_r1/r2.json`, **n=54**.
+The opus run is `opus5_low_norewrite_costbase.json`, **n=68**. Scored on the
+shared 54, opus-no-rewriter is **72.2%**, not 75.0%. The prior handoff asserted
+"the same bucket" and that assertion was repeated for a full session before
+anyone opened the files.
 
-| mode | n | groups that must ALL hit | @15 | @50 | @200 |
-|---|---|---|---|---|---|
-| `any` | 55 | 1.0 | **58.2%** | 65.5% | 81.8% |
-| `groups` | 79 | 2.4 | **10.1%** | 22.8% | 35.4% |
-| `all` | 16 | 2.2 | **0.0%** | 6.2% | 18.8% |
+**2. Retrieval, not reasoning, is the bottleneck.** Earlier reasoning in this
+session guessed the opposite from the layers/timestamp failure cluster. The
+derivability run settles it: hand the model the gold rules and it answers 90%.
+Production sits at ~75-82%. That gap is retrieval and it is worth 11-18 points.
 
-At production `TOP_K=15`, multi-rule questions are **essentially never
-satisfied**. Retrieval is healthy at finding *one* relevant rule and close to
-non-functional at getting two or three distinct rules into the window. That was
-invisible under flat-`any` labels.
-
-**2. Recall before and after the relabel is not comparable.** On the 134
-questions both label sets can score: old@50 = 57.5%, v2@50 = 38.1%. Same
-retriever, same questions — only the bar moved. Matching the old rate needs
-**5-8x the depth** (old@15 = 43.3% needs v2 k=100). Do not report the drop as a
-regression.
-
-**3. Two rules were never in the corpus.** `606.5` (source line has no period
-after the number) and `119.1d` (has an extra one). Both silently skipped by the
-parser, both now fixed and appended to the index. `rg4420`'s judge answer quotes
-606.5 verbatim, so that question was unanswerable by construction.
+**3. Mined gold is a draw, not a fact.** Two independent mining runs on the
+*identical* 50 questions produce identical gold on **26%** of rows, mean overlap
+**0.54**, with 6 of 50 sharing no rules at all. This is a property of the method
+and applies to the original 150-row run too.
 
 ---
 
-## THE ONE THING TO DO FIRST
+## THE TWO SWITCHES JON IS CONFIDENT IN — APPLY THESE
 
-**Grade the 68-row bucket-A arm and settle the model question.** The run is
-complete at `evals/answers/opus5_low_norewrite_costbase.json` (68 rows,
-opus-5 @ effort low, no rewriter, $5.04 total, **$0.0741/question**, zero
-truncations, zero declines, zero uncited answers).
+Both are one-line constant edits in `src/rulesagent/generate/answer.py`. Jon
+ruled on both 2026-07-26; the evidence for each is below.
 
-**The auto-judge finished: 51/68 = 75.0%**
-(`evals/verdicts_opus5_low_bucketA.json`, frozen judge, digest
-`b54fbdb95565abf8` **unchanged** — the instrument did not move, so this is
-comparable to every prior number). Monotonic by difficulty, which validates the
-labels and the judge together:
+### 1. `GEN_MODEL = "claude-sonnet-5"` -> `"claude-opus-5"`, with `effort="low"`
+
+Properly controlled head-to-head, **same 54 questions, rewrite v2, ruling raw,
+system v3, same frozen judge — model and effort the only differences**:
 
 ```
-Level 1      9/9   100%      Level 3        9/15   60%
-Level 2     30/39   77%      Corner Case    3/5    60%
+sonnet-5  default effort   r1  66.7%   r2  63.0%    mean 64.8%
+opus-5    effort low       r1  75.9%   r2  72.3% (partial, 47q)
+delta                                              +11.1 pp
+paired r1 vs r1: opus wins 9, loses 4, net +5 of 54
 ```
 
-**Against sonnet's 63.0%/66.7% BASE reps on the same bucket, judged by the same
-frozen instrument, at 31% lower cost.** Opus-low is above both reps — but the
-+8-12pt gap sits inside the measured 11% within-arm noise band, so it is
-"clearly not worse, probably better", not proven better. Note also that several
-variables differ from BASE (model, effort, rewriter off), so the delta cannot be
-attributed to one.
+Both opus reps beat both sonnet reps. Adding the rewriter moved opus 72.2% ->
+75.9%, confirming the old comparison had opus fighting with a hand tied. Cost
+$0.0741 vs $0.096 = **23% cheaper today**, widening to ~48% when sonnet's intro
+pricing ends **2026-08-31**.
 
-**17 disagreements are waiting for Jon to read** — that is the remaining work on
-this question, and it is not delegable. A grader is built at
-`data/parsed/grading_opus5_disagreements.html`. Expect some to be judge errors:
-Jon's earlier regrade of 42 sonnet misses recovered 8 (~19%), which would put
-true accuracy nearer 78-80%. `rg104` is among the 17 and Jon has already
-confirmed it genuinely wrong (a reasoning miss — the model cited `702.16d`,
-which states both that the equip is illegal and that the Equipment unattaches as
-an SBA, and still answered "stays attached").
+Sonnet's own two reps disagree on 6 of 54 questions (11% within-arm noise), so
+read +11.1pp as a solid win, not a blowout.
+
+**Jon's framing, keep it in the writeup:** this is a *cost decision with
+supporting quality evidence*, not a quality claim that happens to save money.
+
+**Caveat that was still open when he decided:** the easy-question regression
+check had not finished (see IN FLIGHT). A model that reasons better on hard
+questions can be worse on simple ones by overthinking them, and bucket A is the
+hardest slice we own, so nothing in the +11.1pp can reveal that.
+
+**`GEN_MODEL` is all-or-nothing.** There is no canary path — flip the constant
+and 100% of traffic moves. No 10% rollout, no automatic rollback.
+
+### 2. `REWRITE_N = 1` -> `3` (multi-query)
+
+Retrieval-only evidence, measured against v3 gold at production `TOP_K=15`:
+
+```
+groups@15    vector 11.4%  ->  rw1 (production) 16.5%  ->  mq n=3  20.3%
+paired vs production: +10 / -4
+cost: +$0.0005/question (0.69% of the answer cost); generation cost unchanged
+```
+
++3.8pp over production, **below the 7pp bar fixed before that run**, so this is
+Jon overriding a null result on cost-benefit grounds — the change is nearly free
+and trivially revertible. Note n=1 is better at the very top (`groups`@5: 8.9%
+vs 3.8%) and n=3 better deeper; at TOP_K=15 n=3 is ahead but only just.
+
+**`REWRITE_N` is not reachable from the CLI.** `run_answer_eval.py` exposes
+`--rewrite` and `--rewrite-version` (the *prompt* version, not the count);
+`RulesAgent.answer()` reads the module constant directly at line ~1871. So there
+is currently **no way to A/B this on answers** — only on retrieval recall. If you
+want that, thread it as a constructor param + `--rewrite-n` defaulting to 1,
+exactly the pattern `effort` and `cache_prompt` already use.
+
+---
+
+## THE HEADLINE RESULT: DERIVABILITY
+
+`docs/results-derivability.md`. Answers Jon's question: *"I want to make sure we
+can derive the rulesguru answers from the gold rules and rulings."*
+
+```
+Arm B — gold rules only, no retrieval        135/150 = 90.0%   $8.47
+  L0 100%   L1 100%   L2 93%   L3 80%   Corner Case 77%
+
+Arm C — the 15 failures, re-run with gold + retrieved top-15   $1.37
+  gold was INCOMPLETE (passed with retrieval)   4  (rg7215, rg549, rg851, rg811)
+  beyond retrieval (failed both ways)          11
+
+  135/150 = 90.0%   as it stands
+  139/150 = 92.7%   ceiling with perfect retrieval
+   11/150 =  7.3%   unreachable by ANY retrieval work
+```
+
+**92.7% is the most this eval can ever score.** The 11 unreachable questions are
+reasoning failures or wrong RulesGuru answers — that second class is confirmed
+(3 were found and corrected this session).
+
+Two of the four incomplete rows had exactly ONE gold id. **Single-id rows are the
+risk group** — cheap heuristic for finding more.
+
+Arm C ran only where arm B failed, at 9% of the cost of re-running all 150.
+Reuse that pattern.
 
 ---
 
 ## WHAT SHIPPED
 
-**The effort knob** (`docs/spec-effort-and-norewrite.md`). `RulesAgent(effort=)`
-→ `output_config={"effort": ...}`, validated at construction, recorded per row,
-enforced by the resume guard. `None` default keeps the request byte-identical.
-There was no way to express effort before this; every Anthropic call ran at the
-API default, and cost is ~90% thinking tokens.
+**Prompt caching**, opt-in (`RulesAgent(cache_prompt=)`, `--cache-prompt`),
+default off so requests stay byte-identical. Verified live, not asserted: first
+call `cache_creation_input_tokens=2065`, next two `cache_read_input_tokens=2065`.
+Saves $0.0093/question after the first (~$0.62 per 68-question arm). **Do not
+judge it by the dollar total on a small sample** — output length is unpinned and
+its variance is larger than the saving. The payoff case is ablation.
 
-**`--rewrite-version none`** on both runners. `RulesAgent(rewrite=)` already
-existed; `run_answer_eval.py` also already had `--no-rewrite`, which is the trap
-— two independent switches for one behaviour meant a run file could record
-`"v2"` for a run that never rewrote. Both now collapse to one derived truth
-immediately after parsing.
+**Bug fixed: `--effort` was silently dropped on the frozen-prompt path.**
+`_answer_from_frozen_prompt()` took neither effort nor caching, so any
+`--prompts-cache` run generated at the API default no matter what `--effort`
+said. A frozen "high effort" arm was really a default-effort arm with nothing
+raising.
 
-**Structured gold for the held-out 150** (`evals/questions_rulesguru150_v2.jsonl`,
-NEW file — `rulesguru.jsonl` is untouched, nothing moves until you point
-something at v2):
+**Derivability harness** (`evals/build_gold_prompts.py`) — builds frozen prompts
+from a chosen chunk set via `build_prompt()` + `--prompts-cache`, touching no
+production code. Zero API cost to build; aborts rather than spend if an
+embedding is missing.
+
+**10 questions repointed** whose gold cited folded parent rules absent from the
+chunk index (`702.16` is a heading; its text lives in children). Those were
+permanent misses at any k; for rg434 and rg939 it was the ONLY gold id. **The
+corpus now has 0 unretrievable gold ids.**
+
+**3 RulesGuru answers corrected** where a WotC card ruling contradicts the
+dataset (`docs/gold-corrections.md`). Established exception: **an official card
+ruling outranks RulesGuru gold** — objectively checkable, unlike Jon-vs-judges.
+
+**Miner prompt is now a versioned file** (`evals/gold_miner_prompt.md`) with the
+merge rule added (v2). It previously existed only inside dispatch messages.
+
+---
+
+## THE OPEN DEFECT: CONJUNCTIVE OR-GROUPS
+
+Adversarial review (2026-07-26) found the one thing every structural check
+passed over. A `gold_group` means *"any one of these suffices."* Miners have been
+putting **consecutive steps of a reasoning chain** in one group, so a retriever
+that finds half a chain scores full credit — **recall inflation**.
+
+Proven systematic, not incidental: the pair `616.1` + `616.1f` is split into two
+required groups in rg263/264/436/440/749 and merged into one in rg124/564/647.
+Same rules, same role, opposite treatment. 5 of 9 sampled multi-member groups
+were wrongly merged.
 
 ```
-match:    any 150         ->  groups 79, any 55, all 16
-gold ids: 290 (1.93/q)    ->  497 (3.31/q)
-existing gold preserved:      290/290 (100%)
+exposure:  questions_rulesguru150_v3.jsonl   105 multi-member groups, 31 any-rows with 2+ ids
+           gold_proposals_full_b01..b09      162 multi-member groups
 ```
 
-Three opus subagents on Jon's **subscription** (no API credits), blind to the
-existing gold but given the judge answers, so the task was tracing a
-known-correct answer back to its rules. Then a placement pass resolved the 96
-ids they hadn't independently found: 79 placed as alternatives inside an
-existing group, 15 kept as not-load-bearing, 2 promoted to their own group.
+Rule 6 in the v2 miner prompt states the test: *merge only if each member ALONE
+fully licenses that step's claim.*
 
-**`evals/_chunk_inventory.txt`** — 3,619 real chunk source_ids, the closed
-vocabulary the miners cite against. This is what makes the corpus auditable; it
-caught 19 folded-parent labels before they became gold and found 11 already in
-the 1,409-row corpus.
+**Jon HELD the v3 re-pass.** Consequence, and it must travel with the numbers:
+the recall figures in `docs/results-retrieval-diversity.md` are **optimistic in
+absolute terms**. Relative comparisons between arms are unaffected — every arm
+was scored against the same gold. `groups`@15 is really worse than 10-11%.
 
-**Parser fixes + four coverage guards** (`tests/test_cr_parse_coverage.py`).
-Both regexes now treat the trailing period as optional. The tests are the real
-fix: rule-shaped lines all parsed, no numeric holes, **no gaps in subrule
-letters**, no orphan subrules. The letter check is Jon's idea and the strongest
-— it reads only parsed output, so it holds regardless of what a future
-malformation looks like. It found `119.1d` on its first run.
+It does **not** affect the derivability result: arm B hands the model every gold
+id regardless of grouping.
 
-**Apostrophe normalisation.** The CR uses U+2019 exclusively (2,995, zero
-ASCII); questions and card names use ASCII exclusively. Three glossary chunks
-carry it in their source_id, so a gold id written the way every question writes
-it could never match. `normalize_source_id()` folds both sides in `hit_at`,
-`hit_at_forced`, and the grading UI.
+---
 
-**Grading UI**, three passes: judge ruling shown under each answer; full card
-text per face (cost/type/P-T/oracle) plus Scryfall rulings; gold rules rendered
-**by match mode** with OR-groups as separate blocks and explicit ANDs.
+## IN FLIGHT WHEN THIS WAS WRITTEN
+
+**Background job `bgutzcrer`** — the easy-set regression check plus completion of
+the truncated opus hard rep2. ~2 hours, ~$11.50. Collect these files:
+
+```
+evals/answers/h2h_opuslow_hard_r2.json     (completes 47 -> 54)
+evals/answers/h2h_opuslow_easy_r{1,2}.json
+evals/answers/h2h_sonnet_easy_r{1,2}.json
+```
+
+Judge each with `evals/judge_rulesguru.py --questions evals/_easy50.jsonl`
+(gpt-5-mini via OpenRouter — a different provider, unaffected by Anthropic
+limits). The easy set is 50 questions, 31 at level 1 and 19 at level 2, disjoint
+from bucket A and the v3 150, mean reference answer 271 chars vs bucket A's 388.
+
+**How to read it:** no regression confirms the switch; a regression does not
+reverse it (Jon decided on cost) but tells you to watch simple questions and
+points at a fix such as splitting effort by difficulty.
+
+**Mining is PAUSED at 450/1,259 rows** (b01-b09 + b09_rerun). All verified: 0
+inventory violations, 0 union mismatches, 5 untraced (emitted with `gold: []` and
+a rationale, correctly). 63% recovery of existing gold, matching the original
+run's 67%.
+
+---
+
+## WAITING ON JON
+
+1. **Double-mine for stability?** Given 0.54 run-to-run overlap, mining each
+   batch twice and taking the union would make gold stable and fits the existing
+   "never drop an alternative" rule. Doubles subscription cost (~5.8M more tokens).
+2. **Re-pass v3's 105 groups?** Would move published recall numbers downward.
+3. **Resume mining as-is?** 809 rows remain, ~2.4M subscription tokens.
+4. **The placement pass.** ~800 existing gold ids the miners didn't rediscover
+   need homes. **Jon ruled: never promote** — every unrecovered id becomes an
+   alternative in the group covering its step, or is kept as not-load-bearing;
+   anything an agent thinks deserves its own required group is **flagged, not
+   applied**. Rationale: the old flat `any` label already declared that id
+   sufficient alone, so promoting it to required contradicts its own label. If
+   the original 2/96 ratio holds that's ~15 flagged cases for Jon. **Record this
+   in DECISIONS.md when the pass is built.**
+
+---
+
+## QUEUE, ROUGHLY PRIORITISED
+
+- Apply the two switches above.
+- Collect and judge the in-flight runs.
+- **Security, added by Jon 2026-07-26.** `docs/plan-deploy.md` §2 already
+  specifies per-IP rate limiting, a kill switch, and a budget breaker, and
+  records that **none of it exists yet** — the plan's own gate says do not share
+  a public URL until §2 is verified live. Prompt injection: the untrusted surface
+  is card oracle text and rulings from Scryfall flowing straight into the prompt,
+  not just the user's question. Authentication: `TODO-SSO.md` (OIDC then SAML
+  against Okta and Entra) doubles as job-hunt evidence; the deploy plan
+  deliberately decouples it from going public.
+- **Adversarial review of the bot itself** — this session reviewed the *method*,
+  never the product.
+- `scripts/check_cr_update.py` — approved spec, still unbuilt, zero API,
+  self-testing (same CR in both slots -> 100% unchanged, 0 remaps, 0 flags).
+- Ruling gold. `EvalQuestion` has no field for it, yet all three corrected
+  answers this session hinge on a card ruling. `ruling_id()` is already
+  content-fingerprinted and is the right key — **never index-based**: labels are
+  0-based (`ruling #4` is the fifth) and a Scryfall reorder once mismatched 92%
+  of cached ruling embeddings. Mine it by ablation on questions that pass arm B.
+- Model bakeoff (deepseek-v4-flash, gpt-5-mini Flex, sonnet-5 @ low, opus-5 @
+  low). **Grok excluded on Jon's moral grounds — do not reintroduce it.**
+- Legality-gate prompt arm — size it first from the 34 confirmed-wrong misses;
+  must not land during the bakeoff.
+- The 70-row gold-error audit pool, unreviewed (judgment work, not a filter).
+- `rg4420`'s gold should become `606.5` now that the rule is in the index.
+- Header sweep covered only the 150; 456 questions across the 1,409 cite a
+  parent-with-children.
 
 ---
 
 ## HOW JON WORKS (unchanged, load-bearing)
 
+- **Explain things properly.** Jon's note, 2026-07-26: *"you get a little over my
+  head on things you're not explaining... you just need to explain things a
+  little better so I can understand and be a partner here instead of an
+  observer."* Define jargon at first use, lead with what a thing means before
+  what it is, and show a concrete example rather than an abstract description.
 - **Rule 0: plan before code.** Every `plan-*.md` / `spec-*.md` is design-only
   until Jon rules.
 - **USE SUBAGENTS.** Opus on the subscription for mining/analysis, Sonnet for
-  scoped implementation against a written spec. Lead keeps judgment and talking
-  to Jon. *If your harness forbids the Agent tool, say so immediately.*
-- **THE BILLING BOUNDARY.** Claude Code and its subagents run on Jon's Claude
-  Max subscription (`billingType: stripe_subscription`, no `primaryApiKey`, no
-  API key env vars). But `mtg-rules-bot/.env` holds `ANTHROPIC_API_KEY`, so any
-  Python in this repo that constructs an Anthropic client bills API credits.
-  **Mining/analysis is done BY subagents with their own tools, never by a script
-  that calls the SDK.** `hasExtraUsageEnabled = True`, so sustained heavy use
-  can spill into paid overage.
-- **Do-not-delegate:** eval questions, grading verdicts, **reading failures**.
-  Jon ruled (2026-07-25) that mined *retrieval* gold may be accepted without
-  per-item review, because the questions already carry judge-authored answers —
-  the model traces a known-correct answer to its rules, it does not decide what
-  is correct. That ruling does not extend to `answer_gold`.
-- **Verify agents' claims yourself.** Every batch this session was
-  re-validated independently; all passed, and the check is cheap.
+  scoped implementation against a written spec. *If your harness forbids the
+  Agent tool, say so immediately.*
+- **THE BILLING BOUNDARY.** Claude Code and its subagents run on Jon's Max
+  subscription. Python in this repo that constructs an Anthropic client bills
+  **API credits** — a separate pool. Mining is subagent work; eval runs are API
+  credits. An account-level usage cap was hit this session and Jon lifted it.
+- **Verify agents' claims yourself.** Every batch was independently re-checked.
+  It caught the b07 schema hole and the review's one wrong claim (empty gold
+  scores as a miss and is already excluded from the denominator, not a free pass).
+- **But verify the right thing.** Nine batches passed every structural check while
+  the groups meant the wrong thing. Structural verification is not quality
+  verification, and reporting one as the other is how this session nearly shipped
+  a systematic flaw.
 - **Never assert an MTG or model fact from memory.** Ground in the repo CR,
-  Scryfall via `rulesagent.tools.scryfall.get_card`, or a live check. Model
-  facts via the claude-api skill.
-- **Verify by rendering.** UI work is screenshotted in a browser, not inspected
-  as markup. Serve over `http.server`; **Jon runs the app on port 8000 — never
-  bind or kill it.**
+  Scryfall via `rulesagent.tools.scryfall.get_card`, or a live check. Model facts
+  via the claude-api skill.
+- **Verify by rendering** for UI. Serve over `http.server`; **Jon runs the app on
+  port 8000 — never bind or kill it.**
 - Commit per slice on master, heredoc messages, `Co-Authored-By: Claude Opus 5`.
   `.venv/Scripts/python.exe`, `PYTHONIOENCODING=utf-8`. Suite is `uv run pytest`.
-  Never pipe a long run through `| tail`.
+- **Never pipe a long run through `| tail` or `Select-Object -First`** — it closes
+  the pipe and reports a false non-zero exit. Bit twice this session.
+- **PowerShell `*>` buffers until the process exits**, so a running job's log is
+  0 bytes and looks identical to a dead one. Check the output artifact, not the
+  log.
 
 ---
 
 ## THE LESSON TO CARRY
 
-Last session's defects were *an index into an externally-owned list, persisted
-as if it were an identifier*. This session found three more faces of it:
+Last session: *a value that looks like an identity but is really a position.*
+This session, three variants of **a claim inherited and repeated without being
+checked**:
 
-- **Two switches for one behaviour** (`--no-rewrite` vs `--rewrite-version
-  none`) — the run file records one while the other governs. Caught before
-  shipping, by the existing schema test printing the artifact.
-- **Card ruling labels are 0-based.** `answer.py:1867/1873` build
-  `[Card ruling #N]` with `enumerate(...)` and no `start=1`, so `ruling #4` is
-  the FIFTH ruling. Numbering the UI 1..n would have shown the grader the wrong
-  text. Verified against the live prompt before rendering.
-- **Rule numbers are positions, not identities** — which is why a CR renumber
-  would silently repoint gold at the wrong rule.
-  `docs/spec-cr-update-check.md` proposes content fingerprinting, the same move
-  `ruling_id()` already made for card rulings.
+- **"The same bucket."** Asserted by the prior handoff, repeated all session,
+  false — 54 questions vs 68.
+- **The miner prompt.** Reworded mid-run because it looked like prose. It is a
+  parameter. (The drift it appeared to cause was disproved — worth 1pp, not 8 —
+  but the fix, version-controlling it, was right anyway.)
+- **"Zero violations."** True, and narrower than it sounded: the union check only
+  ran on rows marked `groups`, so 27 rows missing the field entirely passed nine
+  clean reports.
 
-Also: **check an invariant against reality before asserting it.** A naive
-consecutive-letter check flags 19 healthy rules, because the CR skips `l` and
-`o` (they read as `1` and `0`). Against the real 24-letter alphabet, all 568
-parents are gapless with zero exceptions.
-
----
-
-## RESIDUALS / OPEN ITEMS
-
-- **Both in-flight jobs finished.** The auto-judge result is above. The header
-  sharpening is done and merged into `evals/questions_rulesguru150_v3.jsonl`
-  (NEW file; v2 and rulesguru.jsonl untouched). The result was mostly a
-  NEGATIVE one, which is useful: of 82 cited parents, **keep_parent 56,
-  keep_both 14, narrow 12** — the gold was already right far more often than
-  the lazy-labelling hypothesis predicted. Retrieval effect was nil (@15
-  identical, @50 36.7% -> 37.3%), because the 12 narrowings were mostly already
-  scoring via a sibling. **Use v3 going forward.**
-- **The header sweep covers only the 150.** 456 questions across the full 1,409
-  cite a parent-with-children. Same job, bigger batch.
-- **`rg4420` is parked at `606.4`** with low confidence. Now that 606.5 exists
-  in the index, its gold should become `606.5`.
-- **The 8-way retrieval experiment is NOT started** — see the next section. This
-  is the highest-value open work.
-- **Full-corpus mining of the remaining 1,259 rows — APPROVED by Jon, to run
-  opportunistically "when we have extra subscription headroom."** Not a
-  scheduled task: start it when the window is idle, in sequential batches of
-  ~50, and stop if it starts competing with interactive work. Projects to ~4.6M
-  subagent tokens at measured rates (~3,600/question). Caching does not help —
-  the miners grep rather than re-read, and subagents don't share a cache — so
-  the only lever is when you run it, not how. Reuse the batch-1/2/3 prompt
-  verbatim (it is in git), plus the header-pass lesson: do not add children that
-  weren't already in an OR-group, because that makes gold easier to hit rather
-  than sharper.
-- **Query-side apostrophe normalisation was measured and rejected**: no change
-  at @1/@5/@10, +1.3pp @50. Not worth a corpus re-embed.
-- **Jon's legality-gate prompt idea** ("first decide whether this is a legal
-  sequence of play, then answer") — queued, deliberately NOT introduced during
-  the model bakeoff. Size it first by counting how many of the 34 confirmed-wrong
-  sonnet misses in `rulesguru_disagreement_verdicts.json` are "assumed an
-  illegal action succeeded", then run it as a `SYSTEM_VERSIONS` arm.
-- ~~`docs/spec-cr-update-check.md` is written and unruled.~~ **APPROVED by Jon,
-  2026-07-25.** Content fingerprinting is the agreed approach; cleared to build.
-  See "WHAT TO DO NEXT" below.
-
-## WHAT TO DO NEXT (Jon's stated priorities)
-
-1. **Grade the 68 / settle opus-low vs sonnet.**
-2. **The retrieval-diversity experiment.** The mode-split says the problem is
-   getting *distinct* rules into the window, not ranking. Jon asked for all
-   three, separately and in every combination (7 arms + baseline): **MMR**
-   diversity reranking, **hybrid BM25 + vector**, and **multi-query** union.
-   All are retrieval-only — measurable against v2 gold with **zero generation
-   spend**. MMR is the best first bet: cosine similarity clusters near-duplicates
-   (`613.3`/`613.7a`/`613.8a` eat the window together) which is exactly what
-   starves a groups question.
-   **Do not just raise TOP_K**: at effort low, input tokens are ~55% of cost, so
-   15 → 100 could double cost/question and erase opus-low's advantage.
-3. **`scripts/check_cr_update.py`** (`docs/spec-cr-update-check.md`, approved).
-   Rule numbers are positions, not identities, so a CR renumber silently
-   repoints gold at whatever moved into the slot and the eval keeps "working"
-   while measuring nothing. Fingerprint rules by normalised text: byte-identical
-   text auto-remaps, everything else is flagged, and each ruling Jon gives is
-   recorded as a reusable policy so the set of questions he must answer shrinks
-   each release. Make the self-test pass first (same CR in both slots → 100%
-   unchanged, 0 remaps, 0 flags).
-4. **The model bakeoff** — deepseek-v4-flash ($0.09/$0.18, native effort,
-   accepts temperature), gpt-5-mini Flex ($0.125/$1.00), sonnet-5 @ low as the
-   single anchor (Jon: sonnet only at low), opus-5 @ low. **Grok is excluded on
-   Jon's moral grounds — do not reintroduce it.** Every prior gpt-5-mini number
-   was measured with `"reasoning": null`, so its 15-point deficit is untested.
-   Resolve the rewrite dimension on *retrieval* first and the generation matrix
-   halves.
-
-## ENVIRONMENT & GOTCHAS
-
-- **Cost, measured:** opus-5 @ effort low, no rewrite, bucket A =
-  **$0.0741/question** (~22s). sonnet-5 at default effort = $0.096. **Sonnet's
-  intro pricing ends 2026-08-31**, after which it is ~$0.144.
-- **At effort low the cost model inverts:** output drops ~10x (1,270 mean vs
-  sonnet's ~10.6k) so **input becomes the majority of spend**. Prompt caching is
-  worth more than previously estimated, and TOP_K increases cost more.
-- The vector index was updated by **appending** two embeddings, asserting the
-  existing 3,617 vectors stayed byte-identical, so today's retrieval numbers
-  remain comparable. Backup: `vector_voyage-4-large.pkl.bak-pre-606.5`. If a
-  future change *removes* a chunk, rebuild instead of appending.
-- `load_questions()` coerces unknown `kind` values to `"other"`, so
-  `kind: "rulesguru"` loads fine. Constructing `EvalQuestion` directly does not.
-- Chrome extension blocks `file://`; serve local HTML over `http.server`.
-- Doc-metadata / token-economy rules live in `D:\Job_hunt\CLAUDE.md` and
-  `Token-Economy-Policy.md`.
+The pattern: **numbers arrive with claims attached about how they were produced,
+and those claims are exactly as checkable as the numbers.** Open the file.

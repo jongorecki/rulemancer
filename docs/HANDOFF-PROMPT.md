@@ -1,6 +1,6 @@
 # Handoff prompt (paste this into a fresh session)
 
-Updated 2026-07-25 (session 6). Update the "first ask" and the counts whenever
+Updated 2026-07-26 (session 7). Update the "first ask" and the counts whenever
 the state moves; the rest is stable.
 
 ---
@@ -9,142 +9,115 @@ We're continuing work on Rulemancer, the MTG rules RAG bot at D:\Job_hunt\mtg-ru
 
 First: read docs/HANDOFF-development.md in full. It *replaced* the prior handoff
 rather than prepending — don't dig through git for superseded blocks. It opens
-with three things to unlearn, then "THE ONE THING TO DO FIRST."
+with three things to unlearn, then the two switches Jon has already approved.
 
-## The headline finding, so you don't re-derive it
+## The headline findings, so you don't re-derive them
 
-The eval was measuring the easy half of the problem. All 1,409 RulesGuru rows
-are labelled `match: "any"` while 83 of the held-out 150 carry several gold ids,
-so a question needing three rules scored a pass on one. Re-labelled with real
-structure, at production TOP_K=15: **`any` questions 58.2%, `groups` 10.1%,
-`all` 0.0%.** Retrieval is fine at finding one rule and near-useless at getting
-two or three distinct ones into the window.
+**Retrieval is the bottleneck, not reasoning.** Hand the model only the gold
+rules and it answers **90%** (135/150). Production sits at ~75-82%. Repairing the
+4 rows where gold was incomplete puts the ceiling at **92.7%**; 11 questions
+(7.3%) are unreachable by any retrieval work at all. This is the first
+measurement separating retrieval failure from reasoning failure, and it inverts
+an assumption made earlier the same session.
 
-Recall before and after the relabel is **not comparable** — matching the old
-rate needs 5-8x the depth. Don't report the drop as a regression.
+**The prior handoff's model comparison was measured on two different question
+sets.** Sonnet's 63.0/66.7% is n=54; opus's 75.0% is n=68. "The same bucket" was
+false. On the shared 54, opus-no-rewriter is 72.2%.
+
+**Mined gold is a draw, not a fact.** Two runs on identical questions produce
+identical gold on 26% of rows, mean overlap 0.54.
 
 ## The first ask
 
-**Grade the 68-row bucket-A arm and settle the model question.** The run is done
-(`evals/answers/opus5_low_norewrite_costbase.json`, opus-5 @ effort low, no
-rewriter, $0.0741/question, 0 truncations). The auto-judge finished: **51/68 = 75.0%**
-(`evals/verdicts_opus5_low_bucketA.json`, frozen judge, digest
-`b54fbdb95565abf8` unchanged). Monotonic by difficulty: L1 100%, L2 77%, L3 60%,
-Corner Case 60%.
+**Apply the two switches Jon approved 2026-07-26**, both one-line constants in
+`src/rulesagent/generate/answer.py`:
 
-**Against sonnet's 63.0%/66.7% BASE reps on the same bucket and the same frozen
-judge, at 31% lower cost.** Above both, but the gap is inside the measured 11%
-noise band — "clearly not worse, probably better", not proven.
+1. `GEN_MODEL` -> `"claude-opus-5"` with `effort="low"`. Controlled head-to-head
+   on the same 54 questions, same rewriter/ruling/system version, same frozen
+   judge: **opus-low 75.9% vs sonnet 64.8% mean, +11.1pp**, both opus reps above
+   both sonnet reps, paired +9/-4. 23% cheaper today, ~48% after sonnet's intro
+   pricing ends 2026-08-31. Jon's framing: a **cost decision with supporting
+   quality evidence**, not a quality claim that happens to save money.
+2. `REWRITE_N` 1 -> 3. +3.8pp on `groups`@15 over production, paired +10/-4, for
+   +$0.0005/question. Below the 7pp bar that was fixed before the run — Jon
+   overrode a null result because the change is nearly free and revertible.
 
-**The remaining work is Jon reading the 17 disagreements**, which is not
-delegable. Grader built at `data/parsed/grading_opus5_disagreements.html`.
-Expect ~19% of flags to be judge errors, per his earlier regrade of 42 sonnet
-misses, which would put true accuracy nearer 78-80%.
-
-The header-gold sharpening also finished and is merged into
-`evals/questions_rulesguru150_v3.jsonl` — **use v3, not v2.** It was mostly a
-negative result (of 82 cited parents: keep_parent 56, keep_both 14, narrow 12),
-so the gold was already better than assumed and retrieval was unmoved.
-
-## Then, the highest-value work
-
-The **retrieval-diversity experiment**, which Jon asked for: MMR, hybrid
-BM25+vector, and multi-query — separately and in every combination (7 arms +
-baseline). All retrieval-only, so **zero generation spend**, measured against
-`evals/questions_rulesguru150_v3.jsonl`. MMR first: cosine similarity clusters
-near-duplicates, which is exactly what starves a groups question.
-
-**Do not just raise TOP_K.** At effort low, input is ~55% of cost.
+Then **collect background job `bgutzcrer`** (easy-set regression check + the
+truncated hard rep2) and judge it with `evals/judge_rulesguru.py`. Files listed
+in the handoff. No regression confirms the switch; a regression doesn't reverse
+it but tells you to watch simple questions.
 
 ## Before you believe anything about billing
 
 Claude Code and its subagents run on Jon's **Claude Max subscription**. But
 `mtg-rules-bot/.env` holds `ANTHROPIC_API_KEY`, so any Python in this repo that
-constructs an Anthropic client bills **API credits**. Mining and analysis are
-done BY subagents using their own Read/Grep tools — never by a script that calls
-the SDK. `hasExtraUsageEnabled` is on, so heavy use can spill into paid overage.
+constructs an Anthropic client bills **API credits** — a separate pool. Mining is
+subagent work; eval runs are API credits. An account usage cap was hit this
+session mid-run and Jon lifted it; roughly $17 of the allocation remained.
 
 ## Read this before you do anything
 
+**Explain things properly.** Jon, 2026-07-26: *"you get a little over my head on
+things you're not explaining... you just need to explain things a little better
+so I can understand and be a partner here instead of an observer."* Define jargon
+at first use, lead with what a thing means before what it is, show concrete
+examples.
+
 USE SUBAGENTS. Opus on the subscription for mining/analysis, Sonnet for scoped
-implementation against a written spec. Lead keeps judgment, review, and talking
-to Jon.
+implementation against a written spec. If your harness forbids the Agent tool,
+say so immediately rather than absorbing the work inline.
 
-- If your harness tells you not to use the Agent tool, say so immediately rather
-  than absorbing the work inline.
-- **Verify agents' claims yourself.** Every batch this session was
-  independently re-validated; it's cheap and it's caught real things.
-- Tell agents to STOP and report if the spec is wrong.
+- **Verify agents' claims yourself** — it caught real things every time.
+- **But verify the right thing.** Nine mining batches passed every structural
+  check while their OR-groups meant the wrong thing. Structural verification is
+  not quality verification.
 - Don't read subagent transcript files — wait for the completion notification.
-- Parallelise only across disjoint file sets; forbid `git add -A` / `git add .`.
-
-Respect the "HOW JON WORKS" section of the handoff exactly — especially:
-
+- Never pipe a long run through `| tail` / `Select-Object -First`: it closes the
+  pipe and reports a false non-zero exit. PowerShell `*>` buffers until exit, so
+  a running job's log is 0 bytes and looks dead — check the output artifact.
 - Rule 0: plan before code. A NEW tool needs a spec and a ruling.
-- The judge instrument is FROZEN (judge_bakeoff prompt + gpt-5-mini). Never
-  reword it.
-- Grading verdicts are Jon's alone; reading failures is not delegated. Jon ruled
-  that mined *retrieval* gold may be accepted without per-item review (the
-  questions carry judge-authored answers, so the model traces rather than
-  decides) — that does **not** extend to `answer_gold`.
+- The judge instrument is FROZEN (judge_bakeoff prompt + gpt-5-mini, digest
+  `b54fbdb95565abf8`). Never reword it. It runs through OpenRouter, so it is
+  unaffected by Anthropic limits.
 - Never assert an MTG or model fact from memory. Ground in the repo CR
   (`data/raw/MagicCompRules 20260619.txt`), Scryfall via
   `rulesagent.tools.scryfall.get_card`, or a live check.
-- **Verify by rendering** — screenshot UI in a browser, don't inspect markup.
-  Serve over `http.server`; Jon runs the app on port 8000, never bind or kill it.
-- Verify your own writes; `str.replace()` no-ops silently on a missed anchor.
-  Never pipe a long run through `| tail` (masks the exit code; a trailing `echo`
-  does too). A single favourable run is not a rate.
 - Python is `.venv/Scripts/python.exe`, `PYTHONIOENCODING=utf-8`. Suite is
-  `uv run pytest` (554 passing). Commit per slice on master with the
+  `uv run pytest` (573 passing). Commit per slice on master with the
   `Co-Authored-By: Claude Opus 5` trailer.
+- Jon runs the app on port 8000 — never bind or kill it.
 
 ## The one lesson to carry forward
 
-Every recurring defect here is the same shape: **a value that looks like an
-identity but is really a position.** This session found three more —
-`--no-rewrite` vs `--rewrite-version none` (two switches, one behaviour), card
-ruling labels being 0-based so `ruling #4` is the fifth ruling, and rule numbers
-themselves, which a CR renumber would silently repoint.
-`docs/spec-cr-update-check.md` proposes content fingerprinting as the fix, the
-same move `ruling_id()` already made.
+Last session's defect was *a value that looks like an identity but is really a
+position*. This session's is **a claim inherited and repeated without being
+checked**: "the same bucket" (false, and repeated all session), the miner prompt
+edited mid-run because it looked like prose rather than a parameter, and "zero
+violations" which was true but narrower than it sounded. Numbers arrive with
+claims attached about how they were produced, and those claims are exactly as
+checkable as the numbers. Open the file.
 
-Related: **check an invariant against reality before asserting it.** A naive
-consecutive-subrule-letter check flags 19 healthy rules, because the CR skips
-`l` and `o`.
+## Ruled by Jon, cleared to act
 
-## Ruled by Jon, cleared to build
-
-- **`docs/spec-cr-update-check.md` — APPROVED.** Content-fingerprinted CR
-  updates. Rule numbers are positions, not identities, so a renumber silently
-  repoints gold at whatever moved into the slot and the eval keeps "working"
-  while measuring nothing. Byte-identical text auto-remaps; everything else is
-  flagged; each ruling Jon gives is recorded as reusable policy so the questions
-  he must answer shrink each release. Make the self-test pass first: same CR in
-  both slots must report 100% unchanged, 0 remaps, 0 flags.
-- **Mining the remaining 1,259 corpus rows — APPROVED, opportunistic.** Jon's
-  wording: "when we have extra subscription headroom." Not scheduled — run it
-  when the window is idle, sequential batches of ~50, stop if it competes with
-  interactive work. ~4.6M subagent tokens at measured rates; caching doesn't
-  help, so the only lever is when. Reuse the batch prompt from git plus the
-  header-pass lesson: don't add children that weren't already in an OR-group,
-  because that makes gold easier to hit rather than sharper.
+- **Both switches above — APPROVED.**
+- **Placement pass defaults to NEVER PROMOTE.** ~800 existing gold ids the miners
+  didn't rediscover need homes: alternative inside the group covering their step,
+  or kept as not-load-bearing. Anything an agent thinks deserves its own required
+  group is **flagged to Jon, not applied** — the old flat `any` label already
+  declared that id sufficient alone, so promoting it to required contradicts its
+  own label. Record in DECISIONS.md when built.
+- **Security work added to the plan** (Jon, 2026-07-26): prompt-injection
+  hardening, the cost guard already specified in `docs/plan-deploy.md` §2 but
+  never built, and authentication (`TODO-SSO.md`).
+- **`docs/spec-cr-update-check.md` — APPROVED**, still unbuilt. Zero API,
+  self-testing, completely independent of everything else.
 
 ## Still waiting on Jon
 
-The 17 flagged disagreements (`data/parsed/grading_opus5_disagreements.html`),
-and the legality-gate prompt idea — which should be **sized first** from the 34
-confirmed-wrong misses in `rulesguru_disagreement_verdicts.json`, and must not
-land during the model bakeoff.
+Whether to double-mine for stability (0.54 run-to-run overlap), whether to
+re-pass v3's 105 conjunctive OR-groups (would move published recall numbers
+down), and whether to resume mining as-is (809 rows left, ~2.4M subscription
+tokens).
 
-## Queued and unblocked
-
-The model bakeoff — deepseek-v4-flash ($0.09/$0.18, native effort, accepts
-temperature), gpt-5-mini Flex ($0.125/$1.00), sonnet-5 @ low as the single
-anchor (Jon: sonnet only at low), opus-5 @ low. Every prior gpt-5-mini number
-was measured with `"reasoning": null`, so its 15-point deficit is untested.
-
-**Grok is excluded on Jon's moral grounds. Do not reintroduce it.**
-
-Start by confirming you've read the handoff, then check the two in-flight jobs
-and tell Jon what the 68-row grade says.
+Start by confirming you've read the handoff, then apply the two switches and
+collect the in-flight run.
