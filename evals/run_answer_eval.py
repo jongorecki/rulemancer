@@ -39,6 +39,7 @@ from rulesagent.generate.answer import (  # noqa: E402
     GEN_REQUEST_TIMEOUT,
     PROMPT_VERSION,
     RulesAgent,
+    _cacheable_system,
     _degenerate,
 )
 from rulesagent.index.store import VectorStore  # noqa: E402
@@ -154,6 +155,7 @@ def _load_resumable(out_path: Path, args: argparse.Namespace,
 
 def _answer_from_frozen_prompt(
     client, model: str, system: str, user: str, max_tokens: int = GEN_MAX_TOKENS,
+    effort: str | None = None, cache_prompt: bool = False,
 ) -> tuple[Answer, str | None, dict | None]:
     """Generate straight from an already-assembled (system, user) pair,
     bypassing RulesAgent.answer()'s retrieval/rewrite/assembly entirely --
@@ -183,13 +185,23 @@ def _answer_from_frozen_prompt(
     record `tool_rounds: None` for rows generated this way; that absence is
     real information, not a gap to paper over with a fake 0 or 1."""
     msgs: list[dict] = [{"role": "user", "content": user}]
+    # `effort` and `cache_prompt` were NOT plumbed here originally, so a
+    # --prompts-cache run silently generated at the API's DEFAULT effort no
+    # matter what --effort said, and never cached. That is this repo's
+    # recurring defect -- a value that looks present but isn't -- and it would
+    # have made a frozen-prompt "high effort" arm a default-effort arm with
+    # nothing raising. Both are threaded through now, using the same
+    # empty-dict-when-unset shape as RulesAgent so an unset flag still
+    # produces a byte-identical request.
+    effort_kwargs = {"output_config": {"effort": effort}} if effort is not None else {}
+    call_system = _cacheable_system(system, cache_prompt)
     parsed, response = None, None
     weak = None
     for _attempt in range(2):
         try:
             response = client.messages.parse(
-                model=model, max_tokens=max_tokens, system=system, messages=msgs,
-                output_format=Answer,
+                model=model, max_tokens=max_tokens, system=call_system, messages=msgs,
+                output_format=Answer, **effort_kwargs,
             )
             parsed = response.parsed_output
         except ValidationError:
@@ -501,6 +513,10 @@ def main() -> None:
                         agent._gen_client, args.model,
                         prompts_cache[q.id]["system"], prompts_cache[q.id]["user"],
                         agent.max_tokens,
+                        # Previously omitted, so --effort was silently dropped on
+                        # this path and a frozen "high effort" arm really ran at
+                        # the API default. Both flags now reach the request.
+                        effort=args.effort, cache_prompt=args.cache_prompt,
                     )
                     # No tool loop on this path at all -- the absence is real
                     # (docs/spec-slice0-harness.md Task 3), never faked as 0/1/[].
