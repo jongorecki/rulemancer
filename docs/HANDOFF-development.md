@@ -212,18 +212,23 @@ category, not the top rung of difficulty.
    `docs/spec-gold-audit-ui.md`, which exists. Checked with grep across the repo
    before acting. It *did* carry a stale "11 unreachable questions" reference,
    now corrected to 10 and pointed at the batch-1 results.
-3. **Build weighted scoring** per the spec + the ruling above.
-4. **Investigate out-of-range ruling citations** (3/15 rows).
-5. **Build the metrics-history view** (Jon, 2026-07-26, requested mid-session;
-   he wants it after item 4). Every number we own — cost, accuracy, precision,
-   `TOP_N`, retrieval@k, weighting, cosine — for every arm and iteration, **side
-   by side across time**, in one HTML page rather than a terminal table. The
-   stated purpose is a decision: *is it time for the full RulesGuru run on the
-   entire dataset?* Spec it first (Rule 0). Two constraints already known:
-   numbers must carry their provenance (run, date, judging run) because the
-   judge is nondeterministic and flat-vs-weighted will now be two columns; and
-   the arms are not all measured on the same instrument or question set, so the
-   page must show what is comparable to what rather than implying one ladder.
+3. ~~**Build weighted scoring**~~ **DONE** `372965b`. `evals/weighted_score.py`
+   + 53 tests. No conclusion flips; largest move 1.5pp. Suite 635.
+4. ~~**Investigate out-of-range ruling citations**~~ **DONE** `ad53532`.
+   **Not a product bug** — production is clean across 397 citations; the defect
+   is in `evals/build_gold_prompts.py` and affects 69% of citing rows in
+   derivability arms B/C. Root cause + recommended fix:
+   `docs/report-ruling-citation-offbyone.md`. **Needs Jon's ruling** on (a) move
+   labelling into `build_prompt()` vs patch the one caller, and (b) whether to
+   re-run arm B (~$8.47) so its citations become usable data. No code changed.
+5. ~~**Build the metrics-history view**~~ **DONE** `44c7852`.
+   `evals/build_metrics_history.py` → `evals/metrics_history.html` (+ JSON).
+   16 arms, 6 question sets, grouped by a question-id fingerprint so only
+   genuinely comparable arms sit together; answers↔verdicts joins are verified
+   by id-set match, not filename. **The decision number: a full run over the
+   1,409 RulesGuru questions costs ~$72–104 in generation** at the shipped
+   config. Retrieval config (TOP_K/TOP_N/COSINE_FLOOR) is *not* recorded per
+   arm — the page says so rather than implying per-row history.
 6. **Measure the judge's false-negative rate** on a sample of judged-"different"
    rows across arms. This gates how much to trust every accuracy number we own,
    including this session's. `evals/opus_grader_calibration.py`,
