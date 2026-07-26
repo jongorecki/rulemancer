@@ -89,17 +89,30 @@ every accuracy number in this repo. Infrastructure for measuring it already
 exists: `evals/opus_grader_calibration.py`,
 `docs/plan-opus-grader-calibration.md`, `evals/judge_agreement_results.json`.
 
-## Finding 2 — out-of-range ruling citations (3 of 15 rows)
+## Finding 2 — out-of-range ruling citations (3 of 15 rows) — INVESTIGATED, root cause found
 
-A real product bug, independent of the grading. On `rg1095`, `rg549` and
-`rg1718`, the bot cites ruling indices that do not exist. Jon on `rg1095`:
-*"cited ruling #3 is out of range — Rescuer Sphinx has 3 rulings, #0-#2."*
+On `rg1095`, `rg549` and `rg1718`, the bot cites ruling indices that do not
+exist. Jon on `rg1095`: *"cited ruling #3 is out of range — Rescuer Sphinx has 3
+rulings, #0-#2."*
 
-3 of 15 audited rows is a high enough hit rate to be worth bounding across the
-whole corpus rather than fixing blind. It is also the same *shape* as an earlier
-defect in this repo — a value that looks like an identity but is really a
-position — so the first question is whether the index the model sees matches the
-index used to render the citation.
+**Full investigation: `docs/report-ruling-citation-offbyone.md`.** It corrects
+this section in three ways, and the first was my error, written here before the
+investigation ran:
+
+- **It is not a product bug.** Production-path arms emit **0 out-of-range
+  citations across 397 checked.** The defect is confined to
+  `evals/build_gold_prompts.py`, so it affects the two derivability arms only.
+- **It is much larger than 3 of 15.** In arm B, **83 of the 120 rows citing a
+  ruling (69%)** carry at least one out-of-range citation.
+- **Root cause:** the label-injection step lives in `RulesAgent.answer()`, not at
+  the prompt-construction boundary. `build_gold_prompts.py` calls
+  `build_prompt()` directly, so rulings render as an unlabeled bullet list while
+  the system prompt still instructs the model to cite `[Card Name ruling #N]`.
+  With no labels to copy, the model counts the bullets **1-based** — 341
+  citations in arm B, not one of them `#0`, where the production arm's modal
+  index *is* `#0`.
+
+It does not invalidate the 93.3%: the judge compares answer text, not citations.
 
 ## Finding 3 — card-name completeness may affect ruling retrieval
 
