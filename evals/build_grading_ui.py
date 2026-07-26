@@ -8,6 +8,16 @@ evals/answer_verdicts.json uses.
 
 Self-contained (data baked in), no server, autosaves to localStorage,
 keyboard-driven. Run: `uv run python evals/build_grading_ui.py [--in PATH]`
+
+Two verdict vocabularies (--verdicts, docs/spec-gold-audit-ui.md):
+  answer-quality  correct/partial/wrong on our answer. The default; unchanged.
+  gold-audit      who is wrong -- the RulesGuru answer, the gold rules, or us.
+
+Rows carrying `retrieved_rule_ids` also get a Retrieved panel, labelled with
+their `retrieved_provenance` ("run" = the row recorded them; "probe" = they were
+retrieved later against a possibly-different index). Text comes from the row's
+`retrieved_text` map, built by evals/build_gold_audit_input.py, so this stays a
+pure renderer and never loads a vector store.
 """
 
 import argparse
@@ -20,6 +30,47 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 PARSED = Path(__file__).parent.parent / "data" / "parsed"
 VERDICTS = Path(__file__).parent / "answer_verdicts.json"
+
+# Verdict vocabularies (docs/spec-gold-audit-ui.md).
+#
+# "answer-quality" is the original set and stays the default, so every existing
+# invocation is unchanged. "gold-audit" exists because correct/partial/wrong
+# does not fit a gold audit: those rows are already known-failed by
+# construction, so "ours was wrong" is not a finding -- the open question is
+# WHO is wrong, the reference answer or the gold rules or us.
+#
+# Each set carries its own `storage` key. That is not cosmetic: the two UIs are
+# graded in the same browser, and a shared localStorage key would let an
+# answer-quality grade surface as a prior verdict in a gold audit whose buttons
+# cannot even express it. Separate `export` names keep the two exports from
+# being merged downstream for the same reason.
+VERDICT_SETS = {
+    "answer-quality": {
+        "buttons": [
+            {"v": "correct", "label": "Correct"},
+            {"v": "partial", "label": "Partial"},
+            {"v": "wrong", "label": "Wrong"},
+        ],
+        "export": "answer_verdicts.json",
+        "storage": "mtg_grading_v1",
+        "title": "MTG answer grading",
+        "hint": ("Grade each answer against its cited and gold rule text."),
+    },
+    "gold-audit": {
+        "buttons": [
+            {"v": "rulesguru-wrong", "label": "RulesGuru answer wrong"},
+            {"v": "gold-incomplete", "label": "Gold incomplete / mis-cited"},
+            {"v": "ours-wrong", "label": "Our reasoning wrong"},
+            {"v": "ambiguous", "label": "Ambiguous — both defensible"},
+        ],
+        "export": "gold_audit_verdicts.json",
+        "storage": "mtg_gold_audit_v1",
+        "title": "MTG gold audit",
+        "hint": ("Every row here already failed with complete gold, so the question "
+                 "is not whether we got it wrong — it is who is wrong. An official "
+                 "card ruling outranks RulesGuru gold (docs/gold-corrections.md)."),
+    },
+}
 
 
 def _load_card_data(names: list[str]) -> list[dict]:
@@ -140,7 +191,15 @@ def main() -> None:
         "--no-cards", action="store_true",
         help="skip Scryfall enrichment even when --questions is given",
     )
+    ap.add_argument(
+        "--verdicts", choices=sorted(VERDICT_SETS), default="answer-quality",
+        help="which verdict vocabulary to render. Default answer-quality (the "
+        "original correct/partial/wrong). gold-audit swaps in the who-is-wrong "
+        "buttons and exports to gold_audit_verdicts.json "
+        "(docs/spec-gold-audit-ui.md).",
+    )
     args = ap.parse_args()
+    cfg = VERDICT_SETS[args.verdicts]
 
     review = json.loads(args.inp.read_text(encoding="utf-8"))
 
@@ -151,7 +210,11 @@ def main() -> None:
     # key, so a citation in either form resolves.
     from rulesagent.contracts import normalize_source_id
     for r in review:
-        for field in ("cited_text", "gold_text"):
+        # retrieved_text is aliased too -- a retrieved glossary chunk hits the
+        # same curly-apostrophe mismatch as a cited one, and an unaliased key
+        # would render "(text not found as a chunk)" for a rule the probe
+        # surfaced perfectly well.
+        for field in ("cited_text", "gold_text", "retrieved_text"):
             texts = r.get(field)
             if not isinstance(texts, dict):
                 continue
@@ -188,7 +251,12 @@ def main() -> None:
                 r["match"] = q["match"]
             r["level"] = q.get("level")
             r["source_url"] = q.get("url")
-            names = q.get("cards") or []
+            # Fall back to names the row already carries. The questions file's
+            # `cards` field is null for all 150 RulesGuru questions, so without
+            # this every rg row renders with no card panel and no rulings --
+            # build_gold_audit_input.py parses them out of the question text
+            # the way answer.py does.
+            names = q.get("cards") or r.get("card_names") or []
             r["cards"] = [] if args.no_cards else _load_card_data(names)
             r["card_names"] = names
         if missing:
@@ -202,19 +270,41 @@ def main() -> None:
                          if not c["error"])
             print(f"[rulings] {n_have} card rulings available; "
                   f"resolved {n_rul} '<card> ruling #N' citation(s) to their text")
+    # Priors come from THIS vocabulary's own export, not always
+    # answer_verdicts.json -- showing a correct/partial/wrong prior above
+    # gold-audit buttons that cannot express it would be worse than showing no
+    # prior at all.
+    prior_path = VERDICTS if args.verdicts == "answer-quality" else \
+        Path(__file__).parent / cfg["export"]
     prior = {}
-    if VERDICTS.exists():
-        prior = {v["id"]: v for v in json.loads(VERDICTS.read_text(encoding="utf-8"))}
+    if prior_path.exists():
+        prior = {v["id"]: v for v in json.loads(prior_path.read_text(encoding="utf-8"))}
     for r in review:
         p = prior.get(r["id"])
         r["prior_verdict"] = p["verdict"] if p else None
         r["prior_note"] = p["note"] if p else ""
 
-    data_json = json.dumps(review, ensure_ascii=False)
-    html = _TEMPLATE.replace("__DATA__", data_json).replace("__SRC__", args.inp.name)
+    n_retr = sum(1 for r in review if r.get("retrieved_rule_ids"))
+    if n_retr:
+        prov = {r.get("retrieved_provenance") or "unlabelled" for r in review
+                if r.get("retrieved_rule_ids")}
+        print(f"[retrieved] {n_retr}/{len(review)} rows carry a retrieved set "
+              f"({', '.join(sorted(prov))})")
+
+    # Config placeholders are substituted BEFORE __DATA__ so a run whose answer
+    # text happens to contain a placeholder token cannot rewrite the template.
+    html = (_TEMPLATE
+            .replace("__SRC__", args.inp.name)
+            .replace("__TITLE__", cfg["title"])
+            .replace("__HINT__", cfg["hint"])
+            .replace("__CFG__", json.dumps(
+                {"buttons": cfg["buttons"], "export": cfg["export"],
+                 "storage": cfg["storage"]}, ensure_ascii=False))
+            .replace("__DATA__", json.dumps(review, ensure_ascii=False)))
     args.out.write_text(html, encoding="utf-8")
-    print(f"Wrote {args.out}  ({len(review)} answers)")
-    print(f"Open it in a browser, grade, then click Export to download verdicts.")
+    print(f"Wrote {args.out}  ({len(review)} answers, {args.verdicts} verdicts)")
+    print(f"Open it in a browser, grade, then click Export to download "
+          f"{cfg['export']}.")
 
 
 _TEMPLATE = r"""<!doctype html>
@@ -222,7 +312,7 @@ _TEMPLATE = r"""<!doctype html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>MTG answer grading</title>
+<title>__TITLE__</title>
 <style>
   :root{
     --bg:#0f1115; --panel:#171a21; --panel2:#1e222b; --line:#2a2f3a;
@@ -273,6 +363,34 @@ _TEMPLATE = r"""<!doctype html>
   .rule .rid{font:12px ui-monospace,monospace;font-weight:600;display:block;margin-bottom:3px}
   .col.cite .rid{color:var(--cite)} .col.gold .rid{color:var(--gold)}
   .empty{color:var(--wrong);font-size:13px;font-style:italic}
+  /* Retrieved panel. Full width below the cited/gold columns rather than a
+     third column: it holds TOP_K rules with full text, which at a third of the
+     width would be a column of slivers. Collapsed by default so it never
+     buries the two panels a grader reads first, with the count in the summary
+     so it can be skipped without opening. */
+  .retr{border:1px solid var(--line);border-radius:8px;background:var(--panel2);
+    margin-bottom:14px}
+  .retr>summary{cursor:pointer;padding:9px 12px;font-size:12px;
+    text-transform:uppercase;letter-spacing:.05em;color:var(--muted);
+    font-weight:700;list-style:none;display:flex;gap:9px;align-items:center;
+    flex-wrap:wrap}
+  .retr>summary::-webkit-details-marker{display:none}
+  .retr>summary::before{content:"▸";font-size:11px;color:var(--muted)}
+  .retr[open]>summary::before{content:"▾"}
+  .retr>summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px;
+    border-radius:8px}
+  .retr .body{padding:0 12px 10px}
+  .retr .rid{color:var(--muted)}
+  /* Provenance is the load-bearing part of this panel: a probe is what we would
+     retrieve TODAY, not what the run pulled. Warn-coloured so it cannot be read
+     as run provenance at a glance; run-recorded is neutral. */
+  .prov{font:11px ui-monospace,monospace;font-weight:600;border-radius:5px;
+    padding:2px 7px;border:1px solid;text-transform:none;letter-spacing:0}
+  .prov.probe{color:var(--partial);border-color:var(--partial);
+    background:rgba(210,153,34,.10)}
+  .prov.run{color:var(--ok);border-color:var(--ok);background:rgba(63,185,80,.10)}
+  .provnote{color:var(--muted);font-weight:400;text-transform:none;
+    letter-spacing:0;font-size:11.5px}
   /* Judge ruling -- the human-authored answer this is graded against. Gold
      accent (same token as gold rules) and a left rule so it reads as the
      reference, visually distinct from the model's answer directly above it. */
@@ -339,6 +457,14 @@ _TEMPLATE = r"""<!doctype html>
   .vbtn[data-v=correct].on{background:var(--ok);border-color:var(--ok);color:#04210b}
   .vbtn[data-v=partial].on{background:var(--partial);border-color:var(--partial);color:#231a02}
   .vbtn[data-v=wrong].on{background:var(--wrong);border-color:var(--wrong);color:#2a0606}
+  /* Gold-audit vocabulary. Dark text on the light selected fill, same as the
+     three above, so the selected state clears AA contrast rather than relying
+     on colour alone -- the .on class and the button's aria-pressed state carry
+     the meaning for anyone who cannot separate these hues. */
+  .vbtn[data-v=rulesguru-wrong].on{background:var(--wrong);border-color:var(--wrong);color:#2a0606}
+  .vbtn[data-v=gold-incomplete].on{background:var(--gold);border-color:var(--gold);color:#231a02}
+  .vbtn[data-v=ours-wrong].on{background:var(--accent);border-color:var(--accent);color:#04152e}
+  .vbtn[data-v=ambiguous].on{background:var(--muted);border-color:var(--muted);color:#12151b}
   .prior{color:var(--muted);font-size:12px;margin-left:auto}
   textarea{width:100%;margin-top:10px;background:var(--panel2);color:var(--text);
     border:1px solid var(--line);border-radius:8px;padding:9px;font:inherit;resize:vertical;min-height:38px}
@@ -352,7 +478,7 @@ _TEMPLATE = r"""<!doctype html>
 <body>
 <header>
   <div class="hrow">
-    <h1>MTG answer grading</h1>
+    <h1>__TITLE__</h1>
     <div class="prog"><i id="bar"></i></div>
     <span class="count" id="count">0 / 0</span>
     <button id="export" class="btn-primary">Export verdicts</button>
@@ -360,19 +486,20 @@ _TEMPLATE = r"""<!doctype html>
   </div>
 </header>
 <main>
-  <p class="hint">Source: <code>__SRC__</code>. Grade each answer against its
-    <span style="color:var(--cite)">cited</span> and
-    <span style="color:var(--gold)">gold</span> rule text.
-    Keys: <kbd>1</kbd> correct &middot; <kbd>2</kbd> partial &middot; <kbd>3</kbd> wrong
-    &middot; <kbd>j</kbd>/<kbd>k</kbd> next/prev. Autosaves; Export downloads
-    <code>answer_verdicts.json</code>.</p>
+  <p class="hint">Source: <code>__SRC__</code>. __HINT__
+    <span id="keyhint"></span> &middot; <kbd>j</kbd>/<kbd>k</kbd> next/prev.
+    Autosaves; Export downloads <code id="expname"></code>.</p>
   <div id="list"></div>
 </main>
 <div class="toast" id="toast"></div>
 <script>
 const DATA = __DATA__;
-const KEY = "mtg_grading_v1";
+const CFG = __CFG__;
+const KEY = CFG.storage;
 let state = JSON.parse(localStorage.getItem(KEY) || "{}");
+document.getElementById('expname').textContent = CFG.export;
+document.getElementById('keyhint').innerHTML = 'Keys: ' + CFG.buttons
+  .map((b,i)=>`<kbd>${i+1}</kbd> ${esc(b.label)}`).join(' &middot; ');
 
 function esc(s){return (s||"").replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
 function refHighlight(s){return esc(s).replace(/\[(\d{3}\.\d+[a-z]?)\]/g,'[<span class="ref">$1</span>]');}
@@ -382,6 +509,36 @@ function ruleList(ids, textMap, cls){
     const t = (textMap && textMap[id]) || '(text not found as a chunk)';
     return `<div class="rule"><span class="rid">[${esc(id)}]</span>${esc(t)}</div>`;
   }).join('');
+}
+
+// What retrieval actually surfaced -- the panel that separates a retrieval
+// failure from a reasoning failure. Without it a grader sees that the gold rule
+// was not cited but cannot tell whether it was never retrieved or was retrieved
+// and ignored, which are opposite findings with opposite fixes.
+//
+// PROVENANCE IS RENDERED, NOT ASSUMED. "probe" means these ids come from
+// retrieving NOW against the current index, because the row recorded none (the
+// gold-only derivability arms). "run" means the row recorded them itself. The
+// two look identical in a list and mean different things, so the label ships
+// with the data on every row.
+function retrievedPanel(r){
+  const ids = r.retrieved_rule_ids;
+  if(!ids || !ids.length) return '';
+  const prov = r.retrieved_provenance || 'unlabelled';
+  const label = prov === 'probe' ? 'retrieved today (probe) — not what the run pulled'
+              : prov === 'run'   ? 'retrieved by the run'
+              : 'provenance not recorded — do not read as run provenance';
+  const cls = prov === 'run' ? 'run' : 'probe';
+  const gold = new Set(r.gold || []);
+  const hits = ids.filter(id=>gold.has(id)).length;
+  return `<details class="retr">
+    <summary>Retrieved (${ids.length})
+      <span class="prov ${cls}">${esc(label)}</span>
+      <span class="provnote">${hits} of ${gold.size} gold id(s) present${
+        r.probe_config?` &middot; ${esc(r.probe_config)}`:''}</span>
+    </summary>
+    <div class="body">${ruleList(ids, r.retrieved_text)}</div>
+  </details>`;
 }
 
 // Gold rules rendered ACCORDING TO THEIR MATCH MODE.
@@ -481,11 +638,10 @@ DATA.forEach(r=>{
       <div class="col cite"><h3>Cited by the answer</h3>${ruleList(r.citations, r.cited_text)}</div>
       <div class="col gold"><h3>Gold rules</h3>${goldPanel(r)}</div>
     </div>
+    ${retrievedPanel(r)}
     <div class="verdict">
-      <button class="vbtn" data-v="correct">Correct</button>
-      <button class="vbtn" data-v="partial">Partial</button>
-      <button class="vbtn" data-v="wrong">Wrong</button>
-      ${r.prior_verdict?`<span class="prior">prior: ${r.prior_verdict}</span>`:''}
+      ${CFG.buttons.map(b=>`<button class="vbtn" data-v="${esc(b.v)}" aria-pressed="false">${esc(b.label)}</button>`).join('')}
+      ${r.prior_verdict?`<span class="prior">prior: ${esc(r.prior_verdict)}</span>`:''}
     </div>
     ${r.prior_note?`<div class="priornote"><b>prior note:</b> ${esc(r.prior_note)}</div>`:''}
     <textarea placeholder="fresh note (optional) — the prior note above is reference only"></textarea>`;
@@ -495,7 +651,12 @@ DATA.forEach(r=>{
   const ta = el.querySelector('textarea');
   function paint(){
     const v = state[r.id]?.verdict;
-    btns.forEach(b=>b.classList.toggle('on', b.dataset.v===v));
+    btns.forEach(b=>{
+      const on = b.dataset.v===v;
+      b.classList.toggle('on', on);
+      // aria-pressed, not colour alone, is what a screen reader reports.
+      b.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
     el.classList.toggle('graded', !!v);
   }
   btns.forEach(b=>b.onclick=()=>{setVerdict(r.id, b.dataset.v, ta.value); paint(); progress();});
@@ -514,7 +675,10 @@ function progress(){
 }
 progress();
 
-// keyboard: 1/2/3 grade the card nearest the viewport top; j/k navigate
+// keyboard: 1..N grade the card nearest the viewport top; j/k navigate.
+// Built from CFG so a four-button vocabulary gets a 4 key without a second
+// hard-coded map drifting out of sync with the buttons actually rendered.
+const KEYMAP = Object.fromEntries(CFG.buttons.map((b,i)=>[String(i+1), b.v]));
 const order = DATA.map(r=>r.id);
 function currentCard(){
   let best=null, bd=1e9;
@@ -524,10 +688,13 @@ function currentCard(){
 }
 document.addEventListener('keydown',e=>{
   if(e.target.tagName==='TEXTAREA') return;
-  const map={'1':'correct','2':'partial','3':'wrong'};
+  const map=KEYMAP;
   if(map[e.key]){ const id=currentCard(); const c=document.getElementById('card-'+id);
     setVerdict(id, map[e.key], state[id]?.note||'');
-    c.querySelectorAll('.vbtn').forEach(b=>b.classList.toggle('on',b.dataset.v===map[e.key]));
+    c.querySelectorAll('.vbtn').forEach(b=>{
+      const on = b.dataset.v===map[e.key];
+      b.classList.toggle('on',on); b.setAttribute('aria-pressed', on?'true':'false');
+    });
     c.classList.add('graded'); progress(); toast(id+': '+map[e.key]);
     const nx=order[order.indexOf(id)+1]; if(nx) document.getElementById('card-'+nx).scrollIntoView({behavior:'smooth'});
   }
@@ -543,13 +710,14 @@ document.getElementById('export').onclick=()=>{
   const out = DATA.map(r=>({id:r.id, verdict:(state[r.id]?.verdict)||'', note:(state[r.id]?.note)||''}));
   const blob = new Blob([JSON.stringify(out,null,2)], {type:'application/json'});
   const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
-  a.download='answer_verdicts.json'; a.click();
+  a.download=CFG.export; a.click();
   const ungraded = out.filter(o=>!o.verdict).map(o=>o.id);
   toast(ungraded.length? ('exported — ungraded: '+ungraded.join(', ')) : 'exported all '+out.length);
 };
 document.getElementById('reset').onclick=()=>{
   if(confirm('Clear all grades in this browser?')){ state={}; localStorage.removeItem(KEY);
-    document.querySelectorAll('.vbtn').forEach(b=>b.classList.remove('on'));
+    document.querySelectorAll('.vbtn').forEach(b=>{
+      b.classList.remove('on'); b.setAttribute('aria-pressed','false'); });
     document.querySelectorAll('.card').forEach(c=>c.classList.remove('graded')); progress(); }
 };
 </script>
