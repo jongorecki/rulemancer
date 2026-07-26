@@ -51,13 +51,24 @@ with the *same frozen instrument* (`b54fbdb95565abf8`) returned **78.0%**:
 `rg6461` flipped from `different` to `same`. One question in fifty, from the
 judge alone, with no change to any input.
 
-**So ~2% of the measured accuracy on any arm is judge nondeterminism**, on top of
-the model's own 10-12% within-arm variance. That is small next to the 13-point
-gap here — Jon's call 2026-07-26 was to record it and not re-test, since it does
-not change the outcome — but it sets a floor on what any single-rep comparison
-can resolve, and it compounds the false-negative problem found by the gold audit
-(`docs/results-gold-audit-batch1.md`): the judge is both systematically strict on
-equivalent phrasings *and* noisy run to run.
+Both sonnet arms were re-judged (10:05 and 10:09). Measured across both:
+
+```
+reasoning text differs   100/100 entries   (expected -- it is a sampled LLM)
+verdict differs            1/100 entries   (rg6461, in r1; r2 was 0/50)
+```
+
+**So the instrument is stable in verdict and unstable in prose: ~1 verdict flip
+per 100 judged rows, which on a 50-question arm is up to 2pp of accuracy.** That
+is small next to the 13-point gap here — Jon's call 2026-07-26 was to record it
+and not re-test, since it does not change the outcome — but it sets a floor on
+what any single-rep comparison can resolve, and it compounds the false-negative
+problem the gold audit found: the judge is both systematically strict on
+equivalent phrasings *and* nondeterministic run to run.
+
+Do not read the 100%-different reasoning text as instability in the *result*.
+It matters for a different reason: any analysis that quotes or greps a verdict's
+`reason` field is reading text that will not reproduce.
 
 Two practical consequences: a difference under ~2pp between arms is not a
 finding even at the same n, and any published accuracy should name the judging
