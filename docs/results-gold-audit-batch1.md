@@ -58,28 +58,57 @@ by class:  ambiguous 6   ours-wrong 5   gold-incomplete 2   rulesguru-wrong 2
 by level:  L2 2   L3 6   Corner Case 7
 ```
 
-Five of the six `ambiguous` rows were approved as overturns, taking arm B from
-135/150 (90.0%) to **140/150 (93.3%)**. `rg5863` was held back because it is a
-real open question, not a phrasing artefact.
+> ⚠️ **CORRECTED 2026-07-26.** Five of the six `ambiguous` rows were initially
+> approved as overturns, taking arm B to 140/150 (93.3%). On a second read,
+> **three of those five contradict the reference answer outright** and Jon
+> adjudicated the gold correct on all three. Only `rg1718` and `rg851` survive as
+> overturns. **Arm B is 137/150 = 91.3%.** The class counts in the table above are
+> the grading as originally recorded; the corrected reading is below.
 
-## Finding 1 — the judge has a false-negative problem
+```
+corrected classes
+  judge was wrong (overturned)   2   rg1718 rg851
+  gold was incomplete            3   rg7215 rg549 rg811   <- arm B wrong, arm C right
+  we were wrong                  5   rg494 rg713 rg1095 rg1208 rg842
+  gold was thin                  2   rg241 rg559
+  RulesGuru is wrong             2   rg6556 rg289
+  open rules question            1   rg5863
+```
 
-Five of fifteen flagged failures are rows where **both answers say the same
-thing.** Jon on `rg7215`: *"IMPORTANT!!!!!!! they say the same thing. This isn't
-a disagreement."* On `rg1718`: *"the answers are the same."* On `rg811`: *"both
-answers are saying the same thing."*
+## Finding 1 — the judge's false-negative rate is 2 in 15, not 5
 
-Two consequences, and the second is larger than the first.
+**As first written this section said five, and it was wrong.** The correction
+matters more than the original claim, so it leads.
 
-**It broke a published conclusion.** `docs/results-derivability.md` had a "gold
-was incomplete" category of four rows, evidenced by arm C scoring them correct
-once retrieval was added. Those four rows are `rg7215`, `rg549`, `rg811`,
-`rg851` — four of these five. Arm C did not measure retrieval closing a gap; it
-measured the judge changing its mind about answers that were already right. The
-category, the 92.7% ceiling derived from it, and the "single-id rows are the risk
-group" heuristic are all withdrawn.
+Three of the five rows graded "they say the same thing" state the *opposite*
+bottom line from the reference answer:
 
-**It is unmeasured in the direction that matters more.** This audit only saw rows
+| | gold says | we said |
+|---|---|---|
+| `rg7215` | "Tapped." | "Minas Tirith enters **untapped**." |
+| `rg549` | "Any color." | "Quirion Explorer produces **no mana**." |
+| `rg811` | 4/4 black Frog "**but no other abilities**" | keeps "**flying, vigilance** … plus its **Threshold** ability" |
+
+Jon adjudicated 2026-07-26: **the gold is correct in all three.** They revert to
+incorrect. The surviving false negatives are `rg1718` (answers agree on the case
+actually asked) and `rg851` (same end state, different mechanism — and arm C's
+near-identical answer was judged `same`, which is what a flip looks like).
+
+**What that reverses.** This section previously claimed the "gold was incomplete"
+category in `docs/results-derivability.md` was an artefact — that arm C had
+measured the judge changing its mind rather than retrieval closing a gap. The
+opposite is true. Arm C's answers on those three rows match the gold's bottom
+line where arm B's contradict it, so **retrieval genuinely fixed them.** The
+category, the ceiling (now 93.3%) and the single-id heuristic are all reinstated.
+
+**How the error happened, since it is the more useful finding.** A human label was
+taken as ground truth and a published result was rewritten on it *without checking
+the label against the answer text* — the exact failure this audit existed to
+catch in the LLM judge. When the instrument under audit changed from the judge to
+the grader, the auditing stopped. **Anything used as ground truth is an experiment
+subject, including a person.**
+
+**It remains unmeasured in the direction that matters more.** This audit only saw rows
 the judge called *wrong*. Its false negatives among the **135 it passed have
 never been checked**, and those would push the true figure down rather than up.
 Combined with the ~1-flip-per-100-rows nondeterminism measured separately
@@ -112,7 +141,7 @@ investigation ran:
   citations in arm B, not one of them `#0`, where the production arm's modal
   index *is* `#0`.
 
-It does not invalidate the 93.3%: the judge compares answer text, not citations.
+It does not invalidate the accuracy: the judge compares answer text, not citations.
 
 ## Finding 3 — card-name completeness may affect ruling retrieval
 

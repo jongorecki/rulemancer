@@ -113,7 +113,7 @@ counters ruling the answer depends on and 0-based is an unrelated token ruling.
 
 ## What this does and does not invalidate
 
-**Does not invalidate the 93.3%.** The judge compares answer text against the
+**Does not invalidate arm B's accuracy (91.3%).** The judge compares answer text against the
 reference answer; it does not resolve citation labels. Arm B's accuracy stands as
 measured. If anything the arms were mildly handicapped — the model spent effort
 satisfying a citation convention that could not be satisfied.
@@ -167,7 +167,7 @@ defaulting to `enumerate`.
 just a code question:
 
 - Fixing this **changes the prompt** the derivability arms send. Re-running arm B
-  would produce a number not directly comparable to today's 93.3%, and would cost
+  would produce a number not directly comparable to today's 91.3%, and would cost
   roughly what arm B cost ($8.47).
 - Not re-running is defensible: the accuracy is judged on answer text and stands.
   The cost is that arm B/C citations remain unusable for any future analysis, and

@@ -8,6 +8,27 @@
 
 That reopens the question this work started from. `docs/results-gold-audit-batch1.md` reported 5 of arm B's 15 flagged rows as judge false negatives, and that regrade is what lifted arm B from 90.0% to 93.3%. Reading the answer text directly, **3 of those rows state opposite bottom lines** (quoted below). Arm B's 93.3% rests on grading calls that do not survive a second read, and Jon should re-examine them before the number is quoted again.
 
+> ## ✅ RESOLVED 2026-07-26 — Jon adjudicated, and finding 3 was right
+>
+> **The gold is correct on all three** (`rg7215`, `rg549`, `rg811`). Those rows
+> revert to incorrect. **Arm B is 137/150 = 91.3%**, not 93.3%, and the judge's
+> false-negative rate on the flagged side is **2 of 15, not 5 of 15**.
+>
+> **This partly vindicates the reference grader rather than condemning it.**
+> Finding 2 scored it against Jon's labels and called 78.1% a validation failure —
+> but 3 of the 7 rows it was penalised for are rows where it was *right* and the
+> label was wrong. Re-scored against the corrected ground truth its agreement is
+> **28/32 = 87.5%**: still under the 95% bar, so 4.4% remains an upper bound on
+> the false-positive rate rather than a point estimate, but the gap is half what
+> was reported. The apparent failure was substantially an artefact of a
+> contaminated gold standard — which is finding 2's own thesis, applied one level
+> up to the human labels this doc validated against.
+>
+> Downstream: `docs/results-derivability.md` reinstates the incomplete-gold
+> category (3 rows), a **93.3% ceiling**, and the single-id heuristic — all three
+> had been withdrawn on the strength of the same mistaken labels. Arm C's passes
+> on those rows were retrieval genuinely closing a gap, not judge noise.
+
 ## What was measured
 
 The judge (`openai/gpt-5-mini`, frozen prompt digest `b54fbdb95565abf8`) returns `same` or `different` per row; `same` counts as correct. It can be wrong in two directions, and until this run only one had been checked:

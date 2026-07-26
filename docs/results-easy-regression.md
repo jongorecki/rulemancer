@@ -93,9 +93,12 @@ model failures.** They are the same shape as the 10 still-failing rows in
 (`docs/spec-gold-audit-ui.md`, batch 2) rather than in a model comparison.
 
 Batch 1 of that audit has since been graded — `docs/results-gold-audit-batch1.md`
-— and it found that **a third of the rows it examined were judge false negatives,
-not failures at all.** Treat these three the same way: candidates for grading, not
-established errors.
+— and found **2 of 15 rows to be judge false negatives** rather than real
+failures. (An earlier version of that doc said 5 of 15; three of those turned out
+to contradict the reference answer and were reverted after Jon adjudicated the
+gold correct.) Treat these three the same way: candidates for grading, not
+established errors — and grade them against the reference answer's bottom line,
+not against how good our reasoning looks.
 
 ## Cost: opus-low is CHEAPER on hard questions and DEARER on easy ones today
 

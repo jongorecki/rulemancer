@@ -130,7 +130,7 @@ Re-scored across every arm carrying `by_level_counts`, `corner-half` vs flat
 ```
                                         flat   corner-half    delta
 derivability B  auto                    90.0%      91.5%      +1.5pp
-derivability B  human-corrected         93.3%      94.4%      +1.1pp
+derivability B  human-corrected         91.3%      92.6%      +1.3pp
 opus5-low bucketA  auto                 75.0%      75.6%      +0.6pp
 opus5-low bucketA  human-corrected      82.4%      83.2%      +0.9pp
 h2h opus-low hard r1                    75.9%      76.2%      +0.3pp
