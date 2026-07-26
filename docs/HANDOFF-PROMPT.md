@@ -42,10 +42,16 @@ identical gold on 26% of rows, mean overlap 0.54.
    +$0.0005/question. Below the 7pp bar that was fixed before the run — Jon
    overrode a null result because the change is nearly free and revertible.
 
-Then **collect background job `bgutzcrer`** (easy-set regression check + the
-truncated hard rep2) and judge it with `evals/judge_rulesguru.py`. Files listed
-in the handoff. No regression confirms the switch; a regression doesn't reverse
-it but tells you to watch simple questions.
+Then **finish the easy-set regression check.** Generation was nearly done when
+the session ended: the opus arms and the completed hard rep2 are all 50/50 and
+54/54 on disk; the two sonnet arms were still running. Judging of the opus arms
+was launched and deferred — **check whether the verdict files already exist
+before re-running the judge.** Exact filenames and the command are in the
+handoff.
+
+No regression confirms the switch; a regression doesn't reverse it (Jon decided
+on cost) but tells you to watch simple questions. Sonnet's within-arm noise on
+the hard set was 6 of 54 (11%), so a gap smaller than that is not a finding.
 
 ## Before you believe anything about billing
 

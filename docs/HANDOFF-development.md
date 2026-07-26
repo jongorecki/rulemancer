@@ -188,19 +188,45 @@ id regardless of grouping.
 
 ## IN FLIGHT WHEN THIS WAS WRITTEN
 
-**Background job `bgutzcrer`** — the easy-set regression check plus completion of
-the truncated opus hard rep2. ~2 hours, ~$11.50. Collect these files:
+**State as of 2026-07-26 08:48.** Generation of the easy-set regression check is
+nearly done; judging of the finished arms was started and deferred to the next
+session by Jon.
 
 ```
-evals/answers/h2h_opuslow_hard_r2.json     (completes 47 -> 54)
-evals/answers/h2h_opuslow_easy_r{1,2}.json
-evals/answers/h2h_sonnet_easy_r{1,2}.json
+evals/answers/h2h_opuslow_hard_r2.json      54/54  DONE (the truncated rep is complete)
+evals/answers/h2h_opuslow_easy_r1.json      50/50  DONE
+evals/answers/h2h_opuslow_easy_r2.json      50/50  DONE
+evals/answers/h2h_sonnet_easy_r1.json       running (~43 s/question)
+evals/answers/h2h_sonnet_easy_r2.json       queued
 ```
 
-Judge each with `evals/judge_rulesguru.py --questions evals/_easy50.jsonl`
-(gpt-5-mini via OpenRouter — a different provider, unaffected by Anthropic
-limits). The easy set is 50 questions, 31 at level 1 and 19 at level 2, disjoint
-from bucket A and the v3 150, mean reference answer 271 chars vs bucket A's 388.
+Judging of the three DONE arms was launched (job `b8vli4mc2`) and should have
+produced `evals/verdicts_h2h_opuslow_easy_r{1,2}.json` and
+`evals/verdicts_h2h_opuslow_hard_r2.json`. **Check those exist before re-running
+the judge** — if they do, only the two sonnet arms still need judging:
+
+```
+uv run python evals/judge_rulesguru.py \
+  --answers evals/answers/h2h_sonnet_easy_r{1,2}.json \
+  --questions evals/_easy50.jsonl \
+  --out evals/verdicts_h2h_sonnet_easy_r{1,2}.json
+```
+
+gpt-5-mini via OpenRouter — a different provider, unaffected by Anthropic limits.
+The easy set is 50 questions, 31 at level 1 and 19 at level 2, disjoint from
+bucket A and the v3 150, mean reference answer 271 chars vs bucket A's 388.
+
+**Also worth recording from these runs: opus-low is ~2.5x faster.** The three
+opus arms took ~14 minutes per 50 questions; sonnet at default effort is tracking
+~36. That is a latency win on top of the cost win, and nothing has counted it
+yet.
+
+**Read the comparison as:** opus easy vs sonnet easy, two reps each. No
+regression confirms the switch. A regression does not reverse it — Jon decided on
+cost — but tells you to watch simple questions and points at a fix such as
+splitting effort by question difficulty. Remember sonnet's within-arm noise on
+the hard set was 6 of 54 questions (11%), so a gap smaller than that is not a
+finding.
 
 **How to read it:** no regression confirms the switch; a regression does not
 reverse it (Jon decided on cost) but tells you to watch simple questions and
