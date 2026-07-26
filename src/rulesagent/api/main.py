@@ -38,7 +38,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from rulesagent.cache import DEFAULT_DB
-from rulesagent.generate.answer import PROMPT_VERSION, RulesAgent
+from rulesagent.generate.answer import GEN_EFFORT, PROMPT_VERSION, RulesAgent
 from rulesagent.index.store import VectorStore
 
 logger = logging.getLogger(__name__)
@@ -78,7 +78,10 @@ _scryfall_refresh_state: dict = dict(_SCRYFALL_REFRESH_IDLE)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     store = VectorStore.load(REPO / "data" / "parsed" / f"vector_{VECTOR_MODEL}.pkl")
-    agent = RulesAgent(store)  # ruling_select on; live Scryfall (fresh rulings)
+    # ruling_select on; live Scryfall (fresh rulings). effort=GEN_EFFORT pairs
+    # production with the arm GEN_MODEL was actually measured at -- opus-5 at
+    # the API's default effort is an unmeasured, costlier arm (see answer.py).
+    agent = RulesAgent(store, effort=GEN_EFFORT)
     # chunk_map resolves a rule/glossary citation id -> its full text. The
     # agent is now its one owner (L1, docs/plan-l1-crossref-expansion.md --
     # expand_crossrefs needs the same dict), built once from the store's own

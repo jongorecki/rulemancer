@@ -31,12 +31,27 @@ load_dotenv()
 
 logger = logging.getLogger(__name__)
 
-GEN_MODEL = "claude-sonnet-5"  # pinned; one-line swap to A/B other models
+GEN_MODEL = "claude-opus-5"  # pinned; one-line swap to A/B other models
 # Valid output_config.effort levels (docs/spec-effort-and-norewrite.md Task 1).
 # NOT a production default -- production stays on the API's own default effort
 # unless a caller passes RulesAgent(effort=...) explicitly. Listed here so an
 # unknown level fails at agent construction instead of at the API.
 GEN_EFFORT_LEVELS = frozenset({"low", "medium", "high", "xhigh", "max"})
+# The effort GEN_MODEL was measured at, and the one production must therefore
+# run. Jon's ruling 2026-07-26 was "opus-5 AT effort=low" -- the head-to-head
+# that justified the swap (same 54 questions, rewrite v2, ruling raw, system v3,
+# frozen judge) scored opus-low 75.9%/72.2% against sonnet's 66.7%/63.0%, at 23%
+# lower cost and ~2.5x faster. Opus at the API's DEFAULT effort is an unmeasured
+# arm and a more expensive one, so shipping the model id without this would
+# discard the cost argument the decision rests on.
+#
+# Kept here, next to GEN_MODEL, because the two are one decision -- but applied
+# by the API entry point (api/main.py) rather than as the RulesAgent default, so
+# the "bare RulesAgent sends a byte-identical request body" invariant guarded by
+# tests/test_prompt_identity.py survives, and eval arms keep defining effort
+# explicitly (run_answer_eval.py always passes effort=args.effort, so an arm
+# without --effort stays a distinct default-effort experiment).
+GEN_EFFORT = "low"
 # Production generation cap. sonnet-5 runs adaptive thinking by default and
 # max_tokens bounds thinking AND visible text together, so on hard multi-step
 # questions most of this budget is thinking the user never sees.
