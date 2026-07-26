@@ -62,30 +62,63 @@ model failures.** They are the same shape as the 11 unreachable questions in
 `docs/results-derivability.md`, and they belong in the audit pool
 (`docs/spec-gold-audit-ui.md`, batch 2) rather than in a model comparison.
 
-## Cost mechanism, measured
+## Cost: opus-low is CHEAPER on hard questions and DEARER on easy ones today
 
-Output tokens across both reps of each arm — measured, not priced here, since
-current per-token rates should be looked up rather than recalled:
+Priced at current published rates — opus-5 $5/$25 per MTok; sonnet-5 $3/$15 with
+**introductory $2/$10 through 2026-08-31**. Cache writes bill at 1.25x input,
+cache reads at 0.10x, and `input_tokens` is only the uncached remainder, so all
+four components are counted.
 
 ```
-opus-5 effort low     117,804 output tokens
-sonnet-5 default      376,250 output tokens      3.2x
+per question          opus-5 low   sonnet @ intro   sonnet @ standard
+hard set (n=54)         $0.06445      $0.08571          $0.12856
+                                      opus -24.8%       opus -49.9%
+easy set (n=50)         $0.05153      $0.04724          $0.07086
+                                      opus +9.1%        opus -27.3%
 ```
 
-That ratio is the mechanism behind the cost result already recorded on the hard
-set ($0.0741 vs $0.096, 23% cheaper today and ~48% after sonnet's intro pricing
-ends 2026-08-31): sonnet at default effort runs adaptive thinking, and thinking
-tokens are output tokens. `effort=low` is what makes that cost expressible.
+The hard-set result reproduces the figure the switch was decided on (23% cheaper
+today, ~48% after 8/31), so that number holds. **The easy set flips it: until
+2026-08-31, opus-low costs ~9% MORE per easy question than sonnet.**
 
-Input tokens are near-identical (210k vs 227k) and cache reads are effectively
-equal, as expected — the prompts are the same.
+**Why, and it is not noise.** Output tokens per question:
+
+```
+              opus-low    sonnet
+hard set        1,211      7,184     5.9x
+easy set        1,178      3,763     3.2x
+```
+
+Opus at `effort=low` emits a nearly constant ~1,200 output tokens whatever the
+difficulty; sonnet's output scales with the problem, because adaptive thinking
+spends in proportion to hardness. All of opus's saving comes from capping
+output, so it is worth more the harder the traffic. On easy questions there is
+less thinking to save, and opus's input rate — 2.5x sonnet's under intro pricing
+— is not offset, since input is ~4.2K tokens per question on either model and is
+the larger half of the bill.
+
+**So the cost answer depends on the traffic mix, and it is not a single number.**
+After 2026-08-31 opus-low is cheaper on both sets. Before then it is cheaper on
+hard traffic and dearer on easy, so a mixed workload sits somewhere near break-
+even. The quality case is unaffected and is the stronger one either way: +9.3pp
+hard, +14.0pp easy.
+
+A token-ratio alone would have hidden this. Opus costs more per token than
+sonnet, so 3.2x fewer output tokens does not by itself establish which is
+cheaper — it has to be priced.
 
 ## How to read this
 
-It **confirms** the switch rather than merely failing to block it. Jon decided
-on cost, so a regression would not have reversed the decision — it would have
-told us to watch simple questions and pointed at splitting effort by question
-difficulty. No such split is needed.
+On quality it **confirms** the switch rather than merely failing to block it. A
+regression would not have reversed the decision — it would have told us to watch
+simple questions and pointed at splitting effort by question difficulty. No such
+split is needed for quality.
+
+On cost the framing needs qualifying. "A cost decision with supporting quality
+evidence" is accurate for hard traffic, and for all traffic after 2026-08-31.
+For the next five weeks on easy traffic it is closer to a quality decision at
+roughly flat cost. Nothing here argues for reverting: opus-low wins on quality
+on both sets, and on cost everywhere once intro pricing ends.
 
 ## Provenance
 
