@@ -22,8 +22,8 @@ effort, opus at `effort=low`.
 
 ```
 opus-5  effort low    r1  92.0%   r2  86.0%    mean 89.0%
-sonnet-5 default      r1  76.0%   r2  74.0%    mean 75.0%
-delta                                          +14.0 pp
+sonnet-5 default      r1  78.0%   r2  74.0%    mean 76.0%
+delta                                          +13.0 pp
 ```
 
 The paired record is the stronger evidence, and it is lopsided:
@@ -34,15 +34,34 @@ paired r2 vs r2   opus wins 6, loses 0
 ```
 
 Both opus reps beat both sonnet reps, and the *worst* opus rep (86.0%) beats the
-*best* sonnet rep (76.0%) by 10 points. The gap is larger on easy questions
-(+14.0pp) than on hard ones (+11.1pp), so the overthinking-simple-questions
+*best* sonnet rep (78.0%) by 8 points. The gap is larger on easy questions
+(+13.0pp) than on hard ones (+9.3pp), so the overthinking-simple-questions
 failure mode this check existed to find is not merely absent — it runs the other
 way.
 
 **Noise, so the gap can be read properly.** Within-arm disagreement is 5 of 50
 for opus and 6 of 50 for sonnet (10% and 12%), closely matching the 11%
-measured on the hard set. A 14-point gap is well clear of it; a gap smaller than
+measured on the hard set. A 13-point gap is well clear of it; a gap smaller than
 about 11% would not have been a finding.
+
+### ⚠️ The judge is not deterministic — sonnet r1 was 76.0% on first judging
+
+This section first recorded sonnet r1 at **76.0%**. Re-judging the *same answers*
+with the *same frozen instrument* (`b54fbdb95565abf8`) returned **78.0%**:
+`rg6461` flipped from `different` to `same`. One question in fifty, from the
+judge alone, with no change to any input.
+
+**So ~2% of the measured accuracy on any arm is judge nondeterminism**, on top of
+the model's own 10-12% within-arm variance. That is small next to the 13-point
+gap here — Jon's call 2026-07-26 was to record it and not re-test, since it does
+not change the outcome — but it sets a floor on what any single-rep comparison
+can resolve, and it compounds the false-negative problem found by the gold audit
+(`docs/results-gold-audit-batch1.md`): the judge is both systematically strict on
+equivalent phrasings *and* noisy run to run.
+
+Two practical consequences: a difference under ~2pp between arms is not a
+finding even at the same n, and any published accuracy should name the judging
+run that produced it, because re-judging will not reproduce it exactly.
 
 ## The failure sets say more than the percentages
 
@@ -101,7 +120,7 @@ the larger half of the bill.
 After 2026-08-31 opus-low is cheaper on both sets. Before then it is cheaper on
 hard traffic and dearer on easy, so a mixed workload sits somewhere near break-
 even. The quality case is unaffected and is the stronger one either way: +9.3pp
-hard, +14.0pp easy.
+hard, +13.0pp easy.
 
 A token-ratio alone would have hidden this. Opus costs more per token than
 sonnet, so 3.2x fewer output tokens does not by itself establish which is
