@@ -177,6 +177,34 @@ def hit_at(q: EvalQuestion, ranking: list[Retrieved], k: int) -> bool:
                for group in gold_groups(q))
 
 
+def coverage_at(q: EvalQuestion, ranking: list[Retrieved], k: int) -> float | None:
+    """Fraction of q.gold present in ranking[:k]. None for empty gold (excluded
+    from any mean, same convention as group_coverage() in
+    run_retrieval_diversity.py). Flat over q.gold -- does not call
+    gold_groups() -- so it applies identically regardless of match mode.
+
+    See docs/spec-coverage-metric.md #1: this is a graded generalization of
+    hit_at(), reported ALONGSIDE it, never in place of it. hit_at() and
+    gold_groups() above are unchanged."""
+    if not q.gold:
+        return None
+    topk = {normalize_source_id(r.chunk.source_id) for r in ranking[:k]}
+    hit = sum(1 for g in q.gold if normalize_source_id(g) in topk)
+    return hit / len(q.gold)
+
+
+def coverage_from_ids(gold: list[str], retrieved_ids: list[str]) -> float | None:
+    """Same formula as coverage_at, operating on plain id lists -- lets
+    coverage be recomputed from evals/answers/*.json's recorded
+    retrieved_rule_ids without re-running retrieval (docs/spec-coverage-metric.md
+    #6). None for empty gold, same convention as coverage_at."""
+    if not gold:
+        return None
+    retrieved = {normalize_source_id(x) for x in retrieved_ids}
+    hit = sum(1 for g in gold if normalize_source_id(g) in retrieved)
+    return hit / len(gold)
+
+
 def rewrite_arm_name(label: str, n: int) -> str:
     return f"vec+rw{n}-{label}"
 
@@ -307,6 +335,11 @@ def main() -> None:
           f"excluded from recall denominator) | vector={VECTOR_MODEL} | rerank pool={RERANK_POOL}\n")
 
     hits = {name: {k: 0 for k in KS} for name in method_names}
+    coverage_sums = {name: {k: 0.0 for k in KS} for name in method_names}
+    # Mean coverage@k per method, alongside hits (recall@k). Same n_scored
+    # denominator as recall@k -- coverage_at() is None on exactly the rows
+    # hit_at() can never hit (empty gold), so both tables exclude the same
+    # rows the same way (docs/spec-coverage-metric.md #1).
     per_q5 = {name: {} for name in method_names}
     sweep5 = {a: 0 for a in ALPHA_SWEEP}
     top_gen_k: dict[str, dict[str, list[str]]] = {name: {} for name in method_names}
@@ -348,6 +381,9 @@ def main() -> None:
             for k in KS:
                 if hit_at(q, ranking, k):
                     hits[name][k] += 1
+                c = coverage_at(q, ranking, k)
+                if c is not None:
+                    coverage_sums[name][k] += c
                 if args.match_both:
                     if hit_at_forced(q, ranking, k, "any"):
                         hits_any[name][k] += 1
@@ -370,6 +406,7 @@ def main() -> None:
     best_arm = max(rw_arm_names, key=lambda name: hits[name][5])
     orig_arm = f"{best_arm}+orig"
     hits[orig_arm] = {k: 0 for k in KS}
+    coverage_sums[orig_arm] = {k: 0.0 for k in KS}
     per_q5[orig_arm] = {}
     hits_any[orig_arm] = {k: 0 for k in KS}
     hits_all[orig_arm] = {k: 0 for k in KS}
@@ -380,6 +417,9 @@ def main() -> None:
         for k in KS:
             if hit_at(q, ranking, k):
                 hits[orig_arm][k] += 1
+            c = coverage_at(q, ranking, k)
+            if c is not None:
+                coverage_sums[orig_arm][k] += c
             if args.match_both:
                 if hit_at_forced(q, ranking, k, "any"):
                     hits_any[orig_arm][k] += 1
@@ -396,6 +436,18 @@ def main() -> None:
     print("-" * len(header))
     for name in method_names:
         print(f"{name:<20}" + "".join(f"{hits[name][k]/n_scored:>7.0%}   " for k in KS))
+
+    # coverage@k -- graded alongside recall@k, never instead of it
+    # (docs/spec-coverage-metric.md #3). Reported at the identical set of k's
+    # over the identical n_scored denominator so the two tables read side by
+    # side without any unit confusion.
+    print("\ncoverage@k (mean fraction of gold ids retrieved; flat over gold, "
+          "NOT gold_groups -- see docs/spec-coverage-metric.md):")
+    header_cov = f"{'retriever':<20}" + "".join(f"cov@{k:<5}" for k in KS)
+    print(header_cov)
+    print("-" * len(header_cov))
+    for name in method_names:
+        print(f"{name:<20}" + "".join(f"{coverage_sums[name][k]/n_scored:>7.0%}   " for k in KS))
 
     print("\nweighted-fusion alpha sweep (recall@5, alpha = vector weight):")
     print("  " + "   ".join(f"a={a}: {sweep5[a]/n_scored:.0%}" for a in ALPHA_SWEEP))
