@@ -163,8 +163,12 @@ BATCH_SIZE = 19
 # Published Anthropic API rates for claude-opus-5, per the claude-api skill
 # (loaded fresh this session). $ per 1,000,000 tokens. Used ONLY for the
 # printed estimate of the path not taken -- see module docstring.
-OPUS5_INPUT_PER_MTOK = 5.00
-OPUS5_OUTPUT_PER_MTOK = 25.00
+# Rates come from rulesagent.pricing, the single cached copy (checked against
+# the claude-api skill, with a staleness horizon and dated changes). Do not
+# reintroduce a local literal -- that is how a stale cost gets published.
+from rulesagent.pricing import PRICING as _PRICING
+
+OPUS5_INPUT_PER_MTOK, OPUS5_OUTPUT_PER_MTOK = _PRICING["claude-opus-5"]
 EST_OUTPUT_TOKENS_PER_CELL = 60   # "Verdict: x\nReason: <one sentence>"
 EST_CHARS_PER_TOKEN = 3.5         # conservative for the current tokenizer
 

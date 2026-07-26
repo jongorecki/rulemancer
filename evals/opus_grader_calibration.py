@@ -69,8 +69,11 @@ MAX_WORKERS = 8
 # Published Anthropic API rates for claude-opus-4-8, per the claude-api skill
 # (loaded fresh this session, cached 2026-06-24) -- NOT from memory, per the
 # task's binding constraint. $ per 1,000,000 tokens.
-OPUS_INPUT_PER_MTOK = 5.00
-OPUS_OUTPUT_PER_MTOK = 25.00
+# Rates come from rulesagent.pricing, the single cached copy. See that module
+# for when it was last checked and what dated changes are pending.
+from rulesagent.pricing import PRICING as _PRICING
+
+OPUS_INPUT_PER_MTOK, OPUS_OUTPUT_PER_MTOK = _PRICING["claude-opus-5"]
 
 # The six arms and where their condition-A (original, untagged) answer files
 # live. sonnet-v2's answers are split across a rules-question file and a

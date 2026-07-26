@@ -78,21 +78,24 @@ REPO = Path(__file__).resolve().parents[1]
 EVALS = REPO / "evals"
 ANSWERS = EVALS / "answers"
 
-# Per-MTok (input, output). Source: claude-api skill, checked 2026-07-26.
-# Never fill these in from memory -- reread the skill when they may have moved.
-PRICING = {
-    "claude-opus-5": (5.00, 25.00),
-    "claude-opus-4-8": (5.00, 25.00),
-    "claude-opus-4-7": (5.00, 25.00),
-    "claude-fable-5": (10.00, 50.00),
-    "claude-sonnet-5": (3.00, 15.00),          # standard rate
-    "claude-sonnet-5@intro": (2.00, 10.00),    # introductory, through 2026-08-31
-    "claude-sonnet-4-6": (3.00, 15.00),
-    "claude-haiku-4-5": (1.00, 5.00),
-}
-SONNET_INTRO_ENDS = "2026-08-31"
-CACHE_READ_MULT = 0.10    # cached input bills at ~0.1x
-CACHE_WRITE_MULT = 1.25   # 5-minute TTL write premium
+# Pricing comes from `rulesagent.pricing`, the single cached copy in this repo,
+# which records when it was checked against the claude-api skill and what dated
+# changes are pending. It used to be duplicated here and in two eval scripts;
+# three hand-maintained copies of a number that expires is three chances to
+# publish a stale cost. Never edit rates here -- refresh the module.
+from rulesagent.pricing import (  # noqa: E402
+    CACHE_READ_MULT,
+    CACHE_WRITE_MULT,
+    CHECKED_ON as PRICING_CHECKED_ON,
+    PRICING,
+    SCHEDULED_CHANGES,
+    SOURCE as PRICING_SOURCE,
+    check_freshness,
+)
+
+SONNET_INTRO_ENDS = next(
+    (d.isoformat() for d, what in SCHEDULED_CHANGES if "sonnet-5" in what), None
+)
 
 # Verdict stems whose answers file is named differently. Kept explicit and small:
 # a fuzzy matcher that silently picks the wrong answers file would attach one
@@ -376,7 +379,12 @@ def collect() -> dict:
         "pricing": {"per_mtok": PRICING, "cache_read_mult": CACHE_READ_MULT,
                     "cache_write_mult": CACHE_WRITE_MULT,
                     "sonnet_intro_ends": SONNET_INTRO_ENDS,
-                    "source": "claude-api skill, checked 2026-07-26"},
+                    "checked_on": PRICING_CHECKED_ON.isoformat(),
+                    "source": PRICING_SOURCE,
+                    # Empty means the cache is trustworthy. Non-empty means a
+                    # cost on this page may be wrong -- carried into the data so
+                    # the page can say so rather than quietly publishing it.
+                    "freshness_warnings": check_freshness()},
         "current_config": {
             "GEN_MODEL": "claude-opus-5", "GEN_EFFORT": "low", "REWRITE_N": 3,
             "REWRITE_MODEL": "claude-haiku-4-5", "REWRITE_FUSION_DEPTH": 100,
@@ -1520,15 +1528,36 @@ def _resolve_cost(cost: dict, per_q: tuple[float | None, float | None]) -> dict:
 DONE_STATUSES = {"shipped", "cut", "superseded"}
 
 
+def resolve_doc(ref: str) -> Path | None:
+    """Locate a doc whether it is live or archived, or None if it is gone.
+
+    Finished design docs move to `docs/archive/` to keep the top level small --
+    ~894 KB of deliberation was enough to fill a context window before any work
+    began. Archiving must not break the inventory's evidence checks, so a
+    reference resolves in either location. This is why archiving a doc is a safe
+    operation: the roadmap keeps pointing at it.
+    """
+    p = REPO / ref
+    if p.exists():
+        return p
+    archived = REPO / "docs" / "archive" / Path(ref).name
+    return archived if archived.exists() else None
+
+
 def _doc_coverage() -> dict:
     """Which plan/spec docs the inventory accounts for -- and which it misses.
 
     A backlog that silently drops a doc is worse than one that admits the gap,
-    so this globs the directory rather than trusting the inventory to be complete.
+    so this globs the directories rather than trusting the inventory to be
+    complete. Archived docs are still inventoried: the roadmap is the index that
+    makes the archive safe to ignore, so it has to cover what is in there.
     """
-    docs = sorted(p.relative_to(REPO).as_posix()
-                  for p in (REPO / "docs").glob("*.md")
-                  if p.name.startswith(("plan-", "spec-")))
+    docs = sorted(
+        ("docs/" + p.name)
+        for d in (REPO / "docs", REPO / "docs" / "archive")
+        for p in d.glob("*.md")
+        if p.name.startswith(("plan-", "spec-"))
+    )
     seen = {d for it in ROADMAP for d in it.get("merged", [])}
     seen |= {e["ref"] for it in ROADMAP for e in it.get("evidence", [])
              if e.get("kind") == "doc"}
@@ -1579,7 +1608,13 @@ def build_roadmap(comparisons: dict, current: dict) -> dict:
                 row["broken_why"] = None if row["ok"] else "path exists and is tracked, so the claim is stale"
                 row["detail"] = ("absent" if gone else "present in the working tree but untracked")
             elif kind == "doc":
-                row["ok"] = (REPO / ref).exists()
+                # Resolves live OR archived. Finished design docs move to
+                # docs/archive/ to keep the top level readable; that is a
+                # relocation, not a deletion, so it must not read as broken
+                # evidence. Genuinely missing still does.
+                found = resolve_doc(ref)
+                row["ok"] = found is not None
+                row["archived"] = bool(found and "archive" in found.parts)
                 row["broken_why"] = None if row["ok"] else "doc does not exist"
             else:
                 row["ok"] = True

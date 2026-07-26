@@ -61,7 +61,13 @@ def test_dependencies_resolve(item):
 @pytest.mark.parametrize("item", ROADMAP, ids=lambda i: i["id"])
 def test_referenced_paths_exist(item):
     for e in item["evidence"]:
-        if e["kind"] in ("path", "doc"):
+        if e["kind"] == "doc":
+            # Docs resolve live OR archived -- finished design docs move to
+            # docs/archive/ to keep the top level small, and that must not
+            # invalidate the evidence pointing at them.
+            assert bmh.resolve_doc(e["ref"]) is not None, (
+                f"{item['id']}: missing {e['ref']} (not in docs/ or docs/archive/)")
+        if e["kind"] == "path":
             assert (REPO / e["ref"]).exists(), f"{item['id']}: missing {e['ref']}"
         if e["kind"] == "path_absent":
             gone = not (REPO / e["ref"]).exists()
@@ -70,7 +76,8 @@ def test_referenced_paths_exist(item):
                 f"{item['id']}: {e['ref']} is present AND tracked, so the "
                 f"'never landed' claim is stale")
     for d in item.get("merged", []) + item.get("docs", []):
-        assert (REPO / d).exists(), f"{item['id']}: merged/doc ref missing {d}"
+        assert bmh.resolve_doc(d) is not None, (
+            f"{item['id']}: merged/doc ref missing {d} (not in docs/ or docs/archive/)")
 
 
 def test_referenced_commits_exist():
