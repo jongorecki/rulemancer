@@ -1,0 +1,100 @@
+[
+  {
+    "id": "c012",
+    "question": "I cast [Emrakul, the Promised End]. With its cast trigger on the stack, I copy that trigger with [Lithoform Engine]. Then I untap Lithoform Engine with [Voltaic Key] and use it again to copy [Emrakul, the Promised End] itself as a permanent spell. How many of my opponent's turns do I control, do I get a second Emrakul, and does copying the Emrakul spell give me another control-a-turn trigger?",
+    "match": "any",
+    "kind": "card-interaction",
+    "show_rewrite": false,
+    "rewrite_version": "v2",
+    "ruling_query_mode": "raw",
+    "condition": "v5gB",
+    "run": 2,
+    "model": "claude-sonnet-5",
+    "prompts_cache": "evals\\answers\\_prompts_variant_B.json",
+    "prompts_cache_sha256": "e8c3b17dd61a581b5bbdb0955449914b1451bfa980bd3e72bb3fd03cdb96c079",
+    "answered": true,
+    "answer": "You control exactly 1 of your opponent's turns, you do get a second Emrakul, the Promised End (as a token permanent), and no – copying the Emrakul, the Promised End spell does NOT generate another \"gain control\" trigger, because that trigger only fires when the spell is cast, not when a copy of it is created.\n\nWalking through it:\n\n1. You cast Emrakul, the Promised End. Its triggered ability (\"When you cast this spell, you gain control of target opponent during that player's next turn. After that turn, that player takes an extra turn.\") triggers and goes on the stack above the Emrakul, the Promised End spell.\n\n2. You use Lithoform Engine's first ability ({2},{T}: Copy target activated or triggered ability you control) to copy that triggered ability. Per rule [707.10], the copy has the same target (the same opponent) unless you choose a new one, and it goes on the stack above the original trigger.\n\n3. You untap Lithoform Engine with Voltaic Key and activate its third ability ({4},{T}: Copy target permanent spell you control) targeting the still-on-the-stack Emrakul, the Promised End spell. Per rule [111.13], a copy of a permanent spell becomes a token as it resolves, so this copy will resolve into a second 13/13 Emrakul, the Promised End token on the battlefield alongside the original once it eventually enters. Per [Lithoform Engine ruling #6], creating this copy is not \"casting\" it, so it does not trigger \"When you cast this spell...\" again — that ability's trigger condition (casting) simply never happens for a copy made this way. That answers the third part of your question: no additional control-a-turn trigger is generated.\n\n4. The stack now resolves top-down: the spell copy resolves first, becoming the second Emrakul, the Promised End token under your control (so yes, you do get a second Emrakul). Then the copied triggered ability resolves, targeting your chosen opponent and setting up (a) control of that opponent's next turn and (b) a delayed trigger for an extra turn after that turn. Then the original triggered ability resolves, doing the same thing for the same opponent.\n\n5. Per [Emrakul, the Promised End ruling #14], \"Multiple player-controlling effects that affect the same player overwrite each other. The last one to be created is the one that works... each ability's effect will create an extra turn.\" Since both triggered-ability instances target the same opponent and both are resolving before that opponent has taken any new turn, they're both talking about the same \"next turn\" — so the later-resolving one's control effect simply overwrites the earlier one, and you end up controlling that single next turn, not two separate turns. However, because each instance of the ability independently creates its own delayed \"after that turn, take an extra turn\" effect, your opponent will take that one controlled turn followed by two extra turns afterward (one from each resolved trigger).\n\nFinally, the original Emrakul, the Promised End spell resolves normally and enters the battlefield as your actual (non-token) Emrakul, the Promised End, in addition to the token copy — so you end up with two Emrakul, the Promised End permanents, but only one controlled opponent's turn (followed by two extra turns for that opponent).\n\nNote: this analysis assumes a two-player game. In a multiplayer game the target opponent and \"next turn\" logic work the same way per [Emrakul, the Promised End ruling #14], but turn order among more than two players (APNAP, [101.4]) would determine when extra turns inserted by different players get sequenced if more players' effects were involved.\n\nCard data from Scryfall (scryfall.com).",
+    "citations": [
+      "111.13",
+      "707.10",
+      "603.7h",
+      "500.7",
+      "Emrakul, the Promised End ruling #14",
+      "Lithoform Engine ruling #5",
+      "Lithoform Engine ruling #6",
+      "Lithoform Engine ruling #3",
+      "101.4"
+    ],
+    "gold": [],
+    "gold_text": {},
+    "cited_text": {
+      "111.13": "A copy of a permanent spell becomes a token as it resolves. The token has the characteristics of the spell that became that token. The token is not “created” for the purposes of any replacement effects or triggered abilities that refer to creating a token.",
+      "707.10": "To copy a spell, activated ability, or triggered ability means to put a copy of it onto the stack; a copy of a spell isn’t cast and a copy of an activated ability isn’t activated. A copy of a spell or ability copies both the characteristics of the spell or ability and all decisions made for it, including modes, targets, the value of X, and additional or alternative costs. (See rule 601, “Casting Spells.”) Choices that are normally made on resolution are not copied. If an effect of the copy refers to objects used to pay its costs, it uses the objects used to pay the costs of the original spell or ability. A copy of a spell is owned by the player under whose control it was put on the stack. A copy of a spell or ability is controlled by the player under whose control it was put on the stack. A copy of a spell is itself a spell, even though it has no spell card associated with it. A copy of an ability is itself an ability. A player casts Fork, targeting an Emerald Charm. Fork reads, “Copy target instant or sorcery spell, except that the copy is red. You may choose new targets for the copy.” Emerald Charm is a modal green instant. When the Fork resolves, it puts a copy of the Emerald Charm on the stack except the copy is red, not green. The copy has the same mode that was chosen for the original Emerald Charm. It does not necessarily have the same target, but only because Fork allows choosing of new targets. Fling is an instant that reads, “As an additional cost to cast this spell, sacrifice a creature” and “Fling deals damage equal to the sacrificed creature’s power to any target.” When determining how much damage a copy of Fling deals, it checks the power of the creature sacrificed to pay for the original Fling. Dawnglow Infusion is a sorcery that reads, “You gain X life if {G} was spent to cast this spell and X life if {W} was spent to cast it.” Because mana isn’t an object, a copy of Dawnglow Infusion won’t cause you to gain any life, no matter what mana was spent to cast the original spell.",
+      "603.7h": "An effect may create a delayed triggered ability that can do something at a later time. A delayed triggered ability will contain “when,” “whenever,” or “at,” although that word won’t usually begin the ability. An activated or triggered ability may create a delayed triggered ability that triggers when the ability that created it has resolved a certain number of times in a turn. In that case, that delayed triggered ability is created only once, during the appropriate resolution of that ability.",
+      "500.7": "Some effects can give a player extra turns. They do this by adding the turns directly after the specified turn. If a player is given multiple extra turns, the extra turns are added one at a time. If multiple players are given extra turns, the extra turns are added one at a time, in APNAP order (see rule 101.4). The most recently created turn will be taken first.",
+      "101.4": "If multiple players would make choices and/or take actions at the same time, the active player (the player whose turn it is) makes any choices required, then the next player in turn order (usually the player seated to the active player’s left) makes any choices required, followed by the remaining nonactive players in turn order. Then the actions happen simultaneously. This rule is often referred to as the “Active Player, Nonactive Player (APNAP) order” rule. A card reads “Each player sacrifices a creature.” First, the active player chooses a creature they control. Then each of the nonactive players, in turn order, chooses a creature they control. Then all creatures chosen this way are sacrificed simultaneously."
+    },
+    "rewrite_queries": [],
+    "clarification": null
+  },
+  {
+    "id": "c014",
+    "question": "An opponent controls an untapped [Trinisphere], and I have a permanent that makes my green spells cost {1} less. I want to cast [Awaken the Woods] for value. If I cast it with X=0, what does it cost and what do I get, and what X should I actually choose?",
+    "match": "any",
+    "kind": "card-interaction",
+    "show_rewrite": false,
+    "rewrite_version": "v2",
+    "ruling_query_mode": "raw",
+    "condition": "v5gB",
+    "run": 2,
+    "model": "claude-sonnet-5",
+    "prompts_cache": "evals\\answers\\_prompts_variant_B.json",
+    "prompts_cache_sha256": "e8c3b17dd61a581b5bbdb0955449914b1451bfa980bd3e72bb3fd03cdb96c079",
+    "answered": true,
+    "answer": "If you cast Awaken the Woods choosing X=0, you'll actually pay {1}{G}{G} (3 mana total) and get 0 Forest Dryad tokens — a complete waste of the extra mana. The X you should actually choose is X=2: it costs you the exact same {1}{G}{G} (3 mana total), but you get 2 Forest Dryad 1/1 land-creature tokens instead of 0.\n\nHere's why. Awaken the Woods's mana cost is {X}{G}{G}; per rule [107.3a], you choose and announce X as part of casting it, and per [202.3e]/[107.3] that value is locked in for all calculations while the spell is on the stack. Your total cost is built in the order laid out in [601.2f]: start from the announced cost, apply cost increases, then cost reductions, and only then does a cost-setting effect like Trinisphere's apply — as confirmed in Trinisphere's own ruling [Trinisphere ruling #0]: 'apply any cost reductions [first]. Finally, apply Trinisphere's effect if the mana component of the spell's cost is less than three mana.' Your green-cost-reduction permanent only reduces the generic portion of the cost (per the standard rule that reduction effects only touch generic mana), and a mana component can't go below {0} per [601.2f].\n\n- X=0: cost is {0}{G}{G} → generic portion is 0, your {1} reduction can't push it lower, so it's still {G}{G} (2 total mana). That's less than three mana, so Trinisphere's untapped ability (from the Trinisphere card text) bumps the total up to three mana, giving a final cost of {1}{G}{G} (the extra {1} can be paid with any color, per Trinisphere's own text). Result: 3 mana spent, 0 tokens created.\n- X=1: cost is {1}{G}{G} → generic reduced by 1 to {0}, leaving {G}{G} (2 mana). Still under three, so Trinisphere again forces it to {1}{G}{G} (3 mana). Result: 3 mana spent, 1 token created — better than X=0, still wasteful compared to X=2.\n- X=2: cost is {2}{G}{G} → generic reduced by 1 to {1}, giving {1}{G}{G} (3 mana total). That's exactly three mana, not less than three, so Trinisphere does nothing extra. Result: 3 mana spent, 2 tokens created.\n- X=3: cost is {3}{G}{G} → generic reduced by 1 to {2}, giving {2}{G}{G} (4 mana total), which is not less than three, so Trinisphere again doesn't intervene, but now you're paying a full extra mana for just one more token.\n\nSo X=2 is the sweet spot: it's the largest X where your reduced cost is still exactly the three-mana floor Trinisphere would force on you anyway, so you get the most tokens 'for free' before you start paying strictly more mana per additional token at X=3 and beyond.\n\nCard data from Scryfall (scryfall.com).",
+    "citations": [
+      "601.2f",
+      "107.3a",
+      "202.3e",
+      "107.3",
+      "Trinisphere ruling #0",
+      "Awaken the Woods"
+    ],
+    "gold": [],
+    "gold_text": {},
+    "cited_text": {
+      "601.2f": "To cast a spell is to take it from where it is (usually the hand), put it on the stack, and pay its costs, so that it will eventually resolve and have its effect. Casting a spell includes proposal of the spell (rules 601.2a–d) and determination and payment of costs (rules 601.2f–h). To cast a spell, a player follows the steps listed below, in order. A player must be legally allowed to cast the spell to begin this process (see rule 601.3). If a player is unable to comply with the requirements of a step listed below while performing that step, the casting of the spell is illegal; the game returns to the moment before the casting of that spell was proposed (see rule 733, “Handling Illegal Actions”). The player determines the total cost of the spell. Usually this is just the mana cost. Some spells have additional or alternative costs. Some effects may increase or reduce the cost to pay, or may provide other alternative costs. Costs may include paying mana, tapping permanents, sacrificing permanents, discarding cards, and so on. The total cost is the mana cost or alternative cost (as determined in rule 601.2b), plus all additional costs and cost increases, and minus all cost reductions. If multiple cost reductions apply, the player may apply them in any order. If the mana component of the total cost is reduced to nothing by cost reduction effects, it is considered to be {0}. It can’t be reduced to less than {0}. Once the total cost is determined, any effects that directly affect the total cost are applied. Then the resulting total cost becomes “locked in.” If effects would change the total cost after this time, they have no effect.",
+      "107.3a": "Many objects use the letter X as a placeholder for a number that needs to be determined. Some objects have abilities that define the value of X; the rest let their controller choose the value of X. If a spell or activated ability has a mana cost, alternative cost, additional cost, and/or activation cost with an {X}, [-X], or X in it, and the value of X isn’t defined by the text of that spell or ability, the controller of that spell or ability chooses and announces the value of X as part of casting the spell or activating the ability. (See rule 601, “Casting Spells.”) While a spell is on the stack, any X in its mana cost or in any alternative cost or additional cost it has equals the announced value. While an activated ability is on the stack, any X in its activation cost equals the announced value.",
+      "202.3e": "The mana value of an object is a number equal to the total amount of mana in its mana cost, regardless of color. When calculating the mana value of an object with an {X} in its mana cost, X is treated as 0 while the object is not on the stack, and X is treated as the number chosen for it while the object is on the stack.",
+      "107.3": "Many objects use the letter X as a placeholder for a number that needs to be determined. Some objects have abilities that define the value of X; the rest let their controller choose the value of X."
+    },
+    "rewrite_queries": [],
+    "clarification": null
+  },
+  {
+    "id": "c015",
+    "question": "[Grist, the Hunger Tide] is in my graveyard. Can I return it with [Animate Dead], and what happens?",
+    "match": "any",
+    "kind": "card-interaction",
+    "show_rewrite": false,
+    "rewrite_version": "v2",
+    "ruling_query_mode": "raw",
+    "condition": "v5gB",
+    "run": 2,
+    "model": "claude-sonnet-5",
+    "prompts_cache": "evals\\answers\\_prompts_variant_B.json",
+    "prompts_cache_sha256": "e8c3b17dd61a581b5bbdb0955449914b1451bfa980bd3e72bb3fd03cdb96c079",
+    "answered": true,
+    "answer": "Yes, you can target Grist, the Hunger Tide with Animate Dead while it's in your graveyard, but the moment it returns to the battlefield the Aura falls off and you end up having to sacrifice it, so you get no lasting benefit from it as a planeswalker.\n\nHere's why. Grist, the Hunger Tide's own printed text says \"As long as Grist isn't on the battlefield, it's a 1/1 Insect creature in addition to its other types,\" and its ruling confirms this: \"Anywhere but on the battlefield, Grist is a Legendary Planeswalker Creature — Grist Insect. Once it enters the battlefield, it is no longer a creature and is just a planeswalker\" [Grist, the Hunger Tide ruling #1]. So while it sits in your graveyard, it IS a creature card, which satisfies Animate Dead's enchant requirement of \"enchant creature card in a graveyard,\" making it a legal target.\n\nWhen Animate Dead's triggered ability resolves, it returns Grist, the Hunger Tide to the battlefield under your control and attaches itself to it, changing its own enchant restriction to \"enchant creature put onto the battlefield with this Aura\" [Animate Dead ruling #1]. But because Grist, the Hunger Tide's creature-granting clause only applies \"as long as [it] isn't on the battlefield,\" the instant it's on the battlefield it stops being a creature and is just a planeswalker — it no longer satisfies Animate Dead's \"enchant creature\" requirement.\n\nAnimate Dead's own ruling covers exactly this situation: \"if the creature put onto the battlefield ... can't legally be enchanted by Animate Dead for another reason, Animate Dead won't be able to attach to it. It will be put into the graveyard as a state-based action, causing its delayed triggered ability to trigger. When the trigger resolves, if the creature's still on the battlefield, its controller will sacrifice it\" [Animate Dead ruling #4]. Animate Dead's text itself provides that delayed trigger: \"When this Aura leaves the battlefield, that creature's controller sacrifices it.\"\n\nSo the sequence is: Grist, the Hunger Tide enters the battlefield as a planeswalker → Animate Dead can't legally stay attached and is put into your graveyard as a state-based action → Animate Dead's \"leaves the battlefield\" trigger goes on the stack → when it resolves, you (as Grist, the Hunger Tide's controller) must sacrifice it, since it's still on the battlefield. This all happens essentially immediately, before you'd normally get a chance to activate any loyalty ability (those require the stack to be empty during your main phase, and the sacrifice trigger will be sitting on the stack). Net result: Grist, the Hunger Tide briefly touches the battlefield and then goes right back to your graveyard, and Animate Dead ends up in your graveyard as well.\n\nThis works the same whether you're playing two-player or multiplayer, since it only involves your own permanents and doesn't require choosing a defending player or opponent.\n\nCard data from Scryfall (scryfall.com).",
+    "citations": [
+      "Grist, the Hunger Tide ruling #1",
+      "Animate Dead ruling #1",
+      "Animate Dead ruling #4"
+    ],
+    "gold": [],
+    "gold_text": {},
+    "cited_text": {},
+    "rewrite_queries": [],
+    "clarification": null
+  }
+]

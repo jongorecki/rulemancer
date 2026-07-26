@@ -1,0 +1,35 @@
+[
+  {
+    "id": "q001",
+    "question": "Do creatures phasing back in trigger enter the battlefield abilities?",
+    "match": "any",
+    "kind": "interaction",
+    "show_rewrite": false,
+    "rewrite_version": "v2",
+    "ruling_query_mode": "raw",
+    "condition": "v4smoke",
+    "run": 0,
+    "answered": true,
+    "answer": "No. Creatures phasing in do not trigger \"enters the battlefield\" abilities, because phasing is not a zone change. Rule [702.26d] explicitly states that the phasing event doesn't actually cause a permanent to change zones or control, even though it's treated as though it's not on the battlefield while phased out, and it says outright that \"Zone-change triggers don't trigger when a permanent phases in or out.\" When a phased-out permanent phases back in, its status simply changes to \"phased in\" and the game once again treats it as though it exists [702.26c] — it was never actually removed from or returned to the battlefield as a zone change, so there's no enters-the-battlefield event for other permanents' \"when a creature enters\" abilities or the phasing creature's own \"when this creature enters\" ability to see [603.6a]. This is a case where the specific phasing rule ([702.26d]) overrides how zone-change triggers would normally work, since phasing is defined as not a real zone change at all. Note that a related but distinct rule, [702.26j], confirms the same principle for attach/unattach triggers on Auras/Equipment: those also don't fire from phasing.",
+    "citations": [
+      "702.26d",
+      "702.26c",
+      "603.6a",
+      "702.26j"
+    ],
+    "gold": [
+      "702.26d"
+    ],
+    "gold_text": {
+      "702.26d": "Phasing The phasing event doesn’t actually cause a permanent to change zones or control, even though it’s treated as though it’s not on the battlefield and not under its controller’s control while it’s phased out. Zone-change triggers don’t trigger when a permanent phases in or out. Tokens continue to exist on the battlefield while phased out. Counters and stickers remain on a permanent while it’s phased out. Effects that check a phased-in permanent’s history won’t treat the phasing event as having caused the permanent to leave or enter the battlefield or its controller’s control."
+    },
+    "cited_text": {
+      "702.26d": "Phasing The phasing event doesn’t actually cause a permanent to change zones or control, even though it’s treated as though it’s not on the battlefield and not under its controller’s control while it’s phased out. Zone-change triggers don’t trigger when a permanent phases in or out. Tokens continue to exist on the battlefield while phased out. Counters and stickers remain on a permanent while it’s phased out. Effects that check a phased-in permanent’s history won’t treat the phasing event as having caused the permanent to leave or enter the battlefield or its controller’s control.",
+      "702.26c": "Phasing If a permanent phases in, its status changes to “phased in.” The game once again treats it as though it exists.",
+      "603.6a": "Trigger events that involve objects changing zones are called “zone-change triggers.” Many abilities with zone-change triggers attempt to do something to that object after it changes zones. During resolution, these abilities look for the object in the zone that it moved to. If the object is unable to be found in the zone it went to, the part of the ability attempting to do something to the object will fail to do anything. The ability could be unable to find the object because the object never entered the specified zone, because it left the zone before the ability resolved, or because it is in a zone that is hidden from a player, such as a library or an opponent’s hand. (This rule applies even if the object leaves the zone and returns again before the ability resolves.) The most common zone-change triggers are enters-the-battlefield triggers and leaves-the-battlefield triggers. Enters-the-battlefield abilities trigger when a permanent enters the battlefield. These are written, “When [this object] enters, . . . “ or “Whenever a [type] enters, . . .” Each time an event puts one or more permanents onto the battlefield, all permanents on the battlefield (including the newcomers) are checked for any enters-the-battlefield triggers that match the event.",
+      "702.26j": "Phasing Abilities that trigger when a permanent becomes attached or unattached from an object or player don’t trigger when that permanent phases in or out."
+    },
+    "rewrite_queries": [],
+    "clarification": null
+  }
+]

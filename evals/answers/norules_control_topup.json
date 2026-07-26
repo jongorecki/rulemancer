@@ -1,0 +1,1058 @@
+[
+  {
+    "id": "rg1280",
+    "question": "Armando controls [Mana Reflection] and taps [Pyromancer's Goggles] to add {R}{R}. They spend one mana to cast [Into the Fray]. Later in the phase they spend the other mana to cast [Galvanic Discharge]. Which one(s) are copied?",
+    "match": "any",
+    "kind": "other",
+    "show_rewrite": false,
+    "rewrite_version": "none",
+    "ruling_query_mode": "union",
+    "condition": null,
+    "run": null,
+    "model": "claude-opus-5",
+    "prompts_cache": "evals\\answers\\_prompts_norules_control.json",
+    "prompts_cache_sha256": "b1b8ac436e5f8ede2ff5bca75e04033e3864d4a204343f0dcc104be0c59090b4",
+    "answered": true,
+    "answer": "Both spells are copied — one copy of Into the Fray and one copy of Galvanic Discharge.\n\nWhy: Pyromancer's Goggles reads \"{T}: Add {R}. When that mana is spent to cast a red instant or sorcery spell, copy that spell and you may choose new targets for the copy.\" That's mana with a \"rider\" attached — an effect that applies when that specific mana is spent. Mana Reflection says that if you tap a permanent for mana, it produces twice as much of that mana instead. When an effect multiplies mana produced by an ability that creates mana with a restriction or rider, every mana produced carries that same restriction or rider. So tapping Pyromancer's Goggles under Mana Reflection gives you {R}{R}, and each of those two red mana individually carries the Goggles' copy trigger.\n\nSpending the first {R} on Into the Fray triggers the rider tied to that mana, copying Into the Fray. Spending the second {R} later in the same phase on Galvanic Discharge triggers the rider tied to that second mana, copying Galvanic Discharge. The two mana are tracked separately; using one up doesn't consume the other's rider.\n\nDetails worth knowing:\n- The trigger only fires for a red instant or sorcery spell. Both Into the Fray and Galvanic Discharge are red instants/sorceries, so both qualify; a nonred spell or a creature spell paid with that mana would produce no copy.\n- The copy is created directly on the stack — it isn't cast, so it doesn't trigger cast triggers and doesn't cost anything. You may choose new targets for the copy, and each copy resolves before the original spell it copied.\n- Any choice made while the spell resolves (for example, an amount of {E} paid during Galvanic Discharge's resolution) is made independently for the copy; choices locked in during casting, such as modes or a value of X, are copied.\n- Unspent mana empties at the end of each step and phase, so this only works because you spent the second {R} in the same phase, as stated.\n- Player count doesn't change any of this. In a multiplayer game the only difference is that when you choose new targets for a copy, you can point it at permanents controlled by a different opponent, subject to each copy's own targeting restrictions.\n\nOne timing assumption: I'm reading your question as both spells being cast during the same phase (so the mana hadn't emptied). If the second {R} were still floating when a step/phase ended before Galvanic Discharge was cast, that mana would have been lost and only Into the Fray would have been copied.",
+    "citations": [
+      "106.6"
+    ],
+    "gold": [
+      "106.6a",
+      "614.1a"
+    ],
+    "gold_text": {
+      "106.6a": "Some spells or abilities that produce mana restrict how that mana can be spent, have an additional effect that affects the spell or ability that mana is spent on, or create a delayed triggered ability (see rule 603.7a) that triggers when that mana is spent. This doesn’t affect the mana’s type. Some replacement effects increase the amount of mana produced by a spell or ability. In these cases, any restrictions or additional effects created by the spell or ability will apply to all mana produced. If the spell or ability creates a delayed triggered ability that triggers when the mana is spent, a separate delayed triggered ability is created for each mana produced. If the spell or ability creates a continuous effect or replacement effect if the mana is spent, a separate effect is created once for each mana produced.",
+      "614.1a": "Some continuous effects are replacement effects. Like prevention effects (see rule 615), replacement effects apply continuously as events happen—they aren’t locked in ahead of time. Such effects watch for a particular event that would happen and completely or partially replace that event with a different event. They act like “shields” around whatever they’re affecting. Effects that use the word “instead” are replacement effects. Most replacement effects use the word “instead” to indicate what events will be replaced with other events."
+    },
+    "cited_text": {
+      "106.6": "Some spells or abilities that produce mana restrict how that mana can be spent, have an additional effect that affects the spell or ability that mana is spent on, or create a delayed triggered ability (see rule 603.7a) that triggers when that mana is spent. This doesn’t affect the mana’s type. A player’s mana pool contains {R}{G} which can be spent only to cast creature spells. That player activates Doubling Cube’s ability, which reads “{3}, {T}: Double the amount of each type of unspent mana you have.” The player’s mana pool now has {R}{R}{G}{G} in it, {R}{G} of which can be spent on anything."
+    },
+    "rewrite_queries": [],
+    "clarification": null,
+    "retrieved_rule_ids": [],
+    "stop_reason": "end_turn",
+    "tool_calls": null,
+    "tool_rounds": null,
+    "usage": {
+      "input_tokens": 1754,
+      "output_tokens": 3942,
+      "cache_read_input_tokens": 0,
+      "cache_creation_input_tokens": 0
+    },
+    "system_version": "norules_control",
+    "layers_tool": false,
+    "max_tokens": 32768,
+    "effort": "high",
+    "answer_gold": "Both are copied. Mana Reflection has a replacement effect that changes the amount of mana produced by Pyromancer's Goggles. A separate delayed trigger is created for each mana."
+  },
+  {
+    "id": "rg2599",
+    "question": "Autumn restarts the game with [Karn Liberated]'s last ability. They put a [Quilled Slagwurm] onto the battlefield as it resolves. Can it attack on their first turn?",
+    "match": "groups",
+    "kind": "other",
+    "show_rewrite": false,
+    "rewrite_version": "none",
+    "ruling_query_mode": "union",
+    "condition": null,
+    "run": null,
+    "model": "claude-opus-5",
+    "prompts_cache": "evals\\answers\\_prompts_norules_control.json",
+    "prompts_cache_sha256": "b1b8ac436e5f8ede2ff5bca75e04033e3864d4a204343f0dcc104be0c59090b4",
+    "answered": true,
+    "answer": "Yes. Quilled Slagwurm can attack on Autumn's first turn of the restarted game.\n\nWhy: A creature can't attack unless its controller has controlled it continuously since the beginning of their most recent turn (this is \"summoning sickness\"; haste bypasses it, and Quilled Slagwurm doesn't have haste). When Karn Liberated's −14 ability resolves, the game is restarted and the non-Aura permanent cards exiled with Karn Liberated are put onto the battlefield under Autumn's control as part of that restart — that happens before the new game's first turn begins, during the game's setup. So by the time Autumn's first turn starts, Autumn has already controlled Quilled Slagwurm since before that turn began, satisfying the continuous-control requirement. The same reasoning lets those permanents use {T} abilities on Autumn's first turn.\n\nPractical notes:\n- Quilled Slagwurm still has to be untapped and otherwise able to attack (no attack restrictions on it, defending player has no relevant effect stopping it, etc.).\n- Whether Autumn's first turn is the game's first turn depends on who is the starting player in the restarted game; either way, on whatever turn is Autumn's first, Quilled Slagwurm is not summoning sick. Note that a player taking the very first turn of a game can attack on it — there's no rule against attacking on turn one — they just skip their draw (in a two-player game).\n- Everything else about the restart is normal: all players get new starting hands and may mulligan, libraries are reshuffled from all cards owned, and only the cards exiled with Karn Liberated (non-Aura permanent cards) start on the battlefield, under Autumn's control.\n- Multiplayer: this doesn't change the answer. With more than two players, the restarted game keeps the same seating and turn order, and any player who had already left the game doesn't come back; Autumn's first turn may simply come later in the turn order, but Quilled Slagwurm is still attack-ready when it arrives.\n\nOne assumption worth stating: I'm reading the question as Quilled Slagwurm being one of the cards exiled with Karn Liberated and thus put onto the battlefield by the restart itself. If instead Quilled Slagwurm were cast or put onto the battlefield after the new game's first turn had already begun, it would be summoning sick and couldn't attack that turn.",
+    "citations": [
+      "302.6",
+      "508.1a"
+    ],
+    "gold": [
+      "302.6",
+      "508.1a",
+      "726.4",
+      "727.1"
+    ],
+    "gold_text": {
+      "302.6": "A creature’s activated ability with the tap symbol or the untap symbol in its activation cost can’t be activated unless the creature has been under its controller’s control continuously since their most recent turn began. A creature can’t attack unless it has been under its controller’s control continuously since their most recent turn began. This rule is informally called the “summoning sickness” rule.",
+      "508.1a": "First, the active player declares attackers. This turn-based action doesn’t use the stack. To declare attackers, the active player follows the steps below, in order. If at any point during the declaration of attackers, the active player is unable to comply with any of the steps listed below, the declaration is illegal; the game returns to the moment before the declaration (see rule 733, “Handling Illegal Actions”). The active player chooses which creatures that they control, if any, will attack. The chosen creatures must be untapped, they can’t also be battles, and each one must either have haste or have been controlled by the active player continuously since the turn began.",
+      "726.4": "If the player who has the initiative leaves the game, the active player takes the initiative at the same time that player leaves the game. If the active player is leaving the game or if there is no active player, the next player in turn order takes the initiative.",
+      "727.1": "One card (Karn Liberated) restarts the game. A game that is restarted immediately ends. No players in that game win, lose, or draw that game. All players in that game when it ended then start a new game following the procedures set forth in rule 103, “Starting the Game,” with the following exception:"
+    },
+    "cited_text": {
+      "302.6": "A creature’s activated ability with the tap symbol or the untap symbol in its activation cost can’t be activated unless the creature has been under its controller’s control continuously since their most recent turn began. A creature can’t attack unless it has been under its controller’s control continuously since their most recent turn began. This rule is informally called the “summoning sickness” rule.",
+      "508.1a": "First, the active player declares attackers. This turn-based action doesn’t use the stack. To declare attackers, the active player follows the steps below, in order. If at any point during the declaration of attackers, the active player is unable to comply with any of the steps listed below, the declaration is illegal; the game returns to the moment before the declaration (see rule 733, “Handling Illegal Actions”). The active player chooses which creatures that they control, if any, will attack. The chosen creatures must be untapped, they can’t also be battles, and each one must either have haste or have been controlled by the active player continuously since the turn began."
+    },
+    "rewrite_queries": [],
+    "clarification": null,
+    "retrieved_rule_ids": [],
+    "stop_reason": "end_turn",
+    "tool_calls": null,
+    "tool_rounds": null,
+    "usage": {
+      "input_tokens": 1726,
+      "output_tokens": 3391,
+      "cache_read_input_tokens": 0,
+      "cache_creation_input_tokens": 0
+    },
+    "system_version": "norules_control",
+    "layers_tool": false,
+    "max_tokens": 32768,
+    "effort": "high",
+    "answer_gold": "Yes. Karn's ability finishes resolving just before the first turn's untap step, so the creature has been controlled continuously since the turn began and can attack."
+  },
+  {
+    "id": "rg127",
+    "question": "Abram controls a [Blood Moon], a [Life and Limb], and a [Tropical Island], that entered the battlefield in that order. Is the Tropical Island a creature?",
+    "match": "groups",
+    "kind": "other",
+    "show_rewrite": false,
+    "rewrite_version": "none",
+    "ruling_query_mode": "union",
+    "condition": null,
+    "run": null,
+    "model": "claude-opus-5",
+    "prompts_cache": "evals\\answers\\_prompts_norules_control.json",
+    "prompts_cache_sha256": "b1b8ac436e5f8ede2ff5bca75e04033e3864d4a204343f0dcc104be0c59090b4",
+    "answered": true,
+    "answer": "No. The Tropical Island is not a creature — with Blood Moon's timestamp earlier than Life and Limb's, Tropical Island is just a nonbasic land that's a Mountain with \"{T}: Add {R}\".\n\nWhy:\n\n- Both Blood Moon (\"Nonbasic lands are Mountains\") and Life and Limb (\"All Forests and all Saprolings are 1/1 green Saproling creatures and Forest lands in addition to their other types\") are type-changing continuous effects, so both apply in layer 4, in timestamp order. Blood Moon entered first, so Blood Moon applies first. (The Tropical Island's own timestamp doesn't matter here; what's ordered are the two continuous effects, and both apply to Tropical Island the moment it's on the battlefield.)\n- Applying Blood Moon: Tropical Island is a nonbasic land, so its land subtypes become just Mountain. Setting a land's subtype to a basic land type removes its old land types and its old intrinsic mana abilities and gives it the corresponding mana ability, so it loses Forest and Island and gains \"{T}: Add {R}\".\n- Applying Life and Limb next: it only affects permanents that are Forests or Saprolings. At this point Tropical Island is neither (it's a Mountain), so Life and Limb does nothing to it. It never becomes a green Saproling creature, and layer 5 (color) and layer 7b (setting power/toughness to 1/1) never touch it either.\n\nOn dependency: you might ask whether Life and Limb should be applied out of timestamp order because Blood Moon changes which objects Life and Limb applies to. Each effect can change the set of objects the other applies to (Life and Limb can turn Saproling tokens into nonbasic Forest lands, which Blood Moon would then make Mountains), so the two are mutually dependent and dependency is ignored — you fall back to timestamp order, which again puts Blood Moon first. Same answer.\n\nThe reverse order is the likely point of confusion: if Life and Limb had entered before Blood Moon, then in layer 4 Life and Limb would first make Tropical Island (a Forest) a Saproling creature and Forest land, and Blood Moon would then only overwrite its land subtypes with Mountain — it would remain a 1/1 green Saproling creature land that taps for {R}. Card types and creature types aren't removed by Blood Moon; only land subtypes are.\n\nNumber of players is irrelevant here; the answer is the same in two-player and multiplayer games.",
+    "citations": [
+      "305.7",
+      "613.1d",
+      "613.6",
+      "613.8"
+    ],
+    "gold": [
+      "205.1a",
+      "613.1d",
+      "613.8a",
+      "613.8b"
+    ],
+    "gold_text": {
+      "205.1a": "The type line is printed directly below the illustration. It contains the card’s card type(s). It also contains the card’s subtype(s) and supertype(s), if applicable. Some effects set an object’s card type. In most such cases, the new card type(s) replaces any existing card types. However, an object with either the instant or sorcery card type retains that type. Counters, stickers, effects, and damage marked on the object remain with it, even if they are meaningless to the new card type. Similarly, when an effect sets one or more of an object’s subtypes, the new subtype(s) replaces any existing subtypes from the appropriate set (creature types, land types, artifact types, enchantment types, planeswalker types, or spell types). If an object’s card type is removed, the subtypes correlated with that card type will remain if they are also the subtypes of a card type the object currently has; otherwise, they are also removed for the entire time the object’s card type is removed. Removing an object’s subtype doesn’t affect its card types at all.",
+      "613.1d": "The values of an object’s characteristics are determined by starting with the actual object. For a card, that means the values of the characteristics printed on that card. For a token or a copy of a spell or card, that means the values of the characteristics defined by the effect that created it. Then all applicable continuous effects are applied in a series of layers in the following order: Layer 4: Type-changing effects are applied. These include effects that change an object’s card type, subtype, and/or supertype.",
+      "613.8a": "Within a layer or sublayer, determining which order effects are applied in is sometimes done using a dependency system. If a dependency exists, it will override the timestamp system. An effect is said to “depend on” another if (a) it’s applied in the same layer (and, if applicable, sublayer) as the other effect; (b) applying the other would change the text or the existence of the first effect, what it applies to, or what it does to any of the things it applies to; and (c) neither effect is from a characteristic-defining ability or both effects are from characteristic-defining abilities. Otherwise, the effect is considered to be independent of the other effect.",
+      "613.8b": "Within a layer or sublayer, determining which order effects are applied in is sometimes done using a dependency system. If a dependency exists, it will override the timestamp system. An effect dependent on one or more other effects waits to apply until just after all of those effects have been applied. If multiple dependent effects would apply simultaneously in this way, they’re applied in timestamp order relative to each other. If several dependent effects form a dependency loop, then this rule is ignored and the effects in the dependency loop are applied in timestamp order."
+    },
+    "cited_text": {
+      "305.7": "If an effect sets a land’s subtype to one or more of the basic land types, the land no longer has its old land type. It loses all abilities generated from its rules text, its old land types, and any copiable effects affecting that land, and it gains the appropriate mana ability for each new basic land type. Note that this doesn’t remove any abilities that were granted to the land by other effects. Setting a land’s subtype doesn’t add or remove any card types (such as creature) or supertypes (such as basic, legendary, and snow) the land may have. If a land gains one or more land types in addition to its own, it keeps its land types and rules text, and it gains the new land types and mana abilities.",
+      "613.1d": "The values of an object’s characteristics are determined by starting with the actual object. For a card, that means the values of the characteristics printed on that card. For a token or a copy of a spell or card, that means the values of the characteristics defined by the effect that created it. Then all applicable continuous effects are applied in a series of layers in the following order: Layer 4: Type-changing effects are applied. These include effects that change an object’s card type, subtype, and/or supertype.",
+      "613.6": "If an effect should be applied in different layers and/or sublayers, the parts of the effect each apply in their appropriate ones. If an effect starts to apply in one layer and/or sublayer, it will continue to be applied to the same set of objects in each other applicable layer and/or sublayer, even if the ability generating the effect is removed during this process. An effect that reads “This creature gets +1/+1 and becomes the color of your choice until end of turn” is both a power- and toughness-changing effect and a color-changing effect. The “becomes the color of your choice” part is applied in layer 5, and then the “gets +1/+1” part is applied in layer 7c. Act of Treason has an effect that reads “Gain control of target creature until end of turn. Untap that creature. It gains haste until end of turn.” This is both a control-changing effect and an effect that adds an ability to an object. The “gain control” part is applied in layer 2, and then the “it gains haste” part is applied in layer 6. An effect that reads “All noncreature artifacts become 2/2 artifact creatures until end of turn” is both a type-changing effect and a power- and toughness-setting effect. The type-changing effect is applied to all noncreature artifacts in layer 4 and the power- and toughness-setting effect is applied to those same permanents in layer 7b, even though those permanents aren’t noncreature artifacts by then. Svogthos, the Restless Tomb, is on the battlefield. An effect that says “Until end of turn, target land becomes a 3/3 creature that’s still a land” is applied to it (layers 4 and 7b). An effect that says “Target creature gets +1/+1 until end of turn” is applied to it (layer 7c), making it a 4/4 land creature. Then while you have ten creature cards in your graveyard, you activate Svogthos’s ability: “Until end of turn, this land becomes a black and green Plant Zombie creature with ‘This creature’s power and toughness are each equal to the number of creature cards in your graveyard.’ It’s still a land.” (layers 4, 5, and 7b). It becomes an 11/11 land creature. If a creature card enters or leaves your graveyard, Svogthos’s power and toughness will be modified accordingly. If the first effect is applied to it again, it will become a 4/4 land creature again.",
+      "613.8": "Within a layer or sublayer, determining which order effects are applied in is sometimes done using a dependency system. If a dependency exists, it will override the timestamp system."
+    },
+    "rewrite_queries": [],
+    "clarification": null,
+    "retrieved_rule_ids": [],
+    "stop_reason": "end_turn",
+    "tool_calls": null,
+    "tool_rounds": null,
+    "usage": {
+      "input_tokens": 1722,
+      "output_tokens": 3226,
+      "cache_read_input_tokens": 0,
+      "cache_creation_input_tokens": 0
+    },
+    "system_version": "norules_control",
+    "layers_tool": false,
+    "max_tokens": 32768,
+    "effort": "high",
+    "answer_gold": "No. Applying Blood Moon's effect first would prevent Life and Limb's effect from applying to Tropical Island and applying Life and Limb's effect first would not affect how Blood Moon's effect is applied or what it does, so Life and Limb's effect is dependent on Blood Moon's effect and waits to apply until afterwards. Since Blood Moon's effect makes Tropical Island no longer a Forest, Life and Limb doesn't apply to it at all."
+  },
+  {
+    "id": "rg543",
+    "question": "Aaliyah controls a [Squandered Resources] and a [Glacial Floodplain]. Nicolas controls [Blood Moon]. If Aaliyah sacrifices Glacial Floodplain to Squandered Resources, what type(s) of mana can it produce?",
+    "match": "all",
+    "kind": "other",
+    "show_rewrite": false,
+    "rewrite_version": "none",
+    "ruling_query_mode": "union",
+    "condition": null,
+    "run": null,
+    "model": "claude-opus-5",
+    "prompts_cache": "evals\\answers\\_prompts_norules_control.json",
+    "prompts_cache_sha256": "b1b8ac436e5f8ede2ff5bca75e04033e3864d4a204343f0dcc104be0c59090b4",
+    "answered": true,
+    "answer": "**Only red mana ({R}).** With Blood Moon on the battlefield, Glacial Floodplain is a Mountain and nothing else, so the only mana it could produce is {R}, and that's the only type Squandered Resources can add for it.\n\nWhy:\n\n- Squandered Resources reads \"Sacrifice a land: Add one mana of any type that land could produce.\" It looks at what the sacrificed land could have produced — here, Glacial Floodplain as it last existed on the battlefield, i.e. under Blood Moon.\n- Blood Moon says \"Nonbasic lands are Mountains.\" Glacial Floodplain is a nonbasic land (it's a snow dual with the Plains and Island types, but it isn't a basic land), so Blood Moon applies to it. When an effect changes a land's subtypes to a basic land type, the land loses its old land types and, importantly, loses the intrinsic mana abilities that came from those types, gaining only \"{T}: Add {R}\" instead. So Glacial Floodplain's \"{T}: Add {W}\" and \"{T}: Add {U}\" are gone.\n- Blood Moon doesn't touch supertypes or non-mana printed abilities, so Glacial Floodplain is still a Snow land and still has its \"enters tapped\" clause and its \"{1}, {T}, Sacrifice a snow land: search for a Plains or Island card\" ability — but that fetch ability isn't a mana ability and doesn't produce mana, so it adds nothing here.\n- Note also that the mana comes from Squandered Resources' ability, not from Glacial Floodplain, so it is not snow mana (Squandered Resources isn't a snow permanent). \"Snow\" isn't a type of mana anyway; the types of mana are white, blue, black, red, green, and colorless.\n\nTiming assumption: I'm assuming Blood Moon is on the battlefield and unaffected at the moment Aaliyah activates Squandered Resources. If Blood Moon had already left the battlefield (or Glacial Floodplain were somehow exempted from it) at that time, Squandered Resources could produce {W} or {U} instead. This answer is the same regardless of how many players are in the game — Blood Moon affects all nonbasic lands, including Aaliyah's.",
+    "citations": [
+      "106.1a",
+      "305.7",
+      "613.1d"
+    ],
+    "gold": [
+      "106.7",
+      "305.7"
+    ],
+    "gold_text": {
+      "106.7": "Some abilities produce mana based on the type of mana another permanent or permanents “could produce.” The type of mana a permanent could produce at any time includes any type of mana that an ability of that permanent would produce if the ability were to resolve at that time, taking into account any applicable replacement effects in any possible order. Ignore whether any costs of the ability could or could not be paid. If that permanent wouldn’t produce any mana under these conditions, or no type of mana can be defined this way, there’s no type of mana it could produce. Exotic Orchard has the ability “{T}: Add one mana of any color that a land an opponent controls could produce.” If your opponent controls no lands, activating Exotic Orchard’s mana ability will produce no mana. The same is true if you and your opponent each control no lands other than Exotic Orchards. However, if you control a Forest and an Exotic Orchard, and your opponent controls an Exotic Orchard, then each Exotic Orchard could produce {G}.",
+      "305.7": "If an effect sets a land’s subtype to one or more of the basic land types, the land no longer has its old land type. It loses all abilities generated from its rules text, its old land types, and any copiable effects affecting that land, and it gains the appropriate mana ability for each new basic land type. Note that this doesn’t remove any abilities that were granted to the land by other effects. Setting a land’s subtype doesn’t add or remove any card types (such as creature) or supertypes (such as basic, legendary, and snow) the land may have. If a land gains one or more land types in addition to its own, it keeps its land types and rules text, and it gains the new land types and mana abilities."
+    },
+    "cited_text": {
+      "106.1a": "Mana is the primary resource in the game. Players spend mana to pay costs, usually when casting spells and activating abilities. There are five colors of mana: white, blue, black, red, and green.",
+      "305.7": "If an effect sets a land’s subtype to one or more of the basic land types, the land no longer has its old land type. It loses all abilities generated from its rules text, its old land types, and any copiable effects affecting that land, and it gains the appropriate mana ability for each new basic land type. Note that this doesn’t remove any abilities that were granted to the land by other effects. Setting a land’s subtype doesn’t add or remove any card types (such as creature) or supertypes (such as basic, legendary, and snow) the land may have. If a land gains one or more land types in addition to its own, it keeps its land types and rules text, and it gains the new land types and mana abilities.",
+      "613.1d": "The values of an object’s characteristics are determined by starting with the actual object. For a card, that means the values of the characteristics printed on that card. For a token or a copy of a spell or card, that means the values of the characteristics defined by the effect that created it. Then all applicable continuous effects are applied in a series of layers in the following order: Layer 4: Type-changing effects are applied. These include effects that change an object’s card type, subtype, and/or supertype."
+    },
+    "rewrite_queries": [],
+    "clarification": null,
+    "retrieved_rule_ids": [],
+    "stop_reason": "end_turn",
+    "tool_calls": null,
+    "tool_rounds": null,
+    "usage": {
+      "input_tokens": 1752,
+      "output_tokens": 2700,
+      "cache_read_input_tokens": 0,
+      "cache_creation_input_tokens": 0
+    },
+    "system_version": "norules_control",
+    "layers_tool": false,
+    "max_tokens": 32768,
+    "effort": "high",
+    "answer_gold": "Just {R}. Squandered Resources cares about what colors of mana it could produce on the battlefield."
+  },
+  {
+    "id": "rg608",
+    "question": "Noah controls [Compost]. Ainsley controls [Dune Beetle] and a token that was created as a copy of [Bogstomper]. Ainsley casts [Soulscour]. How many times does Compost trigger?",
+    "match": "groups",
+    "kind": "other",
+    "show_rewrite": false,
+    "rewrite_version": "none",
+    "ruling_query_mode": "union",
+    "condition": null,
+    "run": null,
+    "model": "claude-opus-5",
+    "prompts_cache": "evals\\answers\\_prompts_norules_control.json",
+    "prompts_cache_sha256": "b1b8ac436e5f8ede2ff5bca75e04033e3864d4a204343f0dcc104be0c59090b4",
+    "answered": true,
+    "answer": "**Compost triggers exactly once — for Dune Beetle.**\n\nWhy:\n\n- **Compost** reads \"Whenever a black card is put into an opponent's graveyard from anywhere, you may draw a card.\" The key word is *card*. The trigger checks two things: the object is black, and it's an actual card going to an opponent's graveyard.\n- **Soulscour** is a white sorcery that destroys all creatures (they can't be regenerated). Assuming Ainsley is Noah's opponent, everything below concerns her permanents.\n- **Dune Beetle** is a black creature card. It's destroyed and put into Ainsley's graveyard as a black card → **one Compost trigger** (Noah may draw a card).\n- The **token that was created as a copy of Bogstomper** is destroyed too, and it is black (a copy effect copies Bogstomper's color and mana cost, so the token is a black object). But a token is *not* a card, no matter what it copies. When it's put into the graveyard it triggers nothing for Compost; it then ceases to exist as a state-based action the next time state-based actions are checked. → **no trigger**.\n- **Soulscour** itself is put into Ainsley's graveyard as the last step of its resolution, but Soulscour is a white card, not black → **no trigger**.\n\nSo: one trigger total, and since Compost says \"you may draw a card,\" Noah chooses on resolution whether to draw.\n\nTiming note: the Dune Beetle trigger goes on the stack after Soulscour finishes resolving (triggers that occurred during resolution are put on the stack the next time a player would receive priority), so Noah draws after Soulscour is done, not mid-resolution.\n\nMultiplayer: nothing changes for this board specifically, but Compost watches *every* opponent's graveyard, not just Ainsley's. If Soulscour also destroyed black creature cards controlled by other opponents of Noah, Compost would trigger once for each such card. Black creature cards Noah himself controls that die do **not** trigger Compost, since they go to his own graveyard.",
+    "citations": [
+      "111.1",
+      "111.7",
+      "603.3"
+    ],
+    "gold": [
+      "113.6",
+      "603.10",
+      "603.10a",
+      "603.6c"
+    ],
+    "gold_text": {
+      "113.6": "Abilities of an instant or sorcery spell usually function only while that object is on the stack. Abilities of all other objects usually function only while that object is on the battlefield. The exceptions are as follows:",
+      "603.10": "Normally, objects that exist immediately after an event are checked to see if the event matched any trigger conditions, and continuous effects that exist at that time are used to determine what the trigger conditions are and what the objects involved in the event look like. However, some triggered abilities are exceptions to this rule; the game “looks back in time” to determine if those abilities trigger, using the existence of those abilities and the appearance of objects immediately prior to the event. The list of exceptions is as follows:",
+      "603.10a": "Normally, objects that exist immediately after an event are checked to see if the event matched any trigger conditions, and continuous effects that exist at that time are used to determine what the trigger conditions are and what the objects involved in the event look like. However, some triggered abilities are exceptions to this rule; the game “looks back in time” to determine if those abilities trigger, using the existence of those abilities and the appearance of objects immediately prior to the event. The list of exceptions is as follows: Some zone-change triggers look back in time. These are leaves-the-battlefield abilities, abilities that trigger when a player sacrifices a permanent, abilities that trigger when a card leaves a graveyard, and abilities that trigger when an object that all players can see is put into a hand or library. Two creatures are on the battlefield along with an artifact that has the ability “Whenever a creature dies, you gain 1 life.” Someone casts a spell that destroys all artifacts, creatures, and enchantments. The artifact’s ability triggers twice, even though the artifact goes to its owner’s graveyard at the same time as the creatures.",
+      "603.6c": "Trigger events that involve objects changing zones are called “zone-change triggers.” Many abilities with zone-change triggers attempt to do something to that object after it changes zones. During resolution, these abilities look for the object in the zone that it moved to. If the object is unable to be found in the zone it went to, the part of the ability attempting to do something to the object will fail to do anything. The ability could be unable to find the object because the object never entered the specified zone, because it left the zone before the ability resolved, or because it is in a zone that is hidden from a player, such as a library or an opponent’s hand. (This rule applies even if the object leaves the zone and returns again before the ability resolves.) The most common zone-change triggers are enters-the-battlefield triggers and leaves-the-battlefield triggers. Leaves-the-battlefield abilities trigger when a permanent moves from the battlefield to another zone, or when a phased-in permanent leaves the game because its owner leaves the game. These are written as, but aren’t limited to, “When [this object] leaves the battlefield, . . .” or “Whenever [something] is put into a graveyard from the battlefield, . . . .” (See also rule 603.10.) An ability that attempts to do something to the card that left the battlefield checks for it only in the first zone that it went to. An ability that triggers when a card is put into a certain zone “from anywhere” is never treated as a leaves-the-battlefield ability, even if an object is put into that zone from the battlefield."
+    },
+    "cited_text": {
+      "111.1": "Some effects put tokens onto the battlefield. A token is a marker used to represent any permanent that isn’t represented by a card.",
+      "111.7": "A token that’s in a zone other than the battlefield ceases to exist. This is a state-based action; see rule 704. (Note that if a token changes zones, applicable triggered abilities will trigger before the token ceases to exist.)",
+      "603.3": "Once an ability has triggered, its controller puts it on the stack as an object that’s not a card the next time a player would receive priority. See rule 117, “Timing and Priority.” The ability becomes the topmost object on the stack. It has the text of the ability that created it, and no other characteristics. It remains on the stack until it’s countered, it resolves, a rule causes it to be removed from the stack, or an effect moves it elsewhere."
+    },
+    "rewrite_queries": [],
+    "clarification": null,
+    "retrieved_rule_ids": [],
+    "stop_reason": "end_turn",
+    "tool_calls": null,
+    "tool_rounds": null,
+    "usage": {
+      "input_tokens": 1732,
+      "output_tokens": 2312,
+      "cache_read_input_tokens": 0,
+      "cache_creation_input_tokens": 0
+    },
+    "system_version": "norules_control",
+    "layers_tool": false,
+    "max_tokens": 32768,
+    "effort": "high",
+    "answer_gold": "0. Soulscour destroys all permanents simultaneously. Compost's trigger checks immediately after the event in question to see if it should trigger. However by that time Compost is in the graveyard, and its ability doesn't function there.\n\n(Compost doesn't fit the \"leaves-the-battlefield\" trigger exception because it's a \"from anywhere\" trigger.)"
+  },
+  {
+    "id": "rg559",
+    "question": "Albert, Brielle, and Campbell are playing a multiplayer game. Brielle controls [Stalking Leonin]. Albert casts [Worst Fears] to take control of Brielle's next turn. After Brielle begins their turn, can Albert see which player was chosen for the Stalking Leonin?",
+    "match": "any",
+    "kind": "other",
+    "show_rewrite": false,
+    "rewrite_version": "none",
+    "ruling_query_mode": "union",
+    "condition": null,
+    "run": null,
+    "model": "claude-opus-5",
+    "prompts_cache": "evals\\answers\\_prompts_norules_control.json",
+    "prompts_cache_sha256": "b1b8ac436e5f8ede2ff5bca75e04033e3864d4a204343f0dcc104be0c59090b4",
+    "answered": true,
+    "answer": "Yes — Albert knows which player was chosen for Stalking Leonin, and he knew it before Worst Fears ever resolved.\n\nWhy: Stalking Leonin's enters-the-battlefield triggered ability (\"When Stalking Leonin enters the battlefield, choose an opponent\") instructs Brielle to make that choice as the ability resolves. Nothing on Stalking Leonin tells the player to make the choice secretly or to note it privately, so it's an open choice made during resolution — public information that every player, including Albert and Campbell, sees at the time it's made. There's no hidden-information element to reveal later.\n\nEven if the choice somehow had been hidden, Albert would still see it during the turn he controls. Worst Fears says \"You control target player during that player's next turn,\" which means Albert makes all the choices and decisions Brielle would normally make during that turn, and the player controlling another player has access to the information the controlled player has access to (their hand, face-down cards they may look at, any secretly noted choices). Note that Albert does not gain control of Brielle's permanents — Stalking Leonin is still Brielle's creature and Brielle is still \"you\" for its abilities; Albert only directs Brielle's decisions for that turn.\n\nA practical aside on the controlled turn: Stalking Leonin's second ability triggers when a creature the chosen player controls attacks Brielle or a planeswalker Brielle controls. During Brielle's own turn only Brielle attacks, so that ability won't trigger during the turn Albert is steering, no matter who was chosen.\n\nMultiplayer difference: with three players, the opponent chosen by Stalking Leonin could be Albert or Campbell, and Albert learns which either way. In a two-player game the choice would trivially have to be the only opponent, so there'd be nothing to learn at all.\n\nTiming assumption: I'm assuming Stalking Leonin entered the battlefield and its choice was already made before Albert cast Worst Fears. If Stalking Leonin instead enters (with flash) later, the choice is still made openly at that time and Albert sees it then.",
+    "citations": [
+      "720.1"
+    ],
+    "gold": [
+      "722.4",
+      "723.4"
+    ],
+    "gold_text": {
+      "722.4": "In every zone, a preparation card has only its normal characteristics.",
+      "723.4": "If information about an object in the game would be visible to the player being controlled, it’s visible to both that player and the controller of the player. If information about cards outside the game would be visible to the player being controlled, it’s visible only to that player, not the controller of the player. The controller of a player can see that player’s hand and the face of any face-down creatures they control."
+    },
+    "cited_text": {
+      "720.1": "Omen cards have a two-part card frame, with a smaller frame inset within their text box."
+    },
+    "rewrite_queries": [],
+    "clarification": null,
+    "retrieved_rule_ids": [],
+    "stop_reason": "end_turn",
+    "tool_calls": null,
+    "tool_rounds": null,
+    "usage": {
+      "input_tokens": 1764,
+      "output_tokens": 4833,
+      "cache_read_input_tokens": 0,
+      "cache_creation_input_tokens": 0
+    },
+    "system_version": "norules_control",
+    "layers_tool": false,
+    "max_tokens": 32768,
+    "effort": "high",
+    "answer_gold": "No. The choice was made as Stalking Leonin entered the battlefield, which already happened- it's no longer visible to Brielle. Albert can choose to activate the ability (at which point all players will know who was chosen), but otherwise the choice is not visible to any player."
+  },
+  {
+    "id": "rg247",
+    "question": "Arabella controls [Sylvok Explorer]. Nolan controls [Gaea's Cradle] and no creatures. If Arabella taps the Sylvok Explorer, what type(s) of mana can they produce?",
+    "match": "any",
+    "kind": "other",
+    "show_rewrite": false,
+    "rewrite_version": "none",
+    "ruling_query_mode": "union",
+    "condition": null,
+    "run": null,
+    "model": "claude-opus-5",
+    "prompts_cache": "evals\\answers\\_prompts_norules_control.json",
+    "prompts_cache_sha256": "b1b8ac436e5f8ede2ff5bca75e04033e3864d4a204343f0dcc104be0c59090b4",
+    "answered": true,
+    "answer": "Arabella can produce one green mana ({G}) with Sylvok Explorer.\n\nWhy: Sylvok Explorer reads \"{T}: Add one mana of any type that a land an opponent controls could produce.\" The relevant word is *type* — meaning color, or colorlessness — not amount. Gaea's Cradle is a land Nolan (an opponent) controls, and its mana ability reads \"{T}: Add {G} for each creature you control.\" Because Nolan controls no creatures, activating Gaea's Cradle right now would actually add zero mana, but the *type* of mana Gaea's Cradle could produce is still green. When determining what a permanent \"could produce,\" you look at what type of mana its mana abilities would generate and treat a variable/zero amount as irrelevant to the type. So green is an available choice for Sylvok Explorer.\n\nImportant details:\n- Sylvok Explorer always adds exactly one mana of the chosen type, regardless of how much Gaea's Cradle itself would have made. It does not scale with creature count, and it does not add zero.\n- If Nolan (or any other opponent) controls other lands, each of those adds its own types to the pool of legal choices; Arabella picks one type on resolution of the mana ability. If Gaea's Cradle is genuinely the only land any opponent controls, green is the only option.\n- Multiplayer note: \"an opponent\" means *any* opponent, so with more than two players Arabella may also choose types produced by lands controlled by opponents other than Nolan. With exactly two players, only Nolan's lands matter.\n- Practical reminder: Sylvok Explorer is a creature with a {T} ability, so Arabella must have controlled Sylvok Explorer continuously since the beginning of their most recent turn (or it must have haste) to activate it.",
+    "citations": [
+      "106.7"
+    ],
+    "gold": [
+      "106.7"
+    ],
+    "gold_text": {
+      "106.7": "Some abilities produce mana based on the type of mana another permanent or permanents “could produce.” The type of mana a permanent could produce at any time includes any type of mana that an ability of that permanent would produce if the ability were to resolve at that time, taking into account any applicable replacement effects in any possible order. Ignore whether any costs of the ability could or could not be paid. If that permanent wouldn’t produce any mana under these conditions, or no type of mana can be defined this way, there’s no type of mana it could produce. Exotic Orchard has the ability “{T}: Add one mana of any color that a land an opponent controls could produce.” If your opponent controls no lands, activating Exotic Orchard’s mana ability will produce no mana. The same is true if you and your opponent each control no lands other than Exotic Orchards. However, if you control a Forest and an Exotic Orchard, and your opponent controls an Exotic Orchard, then each Exotic Orchard could produce {G}."
+    },
+    "cited_text": {
+      "106.7": "Some abilities produce mana based on the type of mana another permanent or permanents “could produce.” The type of mana a permanent could produce at any time includes any type of mana that an ability of that permanent would produce if the ability were to resolve at that time, taking into account any applicable replacement effects in any possible order. Ignore whether any costs of the ability could or could not be paid. If that permanent wouldn’t produce any mana under these conditions, or no type of mana can be defined this way, there’s no type of mana it could produce. Exotic Orchard has the ability “{T}: Add one mana of any color that a land an opponent controls could produce.” If your opponent controls no lands, activating Exotic Orchard’s mana ability will produce no mana. The same is true if you and your opponent each control no lands other than Exotic Orchards. However, if you control a Forest and an Exotic Orchard, and your opponent controls an Exotic Orchard, then each Exotic Orchard could produce {G}."
+    },
+    "rewrite_queries": [],
+    "clarification": null,
+    "retrieved_rule_ids": [],
+    "stop_reason": "end_turn",
+    "tool_calls": null,
+    "tool_rounds": null,
+    "usage": {
+      "input_tokens": 1735,
+      "output_tokens": 1811,
+      "cache_read_input_tokens": 0,
+      "cache_creation_input_tokens": 0
+    },
+    "system_version": "norules_control",
+    "layers_tool": false,
+    "max_tokens": 32768,
+    "effort": "high",
+    "answer_gold": "None. Gaea's Cradle couldn't produce any mana, so neither can Sylvok Explorer."
+  },
+  {
+    "id": "rg1953",
+    "question": "Anson controls [Zirda, the Dawnwaker], [Sundial, Dawn Tyrant], and [Mobilized District]. How much does Anson have to pay to activate the second ability of Mobilized District?",
+    "match": "all",
+    "kind": "other",
+    "show_rewrite": false,
+    "rewrite_version": "none",
+    "ruling_query_mode": "union",
+    "condition": null,
+    "run": null,
+    "model": "claude-opus-5",
+    "prompts_cache": "evals\\answers\\_prompts_norules_control.json",
+    "prompts_cache_sha256": "b1b8ac436e5f8ede2ff5bca75e04033e3864d4a204343f0dcc104be0c59090b4",
+    "answered": true,
+    "answer": "Anson pays {2}{C} (two generic mana plus one mana that is specifically colorless) to activate Mobilized District's second ability.\n\nHow that's calculated:\n\n- Mobilized District's second ability costs {4}{C}: \"{4}{C}: Mobilized District becomes an X/X Warrior creature with vigilance until end of turn, where X is the number of creatures you control. It's still a land.\"\n- Zirda, the Dawnwaker says abilities you activate that aren't mana abilities cost {2} less to activate. A mana ability is one that could add mana to a player's mana pool, doesn't target, and isn't a loyalty ability. Mobilized District's animation ability adds no mana, so it is not a mana ability and Zirda, the Dawnwaker's reduction applies.\n- Cost reductions expressed as a generic amount only reduce the generic portion of the cost. So {4} becomes {2}, and the {C} is untouched. {C} means colorless mana specifically — it is not generic mana and cannot be paid with colored mana, nor can it be reduced away by Zirda, the Dawnwaker.\n\nResult: {2} generic + {C} colorless.\n\nNote that Mobilized District's first ability, \"{T}: Add {C},\" is a mana ability, so Zirda, the Dawnwaker never affects it.\n\nAbout \"Sundial, Dawn Tyrant\": I don't recognize a Magic card by that exact name, so I can't factor it in. The {2}{C} figure assumes it (or a card named Sundial and a card named Dawn Tyrant, if that's two permanents) has no effect on the cost of activated abilities. If that permanent does tax or discount activated abilities, apply it alongside Zirda, the Dawnwaker: Anson (the ability's controller) applies any cost increases first and any cost reductions after, and the total still can never be reduced below the mandatory {C}. If it's simply a creature with no cost-altering text, it only matters for the value of X once the ability resolves.\n\nPlayer count doesn't change any of this — the cost is the same in a two-player or multiplayer game.",
+    "citations": [
+      "118.7",
+      "605.1a"
+    ],
+    "gold": [
+      "601.2f",
+      "602.2b"
+    ],
+    "gold_text": {
+      "601.2f": "To cast a spell is to take it from where it is (usually the hand), put it on the stack, and pay its costs, so that it will eventually resolve and have its effect. Casting a spell includes proposal of the spell (rules 601.2a–d) and determination and payment of costs (rules 601.2f–h). To cast a spell, a player follows the steps listed below, in order. A player must be legally allowed to cast the spell to begin this process (see rule 601.3). If a player is unable to comply with the requirements of a step listed below while performing that step, the casting of the spell is illegal; the game returns to the moment before the casting of that spell was proposed (see rule 733, “Handling Illegal Actions”). The player determines the total cost of the spell. Usually this is just the mana cost. Some spells have additional or alternative costs. Some effects may increase or reduce the cost to pay, or may provide other alternative costs. Costs may include paying mana, tapping permanents, sacrificing permanents, discarding cards, and so on. The total cost is the mana cost or alternative cost (as determined in rule 601.2b), plus all additional costs and cost increases, and minus all cost reductions. If multiple cost reductions apply, the player may apply them in any order. If the mana component of the total cost is reduced to nothing by cost reduction effects, it is considered to be {0}. It can’t be reduced to less than {0}. Once the total cost is determined, any effects that directly affect the total cost are applied. Then the resulting total cost becomes “locked in.” If effects would change the total cost after this time, they have no effect.",
+      "602.2b": "To activate an ability is to put it onto the stack and pay its costs, so that it will eventually resolve and have its effect. Only an object’s controller (or its owner, if it doesn’t have a controller) can activate its activated ability unless the object specifically says otherwise. Activating an ability follows the steps listed below, in order. If, at any point during the activation of an ability, a player is unable to comply with any of those steps, the activation is illegal; the game returns to the moment before that ability started to be activated (see rule 733, “Handling Illegal Actions”). Announcements and payments can’t be altered after they’ve been made. The remainder of the process for activating an ability is identical to the process for casting a spell listed in rules 601.2b–i. Those rules apply to activating an ability just as they apply to casting a spell. An activated ability’s analog to a spell’s mana cost (as referenced in rule 601.2f) is its activation cost."
+    },
+    "cited_text": {
+      "118.7": "What a player actually needs to do to pay a cost may be changed or reduced by effects. If the mana component of a cost is reduced to nothing by cost reduction effects, it’s considered to be {0}. Paying a cost changed or reduced by an effect counts as paying the original cost.",
+      "605.1a": "Some activated abilities and some triggered abilities are mana abilities, which are subject to special rules. Only abilities that meet either of the following two sets of criteria are mana abilities, regardless of what other effects they may generate or what timing restrictions (such as “Activate only as an instant”) they may have. An activated ability is a mana ability if it meets all of the following criteria: it doesn’t require a target (see rule 115.6), it could add mana to a player’s mana pool when it resolves, and it’s not a loyalty ability. (See rule 606, “Loyalty Abilities.”)"
+    },
+    "rewrite_queries": [],
+    "clarification": null,
+    "retrieved_rule_ids": [],
+    "stop_reason": "end_turn",
+    "tool_calls": null,
+    "tool_rounds": null,
+    "usage": {
+      "input_tokens": 1734,
+      "output_tokens": 2457,
+      "cache_read_input_tokens": 0,
+      "cache_creation_input_tokens": 0
+    },
+    "system_version": "norules_control",
+    "layers_tool": false,
+    "max_tokens": 32768,
+    "effort": "high",
+    "answer_gold": "Anson can either pay {1} or {0}.\n\nThere are two effects that are reducing the cost of the second ability of Mobilized District. Because of this, Anson can choose the order in which they will apply. If Anson applies the reduction of effect from Mobilized District first then from Zirda, the Dawnwaker, Anson will pay {1} because Zirda, the Dawnwaker can't reduce a cost to less than one mana. Alternatively, Anson can apply the reduction from Zirda, the Dawnwaker first then from Mobilized District. This would require Anson to spend {0} because the effect from Zirda, the Dawnwaker reduces the cost to {2} then the reduction for Mobilized District reduces it to {0}."
+  },
+  {
+    "id": "rg204",
+    "question": "Nico controls [Drought]. How many Swamps would Ava have to sacrifice in order to cast [Beckon Apparition]?",
+    "match": "any",
+    "kind": "other",
+    "show_rewrite": false,
+    "rewrite_version": "none",
+    "ruling_query_mode": "union",
+    "condition": null,
+    "run": null,
+    "model": "claude-opus-5",
+    "prompts_cache": "evals\\answers\\_prompts_norules_control.json",
+    "prompts_cache_sha256": "b1b8ac436e5f8ede2ff5bca75e04033e3864d4a204343f0dcc104be0c59090b4",
+    "answered": true,
+    "answer": "**One Swamp.** Beckon Apparition's mana cost is a single hybrid symbol, {W/B}, and a {W/B} symbol is both a white mana symbol and a black mana symbol. Drought's triggered ability therefore sees one {B} in Beckon Apparition's mana cost, so Ava sacrifices one Swamp.\n\nDetails and caveats:\n\n- Drought reads \"Whenever a player casts a spell, that player sacrifices a Swamp for each {B} in that spell's mana cost.\" This is a triggered ability, not a cost or a restriction on casting. Ava casts Beckon Apparition normally; Drought's ability then triggers and goes on the stack above Beckon Apparition, so the sacrifice happens before Beckon Apparition resolves. Ava can't be stopped from casting Beckon Apparition even if she controls no Swamps — she just sacrifices as many as she can (zero).\n- It doesn't matter how Ava actually pays for Beckon Apparition. Even if she pays the {W/B} with white mana (or with a Plains' mana), Drought counts symbols printed in the mana cost, not mana spent. Paying with white mana does not avoid the sacrifice.\n- Beckon Apparition's mana cost is exactly {W/B} — there is no generic component and no second symbol — so the count is one, never two, and the hybrid symbol is not counted once for white and once for black by Drought (Drought only asks about {B}).\n- Drought affects every player who casts a spell, including Nico, its controller.\n- Multiplayer makes no difference here: Drought triggers on each spell cast by any player, and the spell's controller (Ava) is the one who sacrifices. The count is still one Swamp regardless of the number of players.\n\nOne point of genuine tension worth flagging: Drought is an old card (Mirage) written before hybrid mana existed. The modern treatment of hybrid symbols — a {W/B} symbol *is* a black mana symbol, the same principle that makes hybrid symbols count toward devotion to black — is what produces the answer of one Swamp.",
+    "citations": [
+      "107.4f",
+      "202.2f"
+    ],
+    "gold": [
+      "107.4e"
+    ],
+    "gold_text": {
+      "107.4e": "The mana symbols are {W}, {U}, {B}, {R}, {G}, and {C}; the numerical symbols {0}, {1}, {2}, {3}, {4}, and so on; the variable symbol {X}; the hybrid symbols {W/U}, {W/B}, {U/B}, {U/R}, {B/R}, {B/G}, {R/G}, {R/W}, {G/W}, and {G/U}; the monocolored hybrid symbols {2/W}, {2/U}, {2/B}, {2/R}, {2/G}, {C/W}, {C/U}, {C/B}, {C/R}, and {C/G}; the Phyrexian mana symbols {W/P}, {U/P}, {B/P}, {R/P}, and {G/P}; the hybrid Phyrexian symbols {W/U/P}, {W/B/P}, {U/B/P}, {U/R/P}, {B/R/P}, {B/G/P}, {R/G/P}, {R/W/P}, {G/W/P}, and {G/U/P}; and the snow mana symbol {S}. A hybrid mana symbol is also a colored mana symbol, even if one of its components is colorless. Each one represents a cost that can be paid in one of two ways, as represented by the two halves of the symbol. A hybrid symbol such as {W/U} can be paid with either white or blue mana, and a monocolored hybrid symbol such as {2/B} can be paid with either one black mana or two mana of any type. A hybrid mana symbol is all of its component colors. {G/W}{G/W} can be paid by spending {G}{G}, {G}{W}, or {W}{W}."
+    },
+    "cited_text": {
+      "107.4f": "The mana symbols are {W}, {U}, {B}, {R}, {G}, and {C}; the numerical symbols {0}, {1}, {2}, {3}, {4}, and so on; the variable symbol {X}; the hybrid symbols {W/U}, {W/B}, {U/B}, {U/R}, {B/R}, {B/G}, {R/G}, {R/W}, {G/W}, and {G/U}; the monocolored hybrid symbols {2/W}, {2/U}, {2/B}, {2/R}, {2/G}, {C/W}, {C/U}, {C/B}, {C/R}, and {C/G}; the Phyrexian mana symbols {W/P}, {U/P}, {B/P}, {R/P}, and {G/P}; the hybrid Phyrexian symbols {W/U/P}, {W/B/P}, {U/B/P}, {U/R/P}, {B/R/P}, {B/G/P}, {R/G/P}, {R/W/P}, {G/W/P}, and {G/U/P}; and the snow mana symbol {S}. Phyrexian mana symbols are colored mana symbols: {W/P} is white, {U/P} is blue, {B/P} is black, {R/P} is red, and {G/P} is green. A Phyrexian mana symbol represents a cost that can be paid either with one mana of its color or by paying 2 life. There are also ten hybrid Phyrexian mana symbols. A hybrid Phyrexian mana symbol represents a cost that can be paid with one mana of either of its component colors or by paying 2 life. A hybrid Phyrexian mana symbol is both of its component colors. {W/P}{W/P} can be paid by spending {W}{W}, by spending {W} and paying 2 life, or by paying 4 life.",
+      "202.2f": "An object is the color or colors of the mana symbols in its mana cost, regardless of the color of its frame. Effects may change an object’s color, give a color to a colorless object, or make a colored object become colorless; see rule 105.3."
+    },
+    "rewrite_queries": [],
+    "clarification": null,
+    "retrieved_rule_ids": [],
+    "stop_reason": "end_turn",
+    "tool_calls": null,
+    "tool_rounds": null,
+    "usage": {
+      "input_tokens": 1707,
+      "output_tokens": 3553,
+      "cache_read_input_tokens": 0,
+      "cache_creation_input_tokens": 0
+    },
+    "system_version": "norules_control",
+    "layers_tool": false,
+    "max_tokens": 32768,
+    "effort": "high",
+    "answer_gold": "1. Hybrid mana symbols are the colors of their constituent mana symbols."
+  },
+  {
+    "id": "rg725",
+    "question": "Bailey controls [Pandemonium]. Anderson casts [Gray Ogre] and targets Bailey's [Jibbirik Omnivore] with the Pandemonium trigger. In response Chelsea casts [Incinerate] targeting Anderson causing them to lose the game. Will Bailey's creature die?",
+    "match": "groups",
+    "kind": "other",
+    "show_rewrite": false,
+    "rewrite_version": "none",
+    "ruling_query_mode": "union",
+    "condition": null,
+    "run": null,
+    "model": "claude-opus-5",
+    "prompts_cache": "evals\\answers\\_prompts_norules_control.json",
+    "prompts_cache_sha256": "b1b8ac436e5f8ede2ff5bca75e04033e3864d4a204343f0dcc104be0c59090b4",
+    "answered": true,
+    "answer": "**No — Jibbirik Omnivore takes no damage and survives.**\n\nWhy:\n\n1. **Anderson loses the game as a state-based action.** After Incinerate resolves and Anderson is at 0 or less life, the next time state-based actions are checked Anderson loses and leaves the game (704.5a). Since this is a multiplayer game (Anderson, Bailey, and Chelsea), the game continues for Bailey and Chelsea. In a two-player game the game would simply end and nothing else would matter.\n\n2. **Everything Anderson owned leaves the game.** Gray Ogre leaves the game along with Anderson, and any objects on the stack Anderson controlled cease to exist (800.4a).\n\n3. **The Pandemonium trigger itself does not cease to exist.** Bailey controls Pandemonium, so Bailey is the controller of the triggered ability (603.3a) — even though Pandemonium's own wording lets *that creature's controller* (Anderson) pick the target, which is why Anderson chose Jibbirik Omnivore. A card's specific text overrides the default \"controller of the ability chooses targets\" rule. Because Bailey controls the ability, it stays on the stack after Anderson is gone.\n\n4. **But the ability can't do anything.** Pandemonium reads that *that creature's controller may have it deal damage equal to its power*. The player who must make that \"may\" choice — Anderson — is no longer in the game, so the choice is never made and no damage is dealt (608.2b: instructions that can't be carried out are ignored). The trigger resolves and does nothing, then goes to the graveyard/ceases to exist. Jibbirik Omnivore is untouched regardless of its printed toughness.\n\nContrast worth knowing: if Chelsea had instead killed Gray Ogre (or exiled it) while the trigger was on the stack but Anderson stayed in the game, the trigger would still resolve and Anderson could still have Gray Ogre deal damage equal to its last-known power to Jibbirik Omnivore, since a source that has left the battlefield can still deal damage using last known information. It's specifically Anderson *leaving the game* — taking away the decision-maker — that blanks the trigger here.\n\nTiming assumption: I'm assuming Incinerate was cast while the Pandemonium trigger was still on the stack (as stated), so Anderson leaves before the trigger resolves. If instead the trigger had already resolved and dealt 2 damage to Jibbirik Omnivore before Incinerate was cast, that damage stays marked and Jibbirik Omnivore would die to state-based actions if its toughness were 2 or less — Anderson's later departure wouldn't undo damage already dealt.",
+    "citations": [
+      "704.5a",
+      "800.4a",
+      "603.3a",
+      "608.2b"
+    ],
+    "gold": [
+      "113.8",
+      "603.3a",
+      "608.2d",
+      "800.4g"
+    ],
+    "gold_text": {
+      "113.8": "The controller of an activated ability on the stack is the player who activated it. The controller of a triggered ability on the stack (other than a delayed triggered ability) is the player who controlled the ability’s source when it triggered, or, if it had no controller, the player who owned the ability’s source when it triggered. To determine the controller of a delayed triggered ability, see rules 603.7d–f.",
+      "603.3a": "Once an ability has triggered, its controller puts it on the stack as an object that’s not a card the next time a player would receive priority. See rule 117, “Timing and Priority.” The ability becomes the topmost object on the stack. It has the text of the ability that created it, and no other characteristics. It remains on the stack until it’s countered, it resolves, a rule causes it to be removed from the stack, or an effect moves it elsewhere. A triggered ability is controlled by the player who controlled its source at the time it triggered, unless it’s a delayed triggered ability. To determine the controller of a delayed triggered ability, see rules 603.7d–f.",
+      "608.2d": "If the object that’s resolving is an instant spell, a sorcery spell, or an ability, its resolution may involve several steps. The steps described in rules 608.2a and 608.2b are followed first. The steps described in rules 608.2c–m are then followed as appropriate, in no specific order. The steps described in rule 608.2n and 608.2p are followed last. If an effect of a spell or ability offers any choices other than choices already made as part of casting the spell, activating the ability, or otherwise putting the spell or ability on the stack, the player announces these while applying the effect. The player can’t choose an option that’s illegal or impossible, with the exception that having a library with no cards in it doesn’t make drawing a card an impossible action (see rule 121.3). If an effect divides or distributes something, such as damage or counters, as a player chooses among any number of untargeted players and/or objects, the player chooses the amount and division such that each chosen player or object receives at least one of whatever is being divided. (Note that if an effect divides or distributes something, such as damage or counters, as a player chooses among some number of target objects and/or players, the amount and division were determined as the spell or ability was put onto the stack rather than at this time; see rule 601.2d.) A spell’s instruction reads, “You may sacrifice a creature. If you don’t, you lose 4 life.” A player who controls no creatures can’t choose the sacrifice option.",
+      "800.4g": "Unlike two-player games, multiplayer games can continue after one or more players have left the game. If an object requires a player who has left the game to make a choice other than whether to pay a cost, the controller of the object chooses another player to make that choice. If the original choice was to be made by an opponent of the controller of the object, that player chooses another opponent if possible."
+    },
+    "cited_text": {
+      "704.5a": "The state-based actions are as follows: If a player has 0 or less life, that player loses the game.",
+      "800.4a": "Unlike two-player games, multiplayer games can continue after one or more players have left the game. When a player leaves the game, all objects (see rule 109) owned by that player leave the game and any effects which give that player control of any objects or players end. Then, if that player controlled any objects on the stack not represented by cards, those objects cease to exist. Then, if there are any objects still controlled by that player, those objects are exiled. This is not a state-based action. It happens as soon as the player leaves the game. If the player who left the game had priority at the time they left, priority passes to the next player in turn order who’s still in the game. Alex casts Mind Control, an Aura that reads, “You control enchanted creature,” on Bianca’s Assault Griffin. If Alex leaves the game, so does Mind Control, and Assault Griffin reverts to Bianca’s control. If, instead, Bianca leaves the game, so does Assault Griffin, and Mind Control is put into Alex’s graveyard. Alex casts Act of Treason, which reads, in part, “Gain control of target creature until end of turn,” targeting Bianca’s Runeclaw Bears. If Alex leaves the game, Act of Treason’s change-of-control effect ends and Runeclaw Bears reverts to Bianca’s control. Alex casts Bribery, which reads, “Search target opponent’s library for a creature card and put that card onto the battlefield under your control. Then that player shuffles their library,” targeting Bianca. Alex puts Serra Angel onto the battlefield from Bianca’s library. If Bianca leaves the game, Serra Angel also leaves the game. If, instead, Alex leaves the game, Serra Angel is exiled. Alex controls Genesis Chamber, which reads, “Whenever a nontoken creature enters, if Genesis Chamber is untapped, that creature’s controller creates a 1/1 colorless Myr artifact creature token.” If Alex leaves the game, all such Myr tokens that entered the battlefield under Alex’s control leave the game, and all such Myr tokens that entered the battlefield under any other player’s control remain in the game.",
+      "603.3a": "Once an ability has triggered, its controller puts it on the stack as an object that’s not a card the next time a player would receive priority. See rule 117, “Timing and Priority.” The ability becomes the topmost object on the stack. It has the text of the ability that created it, and no other characteristics. It remains on the stack until it’s countered, it resolves, a rule causes it to be removed from the stack, or an effect moves it elsewhere. A triggered ability is controlled by the player who controlled its source at the time it triggered, unless it’s a delayed triggered ability. To determine the controller of a delayed triggered ability, see rules 603.7d–f.",
+      "608.2b": "If the object that’s resolving is an instant spell, a sorcery spell, or an ability, its resolution may involve several steps. The steps described in rules 608.2a and 608.2b are followed first. The steps described in rules 608.2c–m are then followed as appropriate, in no specific order. The steps described in rule 608.2n and 608.2p are followed last. If the spell or ability specifies targets, it checks whether the targets are still legal. A target that’s no longer in the zone it was in when it was targeted is illegal. Other changes to the game state may cause a target to no longer be legal; for example, its characteristics may have changed or an effect may have changed the text of the spell. If the source of an ability has left the zone it was in, its last known information is used during this process. If all its targets, for every instance of the word “target,” are now illegal, the spell or ability doesn’t resolve. It’s removed from the stack and, if it’s a spell, put into its owner’s graveyard. Otherwise, the spell or ability will resolve normally. Illegal targets, if any, won’t be affected by parts of a resolving spell’s effect for which they’re illegal. Other parts of the effect for which those targets are not illegal may still affect them. If the spell or ability creates any continuous effects that affect game rules (see rule 613.11), those effects don’t apply to illegal targets. If part of the effect requires information about an illegal target, it fails to determine any such information. Any part of the effect that requires that information won’t happen. Sorin’s Thirst is a black instant that reads, “Sorin’s Thirst deals 2 damage to target creature and you gain 2 life.” If the creature isn’t a legal target during the resolution of Sorin’s Thirst (say, if the creature has gained protection from black or left the battlefield), then Sorin’s Thirst doesn’t resolve. Its controller doesn’t gain any life. Plague Spores reads, “Destroy target nonblack creature and target land. They can’t be regenerated.” Suppose the same creature land is chosen both as the nonblack creature and as the land, and the color of the creature land is changed to black before Plague Spores resolves. Plague Spores still resolves because the black creature land is still a legal target for the “target land” part of the spell. The “destroy target nonblack creature” part of the spell won’t affect that permanent, but the “destroy target land” part of the spell will still destroy it. It can’t be regenerated."
+    },
+    "rewrite_queries": [],
+    "clarification": null,
+    "retrieved_rule_ids": [],
+    "stop_reason": "end_turn",
+    "tool_calls": null,
+    "tool_rounds": null,
+    "usage": {
+      "input_tokens": 1765,
+      "output_tokens": 6100,
+      "cache_read_input_tokens": 0,
+      "cache_creation_input_tokens": 0
+    },
+    "system_version": "norules_control",
+    "layers_tool": false,
+    "max_tokens": 32768,
+    "effort": "high",
+    "answer_gold": "The triggered ability of Pandemonium includes a choice to be made upon resolution. However the player that is supposed to make that choice is no longer in the game, therefore the controller of the trigger chooses another player to make that choice. In this case Bailey will choose another player to decide whether Pandemonium's trigger will deal damage to Jibbirik Omnivore. Bailey is the controller of the trigger since they control the enchantment that generated the trigger, even though Anderson is the player making choices about the trigger."
+  },
+  {
+    "id": "rg5193",
+    "question": "Alfredo controls [Magnetic Web] and is attacking with two [Knight Errant]s with magnet counters on them. Nico controls one [Soaring Drake] that also has a magnet counter on it. What are Nico's legal blocks?",
+    "match": "any",
+    "kind": "other",
+    "show_rewrite": false,
+    "rewrite_version": "none",
+    "ruling_query_mode": "union",
+    "condition": null,
+    "run": null,
+    "model": "claude-opus-5",
+    "prompts_cache": "evals\\answers\\_prompts_norules_control.json",
+    "prompts_cache_sha256": "b1b8ac436e5f8ede2ff5bca75e04033e3864d4a204343f0dcc104be0c59090b4",
+    "answered": true,
+    "answer": "**Nico's only legal blocks are: Soaring Drake blocks one of the two Knight Errants — Nico picks which one. Declining to block is not legal, and Soaring Drake can't block both Knight Errants.**\n\nWhy:\n\n- Magnetic Web gives creatures with magnet counters both an attack requirement and a block requirement, and it ties magnet-counter creatures to each other in combat (a magnet-counter creature is the thing a magnet-counter blocker is supposed to meet). Here every creature involved — both of Alfredo's Knight Errants and Nico's Soaring Drake — has a magnet counter, so no \"can't block\"/\"can't be blocked\" restriction from Magnetic Web is being violated no matter which Knight Errant is blocked.\n- \"Blocks if able\" is a *requirement*, not an option. When declaring blockers, the defending player must choose a legal block that obeys the maximum possible number of requirements without violating any restriction. Since Soaring Drake is untapped and there is at least one attacking creature it can legally block, \"no blocks\" obeys zero requirements while \"block a Knight Errant\" obeys one — so the no-block declaration is illegal.\n- A creature can block only one attacking creature unless an effect says otherwise. Soaring Drake has no such ability, so it can't satisfy the requirement \"twice\" by blocking both Knight Errants. One requirement is the maximum obtainable, and either Knight Errant satisfies it equally, so Nico freely chooses.\n- Soaring Drake's flying is irrelevant to legality: flying restricts who can block Soaring Drake, not what Soaring Drake can block.\n\nPractical warning (not a legality issue): Knight Errant has flanking. Flanking triggers when Knight Errant becomes blocked by a creature without flanking, giving Soaring Drake -1/-1 until end of turn. So the blocking Soaring Drake becomes 1/1, deals 1 damage to Knight Errant, and dies to Knight Errant's 2 damage. That happens after blockers are declared, so it doesn't excuse Nico from blocking.\n\nIf Soaring Drake were tapped, or if some effect said it couldn't block, or if all attackers were unblockable by it, then the requirement simply couldn't be met and no block would be required.\n\nMultiplayer note: nothing changes with more than two players. Requirements and restrictions are evaluated only for the player who is the defending player in that combat (or each defending player separately, for their own creatures and the attackers attacking them). If Alfredo's Knight Errants were attacking different players, each defending player's magnet-counter creatures would independently have to block one of the magnet-counter attackers attacking that player, if able.",
+    "citations": [
+      "509.1",
+      "509.1a",
+      "509.1b"
+    ],
+    "gold": [
+      "509.1b",
+      "509.1c"
+    ],
+    "gold_text": {
+      "509.1b": "First, the defending player declares blockers. This turn-based action doesn’t use the stack. To declare blockers, the defending player follows the steps below, in order. If at any point during the declaration of blockers, the defending player is unable to comply with any of the steps listed below, the declaration is illegal; the game returns to the moment before the declaration (see rule 733, “Handling Illegal Actions”). The defending player checks each creature they control to see whether it’s affected by any restrictions (effects that say a creature can’t block, or that it can’t block unless some condition is met). If any restrictions are being disobeyed, the declaration of blockers is illegal. A restriction may be created by an evasion ability (a static ability an attacking creature has that restricts what can block it). If an attacking creature gains or loses an evasion ability after a legal block has been declared, it doesn’t affect that block. Different evasion abilities are cumulative. An attacking creature with flying and shadow can’t be blocked by a creature with flying but without shadow.",
+      "509.1c": "First, the defending player declares blockers. This turn-based action doesn’t use the stack. To declare blockers, the defending player follows the steps below, in order. If at any point during the declaration of blockers, the defending player is unable to comply with any of the steps listed below, the declaration is illegal; the game returns to the moment before the declaration (see rule 733, “Handling Illegal Actions”). The defending player checks each creature they control to see whether it’s affected by any requirements (effects that say a creature must block, or that it must block if some condition is met). If the number of requirements that are being obeyed is fewer than the maximum possible number of requirements that could be obeyed without disobeying any restrictions, the declaration of blockers is illegal. If a creature can’t block unless a player pays a cost, that player is not required to pay that cost, even if blocking with that creature would increase the number of requirements being obeyed. If a requirement that says a creature blocks if able during a certain turn refers to a turn with multiple combat phases, the creature blocks if able during each declare blockers step in that turn. A player controls one creature that “blocks if able” and another creature with no abilities. If a creature with menace attacks that player, the player must block with both creatures. Having only the first creature block violates the restriction created by menace (the attacking creature can’t be blocked except by two or more creatures). Having only the second creature block violates both the menace restriction and the first creature’s blocking requirement. Having neither creature block fulfills the restriction but not the requirement."
+    },
+    "cited_text": {
+      "509.1": "First, the defending player declares blockers. This turn-based action doesn’t use the stack. To declare blockers, the defending player follows the steps below, in order. If at any point during the declaration of blockers, the defending player is unable to comply with any of the steps listed below, the declaration is illegal; the game returns to the moment before the declaration (see rule 733, “Handling Illegal Actions”).",
+      "509.1a": "First, the defending player declares blockers. This turn-based action doesn’t use the stack. To declare blockers, the defending player follows the steps below, in order. If at any point during the declaration of blockers, the defending player is unable to comply with any of the steps listed below, the declaration is illegal; the game returns to the moment before the declaration (see rule 733, “Handling Illegal Actions”). The defending player chooses which creatures they control, if any, will block. The chosen creatures must be untapped and they can’t also be battles. For each of the chosen creatures, the defending player chooses one creature for it to block that’s attacking that player, a planeswalker they control, or a battle they protect.",
+      "509.1b": "First, the defending player declares blockers. This turn-based action doesn’t use the stack. To declare blockers, the defending player follows the steps below, in order. If at any point during the declaration of blockers, the defending player is unable to comply with any of the steps listed below, the declaration is illegal; the game returns to the moment before the declaration (see rule 733, “Handling Illegal Actions”). The defending player checks each creature they control to see whether it’s affected by any restrictions (effects that say a creature can’t block, or that it can’t block unless some condition is met). If any restrictions are being disobeyed, the declaration of blockers is illegal. A restriction may be created by an evasion ability (a static ability an attacking creature has that restricts what can block it). If an attacking creature gains or loses an evasion ability after a legal block has been declared, it doesn’t affect that block. Different evasion abilities are cumulative. An attacking creature with flying and shadow can’t be blocked by a creature with flying but without shadow."
+    },
+    "rewrite_queries": [],
+    "clarification": null,
+    "retrieved_rule_ids": [],
+    "stop_reason": "end_turn",
+    "tool_calls": null,
+    "tool_rounds": null,
+    "usage": {
+      "input_tokens": 1740,
+      "output_tokens": 5780,
+      "cache_read_input_tokens": 0,
+      "cache_creation_input_tokens": 0
+    },
+    "system_version": "norules_control",
+    "layers_tool": false,
+    "max_tokens": 32768,
+    "effort": "high",
+    "answer_gold": "Nico can block either Knight Errant with their Magnetic Web. When declaring blockers, Nico must fulfill the maximum number of requirements, while not violating any restrictions."
+  },
+  {
+    "id": "rg807",
+    "question": "Avery controls [Wayward Angel] and has 7 cards in their graveyard. Nathan casts [Turn to Frog], targeting Wayward Angel. What are Wayward Angel's characteristics after Turn to Frog resolves?",
+    "match": "groups",
+    "kind": "other",
+    "show_rewrite": false,
+    "rewrite_version": "none",
+    "ruling_query_mode": "union",
+    "condition": null,
+    "run": null,
+    "model": "claude-opus-5",
+    "prompts_cache": "evals\\answers\\_prompts_norules_control.json",
+    "prompts_cache_sha256": "b1b8ac436e5f8ede2ff5bca75e04033e3864d4a204343f0dcc104be0c59090b4",
+    "answered": true,
+    "answer": "**Direct answer:** After Turn to Frog resolves, Wayward Angel is a 1/1 green Frog creature named Wayward Angel with no abilities at all — no flying, no threshold ability, and none of the bonuses threshold was granting it (it is not black, not an Angel, and gets no power/toughness boost), even though Avery still has 7 cards in their graveyard.\n\n**Why the threshold bonuses go away too**\n\nTurn to Frog says the target creature loses all abilities and becomes a 1/1 green Frog until end of turn. Wayward Angel's threshold ability (a static ability that, while its controller has seven or more cards in their graveyard, makes Wayward Angel bigger, makes it black, and grants it an activated destroy ability) is itself one of Wayward Angel's abilities. Once Turn to Frog strips Wayward Angel of all abilities in layer 6, that threshold ability no longer exists on the permanent, so it can't generate any continuous effect — the color change, the P/T boost, and the granted ability all stop applying immediately. This is true regardless of timestamps: an effect from a static ability only applies while the object actually has that ability.\n\n**Characteristics of Wayward Angel after Turn to Frog resolves**\n\n- Name: Wayward Angel\n- Mana cost: unchanged ({4}{W}{W}; Turn to Frog never alters mana cost), so its mana value is still 6\n- Color: green only (layer 5 — Turn to Frog sets the color, so Wayward Angel is no longer white, and threshold's \"is black\" isn't applying)\n- Card type: Creature; subtype: Frog only (layer 4 — the new creature type replaces Angel)\n- Abilities: none (layer 6)\n- Power/toughness: 1/1 (layer 7b, a setting effect; nothing is left to modify it in layer 7c)\n- Other: still controlled by Avery, still owned by whoever owns the card, and it keeps any counters, damage marked on it, and its tapped/untapped and attacking/blocking status\n\n**Two follow-on points**\n\n1. Anything that gives Wayward Angel an ability *after* Turn to Frog resolves will work normally — Turn to Frog only removes abilities with an earlier timestamp than itself; it doesn't prevent later ability grants.\n2. Turn to Frog wears off during the cleanup step of that turn. At that point Wayward Angel is again a white Angel with flying at its printed power and toughness, and if Avery still has seven or more cards in their graveyard the threshold bonuses (black, larger, and the granted ability) resume applying right away.\n\nNone of this changes with the number of players — Turn to Frog has a single creature target and no \"each opponent\" component, so a two-player and a multiplayer game resolve identically.",
+    "citations": [
+      "613.1d",
+      "613.1e",
+      "613.1f",
+      "613.4b",
+      "205.1b"
+    ],
+    "gold": [
+      "613.1e",
+      "613.1f",
+      "613.1g",
+      "613.6",
+      "613.7",
+      "613.7a",
+      "613.7b",
+      "613.7d"
+    ],
+    "gold_text": {
+      "613.1e": "The values of an object’s characteristics are determined by starting with the actual object. For a card, that means the values of the characteristics printed on that card. For a token or a copy of a spell or card, that means the values of the characteristics defined by the effect that created it. Then all applicable continuous effects are applied in a series of layers in the following order: Layer 5: Color-changing effects are applied.",
+      "613.1f": "The values of an object’s characteristics are determined by starting with the actual object. For a card, that means the values of the characteristics printed on that card. For a token or a copy of a spell or card, that means the values of the characteristics defined by the effect that created it. Then all applicable continuous effects are applied in a series of layers in the following order: Layer 6: Ability-adding effects, keyword counters, ability-removing effects, and effects that say an object can’t have an ability are applied.",
+      "613.1g": "The values of an object’s characteristics are determined by starting with the actual object. For a card, that means the values of the characteristics printed on that card. For a token or a copy of a spell or card, that means the values of the characteristics defined by the effect that created it. Then all applicable continuous effects are applied in a series of layers in the following order: Layer 7: Power- and/or toughness-changing effects are applied.",
+      "613.6": "If an effect should be applied in different layers and/or sublayers, the parts of the effect each apply in their appropriate ones. If an effect starts to apply in one layer and/or sublayer, it will continue to be applied to the same set of objects in each other applicable layer and/or sublayer, even if the ability generating the effect is removed during this process. An effect that reads “This creature gets +1/+1 and becomes the color of your choice until end of turn” is both a power- and toughness-changing effect and a color-changing effect. The “becomes the color of your choice” part is applied in layer 5, and then the “gets +1/+1” part is applied in layer 7c. Act of Treason has an effect that reads “Gain control of target creature until end of turn. Untap that creature. It gains haste until end of turn.” This is both a control-changing effect and an effect that adds an ability to an object. The “gain control” part is applied in layer 2, and then the “it gains haste” part is applied in layer 6. An effect that reads “All noncreature artifacts become 2/2 artifact creatures until end of turn” is both a type-changing effect and a power- and toughness-setting effect. The type-changing effect is applied to all noncreature artifacts in layer 4 and the power- and toughness-setting effect is applied to those same permanents in layer 7b, even though those permanents aren’t noncreature artifacts by then. Svogthos, the Restless Tomb, is on the battlefield. An effect that says “Until end of turn, target land becomes a 3/3 creature that’s still a land” is applied to it (layers 4 and 7b). An effect that says “Target creature gets +1/+1 until end of turn” is applied to it (layer 7c), making it a 4/4 land creature. Then while you have ten creature cards in your graveyard, you activate Svogthos’s ability: “Until end of turn, this land becomes a black and green Plant Zombie creature with ‘This creature’s power and toughness are each equal to the number of creature cards in your graveyard.’ It’s still a land.” (layers 4, 5, and 7b). It becomes an 11/11 land creature. If a creature card enters or leaves your graveyard, Svogthos’s power and toughness will be modified accordingly. If the first effect is applied to it again, it will become a 4/4 land creature again.",
+      "613.7": "Within a layer or sublayer, determining which order effects are applied in is usually done using a timestamp system. An effect with an earlier timestamp is applied before an effect with a later timestamp.",
+      "613.7a": "Within a layer or sublayer, determining which order effects are applied in is usually done using a timestamp system. An effect with an earlier timestamp is applied before an effect with a later timestamp. A continuous effect generated by a static ability has the same timestamp as the object the static ability is on, or the timestamp of the effect that created the ability, whichever is later. If the effect that created the ability has the later timestamp and the object the ability is on receives a new timestamp, each continuous effect generated by static abilities of that object receives a new timestamp as well, but the relative order of those timestamps remains the same. Rune of Flight is an Aura that grants enchanted Equipment “Equipped creature has flying.” A player attaches Rune of Flight to Colossus Hammer, an Equipment with “Equipped creature gets +10/+10 and loses flying.” The ability granted by Rune of Flight shares Rune of Flight’s timestamp because it is later than Colossus Hammer’s timestamp. If Colossus Hammer becomes attached to a creature, both of its abilities receive new timestamps (see rule 613.7e), but the relative order of those timestamps remains the same.",
+      "613.7b": "Within a layer or sublayer, determining which order effects are applied in is usually done using a timestamp system. An effect with an earlier timestamp is applied before an effect with a later timestamp. A continuous effect generated by the resolution of a spell or ability receives a timestamp at the time it’s created.",
+      "613.7d": "Within a layer or sublayer, determining which order effects are applied in is usually done using a timestamp system. An effect with an earlier timestamp is applied before an effect with a later timestamp. An object receives a timestamp at the time it enters a zone."
+    },
+    "cited_text": {
+      "613.1d": "The values of an object’s characteristics are determined by starting with the actual object. For a card, that means the values of the characteristics printed on that card. For a token or a copy of a spell or card, that means the values of the characteristics defined by the effect that created it. Then all applicable continuous effects are applied in a series of layers in the following order: Layer 4: Type-changing effects are applied. These include effects that change an object’s card type, subtype, and/or supertype.",
+      "613.1e": "The values of an object’s characteristics are determined by starting with the actual object. For a card, that means the values of the characteristics printed on that card. For a token or a copy of a spell or card, that means the values of the characteristics defined by the effect that created it. Then all applicable continuous effects are applied in a series of layers in the following order: Layer 5: Color-changing effects are applied.",
+      "613.1f": "The values of an object’s characteristics are determined by starting with the actual object. For a card, that means the values of the characteristics printed on that card. For a token or a copy of a spell or card, that means the values of the characteristics defined by the effect that created it. Then all applicable continuous effects are applied in a series of layers in the following order: Layer 6: Ability-adding effects, keyword counters, ability-removing effects, and effects that say an object can’t have an ability are applied.",
+      "613.4b": "Within layer 7, apply effects in a series of sublayers in the order described below. Within each sublayer, apply effects in timestamp order. (See rule 613.7.) Note that dependency may alter the order in which effects are applied within a sublayer. (See rule 613.8.) Layer 7b: Effects that set power and/or toughness to a specific number or value are applied. Effects that refer to the base power and/or toughness of a creature apply in this layer.",
+      "205.1b": "The type line is printed directly below the illustration. It contains the card’s card type(s). It also contains the card’s subtype(s) and supertype(s), if applicable. Some effects change an object’s card type, supertype, or subtype but specify that the object retains a prior card type, supertype, or subtype. In such cases, all the object’s prior card types, supertypes, and subtypes are retained. This rule applies to effects that use phrases such as “in addition to its other types” or that state that something is “still a [type, supertype, or subtype].” Some effects state that an object becomes an “artifact creature”; these effects also allow the object to retain all of its prior card types and subtypes. Some effects state that an object becomes a “[creature type or types] artifact creature”; these effects also allow the object to retain all of its prior card types and subtypes other than creature types, but replace any existing creature types. An ability reads, “All lands are 1/1 creatures that are still lands.” The affected lands now have two card types: creature and land. If there were any lands that were also artifacts before the ability’s effect applied to them, those lands would become “artifact land creatures,” not just “creatures,” or “land creatures.” The effect allows them to retain both the artifact and land card types. In addition, each land affected by the ability retains any land types and supertypes it had before the ability took effect. An ability reads, “All artifacts are 1/1 artifact creatures.” If a permanent is both an artifact and an enchantment, it will become an artifact enchantment creature."
+    },
+    "rewrite_queries": [],
+    "clarification": null,
+    "retrieved_rule_ids": [],
+    "stop_reason": "end_turn",
+    "tool_calls": null,
+    "tool_rounds": null,
+    "usage": {
+      "input_tokens": 1744,
+      "output_tokens": 4272,
+      "cache_read_input_tokens": 0,
+      "cache_creation_input_tokens": 0
+    },
+    "system_version": "norules_control",
+    "layers_tool": false,
+    "max_tokens": 32768,
+    "effort": "high",
+    "answer_gold": "It's a 4/4 blue Frog with no abilities. Wayward Angel's last ability begins to apply in layer 5. It's removed by Turn to Frog in layer 6, but since it's already started to apply, it will continue doing so in later layers. Wayward Angel has the earlier timestamp, so it gives itself trample and \"At the beginning of your upkeep, sacrifice a creature\" before Turn to Frog removes its abilities in layer 6."
+  },
+  {
+    "id": "rg470",
+    "question": "Autumn, Bethany, and Chaim started playing a multiplayer game. Chaim lost the game, and then Autumn restarted the game with [Karn Liberated]. Will Autumn draw a card on the first turn of the restarted game?",
+    "match": "groups",
+    "kind": "other",
+    "show_rewrite": false,
+    "rewrite_version": "none",
+    "ruling_query_mode": "union",
+    "condition": null,
+    "run": null,
+    "model": "claude-opus-5",
+    "prompts_cache": "evals\\answers\\_prompts_norules_control.json",
+    "prompts_cache_sha256": "b1b8ac436e5f8ede2ff5bca75e04033e3864d4a204343f0dcc104be0c59090b4",
+    "answered": true,
+    "answer": "**Yes — Autumn draws a card on the first turn of the restarted game.**\n\nWhy: when Karn Liberated's −14 ability restarts the game, every player who has left the game since it began comes back for the restarted game, including a player who already lost. So Chaim rejoins, and the restarted game is a three‑player game, not a two‑player game.\n\nThe \"skip your first draw step\" rule only applies in a two‑player game (and to the first team in a game using the shared team turns option, e.g. Two‑Headed Giant). In an ordinary multiplayer game with three or more players, the player who takes the first turn does *not* skip their draw step. Since Chaim is back, there are three players, so whoever takes the first turn — Autumn, as the player who controlled the ability that restarted the game — has a normal draw step and draws a card.\n\nContrast: if Chaim had *not* returned and the restarted game were a two‑player game between Autumn and Bethany, Autumn (going first) would skip the draw step of the first turn and would not draw.\n\nOther details of the restart worth knowing:\n- The old game ends immediately and a brand‑new game begins: life totals reset, everything in every zone (battlefield, graveyards, hand, exile, command zone) goes back into its owner's deck and is shuffled, and everyone draws a new opening hand and may take mulligans normally.\n- The one exception is Karn Liberated's own text: non‑Aura permanent cards that were exiled with Karn Liberated stay in exile through the restart and are then put onto the battlefield under Autumn's control. Karn Liberated itself is not exiled with those cards, so Karn Liberated is shuffled into Autumn's deck like everything else.\n- Abilities that would trigger on a player losing the game or the game ending don't do anything, because the game has already ended.\n\nAssumption: I'm reading the question as a normal free‑for‑all multiplayer game (no shared team turns) and that Autumn takes the first turn of the restarted game. If you were playing Two‑Headed Giant or another shared‑team‑turns variant and Autumn's team went first, that team would skip the first draw step and Autumn would not draw.",
+    "citations": [
+      "720",
+      "103.7a"
+    ],
+    "gold": [
+      "100.1a",
+      "103.8a",
+      "726.1",
+      "727.1",
+      "800.1"
+    ],
+    "gold_text": {
+      "100.1a": "These Magic rules apply to any Magic game with two or more players, including two-player games and multiplayer games. A two-player game is a game that begins with only two players.",
+      "103.8a": "The starting player takes their first turn. In a two-player game, the player who plays first skips the draw step (see rule 504, “Draw Step”) of their first turn.",
+      "726.1": "The initiative is a designation a player can have. There is no initiative in a game until an effect instructs a player to take the initiative. A player who currently has the initiative designation is said to have the initiative.",
+      "727.1": "One card (Karn Liberated) restarts the game. A game that is restarted immediately ends. No players in that game win, lose, or draw that game. All players in that game when it ended then start a new game following the procedures set forth in rule 103, “Starting the Game,” with the following exception:",
+      "800.1": "A multiplayer game is a game that begins with more than two players. This section contains additional optional rules that can be used for multiplayer play."
+    },
+    "cited_text": {},
+    "rewrite_queries": [],
+    "clarification": null,
+    "retrieved_rule_ids": [],
+    "stop_reason": "end_turn",
+    "tool_calls": null,
+    "tool_rounds": null,
+    "usage": {
+      "input_tokens": 1744,
+      "output_tokens": 4456,
+      "cache_read_input_tokens": 0,
+      "cache_creation_input_tokens": 0
+    },
+    "system_version": "norules_control",
+    "layers_tool": false,
+    "max_tokens": 32768,
+    "effort": "high",
+    "answer_gold": "No. The game began with 2 players, so it is a two-player game.. Autumn will skip their draw step."
+  },
+  {
+    "id": "rg289",
+    "question": "Allyson controls [Ice Cauldron]. Nico controls [Suppression Field]. Allyson activates Ice Cauldron's first ability with X=1, paying {C}{C}{C}. On Allyson's next turn, they activate Ice Cauldron's second ability. How much mana do they add?",
+    "match": "groups",
+    "kind": "other",
+    "show_rewrite": false,
+    "rewrite_version": "none",
+    "ruling_query_mode": "union",
+    "condition": null,
+    "run": null,
+    "model": "claude-opus-5",
+    "prompts_cache": "evals\\answers\\_prompts_norules_control.json",
+    "prompts_cache_sha256": "b1b8ac436e5f8ede2ff5bca75e04033e3864d4a204343f0dcc104be0c59090b4",
+    "answered": true,
+    "answer": "Allyson adds three colorless mana: {C}{C}{C}.\n\nWhy:\n\n1) Ice Cauldron's first ability ({X}, {T}: exile a nonland card from hand, put a charge counter on Ice Cauldron, and note the type and amount of mana spent to pay that activation cost) is not a mana ability — it doesn't add mana — so Nico's Suppression Field applies and it costs {2} more to activate. With X=1, the total cost was {X=1} plus the {2} from Suppression Field, i.e. {3} generic, which Allyson paid with three colorless mana ({C}{C}{C}).\n\n2) Ice Cauldron notes the mana actually spent to pay the whole activation cost, including the {2} added by Suppression Field — additional cost increases are part of the total cost of the ability, not something separate. So the noted mana is three colorless mana, not one.\n\n3) Ice Cauldron's second ability ({T}, remove a charge counter: add mana equal to the noted mana, spend it only to cast the exiled card) is a mana ability: it adds mana, has no target, and isn't a loyalty ability. Suppression Field explicitly exempts mana abilities, so nothing is taxed there and no extra {2} is required.\n\nSo the second activation produces {C}{C}{C}. Because that mana is colorless (not generic), it can pay generic costs in the exiled card's cost and any {C} symbols, but it cannot pay colored mana symbols. It can also only be spent to cast the card last exiled with Ice Cauldron.\n\nAssumption on timing: Suppression Field was on the battlefield when Allyson activated the first ability (that's what the {C}{C}{C} payment for X=1 implies). If Suppression Field had entered after that activation, the noted mana would only have been the {C} paid for X=1, and the second ability would add just {C}; either way the second ability is untaxed because it's a mana ability. Also note Ice Cauldron must be untapped to use the second ability, which is why waiting until Allyson's next turn works.\n\nThe player count doesn't matter here — Suppression Field affects activated abilities of all players' permanents the same way in two-player and multiplayer games.",
+    "citations": [
+      "605.1a",
+      "602.2b"
+    ],
+    "gold": [
+      "601.2f",
+      "602.1a",
+      "602.2b"
+    ],
+    "gold_text": {
+      "601.2f": "To cast a spell is to take it from where it is (usually the hand), put it on the stack, and pay its costs, so that it will eventually resolve and have its effect. Casting a spell includes proposal of the spell (rules 601.2a–d) and determination and payment of costs (rules 601.2f–h). To cast a spell, a player follows the steps listed below, in order. A player must be legally allowed to cast the spell to begin this process (see rule 601.3). If a player is unable to comply with the requirements of a step listed below while performing that step, the casting of the spell is illegal; the game returns to the moment before the casting of that spell was proposed (see rule 733, “Handling Illegal Actions”). The player determines the total cost of the spell. Usually this is just the mana cost. Some spells have additional or alternative costs. Some effects may increase or reduce the cost to pay, or may provide other alternative costs. Costs may include paying mana, tapping permanents, sacrificing permanents, discarding cards, and so on. The total cost is the mana cost or alternative cost (as determined in rule 601.2b), plus all additional costs and cost increases, and minus all cost reductions. If multiple cost reductions apply, the player may apply them in any order. If the mana component of the total cost is reduced to nothing by cost reduction effects, it is considered to be {0}. It can’t be reduced to less than {0}. Once the total cost is determined, any effects that directly affect the total cost are applied. Then the resulting total cost becomes “locked in.” If effects would change the total cost after this time, they have no effect.",
+      "602.1a": "Activated abilities have a cost and an effect. They are written as “[Cost]: [Effect.] [Activation instructions (if any).]” The activation cost is everything before the colon (:). An ability’s activation cost must be paid by the player who is activating it. The activation cost of an ability that reads “{2}, {T}: You gain 1 life” is two mana of any type plus tapping the permanent that has the ability.",
+      "602.2b": "To activate an ability is to put it onto the stack and pay its costs, so that it will eventually resolve and have its effect. Only an object’s controller (or its owner, if it doesn’t have a controller) can activate its activated ability unless the object specifically says otherwise. Activating an ability follows the steps listed below, in order. If, at any point during the activation of an ability, a player is unable to comply with any of those steps, the activation is illegal; the game returns to the moment before that ability started to be activated (see rule 733, “Handling Illegal Actions”). Announcements and payments can’t be altered after they’ve been made. The remainder of the process for activating an ability is identical to the process for casting a spell listed in rules 601.2b–i. Those rules apply to activating an ability just as they apply to casting a spell. An activated ability’s analog to a spell’s mana cost (as referenced in rule 601.2f) is its activation cost."
+    },
+    "cited_text": {
+      "605.1a": "Some activated abilities and some triggered abilities are mana abilities, which are subject to special rules. Only abilities that meet either of the following two sets of criteria are mana abilities, regardless of what other effects they may generate or what timing restrictions (such as “Activate only as an instant”) they may have. An activated ability is a mana ability if it meets all of the following criteria: it doesn’t require a target (see rule 115.6), it could add mana to a player’s mana pool when it resolves, and it’s not a loyalty ability. (See rule 606, “Loyalty Abilities.”)",
+      "602.2b": "To activate an ability is to put it onto the stack and pay its costs, so that it will eventually resolve and have its effect. Only an object’s controller (or its owner, if it doesn’t have a controller) can activate its activated ability unless the object specifically says otherwise. Activating an ability follows the steps listed below, in order. If, at any point during the activation of an ability, a player is unable to comply with any of those steps, the activation is illegal; the game returns to the moment before that ability started to be activated (see rule 733, “Handling Illegal Actions”). Announcements and payments can’t be altered after they’ve been made. The remainder of the process for activating an ability is identical to the process for casting a spell listed in rules 601.2b–i. Those rules apply to activating an ability just as they apply to casting a spell. An activated ability’s analog to a spell’s mana cost (as referenced in rule 601.2f) is its activation cost."
+    },
+    "rewrite_queries": [],
+    "clarification": null,
+    "retrieved_rule_ids": [],
+    "stop_reason": "end_turn",
+    "tool_calls": null,
+    "tool_rounds": null,
+    "usage": {
+      "input_tokens": 1763,
+      "output_tokens": 2305,
+      "cache_read_input_tokens": 0,
+      "cache_creation_input_tokens": 0
+    },
+    "system_version": "norules_control",
+    "layers_tool": false,
+    "max_tokens": 32768,
+    "effort": "high",
+    "answer_gold": "Just {C}. The activation cost of Ice Cauldron's first ability is \"{X}, {T}\". The additional cost imposed by Suppression Field is not part of the activation cost, and the mana spent on it isn't noted when the ability resolves."
+  },
+  {
+    "id": "rg60",
+    "question": "Bobbie has 1 life and controls a phased-out [Angel of Sanctions] that exiled Conrad's [Rotted Hystrix]. Alana casts [Lava Axe], targeting Bobbie. What happens as Bobbie loses the game?",
+    "match": "groups",
+    "kind": "other",
+    "show_rewrite": false,
+    "rewrite_version": "none",
+    "ruling_query_mode": "union",
+    "condition": null,
+    "run": null,
+    "model": "claude-opus-5",
+    "prompts_cache": "evals\\answers\\_prompts_norules_control.json",
+    "prompts_cache_sha256": "b1b8ac436e5f8ede2ff5bca75e04033e3864d4a204343f0dcc104be0c59090b4",
+    "answered": true,
+    "answer": "**Direct answer:** After Lava Axe resolves, state‑based actions see Bobbie at ‑4 life and Bobbie loses the game. As Bobbie leaves the game, every object Bobbie owns leaves the game with them — including the phased‑out Angel of Sanctions. Angel of Sanctions leaving the game means it leaves the battlefield, which ends the duration of its exile effect, so Conrad's Rotted Hystrix returns to the battlefield under Conrad's control (its owner), untapped, as a brand‑new object with summoning sickness.\n\n**Step by step**\n\n1. **Lava Axe resolves** and deals 5 damage to Bobbie, taking Bobbie from 1 to ‑4 life. Lava Axe is then put into Alana's graveyard. No player gets priority in the middle of that.\n2. **State‑based actions are checked** the next time a player would receive priority: a player with 0 or less life loses the game. Bobbie loses (CR 704.5a).\n3. **Bobbie leaves the game.** All objects Bobbie owns — hand, library, graveyard, exile, and permanents on the battlefield, including phased‑out ones — leave the game. Any objects Bobbie controlled but didn't own would instead be exiled. This is not a state‑based action; it happens immediately (CR 800.4a).\n4. **Phasing didn't protect the exile.** \"Phased out\" means the permanent is still on the battlefield but is treated as though it doesn't exist — it can't be targeted, doesn't affect the game, and, crucially, phasing out is *not* leaving the battlefield. That's why Rotted Hystrix stayed in exile the whole time Angel of Sanctions was phased out (CR 702.25). But Bobbie leaving the game removes Angel of Sanctions from the battlefield for real.\n5. **The exile duration ends.** Angel of Sanctions reads \"exile target nonland permanent an opponent controls until Angel of Sanctions leaves the battlefield.\" That's a one‑shot effect with a duration, not a delayed triggered ability, so it doesn't need Bobbie or Angel of Sanctions to still exist in order to end — when the duration expires, Rotted Hystrix comes back automatically, without using the stack (CR 610.3). It returns phased in and under Conrad's control, since Conrad owns it.\n\n**Player count matters:** I'm assuming a multiplayer game, since three players are named — Alana and Conrad keep playing, and Conrad gets Rotted Hystrix back. If this were somehow a two‑player game (Alana and Bobbie only), Bobbie losing would end the game immediately and nothing that happens afterward would matter in any practical sense.\n\n**On timing:** I've assumed Lava Axe resolved and killed Bobbie with the Angel of Sanctions already phased out and Rotted Hystrix already in exile. If instead Angel of Sanctions had somehow left the battlefield before Bobbie's death, Rotted Hystrix would simply have returned at that earlier moment and Bobbie's loss would change nothing about it.",
+    "citations": [
+      "704.5a",
+      "800.4a",
+      "702.25",
+      "610.3"
+    ],
+    "gold": [
+      "702.26b",
+      "702.26k",
+      "800.4a"
+    ],
+    "gold_text": {
+      "702.26b": "Phasing If a permanent phases out, its status changes to “phased out.” Except for rules and effects that specifically mention phased-out permanents, a phased-out permanent is treated as though it does not exist. It can’t affect or be affected by anything else in the game. A permanent that phases out is removed from combat. (See rule 506.4.) You control three creatures, one of which is phased out. You cast a spell that says “Draw a card for each creature you control.” You draw two cards. You control a phased-out creature. You cast a spell that says “Destroy all creatures.” The phased-out creature is not destroyed.",
+      "702.26k": "Phasing Phased-out permanents owned by a player who leaves the game also leave the game. This doesn’t cause zone-change abilities to trigger. See rule 800.4.",
+      "800.4a": "Unlike two-player games, multiplayer games can continue after one or more players have left the game. When a player leaves the game, all objects (see rule 109) owned by that player leave the game and any effects which give that player control of any objects or players end. Then, if that player controlled any objects on the stack not represented by cards, those objects cease to exist. Then, if there are any objects still controlled by that player, those objects are exiled. This is not a state-based action. It happens as soon as the player leaves the game. If the player who left the game had priority at the time they left, priority passes to the next player in turn order who’s still in the game. Alex casts Mind Control, an Aura that reads, “You control enchanted creature,” on Bianca’s Assault Griffin. If Alex leaves the game, so does Mind Control, and Assault Griffin reverts to Bianca’s control. If, instead, Bianca leaves the game, so does Assault Griffin, and Mind Control is put into Alex’s graveyard. Alex casts Act of Treason, which reads, in part, “Gain control of target creature until end of turn,” targeting Bianca’s Runeclaw Bears. If Alex leaves the game, Act of Treason’s change-of-control effect ends and Runeclaw Bears reverts to Bianca’s control. Alex casts Bribery, which reads, “Search target opponent’s library for a creature card and put that card onto the battlefield under your control. Then that player shuffles their library,” targeting Bianca. Alex puts Serra Angel onto the battlefield from Bianca’s library. If Bianca leaves the game, Serra Angel also leaves the game. If, instead, Alex leaves the game, Serra Angel is exiled. Alex controls Genesis Chamber, which reads, “Whenever a nontoken creature enters, if Genesis Chamber is untapped, that creature’s controller creates a 1/1 colorless Myr artifact creature token.” If Alex leaves the game, all such Myr tokens that entered the battlefield under Alex’s control leave the game, and all such Myr tokens that entered the battlefield under any other player’s control remain in the game."
+    },
+    "cited_text": {
+      "704.5a": "The state-based actions are as follows: If a player has 0 or less life, that player loses the game.",
+      "800.4a": "Unlike two-player games, multiplayer games can continue after one or more players have left the game. When a player leaves the game, all objects (see rule 109) owned by that player leave the game and any effects which give that player control of any objects or players end. Then, if that player controlled any objects on the stack not represented by cards, those objects cease to exist. Then, if there are any objects still controlled by that player, those objects are exiled. This is not a state-based action. It happens as soon as the player leaves the game. If the player who left the game had priority at the time they left, priority passes to the next player in turn order who’s still in the game. Alex casts Mind Control, an Aura that reads, “You control enchanted creature,” on Bianca’s Assault Griffin. If Alex leaves the game, so does Mind Control, and Assault Griffin reverts to Bianca’s control. If, instead, Bianca leaves the game, so does Assault Griffin, and Mind Control is put into Alex’s graveyard. Alex casts Act of Treason, which reads, in part, “Gain control of target creature until end of turn,” targeting Bianca’s Runeclaw Bears. If Alex leaves the game, Act of Treason’s change-of-control effect ends and Runeclaw Bears reverts to Bianca’s control. Alex casts Bribery, which reads, “Search target opponent’s library for a creature card and put that card onto the battlefield under your control. Then that player shuffles their library,” targeting Bianca. Alex puts Serra Angel onto the battlefield from Bianca’s library. If Bianca leaves the game, Serra Angel also leaves the game. If, instead, Alex leaves the game, Serra Angel is exiled. Alex controls Genesis Chamber, which reads, “Whenever a nontoken creature enters, if Genesis Chamber is untapped, that creature’s controller creates a 1/1 colorless Myr artifact creature token.” If Alex leaves the game, all such Myr tokens that entered the battlefield under Alex’s control leave the game, and all such Myr tokens that entered the battlefield under any other player’s control remain in the game.",
+      "610.3": "Some one-shot effects cause an object to change zones “until” a specified event occurs. A second one-shot effect is created immediately after the specified event. This second one-shot effect returns the object to its previous zone."
+    },
+    "rewrite_queries": [],
+    "clarification": null,
+    "retrieved_rule_ids": [],
+    "stop_reason": "end_turn",
+    "tool_calls": null,
+    "tool_rounds": null,
+    "usage": {
+      "input_tokens": 1748,
+      "output_tokens": 7235,
+      "cache_read_input_tokens": 0,
+      "cache_creation_input_tokens": 0
+    },
+    "system_version": "norules_control",
+    "layers_tool": false,
+    "max_tokens": 32768,
+    "effort": "high",
+    "answer_gold": "All objects owned by Bobbie leave the game. However the game treats phased-out permanents as nonexistent, and does not see the leaves-the-battlefield event happen. Rotted Hystrix will not return to the battlefield."
+  },
+  {
+    "id": "rg100",
+    "question": "Adelaide casts a [Keldon Champion]. In response, Nico casts [Hallow], targeting the Keldon Champion. When Adelaide attacks with the Keldon Champion that turn, will the damage be prevented?",
+    "match": "any",
+    "kind": "other",
+    "show_rewrite": false,
+    "rewrite_version": "none",
+    "ruling_query_mode": "union",
+    "condition": null,
+    "run": null,
+    "model": "claude-opus-5",
+    "prompts_cache": "evals\\answers\\_prompts_norules_control.json",
+    "prompts_cache_sha256": "b1b8ac436e5f8ede2ff5bca75e04033e3864d4a204343f0dcc104be0c59090b4",
+    "answered": true,
+    "answer": "Yes — the combat damage is prevented, and Nico gains that much life.\n\nWhy: Hallow says \"Prevent all damage that would be dealt this turn by target source.\" A \"source of damage\" doesn't have to be a permanent — a spell on the stack, including a permanent spell like the Keldon Champion spell, is a legal choice for a source, and a source doesn't even need to be capable of dealing damage at the time it's chosen. Critically, when a resolved spell (Hallow) sets up a prevention effect targeting a permanent spell as the source, that effect applies to the permanent that spell becomes when it resolves. So Hallow's shield follows the Keldon Champion spell onto the battlefield and applies to the Keldon Champion permanent for the rest of the turn.\n\nSequence assumed here: Nico casts Hallow while the Keldon Champion spell is still on the stack, so Hallow resolves first, then the Keldon Champion spell resolves and enters the battlefield. That's the only order consistent with \"in response.\"\n\nConsequences for that turn:\n- If Keldon Champion was kicked, its enters-the-battlefield triggered ability's 3 damage is also prevented, because the source of that damage is the Keldon Champion permanent. Nico gains 3 life from Hallow (the life goes to Hallow's controller, no matter who or what would have been damaged).\n- Keldon Champion has haste, so it can attack the turn it arrives. Its combat damage to any player, planeswalker, battle, or blocking creature is prevented, and Nico gains 1 life per point prevented.\n- Hallow is not a one-shot shield of a fixed size; it prevents every instance of damage from Keldon Champion for the entire turn.\n\nLimits: The prevention applies only to damage dealt this turn, and only to that specific object. If Keldon Champion leaves the battlefield and comes back (bounced, flickered, dies and is reanimated), it returns as a new object and is no longer the affected source. If the Keldon Champion spell were countered, Hallow would simply do nothing. Damage dealt to Keldon Champion (say, by a blocker) is not prevented — Hallow only prevents damage dealt by the chosen source.\n\nMultiplayer note: nothing changes. Adelaide may attack a player other than Nico, but Hallow's prevention is tied to the source, not the recipient, so the damage is still prevented and Nico — as Hallow's controller — still gains the life.",
+    "citations": [
+      "609.7a",
+      "609.7b"
+    ],
+    "gold": [
+      "400.7c",
+      "609.7a"
+    ],
+    "gold_text": {
+      "400.7c": "An object that moves from one zone to another becomes a new object with no memory of, or relation to, its previous existence. This rule has the following exceptions. Prevention effects that apply to damage from a permanent spell on the stack continue to apply to damage from the permanent that spell becomes.",
+      "609.7a": "Some effects apply to damage from a source—for example, “The next time a red source of your choice would deal damage to you this turn, prevent that damage.” If an effect requires a player to choose a source of damage, they may choose a permanent; a spell on the stack (including a permanent spell); any object referred to by an object on the stack, by a replacement or prevention effect that’s waiting to apply, or by a delayed triggered ability that’s waiting to trigger (even if that object is no longer in the zone it used to be in); or a face-up object in the command zone. A source doesn’t need to be capable of dealing damage to be a legal choice. The source is chosen when the effect is created. If the player chooses a permanent, the effect will apply to the next damage dealt by that permanent, regardless of whether it’s combat damage or damage dealt as the result of a spell or ability. If the player chooses a permanent spell, the effect will apply to any damage dealt by that spell and any damage dealt by the permanent that spell becomes when it resolves."
+    },
+    "cited_text": {
+      "609.7a": "Some effects apply to damage from a source—for example, “The next time a red source of your choice would deal damage to you this turn, prevent that damage.” If an effect requires a player to choose a source of damage, they may choose a permanent; a spell on the stack (including a permanent spell); any object referred to by an object on the stack, by a replacement or prevention effect that’s waiting to apply, or by a delayed triggered ability that’s waiting to trigger (even if that object is no longer in the zone it used to be in); or a face-up object in the command zone. A source doesn’t need to be capable of dealing damage to be a legal choice. The source is chosen when the effect is created. If the player chooses a permanent, the effect will apply to the next damage dealt by that permanent, regardless of whether it’s combat damage or damage dealt as the result of a spell or ability. If the player chooses a permanent spell, the effect will apply to any damage dealt by that spell and any damage dealt by the permanent that spell becomes when it resolves.",
+      "609.7b": "Some effects apply to damage from a source—for example, “The next time a red source of your choice would deal damage to you this turn, prevent that damage.” Some effects from resolved spells and abilities prevent or replace damage from sources with certain properties, such as a creature or a source of a particular color. When the source would deal damage, the “shield” rechecks the source’s properties. If the properties no longer match, the damage isn’t prevented or replaced. If for any reason the shield prevents no damage or replaces no damage, the shield isn’t used up."
+    },
+    "rewrite_queries": [],
+    "clarification": null,
+    "retrieved_rule_ids": [],
+    "stop_reason": "end_turn",
+    "tool_calls": null,
+    "tool_rounds": null,
+    "usage": {
+      "input_tokens": 1739,
+      "output_tokens": 2867,
+      "cache_read_input_tokens": 0,
+      "cache_creation_input_tokens": 0
+    },
+    "system_version": "norules_control",
+    "layers_tool": false,
+    "max_tokens": 32768,
+    "effort": "high",
+    "answer_gold": "Yes. Effects that apply to damage from a spell on the stack continue to apply to damage from the permanent that spell becomes."
+  },
+  {
+    "id": "rg1933",
+    "question": "Ariel controls [Soul Seizer] (back face [Ghastly Haunting])which has been mutated with [Everquill Phoenix]. Everquill Phoenix is the top component. Naomi controls [Axegrinder Giant]. Ariel then attacks Naomi with the merged permanent. Naomi declared no blockers and the merged permanent deals damage to Naomi. What happens when the transformation trigger resolves if Ariel elects to transform the merged permanent and targets Axegrinder Giant?",
+    "match": "groups",
+    "kind": "other",
+    "show_rewrite": false,
+    "rewrite_version": "none",
+    "ruling_query_mode": "union",
+    "condition": null,
+    "run": null,
+    "model": "claude-opus-5",
+    "prompts_cache": "evals\\answers\\_prompts_norules_control.json",
+    "prompts_cache_sha256": "b1b8ac436e5f8ede2ff5bca75e04033e3864d4a204343f0dcc104be0c59090b4",
+    "answered": true,
+    "answer": "**Nothing happens.** The merged permanent does not transform, so the \"if you do, attach it to target creature that player controls\" clause never takes effect. Naomi keeps Axegrinder Giant untouched, and Ariel's permanent stays a 4/4 flying creature named Everquill Phoenix (with Soul Seizer's abilities), still attacking.\n\nWhy:\n\n- **Mutate/merged permanents:** when Everquill Phoenix mutated onto Soul Seizer as the top component, the two cards became a single permanent. That merged permanent has the copiable characteristics (name, mana cost, types, power/toughness) of the top card, Everquill Phoenix, plus the abilities of every component — so it does have Soul Seizer's \"When this creature deals combat damage to a player, you may transform it. If you do, attach it to target creature that player controls.\"\n\n- **The trigger works, the transform doesn't:** the ability triggered correctly on combat damage to Naomi, and Ariel legally chose Axegrinder Giant as the target when the ability was put on the stack (targets are locked in then; the \"may transform\" choice is made on resolution). But to transform is to turn a permanent over so its other face is up, and only a permanent represented by a transforming double-faced card can do that. This permanent is represented by two cards, and the card whose face is showing on top — Everquill Phoenix — is a normal single-faced card. Being told to transform something that can't transform simply does nothing; you do not flip the Soul Seizer card buried underneath.\n\n- **The \"if you do\" gate:** because no transformation occurred, the attachment clause is skipped entirely. Ghastly Haunting never comes into being, so nobody gains control of Axegrinder Giant. Note that even if the transform had somehow happened, an Aura can't just be \"attached\" while it's part of a merged creature permanent — but you never get that far here.\n\nAssumption on timing: I'm reading the sequence as combat damage being dealt first, the trigger going on the stack with Axegrinder Giant chosen as its target, and Ariel choosing \"yes\" on resolution. If instead Axegrinder Giant had become an illegal target (hexproof, protection, or it left the battlefield) before the trigger resolved, the ability would be countered on resolution for having no legal targets, and even the transform attempt wouldn't occur — same net result for Naomi.\n\nMultiplayer: no difference. \"That player\" is locked to the player who was dealt the combat damage (Naomi), so with more than two players Ariel could only ever have targeted a creature Naomi controls, and the outcome is identical.\n\nOne caveat on a related case, not this one: if Soul Seizer itself had been the top component instead, the interaction is murkier and worth a judge call — but with Everquill Phoenix on top, the permanent unambiguously can't transform.",
+    "citations": [
+      "701.28a",
+      "701.28b"
+    ],
+    "gold": [
+      "303.4d",
+      "701.3b",
+      "702.140e",
+      "704.5m",
+      "729.2a",
+      "730.2a",
+      "730.2i"
+    ],
+    "gold_text": {
+      "303.4d": "Some enchantments have the subtype “Aura.” An Aura enters the battlefield attached to an object or player. What an Aura can be attached to is defined by its enchant keyword ability (see rule 702.5, “Enchant”). Other effects can limit what a permanent can be enchanted by. An Aura can’t enchant itself. If this occurs somehow, the Aura is put into its owner’s graveyard. An Aura that’s also a creature can’t enchant anything. If this occurs somehow, the Aura becomes unattached, then is put into its owner’s graveyard. (These are state-based actions. See rule 704.) An Aura can’t enchant more than one object or player. If a spell or ability would cause an Aura to become attached to more than one object or player, the Aura’s controller chooses which object or player it becomes attached to.",
+      "701.3b": "Attach If an effect tries to attach an Aura, Equipment, or Fortification to an object or player it can’t be attached to, the Aura, Equipment, or Fortification doesn’t move. If an effect tries to attach an Aura, Equipment, or Fortification to the object or player it’s already attached to, the effect does nothing. If an effect tries to attach an object that isn’t an Aura, Equipment, or Fortification to another object or player, the effect does nothing and the first object doesn’t move.",
+      "702.140e": "Mutate A mutated permanent has all abilities of each card and token that represents it. Its other characteristics are derived from the topmost card or token.",
+      "704.5m": "The state-based actions are as follows: If an Aura is attached to an illegal object or player, or is not attached to an object or player, that Aura is put into its owner’s graveyard.",
+      "729.2a": "As the subgame starts, an entirely new set of game zones is created. Each player takes all the cards in their main-game library, moves them to their subgame library, and shuffles them. No other cards in a main-game zone are moved to their corresponding subgame zone, except as specified in rules 729.2a–c. Randomly determine which player goes first. The subgame proceeds like a normal game, following all other rules in rule 103, “Starting the Game.” As a subgame begins, if one or more supplementary decks of nontraditional cards are being used, each player moves each of their supplementary decks from the main-game command zone to the subgame command zone and shuffles it. (Face-up nontraditional cards remain in the main-game command zone.)",
+      "730.2a": "To merge an object with a permanent, place that object on top of or under that permanent. That permanent becomes a merged permanent represented by the card or copy that represented that object in addition to any other components that were representing it. A merged permanent has only the characteristics of its topmost component, unless otherwise specified by the effect that caused them to merge. This is a copiable effect whose timestamp is the time the objects merged. (See rule 613.2.)",
+      "730.2i": "To merge an object with a permanent, place that object on top of or under that permanent. That permanent becomes a merged permanent represented by the card or copy that represented that object in addition to any other components that were representing it. A merged permanent is not a double-faced permanent even if it contains one or more double-faced components. If a merged permanent contains one or more double-faced components that can transform (see rule 712), transforming or converting that permanent causes each of those double-faced components to turn so that its other face is up."
+    },
+    "cited_text": {
+      "701.28a": "Convert To convert a permanent, turn it so that its other face is up. This follows rules 701.27a–f, 712.9–10, and 712.18. Those rules apply to converting a permanent just as they apply to transforming a permanent.",
+      "701.28b": "Convert Although converting a permanent uses the same physical action as turning a permanent face up or face down, they are different game actions. Abilities that trigger when a permanent is turned face down won’t trigger when that permanent converts, and so on."
+    },
+    "rewrite_queries": [],
+    "clarification": null,
+    "retrieved_rule_ids": [],
+    "stop_reason": "end_turn",
+    "tool_calls": null,
+    "tool_rounds": null,
+    "usage": {
+      "input_tokens": 1830,
+      "output_tokens": 8367,
+      "cache_read_input_tokens": 0,
+      "cache_creation_input_tokens": 0
+    },
+    "system_version": "norules_control",
+    "layers_tool": false,
+    "max_tokens": 32768,
+    "effort": "high",
+    "answer_gold": "The component that consists of Soul Seizer is transformed. The merged permanent is still a creature. It is not attached to anything. The merged permanent has the abilities in the text box of the back half of Soul Seizer instead of the front half.\n\nWhen Ariel chooses to transform the merged permanent, all double-faced components are transformed. The merged permanent now has the abilities of the back half of Soul Seizer instead of the front half. ([702.140e]) The merged permanent is still a creature as Everquill Phoenix is still the topmost card. When the transformation trigger tries to attach the merged permanent to Axegrinder Giant, it can't attach because the merged permanent is still a creature. It remains on the battlefield because the state-based action that puts auras not attached to anything into the graveyard is looking for the \"Aura\" subtype, not the \"Enchant\" keyword."
+  },
+  {
+    "id": "rg5539",
+    "question": "Aubrey controls a [Gaea's Liege], [Rhonas the Indomitable], and 1 [Forest]. Noel controls 5 Forest. Can Aubrey attack with the Gaea's Liege and Rhonas the Indomitable?",
+    "match": "groups",
+    "kind": "other",
+    "show_rewrite": false,
+    "rewrite_version": "none",
+    "ruling_query_mode": "union",
+    "condition": null,
+    "run": null,
+    "model": "claude-opus-5",
+    "prompts_cache": "evals\\answers\\_prompts_norules_control.json",
+    "prompts_cache_sha256": "b1b8ac436e5f8ede2ff5bca75e04033e3864d4a204343f0dcc104be0c59090b4",
+    "answered": true,
+    "answer": "**No — Aubrey can attack with Gaea's Liege, but Rhonas the Indomitable can't be declared as an attacker.**\n\nWhy: Rhonas the Indomitable says it can't attack or block unless you control *another* creature with power 4 or greater. That restriction is checked while attackers are being declared. At that moment, Gaea's Liege's power is still set by Aubrey's own Forests — Aubrey controls 1 Forest, so Gaea's Liege is a 1/1.\n\nThe timing detail that decides this: Gaea's Liege's second ability only applies \"as long as Gaea's Liege is attacking,\" and a creature doesn't actually become an attacking creature until the very end of the declare-attackers turn-based action (CR 508.1i). Restrictions such as Rhonas the Indomitable's are checked earlier in that same action (CR 508.1c), before any chosen creature has become attacking. So when the game checks Rhonas the Indomitable's restriction, Gaea's Liege is a 1/1 (Aubrey's 1 Forest), not a 5/5, and the declaration including Rhonas the Indomitable would be illegal.\n\nWhat Aubrey can do: declare Gaea's Liege alone as an attacker. Once the declaration is complete, Gaea's Liege is attacking, and its power and toughness become equal to the number of Forests the defending player controls — Noel's 5 Forests make it a 5/5. That does not retroactively let Rhonas the Indomitable attack; Rhonas the Indomitable's restriction is checked only once, as attackers are declared, and a legal declaration can't be revisited.\n\nSecondary notes:\n- Rhonas the Indomitable's activated ability ({2}{G}: another target creature gets +2/+0 and gains trample) could in principle raise Gaea's Liege's power to 4+ *before* attackers are declared, but that needs two activations ({4}{G}{G} total) to reach power 5, and Aubrey has only 1 Forest for mana, so it isn't available here.\n- Gaea's Liege's own {T} ability (target land becomes a Forest until end of turn, only before attackers are declared) doesn't help either: activating it taps Gaea's Liege, so Gaea's Liege couldn't attack, and it wouldn't raise Gaea's Liege's pre-attack power unless it created additional Forests under Aubrey's control.\n- Multiplayer makes no difference to the restriction: it depends only on creatures Aubrey controls. It does matter for the size of Gaea's Liege once attacking, since \"defending player\" is whichever opponent (or controller of the attacked planeswalker/battle) Gaea's Liege was declared against — attacking a different opponent with a different number of Forests changes its power and toughness accordingly.\n\nAssumption on timing: I'm reading this as both creatures being declared in the same declare-attackers step. If instead Aubrey somehow got Gaea's Liege to power 4 or greater *before* the declare-attackers step (a fourth Forest, a pump spell, etc.), then Rhonas the Indomitable could legally attack alongside it.",
+    "citations": [
+      "508.1a",
+      "508.1c",
+      "508.1i"
+    ],
+    "gold": [
+      "508.1",
+      "508.1a",
+      "508.1c",
+      "508.1j",
+      "508.1k"
+    ],
+    "gold_text": {
+      "508.1": "First, the active player declares attackers. This turn-based action doesn’t use the stack. To declare attackers, the active player follows the steps below, in order. If at any point during the declaration of attackers, the active player is unable to comply with any of the steps listed below, the declaration is illegal; the game returns to the moment before the declaration (see rule 733, “Handling Illegal Actions”).",
+      "508.1a": "First, the active player declares attackers. This turn-based action doesn’t use the stack. To declare attackers, the active player follows the steps below, in order. If at any point during the declaration of attackers, the active player is unable to comply with any of the steps listed below, the declaration is illegal; the game returns to the moment before the declaration (see rule 733, “Handling Illegal Actions”). The active player chooses which creatures that they control, if any, will attack. The chosen creatures must be untapped, they can’t also be battles, and each one must either have haste or have been controlled by the active player continuously since the turn began.",
+      "508.1c": "First, the active player declares attackers. This turn-based action doesn’t use the stack. To declare attackers, the active player follows the steps below, in order. If at any point during the declaration of attackers, the active player is unable to comply with any of the steps listed below, the declaration is illegal; the game returns to the moment before the declaration (see rule 733, “Handling Illegal Actions”). The active player checks each creature they control to see whether it’s affected by any restrictions (effects that say a creature can’t attack, or that it can’t attack unless some condition is met). If any restrictions are being disobeyed, the declaration of attackers is illegal. A player controls two creatures, each with a restriction that states “This creature can’t attack alone.” It’s legal to declare both as attackers.",
+      "508.1j": "First, the active player declares attackers. This turn-based action doesn’t use the stack. To declare attackers, the active player follows the steps below, in order. If at any point during the declaration of attackers, the active player is unable to comply with any of the steps listed below, the declaration is illegal; the game returns to the moment before the declaration (see rule 733, “Handling Illegal Actions”). Once the player has enough mana in their mana pool, they pay all costs in any order. Partial payments are not allowed.",
+      "508.1k": "First, the active player declares attackers. This turn-based action doesn’t use the stack. To declare attackers, the active player follows the steps below, in order. If at any point during the declaration of attackers, the active player is unable to comply with any of the steps listed below, the declaration is illegal; the game returns to the moment before the declaration (see rule 733, “Handling Illegal Actions”). Each chosen creature still controlled by the active player becomes an attacking creature. It remains an attacking creature until it’s removed from combat or the combat phase ends, whichever comes first. See rule 506.4."
+    },
+    "cited_text": {
+      "508.1a": "First, the active player declares attackers. This turn-based action doesn’t use the stack. To declare attackers, the active player follows the steps below, in order. If at any point during the declaration of attackers, the active player is unable to comply with any of the steps listed below, the declaration is illegal; the game returns to the moment before the declaration (see rule 733, “Handling Illegal Actions”). The active player chooses which creatures that they control, if any, will attack. The chosen creatures must be untapped, they can’t also be battles, and each one must either have haste or have been controlled by the active player continuously since the turn began.",
+      "508.1c": "First, the active player declares attackers. This turn-based action doesn’t use the stack. To declare attackers, the active player follows the steps below, in order. If at any point during the declaration of attackers, the active player is unable to comply with any of the steps listed below, the declaration is illegal; the game returns to the moment before the declaration (see rule 733, “Handling Illegal Actions”). The active player checks each creature they control to see whether it’s affected by any restrictions (effects that say a creature can’t attack, or that it can’t attack unless some condition is met). If any restrictions are being disobeyed, the declaration of attackers is illegal. A player controls two creatures, each with a restriction that states “This creature can’t attack alone.” It’s legal to declare both as attackers.",
+      "508.1i": "First, the active player declares attackers. This turn-based action doesn’t use the stack. To declare attackers, the active player follows the steps below, in order. If at any point during the declaration of attackers, the active player is unable to comply with any of the steps listed below, the declaration is illegal; the game returns to the moment before the declaration (see rule 733, “Handling Illegal Actions”). If any of the costs require mana, the active player then has a chance to activate mana abilities (see rule 605, “Mana Abilities”)."
+    },
+    "rewrite_queries": [],
+    "clarification": null,
+    "retrieved_rule_ids": [],
+    "stop_reason": "end_turn",
+    "tool_calls": null,
+    "tool_rounds": null,
+    "usage": {
+      "input_tokens": 1748,
+      "output_tokens": 5829,
+      "cache_read_input_tokens": 0,
+      "cache_creation_input_tokens": 0
+    },
+    "system_version": "norules_control",
+    "layers_tool": false,
+    "max_tokens": 32768,
+    "effort": "high",
+    "answer_gold": "No. All creatures are declared as attackers at the same time. Checking to see if any restrictions affect a potentially-attacking creature is done before the creature becomes an \"attacking creature\"."
+  },
+  {
+    "id": "rg1014",
+    "question": "Alejandra owns a face-down [Progenitus] in exile. Nicolas uses [Ruin Processor] to put Progenitus into Alejandra's graveyard. Where does Progenitus move to?",
+    "match": "all",
+    "kind": "other",
+    "show_rewrite": false,
+    "rewrite_version": "none",
+    "ruling_query_mode": "union",
+    "condition": null,
+    "run": null,
+    "model": "claude-opus-5",
+    "prompts_cache": "evals\\answers\\_prompts_norules_control.json",
+    "prompts_cache_sha256": "b1b8ac436e5f8ede2ff5bca75e04033e3864d4a204343f0dcc104be0c59090b4",
+    "answered": true,
+    "answer": "Progenitus is revealed and shuffled into Alejandra's library. It never reaches her graveyard.\n\nWhy:\n\n1. Ruin Processor's enters‑the‑battlefield ability lets Nicolas put a card an opponent owns from exile into that player's graveyard. It doesn't target, and it works on face‑down exiled cards (he just doesn't get to look at it first). In a multiplayer game the only difference is that Nicolas may pick a card owned by any one of his opponents; here he's picked one Alejandra owns.\n\n2. Progenitus has the replacement effect \"If Progenitus would be put into a graveyard from anywhere, reveal Progenitus and shuffle it into its owner's library instead.\" A replacement effect changes an event as it happens, so the move to the graveyard is replaced — the card goes from exile straight to Alejandra's library after being revealed. \"From anywhere\" explicitly includes exile, and that ability functions in every zone, not just on the battlefield.\n\n3. Being face down in exile doesn't turn Progenitus into a blank object. A card exiled face down is still the card it is with all its characteristics and abilities; face‑down status in exile is an information restriction (players can't examine it) rather than a change to what the card is. So its self‑replacement ability still applies, and carrying it out forces the card to be revealed, at which point everyone learns it was Progenitus.\n\n4. Protection from everything is irrelevant here. Protection only stops damage, enchanting/equipping, blocking, and targeting (DEBT), and Ruin Processor's ability doesn't target and isn't any of those. The card is saved by the graveyard‑replacement clause, not by protection.\n\n5. One knock‑on point: because Progenitus was never actually put into a graveyard, any effect that keys on \"if a card was put into a graveyard this way\" (the way Wasteland Strangler's ability does) would not be satisfied. Ruin Processor itself has no such rider, so nothing else changes — Ruin Processor is still a 5/8 on the battlefield.\n\nAssumption on timing: I'm assuming the exiled Progenitus is the card Nicolas chose as Ruin Processor's ability resolves. If Progenitus were somehow turned face up in exile beforehand, the result is identical — reveal and shuffle into Alejandra's library.",
+    "citations": [
+      "113.6",
+      "614.1"
+    ],
+    "gold": [
+      "406.3a",
+      "614.4"
+    ],
+    "gold_text": {
+      "406.3a": "Exiled cards are, by default, kept face up and may be examined by any player at any time. Cards “exiled face down” can’t be examined by any player except when instructions allow it. However, if a player is instructed to look at a card and then exile it face down, or once a player is allowed to look at a card exiled face down, that player may continue to look at that card until it leaves the exile zone or is part of a pile of cards that are shuffled, even if the instruction allowing the player to do so no longer applies. A card exiled face down has no characteristics, but the spell or ability that exiled it may allow it to be played from exile. Unless that card is being cast face down (see rule 708.4), the card is turned face up just before the player announces that they are playing the card (see rule 601.2).",
+      "614.4": "Replacement effects must exist before the appropriate event occurs—they can’t “go back in time” and change something that’s already happened. Spells or abilities that generate these effects are often cast or activated in response to whatever would produce the event and thus resolve before that event would occur. A player can activate an ability to regenerate a creature in response to a spell that would destroy it. Once the spell resolves, though, it’s too late to regenerate the creature."
+    },
+    "cited_text": {
+      "113.6": "Abilities of an instant or sorcery spell usually function only while that object is on the stack. Abilities of all other objects usually function only while that object is on the battlefield. The exceptions are as follows:",
+      "614.1": "Some continuous effects are replacement effects. Like prevention effects (see rule 615), replacement effects apply continuously as events happen—they aren’t locked in ahead of time. Such effects watch for a particular event that would happen and completely or partially replace that event with a different event. They act like “shields” around whatever they’re affecting."
+    },
+    "rewrite_queries": [],
+    "clarification": null,
+    "retrieved_rule_ids": [],
+    "stop_reason": "end_turn",
+    "tool_calls": null,
+    "tool_rounds": null,
+    "usage": {
+      "input_tokens": 1731,
+      "output_tokens": 5470,
+      "cache_read_input_tokens": 0,
+      "cache_creation_input_tokens": 0
+    },
+    "system_version": "norules_control",
+    "layers_tool": false,
+    "max_tokens": 32768,
+    "effort": "high",
+    "answer_gold": "The graveyard. Replacement effects must exist before the event in question in order to affect it. Progenitus has no abilities in exile, so there is no replacement effect that would apply to it moving to the graveyard."
+  },
+  {
+    "id": "rg1555",
+    "question": "Amari has [Phyrexian Hulk] and [The Mimeoplasm] in their graveyard. Amari casts [Rise of the Dark Realms] to return both to the battlefield. Can they have The Mimeoplasm enter the battlefield as a copy of Phyrexian Hulk?",
+    "match": "groups",
+    "kind": "other",
+    "show_rewrite": false,
+    "rewrite_version": "none",
+    "ruling_query_mode": "union",
+    "condition": null,
+    "run": null,
+    "model": "claude-opus-5",
+    "prompts_cache": "evals\\answers\\_prompts_norules_control.json",
+    "prompts_cache_sha256": "b1b8ac436e5f8ede2ff5bca75e04033e3864d4a204343f0dcc104be0c59090b4",
+    "answered": true,
+    "answer": "**Short answer: only if there's a second creature card in some graveyard to exile alongside Phyrexian Hulk.** Phyrexian Hulk being reanimated by the same Rise of the Dark Realms is *not* the problem — it's still in the graveyard at the moment The Mimeoplasm's replacement effect is applied, so it's a legal thing to exile. The problem is that The Mimeoplasm demands *two* creature cards, and The Mimeoplasm itself is no longer in the graveyard (it's the permanent that's entering), so Phyrexian Hulk alone isn't enough.\n\n**Why Phyrexian Hulk is still a legal choice**\n\nThe Mimeoplasm reads, in part: \"As The Mimeoplasm enters, you may exile two creature cards from graveyards. If you do, it enters as a copy of one of those cards with a number of additional +1/+1 counters on it equal to the power of the other card.\" This is a replacement effect that modifies how The Mimeoplasm enters the battlefield, and replacement effects are applied to an event *before* that event happens. Rise of the Dark Realms hasn't actually moved anything yet at the instant that choice is made, so every creature card — including Phyrexian Hulk — is still sitting in a graveyard and is a legal exile choice.\n\n(This is the mirror image of the familiar Clone ruling: a Clone entering simultaneously with other creatures can't copy them, because in the pre-event game state they aren't on the battlefield yet. Same principle, opposite result: in the pre-event game state, Phyrexian Hulk *is* in a graveyard.)\n\nIf Phyrexian Hulk is exiled this way, it never enters the battlefield. Rise of the Dark Realms can only put a card onto the battlefield from the graveyard it was in; once Phyrexian Hulk changes zones it becomes a new object in exile that Rise of the Dark Realms can no longer affect.\n\n**Why it probably still fails as described**\n\nYou must exile exactly two creature cards or none — you can't exile just one. The Mimeoplasm can't exile itself (it's the object entering the battlefield, not a card in the graveyard). So if Phyrexian Hulk and The Mimeoplasm were the only two creature cards in all graveyards, Amari has only one legal card to exile, the ability's \"if you do\" is never satisfied, and The Mimeoplasm enters as a 0/0 with no counters and is put into the graveyard as a state-based action immediately.\n\n**If there is another creature card anywhere (any player's graveyard):** Amari exiles Phyrexian Hulk plus that other creature card, and The Mimeoplasm enters as a copy of Phyrexian Hulk (a 4/4 artifact creature — Golem, with none of The Mimeoplasm's own text) with +1/+1 counters equal to the other exiled card's power as it last existed in the graveyard. Note that the other exiled card also never enters the battlefield from Rise of the Dark Realms. Alternatively, Amari could copy the other card and use Phyrexian Hulk's power (4) for the counters.\n\n**Two players vs. multiplayer:** the ruling is identical, but since Rise of the Dark Realms pulls from *all* graveyards, more opponents means more candidate creature cards, so the two-card requirement is much easier to meet at a multiplayer table. Also remember every creature card in every graveyard comes back under Amari's control, minus whatever The Mimeoplasm exiles.\n\n**Commander note:** if The Mimeoplasm is Amari's commander, copying Phyrexian Hulk doesn't change that — being a commander isn't a copiable value; it stays with the physical card.",
+    "citations": [
+      "614.12",
+      "614.1",
+      "400.7",
+      "706.2",
+      "704.5f"
+    ],
+    "gold": [
+      "614.12",
+      "614.12a",
+      "614.13a",
+      "614.1c"
+    ],
+    "gold_text": {
+      "614.12": "Some replacement effects modify how a permanent enters the battlefield. (See rules 614.1c–d.) Such effects may come from the permanent itself if they affect only that permanent (as opposed to a general subset of permanents that includes it). They may also come from other sources. To determine which replacement effects apply and how they apply, check the characteristics of the permanent as it would exist on the battlefield, taking into account replacement effects that have already modified how it enters the battlefield (see rule 616.1), continuous effects from the permanent’s own static abilities that would apply to it once it’s on the battlefield, and continuous effects that already exist and would apply to the permanent. Voice of All says “As this creature enters, choose a color” and “This creature has protection from the chosen color.” An effect creates a token that’s a copy of Voice of All. As that token is created, the token’s controller chooses a color for it. Yixlid Jailer says “Cards in graveyards lose all abilities.” Scarwood Treefolk says “This creature enters tapped.” A Scarwood Treefolk that’s put onto the battlefield from a graveyard enters the battlefield tapped. Orb of Dreams is an artifact that says “Permanents enter tapped.” It won’t affect itself, so Orb of Dreams enters the battlefield untapped.",
+      "614.12a": "Some replacement effects modify how a permanent enters the battlefield. (See rules 614.1c–d.) Such effects may come from the permanent itself if they affect only that permanent (as opposed to a general subset of permanents that includes it). They may also come from other sources. To determine which replacement effects apply and how they apply, check the characteristics of the permanent as it would exist on the battlefield, taking into account replacement effects that have already modified how it enters the battlefield (see rule 616.1), continuous effects from the permanent’s own static abilities that would apply to it once it’s on the battlefield, and continuous effects that already exist and would apply to the permanent. If a replacement effect that modifies how a permanent enters the battlefield requires a choice, that choice is made before the permanent enters the battlefield.",
+      "614.13a": "An effect that modifies how a permanent enters the battlefield may cause other objects to change zones. While applying an effect that modifies how a permanent enters the battlefield, you may have to choose a number of objects that will also change zones. You can’t choose the object that will become that permanent or any other object entering the battlefield at the same time as that object. Sutured Ghoul says, in part, “As this creature enters, exile any number of creature cards from your graveyard.” If Sutured Ghoul and Runeclaw Bear enter the battlefield from your graveyard at the same time, you can’t choose to exile either of them when applying Sutured Ghoul’s replacement effect.",
+      "614.1c": "Some continuous effects are replacement effects. Like prevention effects (see rule 615), replacement effects apply continuously as events happen—they aren’t locked in ahead of time. Such effects watch for a particular event that would happen and completely or partially replace that event with a different event. They act like “shields” around whatever they’re affecting. Effects that read “[This permanent] enters with . . . ,” “As [this permanent] enters . . . ,” or “[This permanent] enters as . . . “ are replacement effects."
+    },
+    "cited_text": {
+      "614.12": "Some replacement effects modify how a permanent enters the battlefield. (See rules 614.1c–d.) Such effects may come from the permanent itself if they affect only that permanent (as opposed to a general subset of permanents that includes it). They may also come from other sources. To determine which replacement effects apply and how they apply, check the characteristics of the permanent as it would exist on the battlefield, taking into account replacement effects that have already modified how it enters the battlefield (see rule 616.1), continuous effects from the permanent’s own static abilities that would apply to it once it’s on the battlefield, and continuous effects that already exist and would apply to the permanent. Voice of All says “As this creature enters, choose a color” and “This creature has protection from the chosen color.” An effect creates a token that’s a copy of Voice of All. As that token is created, the token’s controller chooses a color for it. Yixlid Jailer says “Cards in graveyards lose all abilities.” Scarwood Treefolk says “This creature enters tapped.” A Scarwood Treefolk that’s put onto the battlefield from a graveyard enters the battlefield tapped. Orb of Dreams is an artifact that says “Permanents enter tapped.” It won’t affect itself, so Orb of Dreams enters the battlefield untapped.",
+      "614.1": "Some continuous effects are replacement effects. Like prevention effects (see rule 615), replacement effects apply continuously as events happen—they aren’t locked in ahead of time. Such effects watch for a particular event that would happen and completely or partially replace that event with a different event. They act like “shields” around whatever they’re affecting.",
+      "400.7": "An object that moves from one zone to another becomes a new object with no memory of, or relation to, its previous existence. This rule has the following exceptions.",
+      "706.2": "After the roll, the number indicated on the top face of the die before any modifiers is the natural result. The instruction may include modifiers to the roll which add to or subtract from the natural result. Modifiers may also come from other sources. After considering all applicable modifiers, the final number is the result of the die roll.",
+      "704.5f": "The state-based actions are as follows: If a creature has toughness 0 or less, it’s put into its owner’s graveyard. Regeneration can’t replace this event."
+    },
+    "rewrite_queries": [],
+    "clarification": null,
+    "retrieved_rule_ids": [],
+    "stop_reason": "end_turn",
+    "tool_calls": null,
+    "tool_rounds": null,
+    "usage": {
+      "input_tokens": 1760,
+      "output_tokens": 8212,
+      "cache_read_input_tokens": 0,
+      "cache_creation_input_tokens": 0
+    },
+    "system_version": "norules_control",
+    "layers_tool": false,
+    "max_tokens": 32768,
+    "effort": "high",
+    "answer_gold": "No. The Mimeoplasm has a replacement effect that modifies how it enters the battlefield. The game checks for any replacement effects that modify how an object will enter the battlefield before the object has changed zones. So Phyrexian Hulk is still in the graveyard while Amari is making choices for The Mimeoplasm, however they are not allowed to choose an object that is also changing zones at the same time."
+  }
+]

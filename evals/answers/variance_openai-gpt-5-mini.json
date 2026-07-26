@@ -1,0 +1,2249 @@
+{
+  "model": "openai/gpt-5-mini",
+  "results": [
+    {
+      "id": "q001",
+      "question": "Do creatures phasing back in trigger enter the battlefield abilities?",
+      "served_model": "openai/gpt-5-mini",
+      "provider": "OpenAI",
+      "temperature_sent": null,
+      "seed_sent": 42,
+      "usage": {
+        "prompt_tokens": 2484,
+        "completion_tokens": 1730,
+        "total_tokens": 4214,
+        "cost": 0.004081,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.004081,
+          "upstream_inference_prompt_cost": 0.000621,
+          "upstream_inference_completions_cost": 0.00346
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 1280,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "answered": true,
+      "text": "No. Phasing is a status-related change that happens during the untap step (a static ability that modifies the untap step); when a permanent phases in its status becomes “phased in” and the game treats it as though it exists again, and when it phases out it’s treated as though it doesn’t exist except to rules that specifically mention phased-out permanents [702.26a, 702.26b, 702.26c]. “Enter-the-battlefield” abilities are zone-change triggers that trigger when a permanent actually enters the battlefield; they look for objects that changed zones and act on them after they enter the battlefield [603.6a, 603.6b]. Phasing is not a zone change and “effects that check a phased-in permanent’s history won’t treat the phasing event as having caused the permanent to leave or enter the battlefield,” and zone-change triggers simply don’t trigger when a permanent phases in or out [702.26d]. (Note: abilities that specifically trigger when a permanent phases out are handled by an exception that looks back in time, but that applies to phasing-out triggers, not to enter-the-battlefield triggers when a permanent phases in [603.10b].) In short: a creature that phases back in does not trigger enters-the-battlefield abilities because it did not enter the battlefield or change zones.",
+      "citations": [
+        "[702.26a]",
+        "[702.26b]",
+        "[702.26c]",
+        "[702.26d]",
+        "[603.6a]",
+        "[603.6b]",
+        "[603.10b]"
+      ],
+      "error": null,
+      "raw_text": null
+    },
+    {
+      "id": "q002",
+      "question": "how does trample work with deathtouch?",
+      "served_model": "openai/gpt-5-mini",
+      "provider": "OpenAI",
+      "temperature_sent": null,
+      "seed_sent": 42,
+      "usage": {
+        "prompt_tokens": 2119,
+        "completion_tokens": 3478,
+        "total_tokens": 5597,
+        "cost": 0.00748575,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.00748575,
+          "upstream_inference_prompt_cost": 0.00052975,
+          "upstream_inference_completions_cost": 0.006956
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 2624,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "answered": true,
+      "text": "Short answer (definitions first):\n\n- Deathtouch: a source with deathtouch causes any nonzero amount of combat damage it assigns to a creature to be considered lethal for the purpose of determining excess damage; creatures dealt damage by a deathtouch source are destroyed by state-based actions (rules 702.2b, 702.2c, 704.5h).  \n- Trample: a static ability that changes how an attacking creature assigns its combat damage during the combat damage assignment part of the combat damage step (rules 702.19a, 510.1a). The controller of an attacking creature with trample must assign lethal damage to each blocking creature (taking into account damage already marked and damage being assigned at the same time) before assigning any excess to the defending player or planeswalker (rule 702.19b).  \n\nHow they work together (what a player does):\n1. When assigning combat damage for the attacking creature, you follow the normal assignment rules: each attacking creature assigns damage equal to its power (510.1a) and a creature with trample assigns lethal damage to blockers first, then may assign excess to the defending player/planeswalker (702.19b).  \n2. Because deathtouch makes any nonzero combat damage count as lethal for that purpose, a creature with both trample and deathtouch need only have 1 point of its assigned combat damage assigned to each blocking creature to satisfy the “lethal damage” requirement (702.2c, 702.19b).  \n3. Per the damage/excess rules, any amount of damage greater than 1 dealt to a creature by a source with deathtouch is considered excess for the purposes of redirecting/assigning to another object or player (120.4a). Practically, this means you can assign 1 damage to each blocker (to be “lethal”) and put the remainder of the attacker’s power to the defending player or planeswalker as allowed by trample (702.19b, 120.4a).  \n4. When checking how much must be assigned to blockers, remember to take into account damage already marked on those creatures and damage from other creatures being assigned at the same time; do not take into account effects that would change the amount of damage actually dealt (702.19b).  \n5. After combat damage is dealt, creatures that were dealt damage by a deathtouch source are destroyed as state-based actions (702.2b, 704.5h).  \n\nNotes and special cases:  \n- If the creature has trample over planeswalkers, you still must assign lethal to all blocking creatures and enough damage equal to the planeswalker’s loyalty (counting other creatures assigning damage simultaneously) before assigning further excess to the planeswalker’s controller (702.19c).  \n- If a creature with trample is considered blocked but no creatures are blocking it at damage assignment, its damage is assigned to the defending player/planeswalker as though the blockers had been assigned lethal damage (702.19d).",
+      "citations": [
+        "510.1a",
+        "702.19a",
+        "702.19b",
+        "702.2c",
+        "120.4a",
+        "702.2b",
+        "704.5h",
+        "702.19c",
+        "702.19d"
+      ],
+      "error": null,
+      "raw_text": null
+    },
+    {
+      "id": "q003",
+      "question": "is storm a triggered ability that can be countered?",
+      "served_model": "openai/gpt-5-mini",
+      "provider": "OpenAI",
+      "temperature_sent": null,
+      "seed_sent": 42,
+      "usage": {
+        "prompt_tokens": 2251,
+        "completion_tokens": 1588,
+        "total_tokens": 3839,
+        "cost": 0.00373875,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.00373875,
+          "upstream_inference_prompt_cost": 0.00056275,
+          "upstream_inference_completions_cost": 0.003176
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 1152,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "answered": true,
+      "text": "Short answer\nYes. “Storm” is a triggered ability that functions on the stack, so it’s a triggered ability put on the stack when you cast the spell. (See rule 702.40a.)\n\nDefinitions and relevant procedure\n- Triggered ability: an ability written “[When/Whenever/At] [trigger condition or event], [effect].” It has a trigger condition and an effect and, once triggered, its controller puts it on the stack the next time a player would receive priority. (See rule 603.1a and 603.3.)\n- Storm: “When you cast this spell, copy it for each other spell that was cast before it this turn. If the spell has any targets, you may choose new targets for any of the copies.” Storm is explicitly a triggered ability that functions on the stack. (See rule 702.40a.)\n\nCan it be countered?\n- Because storm is a triggered ability on the stack, it is not a spell. Effects that counter only spells therefore can’t counter a storm trigger on the stack. However, effects that specifically counter abilities can counter a storm trigger. (See rule 113.9.)\n\nPractical result for a player\n- When you cast a spell with storm, the storm trigger is put on the stack. You can’t stop that trigger with a spell-counter (an effect that only counters spells), but you can stop it with an effect that says it counters abilities (or otherwise removes/counters triggered abilities on the stack).",
+      "citations": [
+        "702.40a",
+        "603.1a",
+        "603.3",
+        "113.9"
+      ],
+      "error": null,
+      "raw_text": null
+    },
+    {
+      "id": "q004",
+      "question": "can i use cards with hybrid mana symbols in a commander deck that only has one of those colors?",
+      "served_model": "openai/gpt-5-mini",
+      "provider": "OpenAI",
+      "temperature_sent": null,
+      "seed_sent": 42,
+      "usage": {
+        "prompt_tokens": 2282,
+        "completion_tokens": 2243,
+        "total_tokens": 4525,
+        "cost": 0.0045669,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 2176,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.0045669,
+          "upstream_inference_prompt_cost": 8.09e-05,
+          "upstream_inference_completions_cost": 0.004486
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 1664,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "answered": true,
+      "text": "TL;DR: No. A hybrid mana symbol counts as all of its component colors for color identity, so a card with a hybrid symbol that includes a color your commander doesn’t have is illegal in that commander’s deck.\n\nDefinitions (from the provided rules):\n- Hybrid mana symbol: a mana symbol that represents a cost that can be paid in one of two ways; a hybrid symbol is also a colored mana symbol and is all of its component colors [107.4e].\n- Color identity: the color or colors of any mana symbols in a card’s mana cost or rules text (plus colors from characteristic-defining abilities or a color indicator) [903.4]. An object with hybrid mana symbols in its mana cost is all of the colors of those mana symbols [202.2d].\n\nWhat this means for deck construction:\n- A Commander deck may include a card only if every color in that card’s color identity is also in the commander’s color identity [903.5c].\n- Therefore a card whose mana cost contains a hybrid symbol like {R/G} has both red and green in its color identity (the hybrid symbol is both colors) [107.4e][202.2d]. Such a card is legal only in a commander deck whose commander’s color identity includes both red and green [903.5c].\n- Monocolored hybrid symbols (for example {2/B}) still include the named color for color identity, so a card with {2/B} is black for color-identity purposes [107.4e][202.2d].\n- Whether you actually pay the red or the green half of a hybrid symbol during play does not change the printed color identity of the card; color identity is determined by the mana symbols printed on the card, not how you pay costs [903.4][202.2d].\n\nConclusion: You cannot include a card with a hybrid symbol that contains a color your commander lacks. The commander must contain every color that appears among the card’s printed mana symbols.",
+      "citations": [
+        "107.4e",
+        "202.2d",
+        "903.4",
+        "903.5c"
+      ],
+      "error": null,
+      "raw_text": null
+    },
+    {
+      "id": "q005",
+      "question": "can I respond to the untap step?",
+      "served_model": "openai/gpt-5-mini",
+      "provider": "OpenAI",
+      "temperature_sent": null,
+      "seed_sent": 42,
+      "usage": {
+        "prompt_tokens": 1775,
+        "completion_tokens": 1939,
+        "total_tokens": 3714,
+        "cost": 0.00394735,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 1664,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.00394735,
+          "upstream_inference_prompt_cost": 6.935e-05,
+          "upstream_inference_completions_cost": 0.003878
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 1344,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "answered": true,
+      "text": "Short answer: No. You can’t “respond” during the untap step because no player receives priority during that step, so spells can’t be cast and abilities can’t be activated or resolve; any abilities that trigger during the untap step are held until the next time a player would receive priority (normally the upkeep). Definitions and what's happening during the untap step so you can act correctly:\n\n- “Untap step”: the step at the beginning of a turn in which the active player determines which permanents they control will untap and then untaps them all simultaneously, and in which phasing and the day/night check occur (see 703.4c and 703.4a). 500.3 notes the untap step is a step in which no players receive priority and ends when its specified actions are completed. \n\n- “Receive priority” / “respond”: when a player has priority they may cast spells or activate abilities; no player receives priority during the untap step, so neither player may do those things during it (see 117.3a and 502.4). \n\n- “Phasing” / phasing actions: phasing in/out of permanents happens as part of the untap step as described in 703.4a; any triggered abilities caused by actions in the untap step are not put on the stack at that time but are held until the next time players would receive priority. \n\n- What happens to triggered abilities that trigger during the untap step: they are held and then put onto the stack the next time a player would receive priority (usually at the beginning of the upkeep), at which point players may respond (see 502.4 and 503.1a). \n\nSo you must wait until the next time players receive priority (normally the upkeep) to cast spells or activate abilities in response to things that happened during the untap step.",
+      "citations": [
+        "[502.4]",
+        "[117.3a]",
+        "[503.1a]",
+        "[500.3]",
+        "[703.4a]",
+        "[703.4c]"
+      ],
+      "error": null,
+      "raw_text": null
+    },
+    {
+      "id": "q006",
+      "question": "are creatures still considered attacking creatures during the end of combat step?",
+      "served_model": "openai/gpt-5-mini",
+      "provider": "OpenAI",
+      "temperature_sent": null,
+      "seed_sent": 42,
+      "usage": {
+        "prompt_tokens": 2395,
+        "completion_tokens": 1322,
+        "total_tokens": 3717,
+        "cost": 0.00272435,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 2304,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.00272435,
+          "upstream_inference_prompt_cost": 8.035e-05,
+          "upstream_inference_completions_cost": 0.002644
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 896,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "answered": true,
+      "text": "Yes. Definition: “Attacking Creature” — a creature that has either been declared as part of a legal attack during the combat phase (or was put onto the battlefield attacking). It “remains an attacking creature until it’s removed from combat or the combat phase ends, whichever comes first.”\n\nWhy: the end of combat step is part of the combat phase, and creatures are only removed from combat when the end of combat step ends. Abilities that trigger “at end of combat” trigger as the end of combat step begins, and effects that last “until end of combat” don’t expire until the combat phase ends. When the end of combat step ends, then all creatures are removed from combat (and the combat phase ends, moving to the postcombat main phase).\n\nPractical consequence: while the end of combat step exists (from when it begins until it ends), creatures that were attacking are still attacking creatures and are affected by effects and abilities that care about “attacking” creatures; they stop being attacking creatures only if they’re specifically removed from combat or when the combat phase ends as the end of combat step ends.\n\nZones/steps/objects named: the end of combat step (begins → triggers occur; end → creatures are removed from combat), the combat phase (creatures remain attacking until it ends), and creatures being removed from combat.\n\nAnswered: Yes.\n",
+      "citations": [
+        "[Attacking Creature]",
+        "[511.2]",
+        "[511.3]",
+        "[506.4a]",
+        "[500.5a]"
+      ],
+      "error": null,
+      "raw_text": null
+    },
+    {
+      "id": "q007",
+      "question": "Do you cast lands?",
+      "served_model": "openai/gpt-5-mini",
+      "provider": "OpenAI",
+      "temperature_sent": null,
+      "seed_sent": 42,
+      "usage": {
+        "prompt_tokens": 2038,
+        "completion_tokens": 1351,
+        "total_tokens": 3389,
+        "cost": 0.0032115,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.0032115,
+          "upstream_inference_prompt_cost": 0.0005095,
+          "upstream_inference_completions_cost": 0.002702
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 1024,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "answered": true,
+      "text": "No — you don’t cast lands. You play (put) lands onto the battlefield as a special action, not by casting them as spells. \"Play a land\" means to put a land onto the battlefield from the zone it’s in (usually your hand); it’s a special action that doesn’t use the stack and can’t be responded to. If an object is both a land and another card type (for example, an artifact land), it still can only be played as a land and can’t be cast as a spell. Also, putting a land onto the battlefield because a spell or ability says to do so is not the same as playing a land. Finally, you may play a land only when it’s your turn’s main phase, you have priority, and the stack is empty (and you haven’t already played a land that turn, unless an effect says otherwise).",
+      "citations": [
+        "305.1",
+        "116.2a",
+        "701.18a",
+        "305.9",
+        "300.2a",
+        "305.4",
+        "305.3",
+        "505.6b",
+        "302.1",
+        "601.1a"
+      ],
+      "error": null,
+      "raw_text": null
+    },
+    {
+      "id": "q008",
+      "question": "can I sacrifice an evoked creature before that creature's evoke triggered ability resolves?",
+      "served_model": "openai/gpt-5-mini",
+      "provider": "OpenAI",
+      "temperature_sent": null,
+      "seed_sent": 42,
+      "usage": {
+        "prompt_tokens": 2470,
+        "completion_tokens": 3490,
+        "total_tokens": 5960,
+        "cost": 0.0070791,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 2304,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.0070791,
+          "upstream_inference_prompt_cost": 9.91e-05,
+          "upstream_inference_completions_cost": 0.00698
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 2880,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "answered": true,
+      "text": "Short answer: Yes. Evoke creates a triggered ability when the creature enters that will be put on the stack and resolve later; you get a priority window before that trigger resolves and may sacrifice the creature then. If you do, the evoke trigger later can’t make you sacrifice the creature because it’s no longer on the battlefield.\n\nWhy, step by step:\n- Evoke is a static ability that also creates a triggered ability when the permanent enters that says “When this permanent enters, if its evoke cost was paid, its controller sacrifices it.” That is the evoke triggered ability (definition and effect: [702.74a]).\n- That triggered ability triggers when the creature enters and is put onto the stack the next time a player would receive priority (so there will be a priority window after the creature enters and the trigger exists) ([603.3d]).\n- During that priority window a player may take actions (for example, activate an ability or cast a spell that sacrifices the creature). Special actions are also allowed any time a player has priority ([116.2e]).\n- If you sacrifice the creature in that window, it leaves the battlefield (goes to another zone). When the evoke triggered ability later resolves it will try to make you sacrifice the permanent, but you no longer control that permanent on the battlefield. If the object isn’t on the battlefield, you can’t perform the sacrifice; the ability simply has no legal sacrifice to carry out. (When a source is no longer in the zone it’s expected to be in, last known information is used for checks, but effects that require an object on the battlefield still need that object to be there; see [113.7a] and the example that a player with no creatures can’t choose a sacrifice option [608.2d].)\n\nPractical result: you may sacrifice an evoked creature in response to its evoke trigger; doing so prevents that evoke trigger from sacrificing it later because it’s already gone.",
+      "citations": [
+        "[702.74a]",
+        "[603.3d]",
+        "[116.2e]",
+        "[113.7a]",
+        "[608.2d]"
+      ],
+      "error": null,
+      "raw_text": null
+    },
+    {
+      "id": "q009",
+      "question": "if a card loses all abilities, does that include keyword abilities?",
+      "served_model": "openai/gpt-5-mini",
+      "provider": "OpenAI",
+      "temperature_sent": null,
+      "seed_sent": 42,
+      "usage": {
+        "prompt_tokens": 2122,
+        "completion_tokens": 1669,
+        "total_tokens": 3791,
+        "cost": 0.0038685,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.0038685,
+          "upstream_inference_prompt_cost": 0.0005305,
+          "upstream_inference_completions_cost": 0.003338
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 1088,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "answered": true,
+      "text": "Short answer: Yes. \"Keyword abilities\" are abilities, so an effect that causes a permanent to lose all abilities removes its keyword abilities as well.\n\nExplanation and definitions\n- \"Keyword\"/\"keyword ability\": a common or shorthand name for an ability that appears as a keyword on a card (for example, flying, trample). (See rule 702.1.)\n- \"Loses all abilities\": an ability‑removing continuous effect that removes abilities from an object. Effects can add or remove abilities; an effect that removes an ability causes the object to lose that ability. (See rules 113.10 and 113.10b.)\n\nWhy this applies to keyword abilities\n- Keyword abilities are still abilities (they are keywords that name abilities), so an effect that removes abilities removes keyword abilities. (Connects 702.1 with 113.10/113.10b.)\n- Ability‑removing effects and keyword counters are applied together in layer 6, so removal of abilities will remove keyword abilities/counters at that step. (See rule 613.1f.)\n- If an effect instead says an object \"can’t have\" a particular ability, the object loses that ability and it can’t gain that ability while the prohibition applies. (See rule 113.11.)\n- As examples of the scope of \"losing an ability,\" rules text notes that causing an object to lose hexproof removes related \"hexproof from [quality]\" abilities as well. (See rule 702.11e.)\n\nIf you need a concrete in‑game phrasing: if a permanent on the battlefield is affected by an effect that says \"it loses all abilities,\" that permanent loses its keyword abilities such as flying, trample, hexproof, etc.",
+      "citations": [
+        "702.1",
+        "113.10",
+        "113.10b",
+        "613.1f",
+        "113.11",
+        "702.11e"
+      ],
+      "error": null,
+      "raw_text": null
+    },
+    {
+      "id": "q010",
+      "question": "can i draw cards if i'm already at my maximum hand size?",
+      "served_model": "openai/gpt-5-mini",
+      "provider": "OpenAI",
+      "temperature_sent": null,
+      "seed_sent": 42,
+      "usage": {
+        "prompt_tokens": 1874,
+        "completion_tokens": 1377,
+        "total_tokens": 3251,
+        "cost": 0.0032225,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.0032225,
+          "upstream_inference_prompt_cost": 0.0004685,
+          "upstream_inference_completions_cost": 0.002754
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 960,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "answered": true,
+      "text": "Short answer: Yes. Nothing in the provided rules prevents you from drawing cards while you already have your maximum hand size. \"Maximum hand size\" is the maximum number of cards a player may have in hand (normally seven) and is enforced during the cleanup step, not at the moment cards are drawn. A \"draw\" is an instruction to take a card from your library into your hand (cards moved from the library to your hand without using the word “draw” are not draws).\n\nWhat to do in play: You may draw cards even if your hand already contains your maximum number of cards. If you end up with more than your maximum hand size, the turn-based action performed at the beginning of the cleanup step forces you to discard down to your maximum hand size (this discard doesn’t use the stack). Draws are performed one at a time when instructed to draw multiple cards.\n\nRelevant zones/steps: the cards move from your library to your hand when drawing; the hand-size check and discard happen during your cleanup step.\n\nIf something instead moves cards from your library to your hand without using the word “draw,” that action is not a draw for purposes of effects that care about drawing.\n",
+      "citations": [
+        "[402.2]",
+        "[514.1]",
+        "[703.4n]",
+        "[121.2b]",
+        "[121.5]"
+      ],
+      "error": null,
+      "raw_text": null
+    },
+    {
+      "id": "q011",
+      "question": "what happens when a planeswalker has 0 or less loyalty counters?",
+      "served_model": "openai/gpt-5-mini",
+      "provider": "OpenAI",
+      "temperature_sent": null,
+      "seed_sent": 42,
+      "usage": {
+        "prompt_tokens": 1584,
+        "completion_tokens": 2752,
+        "total_tokens": 4336,
+        "cost": 0.0055544,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 1536,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.0055544,
+          "upstream_inference_prompt_cost": 5.04e-05,
+          "upstream_inference_completions_cost": 0.005504
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 2240,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "answered": false,
+      "text": "Short answer grounded in the provided rules: A planeswalker that has loyalty 0 is put into its owner’s graveyard as a state-based action. The rules provided say only what happens at loyalty 0; they don’t say what to do if loyalty were somehow less than 0.\n\nDefinitions and relevant details from the cited rules:\n- Loyalty / loyalty counters: A planeswalker’s loyalty is equal to the number of loyalty counters on it; loyalty counters are markers placed on the planeswalker that indicate how much loyalty it has. (See [122.1e], [306.5b], [306.5c].)\n- What happens at 0 loyalty: If a planeswalker’s loyalty is 0, it’s put into its owner’s graveyard. This is a state-based action. (See [306.9], [704.5i].)\n- How loyalty can change: Damage dealt to a planeswalker causes that many loyalty counters to be removed from it; if that removal results in loyalty 0, the state-based action above applies. (See [120.3c], [306.8].)\n\nNote about “0 or less”: The provided rules explicitly state what happens at loyalty 0. The rules given do not describe any separate procedure for a planeswalker having a negative number of loyalty counters, so the “less than 0” case is not settled by the provided material.\n\nPractical outcome a player can act on: If a planeswalker on the battlefield has loyalty 0, put that planeswalker into its owner’s graveyard immediately as a state-based action (i.e., when state-based actions are checked).",
+      "citations": [
+        "122.1e",
+        "306.5b",
+        "306.5c",
+        "306.9",
+        "704.5i",
+        "120.3c",
+        "306.8"
+      ],
+      "error": null,
+      "raw_text": null
+    },
+    {
+      "id": "q012",
+      "question": "do non-creature artifacts die?",
+      "served_model": "openai/gpt-5-mini",
+      "provider": "OpenAI",
+      "temperature_sent": null,
+      "seed_sent": 42,
+      "usage": {
+        "prompt_tokens": 2131,
+        "completion_tokens": 1877,
+        "total_tokens": 4008,
+        "cost": 0.00388355,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 1792,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.00388355,
+          "upstream_inference_prompt_cost": 0.00012955,
+          "upstream_inference_completions_cost": 0.003754
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 1536,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "answered": true,
+      "text": "Definition — “dies”: A permanent \"dies\" when it is a creature or planeswalker put into a graveyard from the battlefield (i.e., it’s put into its owner’s graveyard from the battlefield and is a creature or planeswalker). See rule [700.4].\n\nAnswer — No. A non‑creature artifact put into a graveyard from the battlefield does not “die,” because the term “dies” applies to creatures and planeswalkers only. If the object is an artifact that’s also a creature (an artifact creature), it is a creature and so it does die when put into a graveyard from the battlefield.\n\nPractical wording to watch for on cards: abilities that say “when [this creature] dies” or “whenever a creature dies” only trigger for creatures (including artifact creatures), not for non‑creature artifacts. Zones involved: the battlefield → a player’s graveyard. See rule [700.4].",
+      "citations": [
+        "[700.4]"
+      ],
+      "error": null,
+      "raw_text": null
+    },
+    {
+      "id": "q013",
+      "question": "what happens if i should draw a card when my library is empty?",
+      "served_model": "openai/gpt-5-mini",
+      "provider": "OpenAI",
+      "temperature_sent": null,
+      "seed_sent": 42,
+      "usage": {
+        "prompt_tokens": 1525,
+        "completion_tokens": 1462,
+        "total_tokens": 2987,
+        "cost": 0.00330525,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.00330525,
+          "upstream_inference_prompt_cost": 0.00038125,
+          "upstream_inference_completions_cost": 0.002924
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 768,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "answered": true,
+      "text": "Definition (draw): To draw a card means to put the top card of a player’s library into their hand (see rule [121.1]). The normal turn-based draw is the turn-based action that happens in the draw step (see rule [504.1]).\n\nWhat happens when you should draw and your library is empty:\n- If you attempt to draw a card while your library has no cards (for example, the normal draw step), you have attempted to draw with an empty library and you lose the game the next time a player would receive priority. This loss is a state-based action (see rules [121.4] and [704.5b]; definition of draw [121.1]; draw step [504.1]).\n- If an effect requires you to draw more cards than are left in your library, you draw the remaining cards (if any) and then lose the game the next time a player would receive priority (see [104.3c]).\n- If an effect offers a choice to draw a card when the target library is empty, that choice can be taken (you may choose to attempt the draw) unless another effect specifically says that player can’t draw cards, in which case the choice can’t be taken (see [121.3] and [121.3a]).\n- Replacement effects that replace draws are applied even if no cards could be drawn because the library is empty (see [121.6a] and [614.11]).\n- If an effect moves cards out of the library without using the word “draw,” those cards are not draws and the consequences for drawing (including the empty-library loss) do not apply; this also affects whether replacement effects or “when you draw” triggers occur (see [121.5]).\n- If an effect tries to move cards out of the library (not by drawing) and fewer cards exist than the effect would move, it moves as many as possible (see [609.3]).\n\nOther related notes:\n- At the start of a new game each player draws seven cards; any player with fewer than seven cards in their library will lose the game when state-based actions are checked during the first upkeep (see [727.3] and for subgames [729.3]).",
+      "citations": [
+        "121.1",
+        "504.1",
+        "121.4",
+        "704.5b",
+        "104.3c",
+        "121.3",
+        "121.3a",
+        "121.6a",
+        "614.11",
+        "121.5",
+        "609.3",
+        "727.3",
+        "729.3"
+      ],
+      "error": null,
+      "raw_text": null
+    },
+    {
+      "id": "q014",
+      "question": "what are the steps in combat and when do I have priority as the defending player?",
+      "served_model": "openai/gpt-5-mini",
+      "provider": "OpenAI",
+      "temperature_sent": null,
+      "seed_sent": 42,
+      "usage": {
+        "prompt_tokens": 1794,
+        "completion_tokens": 2424,
+        "total_tokens": 4218,
+        "cost": 0.0052965,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.0052965,
+          "upstream_inference_prompt_cost": 0.0004485,
+          "upstream_inference_completions_cost": 0.004848
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 1600,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "answered": true,
+      "text": "Steps in combat: The combat phase has five steps, in order: beginning of combat, declare attackers, declare blockers, combat damage, and end of combat. (See rule [506.1].)\n\nDefinitions you need: \"Defending player\" — in a two-player game it’s the nonactive player; in multiplayer the active player either chooses one opponent to be the defending player at the beginning of combat (unless a multiplayer option makes all opponents defending players). (See rules [506.2a], [507.1], [703.4h], [802.2].)\n\nWhen you (the defending player) have priority:\n- At the very start of most steps and phases, the active player receives priority after any turn-based actions for that step are performed and after any abilities that trigger at the beginning of that step are put on the stack. That means you will not have the first priority at the start of a step; you get priority only after the active player has priority and then the normal priority-passing process proceeds. (See rule [117.3a].)\n\nRelevant combat-specific turn-based actions that occur before priority is first given in their steps:\n- Beginning of combat step: the active player chooses the defending player as a turn-based action; that choice happens before anyone receives priority. (See rules [507.1], [703.4h].)\n- Combat damage step: as the combat damage step begins, assigning combat damage is a turn-based action. The active player first announces how each attacking creature assigns its combat damage, then the defending player announces how each blocking creature assigns its combat damage (this doesn’t use the stack). After assignment, all assigned combat damage is dealt simultaneously and no one gets priority between assignment and dealing. In multiplayer, assignment is done in APNAP order. (See rules [703.4k], [510.1], [510.2], [802.5].)\n\nEnd-of-combat note: the end of combat step has no turn-based actions; once it begins the active player gets priority. (See rule [511.1].)\n\nPutting that together for play: at the start of a step you should check whether any turn-based actions happen first (for example, the defending-player choice at beginning of combat or the damage-assignment action at combat damage). After those are resolved and beginning-of-step triggers are put on the stack, the active player receives priority ([117.3a]); you (the defending player) will receive priority only after the active player has priority and passes it to the next player in turn order.",
+      "citations": [
+        "[506.1]",
+        "[506.2a]",
+        "[507.1]",
+        "[703.4h]",
+        "[802.2]",
+        "[117.3a]",
+        "[703.4k]",
+        "[510.1]",
+        "[510.2]",
+        "[802.5]",
+        "[511.1]"
+      ],
+      "error": null,
+      "raw_text": null
+    },
+    {
+      "id": "q015",
+      "question": "can i respond to a mana ability?",
+      "served_model": "openai/gpt-5-mini",
+      "provider": "OpenAI",
+      "temperature_sent": null,
+      "seed_sent": 42,
+      "usage": {
+        "prompt_tokens": 1900,
+        "completion_tokens": 1793,
+        "total_tokens": 3693,
+        "cost": 0.004061,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.004061,
+          "upstream_inference_prompt_cost": 0.000475,
+          "upstream_inference_completions_cost": 0.003586
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 1408,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "answered": true,
+      "text": "Definition — “Respond to a mana ability”: to use your priority to cast spells, activate abilities, or take other actions in reaction to that ability (i.e., via the stack). See rule 117.1d for when players may take those actions.\n\nShort answer — No. Activated and triggered mana abilities don’t use the stack and resolve immediately when activated or when they trigger, so they can’t be targeted, countered, or otherwise responded to. See rules 605.3b and 405.6c (activated mana abilities resolve immediately and can’t be responded to) and 605.4a (triggered mana abilities resolve immediately after the ability that triggered them, without waiting for priority). Rule 113.4 also notes mana abilities don’t use the stack.\n\nNotes and exceptions you can act on: you may still activate mana abilities whenever you have priority or when you’re casting an object that requires mana or paying a cost (117.1d). Also, an ability that has a target is not a mana ability and therefore does use the stack and can be responded to (605.5a).",
+      "citations": [
+        "117.1d",
+        "605.3b",
+        "405.6c",
+        "605.4a",
+        "113.4",
+        "605.5a"
+      ],
+      "error": null,
+      "raw_text": null
+    },
+    {
+      "id": "q016",
+      "question": "can I respond to a cost being paid?",
+      "served_model": "openai/gpt-5-mini",
+      "provider": "OpenAI",
+      "temperature_sent": null,
+      "seed_sent": 42,
+      "usage": {
+        "prompt_tokens": 2341,
+        "completion_tokens": 2338,
+        "total_tokens": 4679,
+        "cost": 0.00477165,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 2176,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.00477165,
+          "upstream_inference_prompt_cost": 9.565e-05,
+          "upstream_inference_completions_cost": 0.004676
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 1536,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "answered": true,
+      "text": "Short answer (definition): A “cost” is an action or payment required to take another action (for example, the mana and the sacrifice required to cast a spell) [118.1]. By “respond” here we mean casting spells or activating abilities in reaction to someone else performing that payment.\n\nWhat the rules say you can do while a cost is being handled:\n- If the total cost includes a mana payment, the player who is paying the cost gets a chance to activate mana abilities before paying those costs. That chance happens when the cost is being paid (this applies when casting spells and when declaring attackers/defenders if costs require mana) [118.2; 601.2g; 508.1i; 509.1e].\n- Paying the cost itself is performed by the player who must pay it; they pay all non-random/move-from-library parts first and then the rest, and partial payments aren’t allowed [601.2h].\n- You can’t pay a cost if you don’t have the required resources (for example, life, untapped permanents, etc.) [118.3].\n- Each payment of a cost applies to only one spell, ability, or effect [118.10].\n- If an effect gives a player an option to pay mana during resolution, that player likewise may activate mana abilities before taking that payment action [608.2g].\n- Activating an ability that would alter costs doesn’t affect spells or abilities that are already on the stack (so trying to change costs after a spell’s cost is determined won’t change that spell now) [602.4].\n\nPractical ruling you can act on:\n- You do not get to cast spells or activate non-mana abilities “in the middle” of another player paying a cost. The payer is given the opportunity to activate mana abilities before payment; then the payer completes paying the cost as described by the casting/activation steps. Other players don’t get a separate opportunity to respond during that payment window (the rules only grant the payer the chance to activate mana abilities before paying and then require the payer to complete the payments) [118.2; 601.2g; 601.2h; 508.1i; 509.1e].\n\nIf you need to change something that would affect a cost (for example, an effect that would reduce a spell’s mana cost), that must be in place before the spell’s cost is determined or paid; activating an ability that alters costs after the cost is already determined won’t affect the already-determined cost [602.4].\n\nSummary: only the player paying a cost gets the special chance to activate mana abilities beforehand; you can’t “respond” by casting spells or activating non-mana abilities during the actual payment process itself under these rules [118.2; 601.2g; 601.2h; 508.1i; 509.1e; 118.10; 118.3; 608.2g; 602.4].",
+      "citations": [
+        "118.1",
+        "118.2",
+        "601.2g",
+        "601.2h",
+        "508.1i",
+        "509.1e",
+        "118.10",
+        "118.3",
+        "608.2g",
+        "602.4"
+      ],
+      "error": null,
+      "raw_text": null
+    },
+    {
+      "id": "q017",
+      "question": "can you explain layers?",
+      "served_model": "openai/gpt-5-mini",
+      "provider": "OpenAI",
+      "temperature_sent": null,
+      "seed_sent": 42,
+      "usage": {
+        "prompt_tokens": 2744,
+        "completion_tokens": 2271,
+        "total_tokens": 5015,
+        "cost": 0.005228,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.005228,
+          "upstream_inference_prompt_cost": 0.000686,
+          "upstream_inference_completions_cost": 0.004542
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 1280,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "answered": true,
+      "text": "Short definition\n- Layer: “A system used to determine in which order continuous effects are applied.” [Layer]\n\nHow layers are used to determine an object’s characteristics\n- To determine an object’s characteristics you start with the actual object (for a card, the printed values; for a token or a copy, the values defined by the effect that created it) and then apply all applicable continuous effects in a fixed series of layers. [613.1]\n- Layer 1 is for rules and effects that modify copiable values. Within layer 1 there are sublayers; copiable effects (copy effects and similar “as … enters” or “as … is turned face up” effects that set power/toughness) are applied in the appropriate layer‑1 sublayer. Within those sublayers, effects are applied in timestamp order (subject to dependency). [613.1a] [613.2a] [613.2c]\n- Layer 3 is for text‑changing effects. [613.1c]\n- Layer 4 is for type‑changing effects (card type, subtype, supertype). [613.1d]\n- Layer 5 is for color‑changing effects. [613.1e]\n- Layer 6 is for adding or removing abilities (ability‑adding effects, keyword counters, ability‑removing effects, and effects that say an object can’t have an ability). [613.1f]\n- Layer 7 is for power/toughness changes; layer 7 itself has sublayers (for example, layer 7a applies effects from characteristic‑defining abilities that set power and/or toughness). Within layer 7 sublayers, effects are applied in timestamp order (subject to dependency). [613.4a]\n\nOrder inside layers and resolving conflicts\n- Within layers 2–6, characteristic‑defining abilities are applied first, then all other effects in timestamp order (again, dependency can alter the order). [613.3]\n- Within any layer or sublayer, effects are normally applied in timestamp order, but a dependency system can override that order when one effect depends on another. An effect A “depends on” effect B if they are applied in the same layer (or sublayer), applying B would change A’s text, existence, what it applies to, or what it does to anything it applies to, and the characteristic‑defining ability exception in the rule does not apply. [613.2c] [613.8] [613.2a]\n\nOther points a player needs to know\n- If a single effect has parts that belong in different layers, each part is applied in its appropriate layer/sub‑layer, and the effect will continue to apply to the same set of objects across those layers even if the ability that generated it is removed while the layered application is occurring. [613.6]\n- The rules use these layers in practice to produce predictable, instantaneous characteristic values — for example, an effect that changes a creature’s color (layer 5) can change whether a static buff like “White creatures you control get +1/+1” applies (an effect that modifies power/toughness applied in layer 7), as shown in the Honor of the Pure example. [613.5]\n\nPractical summary for a player\n- When you need to know a card or permanent’s current types, colors, abilities, and power/toughness, start from the object’s base characteristics and apply layer 1 through layer 7 (and their sublayers) in order, using timestamp order inside sublayers unless dependency changes that ordering.",
+      "citations": [
+        "Layer",
+        "613.1",
+        "613.1a",
+        "613.2a",
+        "613.2c",
+        "613.1c",
+        "613.1d",
+        "613.1e",
+        "613.1f",
+        "613.4a",
+        "613.3",
+        "613.8",
+        "613.6",
+        "613.5"
+      ],
+      "error": null,
+      "raw_text": null
+    },
+    {
+      "id": "q018",
+      "question": "how does the legend rule work?",
+      "served_model": "openai/gpt-5-mini",
+      "provider": "OpenAI",
+      "temperature_sent": null,
+      "seed_sent": 42,
+      "usage": {
+        "prompt_tokens": 1898,
+        "completion_tokens": 1893,
+        "total_tokens": 3791,
+        "cost": 0.0038573,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 1792,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.0038573,
+          "upstream_inference_prompt_cost": 7.13e-05,
+          "upstream_inference_completions_cost": 0.003786
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 1472,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "answered": true,
+      "text": "Definition of key terms\n- State-based action: an automatic game-rule action performed by the game when certain conditions are met; they’re checked and performed before a player would receive priority. [117.2d]\n- Legendary permanent: any permanent that has the supertype “legendary”; such permanents are subject to the legend rule. [205.4d]\n- The legend rule (what happens): If a player controls two or more legendary permanents with the same name, that player chooses one of those permanents to keep, and each of the others is put into its owner’s graveyard. This is a state-based action, so it happens automatically when state-based actions are checked (before any player receives priority). [704.5j] \n- Notes/implications: The rule only applies when the same player controls two or more legendary permanents with the same name; it does not trigger just because two different players each control a legendary permanent with the same name. Permanents sent to the graveyard by this rule go to their owners’ graveyards. Some older planeswalker cards were made legendary and are therefore subject to this rule. [704.5j] [306.4]",
+      "citations": [
+        "704.5j",
+        "205.4d",
+        "117.2d",
+        "306.4"
+      ],
+      "error": null,
+      "raw_text": null
+    },
+    {
+      "id": "q019",
+      "question": "when does my creature die after its been marked with a lethal amount of damage?",
+      "served_model": "openai/gpt-5-mini",
+      "provider": "OpenAI",
+      "temperature_sent": null,
+      "seed_sent": 42,
+      "usage": {
+        "prompt_tokens": 2096,
+        "completion_tokens": 3286,
+        "total_tokens": 5382,
+        "cost": 0.0066352,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 2048,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.0066352,
+          "upstream_inference_prompt_cost": 6.32e-05,
+          "upstream_inference_completions_cost": 0.006572
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 2624,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "answered": true,
+      "text": "Definitions you need: \"Marked with lethal damage\" means a permanent (a creature) has damage marked on it whose total is greater than or equal to its toughness; when that happens the creature has been dealt lethal damage and is destroyed as a state-based action. \"State-based actions\" are automatic game-rule checks that are performed whenever the game would give a player priority; they don’t use the stack and happen before a player receives priority.\n\nWhat happens and when\n- As soon as the total damage marked on a creature is greater than or equal to its toughness, that creature has been dealt lethal damage and is destroyed as a state-based action the next time state-based actions are checked. State-based actions are checked whenever a player would get priority, so this normally happens immediately after the damage is dealt (you do not get a chance to cast spells or activate abilities first). [120.6] [704.5g] [704.3] [117.5] [120.5]\n\n- State-based actions are automatic and don’t use the stack. Regeneration can replace the destruction, and damage marked on a permanent remains until the cleanup step or until it is removed by regeneration. [117.2d] [405.6f] [704.5g] [120.6]\n\n- In the cleanup step all damage is removed (so damage marked does not persist past cleanup), but the game still performs the normal state-based-action checks and handles any triggered abilities per the cleanup-step exception before giving priority. If no state-based actions are to be performed at that point, the damage is then removed as part of the cleanup step. [514.3a] [514.2]\n\nPractical summary for a player: when your creature is dealt damage that brings its marked damage to at least its toughness, it is destroyed as a state-based action the next time SBAs are checked — normally immediately after the damage is dealt, before anyone gets priority. Regeneration can stop that destruction; otherwise damage stays until the cleanup step when it is removed.",
+      "citations": [
+        "[120.6]",
+        "[704.5g]",
+        "[704.3]",
+        "[117.5]",
+        "[120.5]",
+        "[117.2d]",
+        "[405.6f]",
+        "[514.3a]",
+        "[514.2]",
+        "[704.4]"
+      ],
+      "error": null,
+      "raw_text": null
+    },
+    {
+      "id": "q020",
+      "question": "can I cast my commander from exile?",
+      "served_model": "openai/gpt-5-mini",
+      "provider": "OpenAI",
+      "temperature_sent": null,
+      "seed_sent": 42,
+      "usage": {
+        "prompt_tokens": 2079,
+        "completion_tokens": 2010,
+        "total_tokens": 4089,
+        "cost": 0.00453975,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.00453975,
+          "upstream_inference_prompt_cost": 0.00051975,
+          "upstream_inference_completions_cost": 0.00402
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 1280,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "answered": true,
+      "text": "Short answer: Not automatically. A commander in exile can either be (A) moved to the command zone as a state-based action when it was put into exile since the last time state-based actions were checked, and then it can be cast from the command zone, or (B) remain in exile and be cast only if a rule or effect specifically allows you to cast it from exile.\n\nExplanation and key definitions\n- Commander: the legendary card designated as your deck’s commander (the card retains that designation in all zones). See rule [903.3d].\n- Command zone: the special zone from which commanders may be cast under commander rules. See rule [903.8].\n- Exile: the exile zone referenced by the rules; exiled cards are normally face up and may be examined by any player. See rule [406.3b].\n\nWhat happens when your commander goes to exile\n- If the commander is in exile and it was put there since the last time state-based actions were checked, its owner may put it into the command zone as a state-based action. That is an option the owner may take. See rules [903.9a] and [704.6d].\n- A commander in the command zone may be cast from the command zone; each previous time it was cast from the command zone this game increases the additional {2} commander tax. See rule [903.8].\n- If you choose not to move the commander to the command zone (or it was already in exile earlier so the state-based action no longer applies), it remains in exile and you may only begin to cast it from exile if a rule or effect explicitly allows casting it from exile. A player can begin to cast a spell only if a rule or effect allows that and no rule or effect prohibits it. See rules [601.3f] and [406.3b].\n- Note: the replacement effect that lets a commander be put into the command zone instead of into its owner’s hand or library does not apply to exile (it only applies to being put into hand or library). See rule [903.9b].\n\nPractical result for a player:\n- When your commander is put into exile, you will normally be offered the option to move it to the command zone (and then you can cast it from there). If you decline or no rule lets you cast from exile, you can’t cast it while it just sits in exile.",
+      "citations": [
+        "[903.3d]",
+        "[903.8]",
+        "[903.9a]",
+        "[704.6d]",
+        "[601.3f]",
+        "[406.3b]",
+        "[903.9b]"
+      ],
+      "error": null,
+      "raw_text": null
+    },
+    {
+      "id": "q021",
+      "question": "what happens during the cleanup step?",
+      "served_model": "openai/gpt-5-mini",
+      "provider": "OpenAI",
+      "temperature_sent": null,
+      "seed_sent": 42,
+      "usage": {
+        "prompt_tokens": 1825,
+        "completion_tokens": 2705,
+        "total_tokens": 4530,
+        "cost": 0.00586625,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.00586625,
+          "upstream_inference_prompt_cost": 0.00045625,
+          "upstream_inference_completions_cost": 0.00541
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 1664,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "answered": true,
+      "text": "Definition — Cleanup step: the cleanup step is part of the turn; it is the second and final step of the ending phase (\"Cleanup Step\").\n\nWhat happens, in order:\n- When the cleanup step begins, any turn‑based actions associated with that step are dealt with first (this happens before state‑based actions are checked, before triggered abilities are put on the stack, and before any player would get priority) [703.3].\n- Immediately after the active player discards cards if necessary, all damage marked on permanents is removed and all “until end of turn” and “this turn” effects end; these actions happen simultaneously and don’t use the stack [703.4p; 514.2].\n- Normally no player receives priority during the cleanup step, so players can’t cast spells or activate abilities; this is the default for the step [514.3].\n- Exception: the game checks for state‑based actions and for triggered abilities waiting to be put on the stack. If any state‑based actions are performed and/or any triggered abilities are waiting, those state‑based actions are performed, then those triggered abilities are put on the stack, and then the active player gets priority; players may then cast spells and activate abilities. After the stack empties and all players pass in succession, another cleanup step begins [514.3a; 704.3].\n- If the first such check during the cleanup step finds no state‑based actions to perform and no triggered abilities waiting, then no player gets priority and the cleanup step ends (thereby ending the turn) [704.3].\n- If an effect \"ends the turn,\" follow the special end‑the‑turn procedure: the current phase/step ends and the game skips to the cleanup step; during that end‑the‑turn process state‑based actions are checked with no player getting priority and no triggered abilities put on the stack. If any triggered abilities triggered during that process, those abilities are put onto the stack during the cleanup step and then the active player gets priority; if none triggered, the cleanup step proceeds with no priority [724.1c; 724.1d; 724.1f]. If an effect ends the combat phase (e.g., Mandate of Peace), a similar special process occurs (no priority, no triggered abilities put on the stack during that check) [724.2c].\n- As the step (or the phase) ends, any effects that last until the end of that step/phase expire and any unspent mana in players’ mana pools empties; these are turn‑based actions that happen as the step/phase ends [500.5].\n- Note: some cleanup steps are steps in which no players receive priority; such a step ends when the specified actions for that step are completed [500.3].\n\nKey terms used here:\n- \"Priority\" (in this context): the opportunity for a player to cast spells and activate abilities; the active player gets priority when the rules say so and then players can act [514.3a].\n- \"State‑based actions\": checks the game makes whenever priority would be received; if any apply they are performed before triggered abilities are put on the stack or players receive priority [704.3].\n\nPractical summary: discard if necessary, remove damage and end until‑end‑of‑turn effects; then the game checks state‑based actions and triggered abilities. If any such things exist, they are processed and players may get priority; if not, no one gets priority and the cleanup step (and turn) ends [703.3; 703.4p; 514.2; 514.3a; 704.3; 500.5; 724.1d; 724.1f].",
+      "citations": [
+        "[Cleanup Step]",
+        "[703.3]",
+        "[703.4p]",
+        "[514.2]",
+        "[514.3]",
+        "[514.3a]",
+        "[704.3]",
+        "[500.5]",
+        "[500.3]",
+        "[724.1c]",
+        "[724.1d]",
+        "[724.1f]",
+        "[724.2c]"
+      ],
+      "error": null,
+      "raw_text": null
+    },
+    {
+      "id": "q022",
+      "question": "when are state-based actions checked?",
+      "served_model": "openai/gpt-5-mini",
+      "provider": "OpenAI",
+      "temperature_sent": null,
+      "seed_sent": 42,
+      "usage": {
+        "prompt_tokens": 1796,
+        "completion_tokens": 1964,
+        "total_tokens": 3760,
+        "cost": 0.0040026,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 1664,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.0040026,
+          "upstream_inference_prompt_cost": 7.46e-05,
+          "upstream_inference_completions_cost": 0.003928
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 1280,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "answered": true,
+      "text": "Definition — “state-based actions” (SBAs): game actions that happen automatically whenever certain conditions are met; they don’t use the stack. Abilities that watch for a specified game state are triggered abilities, not SBAs. SBAs are checked throughout the game and are not controlled by any player. [704.1, 704.1a, 704.2]\n\nWhen SBAs are checked (specific times you must know):\n- Each time a player would get priority. The game checks for and performs all applicable SBAs as a single event, repeats that check until no SBAs are performed, then puts any triggered abilities waiting to be put on the stack and repeats the whole sequence before the appropriate player actually gets priority. (This is the normal, recurring moment SBAs are checked.) [704.3, 117.5]\n- Whenever a step or phase begins: turn-based actions for that step/phase are handled first, then SBAs are checked. [703.3]\n- During the cleanup step: the game checks SBAs; if any SBAs are performed or any triggered abilities are waiting to be put on the stack, those triggered abilities are put on the stack and then the active player gets priority (so spells and abilities can be cast/activated). If the very first check in the cleanup step produces no SBAs and no triggered abilities, no player gets priority and the cleanup step ends. [514.3a, 704.3]\n- When an effect ends the turn or ends the combat phase: the procedure for those effects begins by checking SBAs; no player gets priority and no triggered abilities are put onto the stack as part of that special procedure. (See end-the-turn and end-the-combat special cases.) [724.1c, 724.2c]\n\nPractical summary: SBAs are performed automatically any time the game would give priority (and are repeatedly checked there), they’re also checked after turn-based actions at the start of a step/phase, during the cleanup step with a specific exception, and as part of special “end turn”/“end combat” procedures. They never use the stack and are performed without player control. [704.1, 704.3, 117.5, 703.3, 514.3a, 724.1c, 724.2c]",
+      "citations": [
+        "704.1",
+        "704.1a",
+        "704.2",
+        "704.3",
+        "117.5",
+        "703.3",
+        "514.3a",
+        "724.1c",
+        "724.2c"
+      ],
+      "error": null,
+      "raw_text": null
+    },
+    {
+      "id": "q024",
+      "question": "when can I concede a game?",
+      "served_model": "openai/gpt-5-mini",
+      "provider": "OpenAI",
+      "temperature_sent": null,
+      "seed_sent": 42,
+      "usage": {
+        "prompt_tokens": 1607,
+        "completion_tokens": 1868,
+        "total_tokens": 3475,
+        "cost": 0.00379215,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 1536,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.00379215,
+          "upstream_inference_prompt_cost": 5.615e-05,
+          "upstream_inference_completions_cost": 0.003736
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 1536,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "answered": true,
+      "text": "Definition — Concede: To quit the game. Conceding a game immediately causes that player to leave that game and lose that game. (Concede; see rule 104.3a.)\n\nWhen you can concede — You may concede at any time. Conceding is immediate: the player who concedes leaves the game immediately and loses the game. (104.3a; 405.6g; Concede.)\n\nThings to note\n- Another player who controls you can’t make you concede; you still may concede at any time even while you’re controlled. (723.6)\n- Card text can’t override your ability to concede at any time. (101.1)\n- Two‑Headed Giant: if a player concedes, that player’s team leaves the game immediately and that team loses the game. (810.8b)",
+      "citations": [
+        "[Concede]",
+        "[104.3a]",
+        "[405.6g]",
+        "[723.6]",
+        "[101.1]",
+        "[810.8b]"
+      ],
+      "error": null,
+      "raw_text": null
+    },
+    {
+      "id": "q025",
+      "question": "how do I know who the active player is?",
+      "served_model": "openai/gpt-5-mini",
+      "provider": "OpenAI",
+      "temperature_sent": null,
+      "seed_sent": 42,
+      "usage": {
+        "prompt_tokens": 1328,
+        "completion_tokens": 1694,
+        "total_tokens": 3022,
+        "cost": 0.003432,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 1280,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.003432,
+          "upstream_inference_prompt_cost": 4.4e-05,
+          "upstream_inference_completions_cost": 0.003388
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 1344,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "answered": true,
+      "text": "Definition: The active player is the player whose turn it is — that is, the person whose turn is being taken (the player taking the turn). See rule 102.1.\n\nHow to tell in practice:\n- Whose turn it is. The player whose turn it is is the active player (102.1). In a game using the shared-team-turns option, teams take turns instead of individual players; the team whose turn it is is the active team (805.4a). \n- When choices or actions must be made simultaneously, the active player (the player whose turn it is) makes their choices first, then the next player in turn order, and so on (the APNAP order). If this happens while starting the game, the starting player is considered the active player (101.4e).\n- In many parts of the turn sequence the active player is the one who gets priority to act first (for example, “the active player gets priority”) — this is how the rules identify who is currently the active player during play (504.2).",
+      "citations": [
+        "102.1",
+        "805.4a",
+        "101.4e",
+        "504.2"
+      ],
+      "error": null,
+      "raw_text": null
+    },
+    {
+      "id": "q026",
+      "question": "when someone other than the active player casts a spell, who gets priority first?",
+      "served_model": "openai/gpt-5-mini",
+      "provider": "OpenAI",
+      "temperature_sent": null,
+      "seed_sent": 42,
+      "usage": {
+        "prompt_tokens": 1598,
+        "completion_tokens": 1945,
+        "total_tokens": 3543,
+        "cost": 0.0039439,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 1536,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.0039439,
+          "upstream_inference_prompt_cost": 5.39e-05,
+          "upstream_inference_completions_cost": 0.00389
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 1728,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "answered": true,
+      "text": "Short answer: the player who cast the spell (even if they’re not the active player) gets priority first after casting. Rule 117.3c says that if a player has priority when they cast a spell, that same player receives priority afterward, so the nonactive caster gets priority back and may pass or take further actions before the active player does.",
+      "citations": [
+        "117.3c"
+      ],
+      "error": null,
+      "raw_text": null
+    },
+    {
+      "id": "q027",
+      "question": "when the active player cast a spell, who gets priority first?",
+      "served_model": "openai/gpt-5-mini",
+      "provider": "OpenAI",
+      "temperature_sent": null,
+      "seed_sent": 42,
+      "usage": {
+        "prompt_tokens": 1508,
+        "completion_tokens": 918,
+        "total_tokens": 2426,
+        "cost": 0.0018962,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 1408,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.0018962,
+          "upstream_inference_prompt_cost": 6.02e-05,
+          "upstream_inference_completions_cost": 0.001836
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 704,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "answered": true,
+      "text": "Definition — priority: The player with priority may cast spells, activate abilities, and take special actions (see rule 117.1). Who gets priority after a cast spell: If a player has priority when they cast a spell, that same player receives priority afterward (see rule 117.3c). Therefore, when the active player casts a spell while they have priority, the active player (the caster) gets priority first afterward.",
+      "citations": [
+        "117.1",
+        "117.3c"
+      ],
+      "error": null,
+      "raw_text": null
+    },
+    {
+      "id": "q028",
+      "question": "can I hold priority to cast more spells after I've cast one or more spells?",
+      "served_model": "openai/gpt-5-mini",
+      "provider": "OpenAI",
+      "temperature_sent": null,
+      "seed_sent": 42,
+      "usage": {
+        "prompt_tokens": 1693,
+        "completion_tokens": 1973,
+        "total_tokens": 3666,
+        "cost": 0.00436925,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.00436925,
+          "upstream_inference_prompt_cost": 0.00042325,
+          "upstream_inference_completions_cost": 0.003946
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 1344,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "answered": true,
+      "text": "Definition (priority): Priority is the game rule that determines who may take actions (cast spells, activate abilities, take special actions) at a given time (rule 117.1). The player who has priority may cast spells and activate abilities.\n\nShort answer: Yes — normally you can keep casting more spells after you cast one, as long as you had priority when you cast the first one. If you had priority when you began casting a spell, you receive priority afterward (rules 117.3c and 601.2i), so you may cast additional spells while the previous spells remain on the stack.\n\nExceptions and important details you must follow at the table:\n- If you cast a spell because an effect specifically instructs or allows you to cast it as part of the resolution of another spell or ability, no player receives priority after that cast (rule 608.2g). In that case you cannot “hold” priority after that cast to immediately cast more spells. The spell you cast this way becomes the topmost object on the stack, but normal priority rules do not give anyone priority after that immediate cast.\n- During the cleanup step, normally no player receives priority and so no spells can be cast or abilities activated (rule 514.3). The only cleanup exception is described in rule 514.3a: if state-based actions are performed and/or triggered abilities are waiting to be put on the stack (including those that trigger “at the beginning of the next cleanup step”), those triggered abilities are put on the stack and then the active player gets priority, at which point spells and abilities may be cast/activated.\n- If you take a special action you receive priority afterward (rule 116.3).\n- After a spell or ability resolves (other than a mana ability), the active player receives priority (rule 117.3b) — if you were not the player who had priority when the spell was cast, that rule determines who next gets priority after resolution.\n\nPractical rule of thumb: If you start casting spells while you have priority, you keep priority after each cast and can cast more; only casting during resolution (608.2g) or the cleanup-step rule (514.3) generally prevents you from holding priority in the way you describe.",
+      "citations": [
+        "117.1",
+        "117.3c",
+        "601.2i",
+        "608.2g",
+        "514.3",
+        "514.3a",
+        "116.3",
+        "117.3b"
+      ],
+      "error": null,
+      "raw_text": null
+    },
+    {
+      "id": "q029",
+      "question": "when are lore counters put on sagas?",
+      "served_model": "openai/gpt-5-mini",
+      "provider": "OpenAI",
+      "temperature_sent": null,
+      "seed_sent": 42,
+      "usage": {
+        "prompt_tokens": 1680,
+        "completion_tokens": 1784,
+        "total_tokens": 3464,
+        "cost": 0.0036424,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 1536,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.0036424,
+          "upstream_inference_prompt_cost": 7.44e-05,
+          "upstream_inference_completions_cost": 0.003568
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 1280,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "answered": true,
+      "text": "Definition — Lore counters: counters on Saga enchantments that track their progress (they’re the counters referenced by a Saga’s chapter symbols). See rule 714.3.\n\nWhen lore counters are put on Sagas:\n\n1) As the Saga enters the battlefield: replacement abilities make it enter with lore counters.  - A Saga without read ahead enters with one lore counter on it (replacement effect). See rule 714.3a.  - A Saga with read ahead uses its intrinsic “As this Saga enters, choose a number …” and “This Saga enters with the chosen number of lore counters on it” replacement abilities, so it enters with the chosen number of lore counters. See rules 714.3b and 702.155b. \n\n2) At the beginning of a player’s precombat main phase: that player immediately puts a lore counter on each Saga they control that has one or more chapter abilities. This is a turn-based action that happens immediately after the precombat main phase begins and does not use the stack. See rules 714.3c, 703.4f, and 505.4.\n\nNotes you can act on: “As it enters” is a replacement effect applied when the Saga enters the battlefield (so the counters are on it as it enters). The precombat-main-phase placement is a separate turn-based action performed by the active player for Sagas they control.\n\n",
+      "citations": [
+        "714.3",
+        "714.3a",
+        "714.3b",
+        "702.155b",
+        "714.3c",
+        "703.4f",
+        "505.4",
+        "702.155a"
+      ],
+      "error": null,
+      "raw_text": null
+    },
+    {
+      "id": "q030",
+      "question": "what is a delayed triggered ability?",
+      "served_model": "openai/gpt-5-mini",
+      "provider": "OpenAI",
+      "temperature_sent": null,
+      "seed_sent": 42,
+      "usage": {
+        "prompt_tokens": 2290,
+        "completion_tokens": 2486,
+        "total_tokens": 4776,
+        "cost": 0.0055445,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.0055445,
+          "upstream_inference_prompt_cost": 0.0005725,
+          "upstream_inference_completions_cost": 0.004972
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 1408,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "answered": true,
+      "text": "Definition\nA delayed triggered ability is a triggered ability that’s created by some other effect (for example, while a spell or ability resolves, as the result of a replacement effect being applied, or as the result of a static ability that lets a player act) and that does something later rather than immediately. It will contain the words “when,” “whenever,” or “at.” (See rules 603.7 and 603.7a.)\n\nKey points a player needs to know\n- When it’s created: A delayed triggered ability is created during the resolution of a spell or ability, when a replacement effect is applied, or when a static ability allows a player to take an action (including one-shot effects that instruct a later action). (603.7; 603.7a; 603.7d–g; 610.2)\n- When it can trigger: It cannot trigger until it has actually been created. If the event that would cause it already happened before it was created, it waits for the next appropriate event (or never triggers if that event can no longer occur). (603.7a)\n- How often it triggers: A delayed triggered ability triggers only once—the next time its trigger event occurs—unless the ability itself gives a duration (for example, “this turn”). If the trigger event happens more than once simultaneously and there’s no stated duration, the controller of the delayed triggered ability chooses which event causes it to trigger. (603.7b)\n- Source and controller: Which object is the source of the delayed triggered ability and which player controls it depends on what created it: if a spell created it, the spell is the source and the player who controlled the spell as it resolved controls the delayed triggered ability; if an activated or triggered ability created it, the creating ability’s source is also the source of the delayed triggered ability and the player who controlled that ability as it resolved controls the delayed triggered ability; if a static ability’s replacement or an action from a static ability created it, the object with that static ability is the source and its controller at the time of creation controls the delayed triggered ability. (603.7d–g; 603.7e; 603.7f)\n- Special creation cases: An activated or triggered ability may create a delayed triggered ability that triggers when the creating ability has resolved a certain number of times; that delayed triggered ability is created only once, during the appropriate resolution. (603.7h)\n- Interacting with specific objects and zones: A delayed triggered ability that names or refers to a particular object still affects that object even if the object changes characteristics (for example, stops being a creature). But if the object is no longer in the zone the delayed ability expects it to be in when the ability would resolve (for example, a permanent left the battlefield), the delayed triggered ability won’t affect it. If the object left that zone and then returned, it’s a new object and won’t be affected by the old delayed triggered ability. (603.7c)\n- Reflexive triggered abilities: A special case of delayed triggered ability is a reflexive triggered ability created during resolution that is checked immediately after creation and can trigger based on whether an event occurred earlier during that same resolution. (603.12)\n- Value of X: If the delayed triggered ability refers to X and X was chosen for the spell or ability that created it, the delayed triggered ability uses that same X value. (107.3n)\n- Putting the triggered ability on the stack: Once a delayed triggered ability triggers, its controller (as determined above) puts it on the stack the next time a player would receive priority. (603.3a)\n\nShort example given in the rules: an ability that reads “Exile this creature at the beginning of the next end step” will still exile the permanent even if it’s no longer a creature at that end step, but it will do nothing if the permanent left the battlefield before that end step. (603.7c)\n\nPractical takeaway\nTreat a delayed triggered ability as an ability created by another effect that waits for a future event to occur, triggers only once unless it says otherwise, and whose source and controller are determined by what created it.",
+      "citations": [
+        "603.7",
+        "603.7a",
+        "603.7b",
+        "603.7c",
+        "603.7d",
+        "603.7e",
+        "603.7f",
+        "603.7g",
+        "603.7h",
+        "603.12",
+        "603.3a",
+        "610.2",
+        "107.3n"
+      ],
+      "error": null,
+      "raw_text": null
+    },
+    {
+      "id": "q031",
+      "question": "can non-permanent spells have abilities?",
+      "served_model": "openai/gpt-5-mini",
+      "provider": "OpenAI",
+      "temperature_sent": null,
+      "seed_sent": 42,
+      "usage": {
+        "prompt_tokens": 2100,
+        "completion_tokens": 1961,
+        "total_tokens": 4061,
+        "cost": 0.004447,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.004447,
+          "upstream_inference_prompt_cost": 0.000525,
+          "upstream_inference_completions_cost": 0.003922
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 1216,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "answered": true,
+      "text": "Short answer: Yes. \"Non‑permanent spells\" (instants and sorceries) have abilities called spell abilities, and those abilities usually function while the card is on the stack.\n\nDefinitions and details a player needs to act:\n- \"Non‑permanent spells\" = instant and sorcery cards (objects that are spells while on the stack).\n- \"Spell ability\": any text on an instant or sorcery spell is a spell ability unless it’s an activated or triggered ability or a static ability that fits the exceptions described in rule 113.6 (see below) [113.3a].\n- Where the abilities function: abilities of instant and sorcery spells usually function only while that object is on the stack [113.6]. When you cast a spell you put the card on the stack; continuous effects that modify the spell and one‑shot effects that grant abilities to it begin to apply as it is put on the stack [601.2a, 610.5].\n\nImportant exceptions and interactions:\n- Some static abilities apply while the spell is on the stack (for example, static text that refers to countering the spell or text like “As an additional cost to cast…”). Those static abilities can function while the spell is on the stack [604.5].\n- A static ability that restricts or modifies how that particular object can be played or cast functions in any zone from which it could be cast (usually your hand) and also on the stack; an ability that grants the object another ability that restricts or modifies how it can be cast functions only on the stack [113.6e]. Some static abilities that say you may or may not cast a card apply while the card is in any zone you could cast it from [604.6].\n- Activated and triggered abilities that are put on the stack are objects that are not spells; they are separate from the spell’s spell abilities and are treated differently for effects that target or counter spells or abilities [113.1c, 113.9].\n\nPractical takeaway for a player: read the text on an instant or sorcery as a spell ability that will apply on the stack; also watch for static text that explicitly affects casting (it might apply in your hand or on the stack) and for any effects that grant the spell extra abilities as you cast it (those take effect when the card is put on the stack) [113.3a, 113.6, 113.6e, 610.5, 604.5, 604.6, 601.2a].",
+      "citations": [
+        "113.3a",
+        "113.6",
+        "601.2a",
+        "610.5",
+        "113.6e",
+        "604.5",
+        "604.6",
+        "113.1c",
+        "113.9"
+      ],
+      "error": null,
+      "raw_text": null
+    },
+    {
+      "id": "q032",
+      "question": "can I use a mana ability when a spell with split-second is on the stack?",
+      "served_model": "openai/gpt-5-mini",
+      "provider": "OpenAI",
+      "temperature_sent": null,
+      "seed_sent": 42,
+      "usage": {
+        "prompt_tokens": 1923,
+        "completion_tokens": 2022,
+        "total_tokens": 3945,
+        "cost": 0.00452475,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.00452475,
+          "upstream_inference_prompt_cost": 0.00048075,
+          "upstream_inference_completions_cost": 0.004044
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 1472,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "answered": true,
+      "text": "Short answer and rule definition\nYes. “Split second” means “As long as this spell is on the stack, players can’t cast other spells or activate abilities that aren’t mana abilities” — i.e., the spell with split second must be on the stack to have that effect [702.61a]. While a spell with split second is on the stack, players may still activate mana abilities and take special actions; triggered abilities still trigger and are put on the stack as normal [702.61b].\nWhat a mana ability is and how it behaves\nSome activated or triggered abilities qualify as mana abilities (see rule 113.4). Mana abilities are special in that a player may activate them at times described by the mana rules (for example, whenever they have priority or when a mana payment is being made) and they don’t use the stack but instead resolve immediately after activation [117.1d; 605.3a; 605.3b; 113.4]. If a resolving spell or ability specifically allows or asks for a mana payment, players may activate mana abilities as part of that process as described in rule 608.2g. After a mana ability resolves, priority returns to the player who had priority before it was activated [405.6c].\nPractical ruling you can act on\nWhile a spell with split second is on the stack, you (and other players) may activate mana abilities (lands, mana rocks, etc. that are mana abilities) and those abilities resolve immediately. You may not cast other spells or activate non-mana activated abilities while that split second spell is on the stack [702.61a; 702.61b; 605.3a; 605.3b].",
+      "citations": [
+        "702.61a",
+        "702.61b",
+        "113.4",
+        "605.3a",
+        "605.3b",
+        "608.2g",
+        "117.1d",
+        "405.6c"
+      ],
+      "error": null,
+      "raw_text": null
+    },
+    {
+      "id": "c001",
+      "question": "[Counterspell] is on top of the stack targeting my [Divination]. When everyone passes priority, what resolves first, and does Divination still resolve?",
+      "served_model": "openai/gpt-5-mini",
+      "provider": "OpenAI",
+      "temperature_sent": null,
+      "seed_sent": 42,
+      "usage": {
+        "prompt_tokens": 2305,
+        "completion_tokens": 2063,
+        "total_tokens": 4368,
+        "cost": 0.00421265,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 2176,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.00421265,
+          "upstream_inference_prompt_cost": 8.665e-05,
+          "upstream_inference_completions_cost": 0.004126
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 1472,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "answered": true,
+      "text": "Short answer\n- Counterspell (the instant on top of the stack) resolves first. See rule [608.1].\n- When Counterspell resolves, it “counters” the targeted Divination; that cancels Divination, removes it from the stack, and it doesn’t resolve — it’s put into its owner’s graveyard. See [701.6a] and the card Counterspell. (No costs are refunded to the player who cast Divination. See [701.6b].)\n\nKey definitions and zones\n- “Counter” means to cancel a spell or ability so it doesn’t resolve and none of its effects occur; a countered spell is put into its owner’s graveyard ([701.6a]).\n- A “spell” is a card on the stack; Divination is a sorcery spell on the stack until it resolves or is countered ([112.1]). The relevant zones here are the stack (where both spells sit) and the graveyard (where a countered spell is put). \n\nFull explanation, step by step\n1) Both Counterspell and Divination are spells on the stack; Counterspell is the topmost object. A spell on top of the stack resolves when all players pass priority ([608.1]).\n2) Because Counterspell is on top, it resolves first ([608.1]; see the card Counterspell).\n3) Counterspell’s effect is to counter the targeted spell. ‘‘Counter’’ cancels the spell, removing it from the stack so it doesn’t resolve; the countered spell is put into its owner’s graveyard ([701.6a]; see the card Counterspell and Divination).\n4) Therefore Divination is countered when Counterspell resolves, does not resolve, and is put into its owner’s graveyard. The player who cast Divination doesn’t get any refund of costs paid ([701.6b]).\n\nResult a player should act on\n- Let Counterspell resolve first; after it resolves, Divination will be countered and will not produce any card draw and will be in its owner’s graveyard.\n\n",
+      "citations": [
+        "[608.1]",
+        "[701.6a]",
+        "[701.6b]",
+        "[112.1]",
+        "[608.2n]",
+        "Counterspell",
+        "Divination"
+      ],
+      "error": null,
+      "raw_text": null
+    },
+    {
+      "id": "c002",
+      "question": "My [Charging Rhino] has trample and is blocked by [Vampire Nighthawk], which has deathtouch. How much combat damage do I have to assign to the blocker before I can trample the rest over to the player?",
+      "served_model": "openai/gpt-5-mini",
+      "provider": "OpenAI",
+      "temperature_sent": null,
+      "seed_sent": 42,
+      "usage": {
+        "prompt_tokens": 2272,
+        "completion_tokens": 2868,
+        "total_tokens": 5140,
+        "cost": 0.006304,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.006304,
+          "upstream_inference_prompt_cost": 0.000568,
+          "upstream_inference_completions_cost": 0.005736
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 2368,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "answered": true,
+      "text": "Short answer: You must assign at least 3 damage to the blocking Vampire Nighthawk (its toughness) before assigning any of the Rhino’s damage to the player. With a 4/4 Charging Rhino you can assign 3 to the Nighthawk and the remaining 1 to the defending player.\n\nWhy: Trample modifies how an attacking creature’s combat damage is assigned: the attacker must assign lethal damage to the blocking creature(s) first, then any excess may be assigned to the player (see rule 702.19b and 702.19a). \"Lethal damage\" means an amount of damage greater than or equal to the creature’s toughness (see rule 120.4a and the Lethal Damage definition). Vampire Nighthawk is a 2/3, so lethal damage is 3. The Nighthawk’s deathtouch ability doesn’t change how much the Charging Rhino must assign, because deathtouch only makes damage from a source that has deathtouch count as lethal (i.e., it applies when the source dealing the damage has deathtouch) (see rule 702.2c and 120.4a). The combat damage is assigned during the combat damage assignment process (see rule 510.1a).\n\nPractical assignment: when assigning Charging Rhino’s 4 damage you must assign at least 3 to Vampire Nighthawk and may assign the remaining 1 to the defending player.",
+      "citations": [
+        "702.19b",
+        "702.19a",
+        "120.4a",
+        "702.2c",
+        "510.1a",
+        "Charging Rhino",
+        "Vampire Nighthawk"
+      ],
+      "error": null,
+      "raw_text": null
+    },
+    {
+      "id": "c003",
+      "question": "I have [Monastery Swiftspear] on the battlefield and I cast [Shardless Agent]. When its cascade ability puts a noncreature spell onto the stack, does Monastery Swiftspear's prowess trigger before or after that cascaded spell resolves?",
+      "served_model": "openai/gpt-5-mini",
+      "provider": "OpenAI",
+      "temperature_sent": null,
+      "seed_sent": 42,
+      "usage": {
+        "prompt_tokens": 2555,
+        "completion_tokens": 2379,
+        "total_tokens": 4934,
+        "cost": 0.00539675,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.00539675,
+          "upstream_inference_prompt_cost": 0.00063875,
+          "upstream_inference_completions_cost": 0.004758
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 1728,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "answered": true,
+      "text": "Short definitions\n- Prowess: “Whenever you cast a noncreature spell, this creature gets +1/+1 until end of turn.” (rule 702.108a)\n- Casting a spell: putting it on the stack and completing the steps in rules 601.2a–i; once those steps finish, any abilities that trigger “when a spell is cast” trigger (rule 601.2i). If an effect instructs you to cast a spell during the resolution of something, you follow 601.2a–i and that cast becomes the topmost object on the stack (rule 608.2g).\n- Cascade: a triggered ability that exiles cards and may let you cast a nonland card exiled this way; cascade triggers when you cast the spell with cascade and resolves before that spell (rule 702.85a and Shardless Agent ruling #1).\n\nWhat happens in your interaction\n1) You cast Shardless Agent. Its cascade trigger goes on the stack and will resolve before Shardless Agent (rule 702.85a; Shardless Agent ruling #1).  \n2) Cascade resolves and you may cast the exiled noncreature card. That cast is a normal cast (follow 601.2a–i) performed during cascade’s resolution; the cast spell becomes the topmost object on the stack (rule 608.2g; rule 601.2i).  \n3) Because you have now cast a noncreature spell, Monastery Swiftspear’s prowess triggers at that time (rule 702.108a). Monastery Swiftspear ruling #2 explains that prowess’s triggered ability is put on the stack on top of the spell that caused it to trigger and will resolve before that spell.  \n\nTherefore: Monastery Swiftspear’s prowess triggers when you cast the cascaded noncreature spell and its triggered ability will be placed on the stack above that cascaded spell, so the +1/+1 from prowess resolves before the cascaded spell resolves. (If the exiled card is a creature it won’t cause prowess to trigger — see Monastery Swiftspear ruling #1.)",
+      "citations": [
+        "702.108a",
+        "601.2i",
+        "608.2g",
+        "702.85a",
+        "Shardless Agent ruling #1",
+        "Monastery Swiftspear ruling #2",
+        "Monastery Swiftspear ruling #1"
+      ],
+      "error": null,
+      "raw_text": null
+    },
+    {
+      "id": "c004",
+      "question": "My opponent's [Grizzly Bears] has 2 damage marked on it. Do state-based actions make it die before my [Lightning Bolt] resolves?",
+      "served_model": "openai/gpt-5-mini",
+      "provider": "OpenAI",
+      "temperature_sent": null,
+      "seed_sent": 42,
+      "usage": {
+        "prompt_tokens": 2016,
+        "completion_tokens": 3123,
+        "total_tokens": 5139,
+        "cost": 0.00675,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.00675,
+          "upstream_inference_prompt_cost": 0.000504,
+          "upstream_inference_completions_cost": 0.006246
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 2304,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "answered": true,
+      "text": "Short answer\n- It depends on when the 2 damage was marked. State-based actions (SBAs) will destroy a creature that has damage marked on it greater than or equal to its toughness, but SBAs are only checked when the game would give a player priority, not while a spell or ability is resolving.\n\nExplanation and what to do at the table\n- What “state-based actions” means: SBAs are game-rule checks that are performed automatically when the game would give a player priority; they include “If the total damage marked on a creature is greater than or equal to its toughness, that creature has been dealt lethal damage and is destroyed” [120.6][704.5g]. SBAs are performed whenever a player would get priority; if any SBAs are performed the check is repeated before any player gets priority [704.3][117.2d].\n- Important timing rule: SBAs are not checked during the resolution of a spell or ability (the rules say SBAs “pay no attention to what happens during the resolution of a spell or ability”) so effects happening during a spell’s resolution don’t cause SBAs to be performed until that resolution finishes and the game next would give priority [704.4].\n\nPutting those together for your example\n- If the Grizzly Bears already had 2 damage marked on it at the last time the game checked SBAs (i.e., before the Lightning Bolt started resolving), that is lethal damage for a 2/2 and SBAs would already have destroyed it before the Bolt resolves [302.7][120.6][704.5g]. In that case it would not be on the battlefield when Lightning Bolt would try to resolve. (Grizzly Bears is a 2/2, Lightning Bolt deals 3 damage to any target: see the card data.)\n- If the 2 damage was dealt by an effect that is currently still resolving (so the game has not yet performed the SBA check since that damage was dealt), SBAs won’t be checked while that effect is resolving, so the creature won’t be removed by SBAs until after that resolution finishes and the next SBA check happens; Lightning Bolt could resolve before SBAs are checked in that situation [704.4][704.3].\n\nPractical rule-of-thumb\n- If you can legally cast/target Lightning Bolt at the Grizzly Bears (it’s on the battlefield and targetable), then the most recent SBA check hadn’t destroyed it yet. If the 2 damage was older than that point, SBAs already should have cleaned it up before your Bolt resolves; if the 2 damage is being applied by a spell or ability that is still resolving, SBAs wait until resolution finishes.\n\nCards and rules used\n- Grizzly Bears (2/2) and Lightning Bolt (\"Lightning Bolt deals 3 damage to any target\") were used to establish the creature’s toughness and the amount of damage the spell deals.\n\n",
+      "citations": [
+        "120.6",
+        "302.7",
+        "704.5g",
+        "704.3",
+        "117.2d",
+        "704.4",
+        "Grizzly Bears",
+        "Lightning Bolt"
+      ],
+      "error": null,
+      "raw_text": null
+    },
+    {
+      "id": "c005",
+      "question": "It's my upkeep. My [Phyrexian Arena]'s beginning-of-upkeep trigger and my opponent's own beginning-of-upkeep trigger both want to go on the stack. Who chooses the order, and when exactly do they trigger?",
+      "served_model": "openai/gpt-5-mini",
+      "provider": "OpenAI",
+      "temperature_sent": null,
+      "seed_sent": 42,
+      "usage": {
+        "prompt_tokens": 2187,
+        "completion_tokens": 3456,
+        "total_tokens": 5643,
+        "cost": 0.00699795,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 2048,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.00699795,
+          "upstream_inference_prompt_cost": 8.595e-05,
+          "upstream_inference_completions_cost": 0.006912
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 2560,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "answered": true,
+      "text": "Short answer\n- Both abilities trigger simultaneously when your upkeep begins. (See rules 500.6 and 603.2b.)\n- They are put onto the stack the next time a player would receive priority (at the beginning of the upkeep, before the active player gets priority). (See rules 500.6, 503.1, and 117.3a.)\n- The active player (the player whose turn it is — you) puts all triggered abilities you control onto the stack first in any order you choose; then each other player, in turn order, puts the triggered abilities they control onto the stack in any order they choose. That means your opponent’s beginning-of-upkeep trigger will be placed on the stack after your Phyrexian Arena trigger and therefore will resolve first. (See rule 603.3b.)\n\nDefinitions and step-by-step guidance a player can act on\n- What “trigger” means here: Whenever a game event or state matches a triggered ability’s trigger condition, that ability automatically triggers (it is noted by the game but does nothing yet). Abilities that trigger “at the beginning of” a step trigger when that step begins. (See rules 603.2b and 500.6.)\n- When do they go on the stack: Triggered abilities that triggered when the upkeep began are put onto the stack the next time a player would receive priority — which, for the upkeep step, is immediately after the step begins but before the active player receives priority. (See rules 500.6, 503.1, and 117.3a.)\n- Who chooses the order: When multiple triggered abilities have triggered since the last time players received priority, they are put on the stack using the two-part APNAP placement process. First, each player, in APNAP order, puts each triggered ability they control whose trigger condition isn’t caused by another triggered ability onto the stack in any order they choose; then each player, in APNAP order, puts any remaining triggered abilities they control on the stack in any order. Because it is your upkeep, you are the active player and you put your triggered abilities (including your Phyrexian Arena trigger) onto the stack first; your opponent then puts theirs on top. Therefore your opponent’s beginning-of-upkeep ability will resolve before your Arena’s ability. (See rule 603.3b.)\n- Optional triggers: If any of those beginning-of-upkeep abilities include “may,” they still go on the stack when they trigger; the choice is made when they resolve. (See rule 603.5.)\n- Multiplayer / team note: In team games, the members of the active team put all triggered abilities any of them control on the stack in any order they choose, then each nonactive team in turn order does the same. (See rule 805.7.)\n\nExample using your card: Phyrexian Arena (At the beginning of your upkeep, you draw a card and you lose 1 life.) triggers when your upkeep begins (card text + rule 500.6). Because it’s your upkeep you put that trigger on the stack first; your opponent then places their beginning-of-upkeep trigger on top of it, so the opponent’s will resolve before your Arena’s. (See Phyrexian Arena, 500.6, 603.2b, 603.3b, 503.1, 117.3a.)",
+      "citations": [
+        "500.6",
+        "603.2b",
+        "503.1",
+        "117.3a",
+        "603.3b",
+        "603.5",
+        "805.7",
+        "Phyrexian Arena"
+      ],
+      "error": null,
+      "raw_text": null
+    },
+    {
+      "id": "c006",
+      "question": "I cast a sorcery with buyback and pay its buyback cost, then copy that spell with [Fork]. Once everything resolves, how many copies of the card end up back in my hand?",
+      "served_model": "openai/gpt-5-mini",
+      "provider": "OpenAI",
+      "temperature_sent": null,
+      "seed_sent": 42,
+      "usage": {
+        "prompt_tokens": 3057,
+        "completion_tokens": 1804,
+        "total_tokens": 4861,
+        "cost": 0.00373865,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 2816,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.00373865,
+          "upstream_inference_prompt_cost": 0.00013065,
+          "upstream_inference_completions_cost": 0.003608
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 1344,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "answered": true,
+      "text": "Short answer — one card. The original sorcery card (the spell you cast) is returned to your hand; the copied spell created by Fork is only a copy on the stack and cannot put a card into your hand.\n\nWhy: “Buyback [cost]” means you may pay an additional cost as you cast the spell and, if you did, “put this spell into its owner’s hand instead of into that player’s graveyard as it resolves” (the zone involved is the owner’s hand) [702.27a]. The original sorcery you cast is a spell represented by its card on the stack, so when that spell (the card) resolves with buyback paid it is put into your hand instead of your graveyard [112.1a][608.2n][702.27a]. A copy of a spell is a spell put onto the stack that isn’t cast and has no card associated with it [707.10]; therefore there is no card for buyback to return. Fork’s ruling explicitly states that if you copy a spell for which buyback was paid, you get nothing back from the copied spell because the copy has no card to give you [Fork ruling #8].\n\nResult: after everything resolves, you end up with one copy of the card in your hand — the original; the Fork-created copy leaves the stack and ceases to exist and does not produce a card for your hand [707.10][Fork ruling #8][704.5e].",
+      "citations": [
+        "[702.27a]",
+        "[112.1a]",
+        "[608.2n]",
+        "[707.10]",
+        "[704.5e]",
+        "[Fork ruling #8]"
+      ],
+      "error": null,
+      "raw_text": null
+    },
+    {
+      "id": "c007",
+      "question": "I have a face-down manifested card that's really [Lightning Bolt]. It dies and I imprint it on [Mimic Vat]. Later I activate Mimic Vat's copy ability -- do I get a token?",
+      "served_model": "openai/gpt-5-mini",
+      "provider": "OpenAI",
+      "temperature_sent": null,
+      "seed_sent": 42,
+      "usage": {
+        "prompt_tokens": 2714,
+        "completion_tokens": 1886,
+        "total_tokens": 4600,
+        "cost": 0.0038745,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 2560,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.0038745,
+          "upstream_inference_prompt_cost": 0.0001025,
+          "upstream_inference_completions_cost": 0.003772
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 1600,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "answered": true,
+      "text": "No. A manifested Lightning Bolt is an instant card (a nonpermanent). When that face-down manifested permanent dies and you imprint it on Mimic Vat, the card exiled with Mimic Vat is a nonpermanent card. Mimic Vat’s activated ability can create a token that’s a copy of a card exiled with it only if that exiled object is a permanent card; you can’t create a token that’s a copy of a nonpermanent card, so no token is created in this case.",
+      "citations": [
+        "Mimic Vat ruling #0",
+        "701.40g",
+        "Lightning Bolt",
+        "111.12"
+      ],
+      "error": null,
+      "raw_text": null
+    },
+    {
+      "id": "c008",
+      "question": "My [Fiend Hunter]'s enters-the-battlefield ability is on the stack, about to exile a creature. I copy that ability with [Lithoform Engine] and target a second creature. Both get exiled. When Fiend Hunter later leaves the battlefield, do both come back?",
+      "served_model": "openai/gpt-5-mini",
+      "provider": "OpenAI",
+      "temperature_sent": null,
+      "seed_sent": 42,
+      "usage": {
+        "prompt_tokens": 3504,
+        "completion_tokens": 2509,
+        "total_tokens": 6013,
+        "cost": 0.0054908,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 1792,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.0054908,
+          "upstream_inference_prompt_cost": 0.0004728,
+          "upstream_inference_completions_cost": 0.005018
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 1984,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "answered": true,
+      "text": "Short answer: Yes. Both creatures exiled by the original Fiend Hunter enter-the-battlefield triggered ability and the copy created by Lithoform Engine are returned to the battlefield when Fiend Hunter leaves.\n\nDefinition and reasoning (what to do at the table):\n- “Linked abilities” here means an object has an ability that exiles one or more cards and an ability that refers to “the exiled card” (or cards “exiled with [this object]”); those two abilities are linked so the return ability refers only to cards exiled by that exile instruction (they are tracked together). See rule 607.2a for that definition and linkage.\n- If the exile ability is copied (for example, by Lithoform Engine), the copy is also linked to the Fiend Hunter’s leave-the-battlefield ability. Lithoform Engine’s ruling explicitly states that copies of the first ability are linked to the second ability and that the second ability, if it refers to “the exiled card,” refers to all cards exiled by the original and the copy.\n- Because a leave-the-battlefield ability that refers to “the exiled card” will refer to each card exiled by the linked exile abilities, when Fiend Hunter later leaves the battlefield both cards in the exile zone are returned to the battlefield under their owners’ control.\n\nZones and objects involved: the two creature cards are in the exile zone after the ETB ability and its copy resolve; when Fiend Hunter leaves the battlefield, its leave-the-battlefield triggered ability returns those exiled cards to the battlefield.\n\nIf you need the exact texts relied on, see the rules and the Lithoform Engine ruling cited below.",
+      "citations": [
+        "607.2a",
+        "607.3",
+        "Lithoform Engine ruling #4",
+        "Fiend Hunter"
+      ],
+      "error": null,
+      "raw_text": null
+    },
+    {
+      "id": "c009",
+      "question": "My own [Banishing Light] has an opponent's creature exiled. On my opponent's turn I cast [Teferi's Protection], phasing out my Banishing Light. Does the exiled creature return to the battlefield?",
+      "served_model": "openai/gpt-5-mini",
+      "provider": "OpenAI",
+      "temperature_sent": null,
+      "seed_sent": 42,
+      "usage": {
+        "prompt_tokens": 2435,
+        "completion_tokens": 2222,
+        "total_tokens": 4657,
+        "cost": 0.00453435,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 2304,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.00453435,
+          "upstream_inference_prompt_cost": 9.035e-05,
+          "upstream_inference_completions_cost": 0.004444
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 1920,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "answered": true,
+      "text": "No. The creature stays in exile while your Banishing Light is phased out. Banishing Light’s ability exiled the creature “until this enchantment leaves the battlefield” (Banishing Light). Phasing a permanent out is not the same as it leaving the battlefield—the game treats a phased-out permanent as though it doesn’t exist but it hasn’t changed zones (see [702.26d]). Teferi’s Protection’s ruling explicitly states that one-shot effects waiting “until [this] leaves the battlefield,” such as Banishing Light’s, won’t happen when a permanent phases out ([Teferi's Protection ruling #21]). The exiled creature will only be returned if Banishing Light actually leaves the battlefield (moves to a different zone); phasing in or out does not cause that “until...leaves the battlefield” condition to be satisfied.",
+      "citations": [
+        "Banishing Light",
+        "702.26d",
+        "Teferi's Protection ruling #21",
+        "610.4"
+      ],
+      "error": null,
+      "raw_text": null
+    },
+    {
+      "id": "c010",
+      "question": "I cast [Emrakul, the Promised End]. In response to its cast trigger, my opponent tries to [Counterspell] it. Can they even target it given protection from instants, and if it's countered, do I still control their next turn?",
+      "served_model": "openai/gpt-5-mini",
+      "provider": "OpenAI",
+      "temperature_sent": null,
+      "seed_sent": 42,
+      "usage": {
+        "prompt_tokens": 2484,
+        "completion_tokens": 3319,
+        "total_tokens": 5803,
+        "cost": 0.0067118,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 2432,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.0067118,
+          "upstream_inference_prompt_cost": 7.38e-05,
+          "upstream_inference_completions_cost": 0.006638
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 2304,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "answered": true,
+      "text": "Short answer\n- Yes. Your opponent can target Emrakul on the stack with Counterspell. Protection from instants only applies while Emrakul is on the battlefield; it can be targeted while it is on the stack. ([Emrakul ruling #2])\n- Yes. Even if Counterspell resolves and successfully counters the Emrakul spell, the triggered ability created “When you cast this spell …” already triggered when you cast Emrakul and is on the stack; that triggered ability is not a spell and won’t be countered by Counterspell, so it will still resolve (unless something else specifically counters that triggered ability). ([601.2i], [117.2a], [113.9])\n\nExplanation and key definitions\n- “Protection from instants”: as Emrakul’s rulings explain, protection from instants prevents Emrakul from being the target of instant spells or instant-card activated/triggered abilities while Emrakul is on the battlefield, but that protection does not apply while Emrakul is on the stack, so it can be targeted there. ([Emrakul ruling #1], [Emrakul ruling #2])\n- “Target” / targeted spell or ability: a target is an object or player chosen as part of putting a spell or ability on the stack; targets are chosen when the spell or ability is put on the stack and can’t be changed except by an effect that says it can. ([115.1a])\n- “Triggered ability”: a triggered ability has a trigger condition and an effect and functions as an ability that will be put on the stack after it triggers. The Emrakul ability (“When you cast this spell…”) triggers as you cast the spell and will be put on the stack (targeting the chosen opponent) when triggered. ([603.1a], [601.2i], [117.2a])\n\nSequence relevant to your situation\n1) When you cast Emrakul the Promised End, the physical card is put on the stack. ([405.1])\n2) The “When you cast this spell…” ability triggers as part of the cast process and is placed onto the stack (with its target chosen) when triggered. ([601.2i], [117.2a], [115.1a])\n3) Your opponent can cast Counterspell in response; because Emrakul is on the stack, its protection-from-instants ability does not prevent it from being targeted there, so Counterspell can target the Emrakul spell. ([Emrakul ruling #2])\n4) If Counterspell resolves and counters the Emrakul spell, that removes the Emrakul spell from the stack. The triggered “When you cast this spell…” ability is a separate object on the stack and is not a spell; Counterspell (which counters a spell) does not counter abilities, so that triggered ability will still resolve unless some other effect that specifically counters abilities or makes the ability’s effect impossible intervenes. ([113.9], [117.2a])\n\nResult for your question\n- Opponent can target Emrakul on the stack with Counterspell. ([Emrakul ruling #2], [115.1a])\n- If Counterspell successfully counters Emrakul, you still get the triggered “gain control of target opponent during that player’s next turn; after that turn they take an extra turn” ability to resolve (so you will still gain control of their next turn and they will take the extra turn), unless some other effect specifically counters or otherwise stops that triggered ability. ([601.2i], [117.2a], [113.9])",
+      "citations": [
+        "Emrakul ruling #2",
+        "Emrakul ruling #1",
+        "601.2i",
+        "115.1a",
+        "603.1a",
+        "117.2a",
+        "113.9",
+        "405.1",
+        "117.7"
+      ],
+      "error": null,
+      "raw_text": null
+    },
+    {
+      "id": "c011",
+      "question": "My cascade spell exiles cards until it hits [Valki, God of Lies], whose back face is the seven-mana planeswalker Tibalt, Cosmic Impostor. Is that a legal cascade hit, and can I cast the Tibalt side for free?",
+      "served_model": "openai/gpt-5-mini",
+      "provider": "OpenAI",
+      "temperature_sent": null,
+      "seed_sent": 42,
+      "usage": {
+        "prompt_tokens": 2480,
+        "completion_tokens": 5241,
+        "total_tokens": 7721,
+        "cost": 0.011102,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.011102,
+          "upstream_inference_prompt_cost": 0.00062,
+          "upstream_inference_completions_cost": 0.010482
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 4160,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "answered": true,
+      "text": "Short answer\nYes — the Valki/Tibalt card can be a legal cascade hit (it is a nonland card with mana value 2), and cascade lets you cast that exiled card without paying its mana cost; however you may only cast the face that meets the cascade mana-value test. You can cast the Valki (the front face, MV 2) for free, but you cannot cast the Tibalt back face for free unless the cascade spell’s mana value is greater than Tibalt’s resulting spell mana value (the back face’s mana value is 7).\n\nWhy (definitions and steps you can act on)\n- Cascade: When you cast the cascade spell, you exile cards from the top of your library to exile until you exile a nonland card whose mana value is less than the cascade spell’s mana value; you may cast that exiled card without paying its mana cost if the resulting spell’s mana value is less than the cascade spell’s mana value (this casting happens from exile) [702.85a].\n- Double-faced card basics: A modal double-faced card is normally cast with its front face up by default and only the face that will be face up on the stack is evaluated to determine whether it can be cast [712.11; 712.11c].\n- What Valki/Tibalt’s mana value is and why it qualifies as a cascade hit: The printed Valki, God of Lies // Tibalt, Cosmic Impostor card has mana value 2 (its front face Valki is {1}{B}), so it is a nonland card with mana value 2 and will stop the cascade so long as your cascade spell’s mana value is greater than 2 (the card is put into exile from your library) [Valki, God of Lies // Tibalt, Cosmic Impostor; 702.85a].\n- Which face you may cast from exile: A rule/ruling covering effects that let you cast/play a card from among a group of cards says you may cast a modal double-faced card with any face that fits the criteria of that effect [Valki, God of Lies // Tibalt, Cosmic Impostor ruling #16]. \"Only the face that will be face up on the stack is evaluated to determine if it can be cast\" still applies, so whatever face you choose is the one whose characteristics and mana value are considered for legality [712.11c].\n- Applying that to Tibalt: The back face (Tibalt) has a mana cost of {5}{B}{R} (mana value 7). If you tried to cast the back face as the resulting spell, its resulting spell’s mana value would be 7 and so it would meet cascade’s \"less than\" requirement only if your cascade spell’s mana value is greater than 7. Absent such a large cascade spell, you cannot cast the Tibalt face for free; you may cast the Valki (front face, MV 2) for free because its mana value satisfies the cascade requirement [712.11; 702.85a; Valki, God of Lies // Tibalt, Cosmic Impostor ruling #16].\n\nPractical ruling to act on now\n- If your cascade spell’s mana value > 2 but ≤ 7: Valki/Tibalt is a legal cascade hit and you may cast Valki (front face) for free from exile, but you may not cast Tibalt (back face) for free.\n- If your cascade spell’s mana value > 7: Valki/Tibalt is a legal cascade hit and you could choose to cast either face (front face Valki or back face Tibalt) for free, because the chosen face is the one evaluated for the mana-value test [712.11c; Valki, God of Lies // Tibalt, Cosmic Impostor ruling #16].\n\nAnswered: yes (see citations).",
+      "citations": [
+        "702.85a",
+        "702.85b",
+        "712.11",
+        "712.11c",
+        "712.8c",
+        "Valki, God of Lies // Tibalt, Cosmic Impostor (modal_dfc, MV 2, color identity B/R)",
+        "Valki, God of Lies // Tibalt, Cosmic Impostor ruling #16"
+      ],
+      "error": null,
+      "raw_text": null
+    },
+    {
+      "id": "c012",
+      "question": "I cast [Emrakul, the Promised End]. With its cast trigger on the stack, I copy that trigger with [Lithoform Engine]. Then I untap Lithoform Engine with [Voltaic Key] and use it again to copy [Emrakul, the Promised End] itself as a permanent spell. How many of my opponent's turns do I control, do I get a second Emrakul, and does copying the Emrakul spell give me another control-a-turn trigger?",
+      "served_model": "openai/gpt-5-mini",
+      "provider": "OpenAI",
+      "temperature_sent": null,
+      "seed_sent": 42,
+      "usage": {
+        "prompt_tokens": 3940,
+        "completion_tokens": 5977,
+        "total_tokens": 9917,
+        "cost": 0.012939,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.012939,
+          "upstream_inference_prompt_cost": 0.000985,
+          "upstream_inference_completions_cost": 0.011954
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 4800,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "answered": true,
+      "text": "Short definitions first\n- “Copy” (for spells or abilities): putting a copy of that spell or ability onto the stack; a copy of a spell or ability is itself a spell or ability on the stack and copies characteristics and decisions (including targets) made for the original. A copy is not cast (it was put on the stack) and choices normally made on resolution are not copied. [707.10]\n- “Cast a spell”: take a card from the zone it’s in (usually your hand), put it on the stack, and pay its costs; that process makes it a spell on the stack. Copies placed on the stack are not cast. [601.2i][112.1a]\n\nWhat happens in your sequence\n1) Casting Emrakul created the “When you cast this spell…” triggered ability and put that triggered ability on the stack (that’s the normal cast trigger). [Emrakul, the Promised End]\n2) You used Lithoform Engine to copy that triggered ability on the stack. Lithoform’s ability copies a triggered ability that’s on the stack and creates another instance of that ability on the stack; the copy can have new targets if Lithoform’s ability allows choosing new targets. The copy is a separate triggered ability on the stack. [Lithoform Engine ruling #3][Lithoform Engine]\n- Each resolving instance of that triggered ability will apply its full effect (gain control of the targeted opponent during that player’s next turn, and after that turn that player takes an extra turn). Multiple player-controlling effects that affect the same player overwrite each other; the last one to be created is the one that actually grants control. Multiple such abilities can still each produce their “extra turn” effect. So copying the trigger means you will have two triggered-ability instances that each create an extra turn, but the most-recently created control effect is the one that governs who you actually control during that next turn. [707.10][Emrakul, the Promised End ruling #14]\n3) When you untapped Lithoform and used it to copy the Emrakul permanent spell on the stack, Lithoform created a copy of the permanent spell on the stack (the copy is not cast). Lithoform’s permanent-spell copy is created on the stack and, when it resolves, becomes a token with the characteristics of that spell. Creating that copy does not count as casting the spell and therefore does not cause “When you cast this spell” triggers to be put on the stack. Also, for permanent spells Lithoform’s ruling notes you can’t choose new targets (if the permanent spell would have targets). [Lithoform Engine ruling #5][Lithoform Engine ruling #6][111.13]\n\nDirect answers\n- How many of your opponent’s turns do you control? You will control that opponent for their next turn only once: the last-created player-controlling effect (the most recently created triggered-ability instance) is the one that grants control; earlier-created control effects that affect the same player are overwritten. However, because both triggered-ability instances still create their “extra turn” effects, you will get an extra turn for each resolving instance. [Emrakul, the Promised End ruling #14][707.10]\n- Do you get a second Emrakul? Yes — copying the permanent spell with Lithoform puts a copy on the stack that, when it resolves, becomes a token permanent with Emrakul’s characteristics. That gives you a second Emrakul entering the battlefield (a token). [Lithoform Engine ruling #5][111.13]\n- Does copying the Emrakul spell give you another control-a-turn trigger? No — the copy of the Emrakul spell is not cast, so it does not create a “When you cast this spell” trigger. Creating the copy won’t cause cast triggers to be generated. The only extra control-trigger you got was the copy of the already-existing triggered ability you made earlier with Lithoform. [Lithoform Engine ruling #6][601.2i][112.1a]\n\nShort practical summary you can act on: you will control your opponent for their next turn once (the latest-created control effect wins), you will get two extra turns afterward (one per triggered-ability instance you resolved), you end up with a second Emrakul token, and copying the spell itself does not produce another “when you cast” control trigger.",
+      "citations": [
+        "707.10",
+        "601.2i",
+        "112.1a",
+        "Lithoform Engine",
+        "Lithoform Engine ruling #3",
+        "Lithoform Engine ruling #6",
+        "Lithoform Engine ruling #5",
+        "111.13",
+        "Emrakul, the Promised End ruling #14",
+        "Emrakul, the Promised End"
+      ],
+      "error": null,
+      "raw_text": null
+    },
+    {
+      "id": "c013",
+      "question": "I've imprinted a creature on [Mimic Vat] and activate its ability to make a token copy. While that ability is on the stack, I copy it with [Lithoform Engine]. Do I get two tokens?",
+      "served_model": "openai/gpt-5-mini",
+      "provider": "OpenAI",
+      "temperature_sent": null,
+      "seed_sent": 42,
+      "usage": {
+        "prompt_tokens": 4562,
+        "completion_tokens": 3553,
+        "total_tokens": 8115,
+        "cost": 0.0072385,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 4480,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.0072385,
+          "upstream_inference_prompt_cost": 0.0001325,
+          "upstream_inference_completions_cost": 0.007106
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 2816,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "answered": true,
+      "text": "Short answer: Yes — if a card is exiled with Mimic Vat when each resolving instance of the ability resolves, you will get two token copies (one from each resolving instance).\n\nExplanation and key definitions\n- \"Copy an ability\": Putting a copy of an activated or triggered ability onto the stack; the copy is itself an ability and is placed on the stack as a separate instance (see [707.10]).\n- What happens here: You activate Mimic Vat’s {3},{T} ability; that activated ability is an ability on the stack. If you use Lithoform Engine to copy that activated ability, Lithoform puts another instance of that ability onto the stack (Lithoform Engine ruling #3), and the copy’s source is the same source (the same Mimic Vat) as the original (Lithoform Engine ruling #0 and [707.10]).\n- Each instance of the ability resolves separately. When an instance resolves it follows its text: “Create a token that’s a copy of a card exiled with this artifact…” The token created will be a copy of whatever card is exiled with Mimic Vat at the time that particular instance resolves (Mimic Vat ruling #4).\n- If no card is exiled with Mimic Vat by the time an instance resolves, that instance creates no token (Mimic Vat ruling #6).\n- If the exiled object is a melded permanent (so two cards are exiled), when an instance resolves you choose which of the exiled cards to copy (Mimic Vat ruling #1 and the rule about actions on “a” card, [607.3]).\n\nPractical outcomes\n- If a single card is exiled with Mimic Vat when both the original and the Lithoform copy resolve, you get two tokens, both copies of that exiled card.\n- If the card exiled with Mimic Vat changes between the first resolution and the second, each token will be a copy of whatever is exiled at that resolution (they can be different — Mimic Vat ruling #4).\n- If nothing is exiled with Mimic Vat when an instance resolves, that instance creates no token (Mimic Vat ruling #6).\n\nZones/objects named: the abilities are on the stack; the cards to be copied are in exile (the cards exiled with Mimic Vat); tokens are created onto the battlefield when each ability resolves.\n",
+      "citations": [
+        "[707.10]",
+        "[607.3]",
+        "[Mimic Vat ruling #4]",
+        "[Mimic Vat ruling #6]",
+        "[Mimic Vat ruling #1]",
+        "[Lithoform Engine ruling #3]",
+        "[Lithoform Engine ruling #0]"
+      ],
+      "error": null,
+      "raw_text": null
+    },
+    {
+      "id": "c014",
+      "question": "An opponent controls an untapped [Trinisphere], and I have a permanent that makes my green spells cost {1} less. I want to cast [Awaken the Woods] for value. If I cast it with X=0, what does it cost and what do I get, and what X should I actually choose?",
+      "served_model": "openai/gpt-5-mini",
+      "provider": "OpenAI",
+      "temperature_sent": null,
+      "seed_sent": 42,
+      "usage": {
+        "prompt_tokens": 2863,
+        "completion_tokens": 6070,
+        "total_tokens": 8933,
+        "cost": 0.01222215,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 2816,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.01222215,
+          "upstream_inference_prompt_cost": 8.215e-05,
+          "upstream_inference_completions_cost": 0.01214
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 5184,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "answered": true,
+      "text": "Short definitions (from the provided rules):\n- X: a numeric placeholder in a spell’s mana cost that the spell’s controller chooses when casting the spell unless some effect defines X otherwise (see 107.3b).\n- Total cost: the mana cost (or alternative cost) plus cost increases minus cost reductions; that finalized number is what you must pay to cast the spell (see 601.2f and the “Total Cost” definition).\n\nWhat happens when you try to cast Awaken the Woods ({X}{G}{G}) with an opponent’s untapped Trinisphere plus a permanent that reduces your green spells’ cost by {1}:\n1) Order of calculation: start with the spell’s mana cost ({X}{G}{G}), apply any cost increases, then apply your cost reduction, then apply Trinisphere’s effect if the spell’s mana component is less than three (per Trinisphere ruling #0 and 601.2f).\n\n2) If you choose X = 0: the spell’s pre-reduction cost is {G}{G} (two green mana). After your −{1} cost effect and then Trinisphere is applied, the final total mana required will be three mana (Trinisphere forces spells that would cost less than 3 mana to cost 3). Concretely, depending on how the −1 reduction is applied it will look like one of these legal final costs, but in every case the total mana you must pay is 3:\n- If the reduction reduces generic mana (i.e., reduces X): with X = 0 there is no generic to reduce, so Trinisphere raises the spell to cost {1}{G}{G} (total 3). You would create 0 tokens.\n- If the reduction removes one green mana symbol instead: with X = 0 you end up paying {2}{G} (two generic + one green = total 3). You would create 0 tokens.\n(Those different final shapes follow the cost-reduction rules in 118.7a/118.7b/118.7c and Trinisphere ruling #0.)\n\n3) Which X should you pick to get value? For the same three-mana outlay you can choose X = 2 and get two 1/1 Forest Dryad tokens. Reason: when you choose X = 2 the starting cost is {2}{G}{G}; after your −1 reduction this leaves a mana component of 3, so Trinisphere does not increase the cost further, and the final total you pay is still 3 mana while the spell will create X (two) tokens. Choosing X = 0 (or X = 1) makes you pay the same total 3 mana but produce fewer tokens (0 or 1), so X = 2 is the value choice for a 3-mana outlay.\n\nConcrete short answer: If you cast Awaken the Woods with X = 0 you still must pay three mana (Trinisphere makes it cost 3) and you create 0 tokens. To get tokens for that same three-mana payment, choose X = 2 (you’ll pay three mana and get two 1/1 Forest Dryad tokens).\n",
+      "citations": [
+        "601.2f",
+        "Total Cost",
+        "107.3b",
+        "118.7a",
+        "118.7b",
+        "118.7c",
+        "Trinisphere ruling #0",
+        "Awaken the Woods"
+      ],
+      "error": null,
+      "raw_text": null
+    },
+    {
+      "id": "c015",
+      "question": "[Grist, the Hunger Tide] is in my graveyard. Can I return it with [Animate Dead], and what happens?",
+      "served_model": "openai/gpt-5-mini",
+      "provider": "OpenAI",
+      "temperature_sent": null,
+      "seed_sent": 42,
+      "usage": {
+        "prompt_tokens": 4038,
+        "completion_tokens": 4070,
+        "total_tokens": 8108,
+        "cost": 0.0091495,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.0091495,
+          "upstream_inference_prompt_cost": 0.0010095,
+          "upstream_inference_completions_cost": 0.00814
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 3520,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "answered": true,
+      "text": "Yes. You can target Grist in your graveyard with Animate Dead because, while it isn’t on the battlefield, Grist is a creature card as stated in the card’s ruling. When Animate Dead resolves it enters the battlefield attached to that creature card in the graveyard, then its “When this Aura enters…” ability returns the card to the battlefield and tries to attach the Aura to it (Animate Dead ruling #1; Grist ruling #1).\n\nAs soon as Grist is put onto the battlefield it is no longer a creature and is just a planeswalker (Grist ruling #1). Animate Dead’s replacement/attach attempt can’t legally attach to a noncreature permanent, so Animate Dead is put into its owner’s graveyard as a state-based action and its leave-the-battlefield delayed trigger is created (Animate Dead ruling #4). When that delayed triggered ability resolves, if the permanent that was returned is still on the battlefield its controller sacrifices it (Animate Dead ruling #4). State-based actions are the game rules that cause things like the Aura being put into the graveyard to happen at that time (see rule 704.4).\n\nNet result: Grist will be returned to the battlefield, but because it becomes a planeswalker on entry Animate Dead can’t remain attached and is put into the graveyard; the resulting triggered ability will then cause you to sacrifice Grist when it resolves, so Grist will only be on the battlefield temporarily unless something else changes the situation before that trigger resolves. (Note: if Animate Dead weren’t on the battlefield when its “When this Aura enters…” triggered ability resolved, that triggered ability wouldn’t do anything; see Animate Dead ruling #0.)",
+      "citations": [
+        "[Grist, the Hunger Tide ruling #1]",
+        "[Animate Dead ruling #1]",
+        "[Animate Dead ruling #4]",
+        "[Animate Dead ruling #0]",
+        "[704.4]"
+      ],
+      "error": null,
+      "raw_text": null
+    },
+    {
+      "id": "c016",
+      "question": "My commander [Skullbriar, the Walking Grave] has four +1/+1 counters on it. It dies, I move it to the command zone, then recast it. Does it keep the counters, and does [Doubling Season] double them as it re-enters?",
+      "served_model": "openai/gpt-5-mini",
+      "provider": "OpenAI",
+      "temperature_sent": null,
+      "seed_sent": 42,
+      "usage": {
+        "prompt_tokens": 3002,
+        "completion_tokens": 2396,
+        "total_tokens": 5398,
+        "cost": 0.0048801,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 2944,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.0048801,
+          "upstream_inference_prompt_cost": 8.81e-05,
+          "upstream_inference_completions_cost": 0.004792
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 1856,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "answered": true,
+      "text": "Short answer: Yes — Skullbriar keeps its four +1/+1 counters while it's in the command zone, and Doubling Season does not double those retained counters when you recast it.\n\nExplanation and definitions:\n- \"Skullbriar keeps its counters as it changes zones\": Skullbriar’s ability/rulings say the counters on Skullbriar remain on it as it changes zones (so the card in the command zone still has those counters) and those counters affect its power/toughness in the command zone (they are not lost). See Skullbriar rulings #1 and #3.\n- \"Not ‘placed’ on Skullbriar\": The counters that remain on Skullbriar as it moves between zones aren’t considered to have been \"placed\" on it when it re-enters; they are retained. Because they aren’t being put on as it enters, replacement effects that modify how many counters are put on a permanent as it enters (for example, Doubling Season) do not affect those retained counters. Skullbriar ruling #2 explicitly states effects like Doubling Season won’t affect those counters. For context, Doubling Season does affect counters that are put on permanents as they enter (Doubling Season ruling #2), but that doesn’t apply here because the counters were retained rather than being placed as part of the enter event.\n\nPractical result: After Skullbriar dies and you put it into the command zone with four +1/+1 counters on it, it still has those four counters in the command zone and will enter the battlefield with those same four counters when you cast it again; Doubling Season does not double them.\n",
+      "citations": [
+        "Skullbriar, the Walking Grave ruling #1",
+        "Skullbriar, the Walking Grave ruling #2",
+        "Skullbriar, the Walking Grave ruling #3",
+        "Doubling Season ruling #2"
+      ],
+      "error": null,
+      "raw_text": null
+    },
+    {
+      "id": "c017",
+      "question": "I cast [Final Fortune] to take an extra turn. During that extra turn I use [Sundial of the Infinite] to end the turn before the end step. Do I still lose the game?",
+      "served_model": "openai/gpt-5-mini",
+      "provider": "OpenAI",
+      "temperature_sent": null,
+      "seed_sent": 42,
+      "usage": {
+        "prompt_tokens": 2470,
+        "completion_tokens": 3228,
+        "total_tokens": 5698,
+        "cost": 0.0065551,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 2304,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.0065551,
+          "upstream_inference_prompt_cost": 9.91e-05,
+          "upstream_inference_completions_cost": 0.006456
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 2496,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "answered": true,
+      "text": "Short answer: You do not lose the game on that extra turn. Activating Sundial of the Infinite to “end the turn” before the end step skips that turn’s end step, so Final Fortune’s “At the beginning of that turn’s end step, you lose the game” won’t trigger that turn; per Sundial’s ruling those kinds of “at the beginning of the end step” triggers will instead occur at the beginning of the next turn’s end step (and Final Fortune’s ruling also notes that if an extra turn is skipped you don’t lose). Concretely: by ending the turn with Sundial before the end step, the extra turn’s end step is skipped and you don’t lose during that turn. The Final Fortune lose-trigger will not happen that turn (it will be deferred as described), and if the extra turn were entirely skipped you likewise don’t lose.\n\nExplanation and definitions:\n- “End the turn” (the expedited process that skips most of the turn and proceeds straight to the cleanup step) is what Sundial’s ability does; when a turn is ended this way the current phase/step ends and the game skips to the cleanup step, no player gets priority, and “at the beginning of the end step” triggered abilities don’t get to trigger that turn (see the rules about ending the turn and Sundial’s rulings). [724.1d] [724.1e] [724.1f] [End the Turn] [Sundial of the Infinite ruling #4]\n- Sundial’s official ruling: if you activate it before the end step, any “at the beginning of the end step” triggered abilities won’t get the chance to trigger that turn because the end step is skipped; those abilities will trigger at the beginning of the end step of the next turn. That means Final Fortune’s lose-the-game trigger doesn’t happen on the extra turn if you end the turn before its end step. [Sundial of the Infinite ruling #1]\n- Final Fortune’s own ruling: if you end up skipping the extra turn that was gained, you do not lose the game. That covers the separate case where an extra turn itself is skipped entirely; you also don’t lose the game in that situation. [Final Fortune ruling #1] [Final Fortune]\n\nWhat to watch for: the lose instruction from Final Fortune won’t make you lose on the extra turn if you used Sundial to end the turn before the end step. It can be deferred as described by Sundial’s ruling, so it could still cause you to lose later if it later triggers and resolves (unless something else prevents or skips that later end step).",
+      "citations": [
+        "724.1d",
+        "724.1e",
+        "724.1f",
+        "End the Turn",
+        "Sundial of the Infinite ruling #4",
+        "Sundial of the Infinite ruling #1",
+        "Final Fortune",
+        "Final Fortune ruling #1"
+      ],
+      "error": null,
+      "raw_text": null
+    },
+    {
+      "id": "c018",
+      "question": "I cast [Clone]. When and how do I choose what it copies, and can my opponent respond to that choice?",
+      "served_model": "openai/gpt-5-mini",
+      "provider": "OpenAI",
+      "temperature_sent": null,
+      "seed_sent": 42,
+      "usage": {
+        "prompt_tokens": 4155,
+        "completion_tokens": 2674,
+        "total_tokens": 6829,
+        "cost": 0.00638675,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.00638675,
+          "upstream_inference_prompt_cost": 0.00103875,
+          "upstream_inference_completions_cost": 0.005348
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 1920,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "answered": false,
+      "text": "Short answer: The rules you provided say the Clone’s controller makes the “as this enters” choice as Clone enters the battlefield (and that choice can name an existing creature, or you can choose not to copy), but the provided rules do not say whether an opponent may get priority or otherwise respond between that choice being made and Clone entering. I can’t answer the “can my opponent respond?” part because the rules about replacement-effect timing and priority/when players may respond are not included in the material you gave.\n\nWhat the provided rules do say (definitions and facts you can act on):\n- Definition — an “as [this] enters the battlefield” choice: a decision that must be made for an object that is entering the battlefield because of an ability that modifies how it enters (for example, choosing which creature to copy). The entering object’s controller makes that choice when the object is entering as described by the ability. [707.6] [707.2]\n- When the choice is made for Clone: Clone’s controller gets to make the “as this enters” copy choice when Clone enters the battlefield as a copy of another creature. You may choose only a creature that is already on the battlefield (Clone can’t choose a creature that is entering simultaneously). You may also choose not to copy anything. Clone’s ability does not target the chosen creature. [707.6] [707.2] [Clone ruling #2] [Clone ruling #5] [Clone ruling #0]\n- If other replacement effects also attempt to make the entering object a copy, the affected object’s controller chooses which replacement effect to apply. (That is relevant if multiple “becomes a copy as it enters” effects would apply.) [616.1c]\n\nWhat’s missing to fully answer “can my opponent respond?”: the text you provided does not include the rules that govern the timing of applying replacement effects and exactly when players receive priority or may put things on the stack relative to making “as … enters” choices. Those timing/priority rules (the rules that say when replacement effects are applied relative to the event and when players can take actions or responses) are required to determine whether an opponent can act after the copy choice but before Clone actually exists on the battlefield. Because those timing/priority rules aren’t in the provided material, I can’t reliably say whether an opponent may respond between the choice and Clone entering.\n\nIf you provide the rules about replacement-effect application timing and priority (the rules that describe when replacement effects are applied and when players receive priority relative to events), I can give the definitive, fully grounded answer about whether an opponent can respond.",
+      "citations": [
+        "707.6",
+        "707.2",
+        "616.1c",
+        "Clone ruling #2",
+        "Clone ruling #5",
+        "Clone ruling #0"
+      ],
+      "error": null,
+      "raw_text": null
+    },
+    {
+      "id": "c019",
+      "question": "I activate my [Flooded Strand]'s ability, then activate [Gogo, Master of Mimicry] with X=2 to copy it twice. How many lands do I get from that one Flooded Strand?",
+      "served_model": "openai/gpt-5-mini",
+      "provider": "OpenAI",
+      "temperature_sent": null,
+      "seed_sent": 42,
+      "usage": {
+        "prompt_tokens": 4557,
+        "completion_tokens": 3900,
+        "total_tokens": 8457,
+        "cost": 0.00893925,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.00893925,
+          "upstream_inference_prompt_cost": 0.00113925,
+          "upstream_inference_completions_cost": 0.0078
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 3328,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "answered": true,
+      "text": "Short answer: You get three lands (the original Flooded Strand’s ability plus two copies). Definition: An activated ability is an ability a player activates by paying its costs; it goes on the stack and later resolves to perform its effect. What happens and why (rules you can act on):\n\n- You activate Flooded Strand and pay its costs (tap, pay 1 life, sacrifice the land); that puts its activated ability on the stack (Flooded Strand card text).  \n- While that ability is on the stack, you activate Gogo with X = 2 targeting that ability. Gogo creates two additional instances of that activated ability on the stack (Gogo ruling #6).  \n- A copy of an activated ability is an ability on the stack that copies the original ability’s characteristics and the decisions made for it (707.10). Copies use the objects that were used to pay the original ability’s costs if the copy’s effect refers to those objects (707.10b), and Gogo’s copies have the same source as the original ability (Gogo ruling #9). That means you don’t need to (and won’t) sacrifice any additional Flooded Strands for the copies.  \n- Each instance (the original plus the two copies) resolves separately and each one instructs you to search your library for a Plains or Island, put it onto the battlefield, then shuffle. Because each instance includes its own “then shuffle” instruction, they do not merge into a single combined search; you will perform the search-and-shuffle sequence for each instance (701.23h).  \n\nTherefore, assuming there are three eligible cards available in your library, the three resolving instances will put three lands onto the battlefield.",
+      "citations": [
+        "707.10",
+        "707.10b",
+        "701.23h",
+        "Gogo, Master of Mimicry ruling #6",
+        "Gogo, Master of Mimicry ruling #9",
+        "Flooded Strand"
+      ],
+      "error": null,
+      "raw_text": null
+    }
+  ],
+  "summary": {
+    "n_questions": 50,
+    "answered": 48,
+    "parse_failures": 0,
+    "total_cost": 0.2699431
+  },
+  "variance": {
+    "q001": {
+      "byte_identical": false,
+      "lengths": [
+        1871,
+        1194,
+        2117
+      ],
+      "first_divergence_vs_draw0": [
+        79,
+        12
+      ]
+    },
+    "q014": {
+      "byte_identical": false,
+      "lengths": [
+        2743,
+        2603,
+        2439
+      ],
+      "first_divergence_vs_draw0": [
+        49,
+        15
+      ]
+    },
+    "c015": {
+      "byte_identical": false,
+      "lengths": [
+        1767,
+        1736,
+        1811
+      ],
+      "first_divergence_vs_draw0": [
+        13,
+        12
+      ]
+    }
+  }
+}

@@ -1,0 +1,122 @@
+[
+  {
+    "id": "rg6328",
+    "question": "Ari has searched their library this turn with [Bog Glider]. During their end step, Nico casts [Mission Briefing]. Can they use it to cast [Archive Trap] from their graveyard for free?",
+    "match": "groups",
+    "kind": "other",
+    "show_rewrite": false,
+    "rewrite_version": "none",
+    "ruling_query_mode": "union",
+    "condition": null,
+    "run": null,
+    "model": "claude-opus-5",
+    "prompts_cache": "evals\\answers\\_prompts_derivability_B_goldonly.json",
+    "prompts_cache_sha256": "7549d36f37602db2c1e08082af9b1578271685fbd68e1db5351eb9db9aaec7aa",
+    "answered": true,
+    "answer": "Yes — Nico can cast Archive Trap from their graveyard for {0}.\n\nHow it works, step by step:\n\n1. Mission Briefing resolves: Nico surveils 2 and chooses an instant or sorcery card in their graveyard — Archive Trap. Mission Briefing grants permission to cast Archive Trap this turn (and replaces putting it into the graveyard with exile). Mission Briefing does not change *when* Archive Trap can be cast [Mission Briefing ruling #4]; since Archive Trap is an instant, casting it during an end step with priority is fine. It also doesn't change what Archive Trap costs.\n\n2. Archive Trap's own text says \"If an opponent searched their library this turn, you may pay {0} rather than pay this spell's mana cost.\" That's an alternative cost (a cost paid instead of the mana cost, per 118.9/118.9a), and an object's ability that lets a player pay an alternative cost functions on the stack while the spell is being cast [113.6d] — so it works no matter which zone Archive Trap is cast from, including the graveyard via Mission Briefing.\n\n3. Bog Glider's activated ability reads \"Search your library for a Mercenary permanent card...\", so Ari genuinely searched their library [Archive Trap ruling #1], and it doesn't matter whether Ari actually found and took a card [Archive Trap ruling #2, Bog Glider ruling #1]. Since Ari is Nico's opponent and the search happened this turn, Archive Trap's condition is met.\n\n4. Nico announces the intent to pay the {0} alternative cost as part of casting Archive Trap [601.2b]. Only one alternative cost may be applied to a spell [118.9a, 601.2b]; Mission Briefing merely grants permission to cast from the graveyard and imposes no cost of its own, so nothing conflicts here. Archive Trap's mana cost and mana value remain {3}{U}{U} and 5 — only the amount actually paid changes [Archive Trap ruling #4].\n\nAssumption on timing: I'm reading \"their end step\" as the end step of the turn in which Ari searched, i.e., the same turn. Both Mission Briefing's \"you may cast it this turn\" and Archive Trap's \"searched their library this turn\" are satisfied only within that same turn, so Nico must actually cast Archive Trap before the turn ends. If the search had happened on an earlier turn, Archive Trap could still be cast off Mission Briefing but only for its full {3}{U}{U} mana cost.\n\nMultiplayer note: Archive Trap only asks whether *an* opponent searched, so at a table with more than two players any opponent of Nico's searching turns it on, and the opponent Nico targets to mill thirteen doesn't have to be Ari [Archive Trap ruling #8]. With exactly two players, Ari is necessarily both the searcher and the only legal target.\n\nFinally, when Archive Trap finishes resolving it will be exiled instead of going to the graveyard, because it was cast via Mission Briefing.\n\nCard data from Scryfall (scryfall.com).",
+    "citations": [
+      "113.6d",
+      "118.9",
+      "118.9a",
+      "601.2b",
+      "Archive Trap",
+      "Mission Briefing",
+      "Bog Glider",
+      "Archive Trap ruling #1",
+      "Archive Trap ruling #2",
+      "Archive Trap ruling #4",
+      "Archive Trap ruling #8",
+      "Mission Briefing ruling #4",
+      "Bog Glider ruling #1"
+    ],
+    "gold": [
+      "113.6d",
+      "118.9",
+      "118.9a",
+      "601.2b"
+    ],
+    "gold_text": {
+      "113.6d": "Abilities of an instant or sorcery spell usually function only while that object is on the stack. Abilities of all other objects usually function only while that object is on the battlefield. The exceptions are as follows: An object’s ability that allows a player to pay an alternative cost rather than its mana cost or otherwise modifies what that particular object costs to cast functions on the stack.",
+      "118.9": "Some spells have alternative costs. An alternative cost is a cost listed in a spell’s text, or applied to it from another effect, that its controller may pay rather than paying the spell’s mana cost. Alternative costs are usually phrased, “You may [action] rather than pay [this object’s] mana cost,” or “You may cast [this object] without paying its mana cost.” Note that some alternative costs are listed in keywords; see rule 702.",
+      "118.9a": "Some spells have alternative costs. An alternative cost is a cost listed in a spell’s text, or applied to it from another effect, that its controller may pay rather than paying the spell’s mana cost. Alternative costs are usually phrased, “You may [action] rather than pay [this object’s] mana cost,” or “You may cast [this object] without paying its mana cost.” Note that some alternative costs are listed in keywords; see rule 702. Only one alternative cost can be applied to any one spell as it’s being cast. The controller of the spell announces their intentions to pay that cost as described in rule 601.2b.",
+      "601.2b": "To cast a spell is to take it from where it is (usually the hand), put it on the stack, and pay its costs, so that it will eventually resolve and have its effect. Casting a spell includes proposal of the spell (rules 601.2a–d) and determination and payment of costs (rules 601.2f–h). To cast a spell, a player follows the steps listed below, in order. A player must be legally allowed to cast the spell to begin this process (see rule 601.3). If a player is unable to comply with the requirements of a step listed below while performing that step, the casting of the spell is illegal; the game returns to the moment before the casting of that spell was proposed (see rule 733, “Handling Illegal Actions”). If the spell is modal, the player announces the mode choice (see rule 700.2). If the player wishes to splice any cards onto the spell (see rule 702.47), they reveal those cards in their hand. If the spell has alternative or additional costs that will be paid as it’s being cast such as buyback or kicker costs (see rules 118.8 and 118.9), the player announces their intentions to pay any or all of those costs (see rule 601.2f). A player can’t apply two alternative methods of casting or two alternative costs to a single spell. If the spell has a variable cost that will be paid as it’s being cast (such as an {X} in its mana cost; see rule 107.3), the player announces the value of that variable. If the value of that variable is defined in the text of the spell by a choice that player would make later in the announcement or resolution of the spell, that player makes that choice at this time instead of that later time. If a cost that will be paid as the spell is being cast includes hybrid mana symbols, the player announces the nonhybrid equivalent cost they intend to pay. If a cost that will be paid as the spell is being cast includes Phyrexian mana symbols, the player announces whether they intend to pay 2 life or a corresponding colored mana cost for each of those symbols. Previously made choices (such as choosing to cast a spell with flashback from a graveyard or choosing to cast a creature with morph face down) may restrict the player’s options when making these choices."
+    },
+    "cited_text": {
+      "113.6d": "Abilities of an instant or sorcery spell usually function only while that object is on the stack. Abilities of all other objects usually function only while that object is on the battlefield. The exceptions are as follows: An object’s ability that allows a player to pay an alternative cost rather than its mana cost or otherwise modifies what that particular object costs to cast functions on the stack.",
+      "118.9": "Some spells have alternative costs. An alternative cost is a cost listed in a spell’s text, or applied to it from another effect, that its controller may pay rather than paying the spell’s mana cost. Alternative costs are usually phrased, “You may [action] rather than pay [this object’s] mana cost,” or “You may cast [this object] without paying its mana cost.” Note that some alternative costs are listed in keywords; see rule 702.",
+      "118.9a": "Some spells have alternative costs. An alternative cost is a cost listed in a spell’s text, or applied to it from another effect, that its controller may pay rather than paying the spell’s mana cost. Alternative costs are usually phrased, “You may [action] rather than pay [this object’s] mana cost,” or “You may cast [this object] without paying its mana cost.” Note that some alternative costs are listed in keywords; see rule 702. Only one alternative cost can be applied to any one spell as it’s being cast. The controller of the spell announces their intentions to pay that cost as described in rule 601.2b.",
+      "601.2b": "To cast a spell is to take it from where it is (usually the hand), put it on the stack, and pay its costs, so that it will eventually resolve and have its effect. Casting a spell includes proposal of the spell (rules 601.2a–d) and determination and payment of costs (rules 601.2f–h). To cast a spell, a player follows the steps listed below, in order. A player must be legally allowed to cast the spell to begin this process (see rule 601.3). If a player is unable to comply with the requirements of a step listed below while performing that step, the casting of the spell is illegal; the game returns to the moment before the casting of that spell was proposed (see rule 733, “Handling Illegal Actions”). If the spell is modal, the player announces the mode choice (see rule 700.2). If the player wishes to splice any cards onto the spell (see rule 702.47), they reveal those cards in their hand. If the spell has alternative or additional costs that will be paid as it’s being cast such as buyback or kicker costs (see rules 118.8 and 118.9), the player announces their intentions to pay any or all of those costs (see rule 601.2f). A player can’t apply two alternative methods of casting or two alternative costs to a single spell. If the spell has a variable cost that will be paid as it’s being cast (such as an {X} in its mana cost; see rule 107.3), the player announces the value of that variable. If the value of that variable is defined in the text of the spell by a choice that player would make later in the announcement or resolution of the spell, that player makes that choice at this time instead of that later time. If a cost that will be paid as the spell is being cast includes hybrid mana symbols, the player announces the nonhybrid equivalent cost they intend to pay. If a cost that will be paid as the spell is being cast includes Phyrexian mana symbols, the player announces whether they intend to pay 2 life or a corresponding colored mana cost for each of those symbols. Previously made choices (such as choosing to cast a spell with flashback from a graveyard or choosing to cast a creature with morph face down) may restrict the player’s options when making these choices."
+    },
+    "rewrite_queries": [],
+    "clarification": null,
+    "retrieved_rule_ids": [],
+    "stop_reason": "end_turn",
+    "tool_calls": null,
+    "tool_rounds": null,
+    "usage": {
+      "input_tokens": 2425,
+      "output_tokens": 2605,
+      "cache_read_input_tokens": 0,
+      "cache_creation_input_tokens": 2065
+    },
+    "system_version": 3,
+    "layers_tool": true,
+    "max_tokens": 32768,
+    "effort": "high",
+    "answer_gold": "Yes. Mission Briefing allows Nico to cast Archive Trap from their graveyard, without any other restrictions on how it's cast. Nico can choose to pay the alternative cost of {0}."
+  },
+  {
+    "id": "rg6563",
+    "question": "In a game of Two-Headed Giant, Antonio activates the last loyalty ability of [Chandra, Hope's Beacon] with X=1. Could they target both Nico and Noah?",
+    "match": "any",
+    "kind": "other",
+    "show_rewrite": false,
+    "rewrite_version": "none",
+    "ruling_query_mode": "union",
+    "condition": null,
+    "run": null,
+    "model": "claude-opus-5",
+    "prompts_cache": "evals\\answers\\_prompts_derivability_B_goldonly.json",
+    "prompts_cache_sha256": "7549d36f37602db2c1e08082af9b1578271685fbd68e1db5351eb9db9aaec7aa",
+    "answered": true,
+    "answer": "Yes. Chandra, Hope's Beacon's last ability reads \"−X: Chandra deals X damage to each of up to two targets,\" so with X=1 Antonio may choose two different targets — Nico and Noah — and Chandra, Hope's Beacon deals 1 damage to each of them. \"Up to two targets\" means two *separate* targets, so both players can be chosen; you just can't choose the same player twice.\n\nHow the damage is applied in Two-Headed Giant: damage happens to each player individually, and the result is applied to that player's team's shared life total [810.9]. So if Nico and Noah are on the same team, that team's shared life total drops by 2 total (1 from Nico, 1 from Noah). If Nico and Noah are on different teams, each team's shared life total drops by 1. Life totals are one of the few shared resources in Two-Headed Giant [810.5], [810.9].\n\nTwo side notes:\n- The cost is −1 (X=1), so Chandra, Hope's Beacon goes from 5 loyalty to 4 if it was at 5.\n- Chandra, Hope's Beacon's copy ability (\"Whenever you cast an instant or sorcery spell, copy it\") does not apply here — a loyalty ability is an activated ability, not a cast instant or sorcery spell, so nothing gets copied and the damage isn't doubled.\n\nThis answer is specific to Two-Headed Giant [810.1]; in an ordinary two-player game the same ability could likewise hit two targets, but there'd be no shared life total to apply the damage to.\n\nCard data from Scryfall (scryfall.com).",
+    "citations": [
+      "810.1",
+      "810.5",
+      "810.9",
+      "Chandra, Hope's Beacon"
+    ],
+    "gold": [
+      "810.1",
+      "810.5",
+      "810.9"
+    ],
+    "gold_text": {
+      "810.1": "Two-Headed Giant games are played with two teams of two players each.",
+      "810.5": "With the exception of life total and poison counters, a team’s resources (cards in hand, mana, and so on) are not shared in the Two-Headed Giant variant. Teammates may review each other’s hands and discuss strategies at any time. Teammates can’t manipulate each other’s cards or permanents.",
+      "810.9": "Damage, loss of life, and gaining life happen to each player individually. The result is applied to the team’s shared life total. In a Two-Headed Giant game, a player casts Flame Rift, which reads, “Flame Rift deals 4 damage to each player.” Each team is dealt a total of 8 damage."
+    },
+    "cited_text": {
+      "810.1": "Two-Headed Giant games are played with two teams of two players each.",
+      "810.5": "With the exception of life total and poison counters, a team’s resources (cards in hand, mana, and so on) are not shared in the Two-Headed Giant variant. Teammates may review each other’s hands and discuss strategies at any time. Teammates can’t manipulate each other’s cards or permanents.",
+      "810.9": "Damage, loss of life, and gaining life happen to each player individually. The result is applied to the team’s shared life total. In a Two-Headed Giant game, a player casts Flame Rift, which reads, “Flame Rift deals 4 damage to each player.” Each team is dealt a total of 8 damage."
+    },
+    "rewrite_queries": [],
+    "clarification": null,
+    "retrieved_rule_ids": [],
+    "stop_reason": "end_turn",
+    "tool_calls": null,
+    "tool_rounds": null,
+    "usage": {
+      "input_tokens": 1045,
+      "output_tokens": 1235,
+      "cache_read_input_tokens": 2065,
+      "cache_creation_input_tokens": 0
+    },
+    "system_version": 3,
+    "layers_tool": true,
+    "max_tokens": 32768,
+    "effort": "high",
+    "answer_gold": "Yes. Each member of a team is a separate player and is targeted independently."
+  }
+]

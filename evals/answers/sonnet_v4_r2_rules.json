@@ -1,0 +1,1299 @@
+[
+  {
+    "id": "q001",
+    "question": "Do creatures phasing back in trigger enter the battlefield abilities?",
+    "match": "any",
+    "kind": "interaction",
+    "show_rewrite": false,
+    "rewrite_version": "v2",
+    "ruling_query_mode": "raw",
+    "condition": "v4",
+    "run": 2,
+    "answered": true,
+    "answer": "No. When a creature phases back in, it does not trigger \"enters the battlefield\" abilities. Phasing is not treated as a zone change at all — rule [702.26d] explicitly states that \"the phasing event doesn't actually cause a permanent to change zones or control, even though it's treated as though it's not on the battlefield and not under its controller's control while it's phased out,\" and specifically says \"Zone-change triggers don't trigger when a permanent phases in or out.\" Enters-the-battlefield abilities are a type of zone-change trigger (per [603.6a]), and since phasing in never counts as the permanent entering the battlefield (it's just that the game once again treats the permanent as though it exists, per [702.26c]), those abilities simply don't fire when a phased-out permanent phases back in. This applies to any creature with such an ability, regardless of how it phased out (e.g., via the phasing static ability during the untap step per [702.26a]/[703.4a], or via a one-shot effect like the kind described in [610.4]/[610.4a]).",
+    "citations": [
+      "702.26c",
+      "702.26d",
+      "603.6a",
+      "702.26a",
+      "703.4a"
+    ],
+    "gold": [
+      "702.26d"
+    ],
+    "gold_text": {
+      "702.26d": "Phasing The phasing event doesn’t actually cause a permanent to change zones or control, even though it’s treated as though it’s not on the battlefield and not under its controller’s control while it’s phased out. Zone-change triggers don’t trigger when a permanent phases in or out. Tokens continue to exist on the battlefield while phased out. Counters and stickers remain on a permanent while it’s phased out. Effects that check a phased-in permanent’s history won’t treat the phasing event as having caused the permanent to leave or enter the battlefield or its controller’s control."
+    },
+    "cited_text": {
+      "702.26c": "Phasing If a permanent phases in, its status changes to “phased in.” The game once again treats it as though it exists.",
+      "702.26d": "Phasing The phasing event doesn’t actually cause a permanent to change zones or control, even though it’s treated as though it’s not on the battlefield and not under its controller’s control while it’s phased out. Zone-change triggers don’t trigger when a permanent phases in or out. Tokens continue to exist on the battlefield while phased out. Counters and stickers remain on a permanent while it’s phased out. Effects that check a phased-in permanent’s history won’t treat the phasing event as having caused the permanent to leave or enter the battlefield or its controller’s control.",
+      "603.6a": "Trigger events that involve objects changing zones are called “zone-change triggers.” Many abilities with zone-change triggers attempt to do something to that object after it changes zones. During resolution, these abilities look for the object in the zone that it moved to. If the object is unable to be found in the zone it went to, the part of the ability attempting to do something to the object will fail to do anything. The ability could be unable to find the object because the object never entered the specified zone, because it left the zone before the ability resolved, or because it is in a zone that is hidden from a player, such as a library or an opponent’s hand. (This rule applies even if the object leaves the zone and returns again before the ability resolves.) The most common zone-change triggers are enters-the-battlefield triggers and leaves-the-battlefield triggers. Enters-the-battlefield abilities trigger when a permanent enters the battlefield. These are written, “When [this object] enters, . . . “ or “Whenever a [type] enters, . . .” Each time an event puts one or more permanents onto the battlefield, all permanents on the battlefield (including the newcomers) are checked for any enters-the-battlefield triggers that match the event.",
+      "702.26a": "Phasing Phasing is a static ability that modifies the rules of the untap step. During each player’s untap step, before the active player untaps permanents, all phased-in permanents with phasing that player controls “phase out.” Simultaneously, all phased-out permanents that had phased out under that player’s control “phase in.”",
+      "703.4a": "The turn-based actions are as follows: Immediately after the untap step begins, all phased-in permanents with phasing that the active player controls phase out, and all phased-out permanents that the active player controlled when they phased out phase in. This all happens simultaneously. See rule 502.1."
+    },
+    "rewrite_queries": [],
+    "clarification": null
+  },
+  {
+    "id": "q002",
+    "question": "how does trample work with deathtouch?",
+    "match": "all",
+    "kind": "interaction",
+    "show_rewrite": false,
+    "rewrite_version": "v2",
+    "ruling_query_mode": "raw",
+    "condition": "v4",
+    "run": 2,
+    "answered": true,
+    "answer": "When a creature has both trample and deathtouch, the attacking creature's controller only needs to assign 1 damage to each blocking creature to satisfy the \"lethal damage\" requirement for trample, then can assign all the rest of that creature's damage to the defending player, planeswalker, or battle it's attacking.\n\nHere's why: Trample (rule 702.19b) requires the attacking creature's controller to assign at least lethal damage to each blocking creature before assigning excess damage to the defending player/planeswalker. Normally \"lethal damage\" means damage at least equal to the blocker's remaining toughness (accounting for damage already marked and damage being assigned simultaneously from other sources), per rule 702.19b and rule 120.4a.\n\nHowever, deathtouch changes what counts as lethal. Rule 702.2c states that any nonzero amount of combat damage assigned to a creature by a source with deathtouch is considered lethal damage for the purpose of determining excess damage. So if the attacking creature has deathtouch, assigning just 1 damage to a blocking creature already counts as \"lethal damage\" for trample's assignment rules, freeing up all the remaining damage to be assigned to the player, planeswalker, or battle being attacked (per rule 702.19b, which explicitly says to take deathtouch-based lethal-damage calculations into account, and rule 120.4a, which confirms any amount of damage greater than 1 is excess damage if the source has deathtouch).\n\nSeparately, once combat damage is actually dealt, rule 702.2b and the state-based action in rule 704.5h mean that any creature with toughness greater than 0 that has been dealt any damage by a deathtouch source is destroyed as a state-based action, regardless of whether that damage would normally be lethal by the toughness-comparison rule in 120.6. This applies no matter what zone the deathtouch source deals damage from (rule 702.2d) and is independent of the trample mechanic itself.\n\nExample: a 5/5 attacking creature with trample and deathtouch is blocked by a 4/4 creature. The attacker's controller can assign just 1 damage to the blocking 4/4 (satisfying the deathtouch-lethal rule) and assign the remaining 4 damage to the defending player. The blocked 4/4 will then be destroyed as a state-based action because it was dealt damage by a deathtouch source, even though 1 damage alone wouldn't normally be lethal to a 4/4 by toughness.\n\nAssumption: I'm assuming a single blocking creature and no other damage sources or effects modifying toughness/damage in this scenario; if there are multiple blockers or other damage being assigned simultaneously, the deathtouch-lethal calculation is done per rule 702.19b, taking all simultaneous damage into account, but the same basic principle (1 damage per blocker counts as lethal) still applies to each blocker individually.",
+    "citations": [
+      "702.2c",
+      "702.19b",
+      "702.2b",
+      "702.2d",
+      "704.5h",
+      "120.4a",
+      "120.6"
+    ],
+    "gold": [
+      "702.19b",
+      "702.2c"
+    ],
+    "gold_text": {
+      "702.19b": "Trample The controller of an attacking creature with trample first assigns damage to the creature(s) blocking it. Once all those blocking creatures are assigned lethal damage, any excess damage is assigned as its controller chooses among those blocking creatures and the player, planeswalker, or battle the creature is attacking. When checking for assigned lethal damage, take into account damage already marked on the creature and damage from other creatures that’s being assigned during the same combat damage step, but not any abilities or effects that might change the amount of damage that’s actually dealt. The attacking creature’s controller need not assign lethal damage to all those blocking creatures but in that case can’t assign any damage to the player or planeswalker it’s attacking. A 2/2 creature that can block an additional creature blocks two attackers: a 1/1 with no abilities and a 3/3 with trample. The active player could assign 1 damage from the first attacker and 1 damage from the second to the blocking creature, and 2 damage to the defending player from the creature with trample. A 6/6 green creature with trample is blocked by a 2/2 creature with protection from green. The attacking creature’s controller must assign at least 2 damage to the blocker, even though that damage will be prevented by the blocker’s protection ability. The attacking creature’s controller can divide the rest of the damage as they choose between the blocking creature and the defending player.",
+      "702.2c": "Deathtouch Any nonzero amount of combat damage assigned to a creature by a source with deathtouch is considered to be lethal damage for the purposes of determining if excess damage is being dealt."
+    },
+    "cited_text": {
+      "702.2c": "Deathtouch Any nonzero amount of combat damage assigned to a creature by a source with deathtouch is considered to be lethal damage for the purposes of determining if excess damage is being dealt.",
+      "702.19b": "Trample The controller of an attacking creature with trample first assigns damage to the creature(s) blocking it. Once all those blocking creatures are assigned lethal damage, any excess damage is assigned as its controller chooses among those blocking creatures and the player, planeswalker, or battle the creature is attacking. When checking for assigned lethal damage, take into account damage already marked on the creature and damage from other creatures that’s being assigned during the same combat damage step, but not any abilities or effects that might change the amount of damage that’s actually dealt. The attacking creature’s controller need not assign lethal damage to all those blocking creatures but in that case can’t assign any damage to the player or planeswalker it’s attacking. A 2/2 creature that can block an additional creature blocks two attackers: a 1/1 with no abilities and a 3/3 with trample. The active player could assign 1 damage from the first attacker and 1 damage from the second to the blocking creature, and 2 damage to the defending player from the creature with trample. A 6/6 green creature with trample is blocked by a 2/2 creature with protection from green. The attacking creature’s controller must assign at least 2 damage to the blocker, even though that damage will be prevented by the blocker’s protection ability. The attacking creature’s controller can divide the rest of the damage as they choose between the blocking creature and the defending player.",
+      "702.2b": "Deathtouch A creature with toughness greater than 0 that’s been dealt damage by a source with deathtouch since the last time state-based actions were checked is destroyed as a state-based action. See rule 704.",
+      "702.2d": "Deathtouch The deathtouch rules function no matter what zone an object with deathtouch deals damage from.",
+      "704.5h": "The state-based actions are as follows: If a creature has toughness greater than 0, and it’s been dealt damage by a source with deathtouch since the last time state-based actions were checked, that creature is destroyed. Regeneration can replace this event.",
+      "120.4a": "Damage is processed in a four-part sequence. First, if an effect that’s causing damage to be dealt states that excess damage that would be dealt to a permanent is dealt to another permanent or player instead, the damage event is modified accordingly. If the first permanent is a creature, the excess damage is the amount of damage in excess of what would be lethal damage, taking into account damage already marked on the creature and damage from other sources that would be dealt at the same time. (See rule 120.6.) Any amount of damage greater than 1 is excess damage if the source dealing that damage to a creature has deathtouch. (See rule 702.2.) If the first permanent is a planeswalker, the excess damage is the amount of damage in excess of that planeswalker’s loyalty, taking into account damage from other sources that would be dealt at the same time. If the first permanent is a battle, the excess damage is the amount of damage in excess of that battle’s defense, taking into account damage from other sources that would be dealt at the same time. If the first permanent has multiple card types from among the list of creature, planeswalker, and battle, the excess damage is the greatest of the calculated amounts for each of the card types it has.",
+      "120.6": "Damage marked on a creature remains until the cleanup step, even if that permanent stops being a creature. If the total damage marked on a creature is greater than or equal to its toughness, that creature has been dealt lethal damage and is destroyed as a state-based action (see rule 704). All damage marked on a permanent is removed when it regenerates (see rule 701.19, “Regenerate”) and during the cleanup step (see rule 514.2)."
+    },
+    "rewrite_queries": [],
+    "clarification": null
+  },
+  {
+    "id": "q003",
+    "question": "is storm a triggered ability that can be countered?",
+    "match": "all",
+    "kind": "interaction",
+    "show_rewrite": false,
+    "rewrite_version": "v2",
+    "ruling_query_mode": "raw",
+    "condition": "v4",
+    "run": 2,
+    "answered": true,
+    "answer": "Yes. Storm is a triggered ability that functions on the stack: rule 702.40a states \"Storm is a triggered ability that functions on the stack. 'Storm' means...\" and 702.40b confirms it as a triggered ability even when a card has multiple storm instances. Because it is a triggered ability rather than a spell, general \"counter target spell\" effects (like Counterspell) cannot counter the storm trigger itself, per rule 113.9: \"Activated and triggered abilities on the stack aren't spells, and therefore can't be countered by anything that counters only spells.\" However, the storm trigger CAN be countered by an effect that specifically says it counters abilities (not just spells) — rule 113.9 also says \"Activated and triggered abilities on the stack can be countered by effects that specifically counter abilities.\" For example, an ability with Ward that targets the storm trigger, or a card that explicitly reads \"counter target activated or triggered ability,\" could counter it. If the storm trigger itself is countered before it resolves, the copies it would have created are never made, since the ability's effect (making the copies) never happens (603.3, 603.1a). Note this is about countering the storm trigger itself, which is separate from countering the original spell it's attached to — countering the spell after the storm trigger has already resolved would not undo the copies already made.",
+    "citations": [
+      "702.40a",
+      "702.40b",
+      "113.9",
+      "603.3",
+      "603.1a"
+    ],
+    "gold": [
+      "702.40a",
+      "113.9"
+    ],
+    "gold_text": {
+      "702.40a": "Storm Storm is a triggered ability that functions on the stack. “Storm” means “When you cast this spell, copy it for each other spell that was cast before it this turn. If the spell has any targets, you may choose new targets for any of the copies.”",
+      "113.9": "Activated and triggered abilities on the stack aren’t spells, and therefore can’t be countered by anything that counters only spells. Activated and triggered abilities on the stack can be countered by effects that specifically counter abilities. Static abilities don’t use the stack and thus can’t be countered at all."
+    },
+    "cited_text": {
+      "702.40a": "Storm Storm is a triggered ability that functions on the stack. “Storm” means “When you cast this spell, copy it for each other spell that was cast before it this turn. If the spell has any targets, you may choose new targets for any of the copies.”",
+      "702.40b": "Storm If a spell has multiple instances of storm, each triggers separately.",
+      "113.9": "Activated and triggered abilities on the stack aren’t spells, and therefore can’t be countered by anything that counters only spells. Activated and triggered abilities on the stack can be countered by effects that specifically counter abilities. Static abilities don’t use the stack and thus can’t be countered at all.",
+      "603.3": "Once an ability has triggered, its controller puts it on the stack as an object that’s not a card the next time a player would receive priority. See rule 117, “Timing and Priority.” The ability becomes the topmost object on the stack. It has the text of the ability that created it, and no other characteristics. It remains on the stack until it’s countered, it resolves, a rule causes it to be removed from the stack, or an effect moves it elsewhere.",
+      "603.1a": "Triggered abilities have a trigger condition and an effect. They are written as “[When/Whenever/At] [trigger condition or event], [effect]. [Instructions (if any).]” A triggered ability may include instructions after its effects that limit what the ability may target or state that it can’t be countered. This text is not part of the ability’s effect. It functions while the ability is on the stack."
+    },
+    "rewrite_queries": [],
+    "clarification": null
+  },
+  {
+    "id": "q004",
+    "question": "can i use cards with hybrid mana symbols in a commander deck that only has one of those colors?",
+    "match": "all",
+    "kind": "interaction",
+    "show_rewrite": false,
+    "rewrite_version": "v2",
+    "ruling_query_mode": "raw",
+    "condition": "v4",
+    "run": 2,
+    "answered": true,
+    "answer": "No. A card with a hybrid mana symbol counts as being ALL of the colors in that symbol for color identity purposes, so it can only go in a Commander deck if the commander's color identity includes both of those colors, not just one.\n\nHere's why: a hybrid mana symbol such as {R/G} is treated as a colored mana symbol for both of its component colors at once — rule [107.4e] states \"a hybrid mana symbol is all of its component colors.\" Rule [202.2d] confirms that an object with a hybrid mana symbol in its mana cost is all of those colors. Color identity itself (rule [903.4]) is defined as \"the color or colors of any mana symbols in that card's mana cost or rules text,\" so a card with an {R/G} symbol anywhere in its cost or text has BOTH red and green in its color identity — it doesn't matter that you could theoretically pay the cost with just one of those colors of mana.\n\nRule [903.5c] spells out the practical deckbuilding rule directly: \"A card can be included in a Commander deck only if every color in its color identity is also found in the color identity of the deck's commander,\" and explicitly notes that in a mono-red or mono-green deck each mana symbol in a card must be \"only red, only green, both red and green, or have no color\" — a card with an {R/G} hybrid symbol falls into the \"both red and green\" category, which means it is NOT legal in a deck whose commander is only red (or only green) — you'd need a commander whose color identity includes both red and green.\n\nSo: if your commander's color identity is just one color (say mono-red), a card containing a hybrid symbol like {R/W}, {R/G}, {U/R}, or {B/R} is illegal for your deck, because that symbol also injects a second color into the card's own color identity that your commander doesn't share. The fact that you *could* pay the symbol with red mana alone (per rule [107.4e]/[118.13]) doesn't matter for deck construction — color identity is about the symbols printed on the card, not how you choose to pay them.\n\nThis applies the same whether you're playing a two-player or multiplayer Commander game, since these are deck construction rules that don't depend on player count.",
+    "citations": [
+      "903.4",
+      "903.5c",
+      "107.4e",
+      "202.2d"
+    ],
+    "gold": [
+      "202.2d",
+      "903.4"
+    ],
+    "gold_text": {
+      "202.2d": "An object is the color or colors of the mana symbols in its mana cost, regardless of the color of its frame. An object with one or more hybrid mana symbols and/or Phyrexian mana symbols in its mana cost is all of the colors of those mana symbols, in addition to any other colors the object might be. (Most cards with hybrid mana symbols in their mana costs are printed in a two-tone frame. See rule 107.4e.)",
+      "903.4": "The Commander variant uses color identity to determine what cards can be in a deck with a certain commander. The color identity of a card is the color or colors of any mana symbols in that card’s mana cost or rules text, plus any colors defined by its characteristic-defining abilities (see rule 604.3) or color indicator (see rule 204). Bosh, Iron Golem is a legendary artifact creature with mana cost {8} and the ability “{3}{R}, Sacrifice an artifact: Bosh, Iron Golem deals damage equal to the sacrificed artifact’s mana value to any target.” Bosh’s color identity is red."
+    },
+    "cited_text": {
+      "903.4": "The Commander variant uses color identity to determine what cards can be in a deck with a certain commander. The color identity of a card is the color or colors of any mana symbols in that card’s mana cost or rules text, plus any colors defined by its characteristic-defining abilities (see rule 604.3) or color indicator (see rule 204). Bosh, Iron Golem is a legendary artifact creature with mana cost {8} and the ability “{3}{R}, Sacrifice an artifact: Bosh, Iron Golem deals damage equal to the sacrificed artifact’s mana value to any target.” Bosh’s color identity is red.",
+      "903.5c": "Each Commander deck is subject to the following deck construction rules. A card can be included in a Commander deck only if every color in its color identity is also found in the color identity of the deck’s commander. Wort, the Raidmother is a legendary creature with mana cost {4}{R/G}{R/G}. Wort’s color identity is red and green. Each card in a Wort Commander deck must be only red, only green, both red and green, or have no color. Each mana symbol in the mana cost or rules text of a card in this deck must be only red, only green, both red and green, or have no color.",
+      "107.4e": "The mana symbols are {W}, {U}, {B}, {R}, {G}, and {C}; the numerical symbols {0}, {1}, {2}, {3}, {4}, and so on; the variable symbol {X}; the hybrid symbols {W/U}, {W/B}, {U/B}, {U/R}, {B/R}, {B/G}, {R/G}, {R/W}, {G/W}, and {G/U}; the monocolored hybrid symbols {2/W}, {2/U}, {2/B}, {2/R}, {2/G}, {C/W}, {C/U}, {C/B}, {C/R}, and {C/G}; the Phyrexian mana symbols {W/P}, {U/P}, {B/P}, {R/P}, and {G/P}; the hybrid Phyrexian symbols {W/U/P}, {W/B/P}, {U/B/P}, {U/R/P}, {B/R/P}, {B/G/P}, {R/G/P}, {R/W/P}, {G/W/P}, and {G/U/P}; and the snow mana symbol {S}. A hybrid mana symbol is also a colored mana symbol, even if one of its components is colorless. Each one represents a cost that can be paid in one of two ways, as represented by the two halves of the symbol. A hybrid symbol such as {W/U} can be paid with either white or blue mana, and a monocolored hybrid symbol such as {2/B} can be paid with either one black mana or two mana of any type. A hybrid mana symbol is all of its component colors. {G/W}{G/W} can be paid by spending {G}{G}, {G}{W}, or {W}{W}.",
+      "202.2d": "An object is the color or colors of the mana symbols in its mana cost, regardless of the color of its frame. An object with one or more hybrid mana symbols and/or Phyrexian mana symbols in its mana cost is all of the colors of those mana symbols, in addition to any other colors the object might be. (Most cards with hybrid mana symbols in their mana costs are printed in a two-tone frame. See rule 107.4e.)"
+    },
+    "rewrite_queries": [],
+    "clarification": null
+  },
+  {
+    "id": "q005",
+    "question": "can I respond to the untap step?",
+    "match": "any",
+    "kind": "rule",
+    "show_rewrite": false,
+    "rewrite_version": "v2",
+    "ruling_query_mode": "raw",
+    "condition": "v4",
+    "run": 2,
+    "answered": true,
+    "answer": "No. During the untap step, no player receives priority, so there is no window to cast spells, activate abilities, or otherwise \"respond\" to anything happening there. The untap step consists solely of turn-based actions (phasing, the day/night check if applicable, and untapping permanents) that happen automatically without using the stack, and the step ends once those actions are complete. If any ability triggers during the untap step (for example, from a permanent phasing in or out), it doesn't go on the stack immediately — it's held and put on the stack later, once a player actually gets priority (typically at the start of the upkeep step, before the active player receives priority there).\n\nSo concretely: you cannot cast an instant, activate an ability, or take any other priority-based action while the untap step is happening. You'll get your first chance to act in that turn once the upkeep step begins and the active player receives priority.",
+    "citations": [
+      "502.4",
+      "500.3",
+      "117.3a",
+      "500.12",
+      "503.1a",
+      "502.3"
+    ],
+    "gold": [
+      "502.4"
+    ],
+    "gold_text": {
+      "502.4": "No player receives priority during the untap step, so no spells can be cast or resolve and no abilities can be activated or resolve. Any ability that triggers during this step will be held until the next time a player would receive priority, which is usually during the upkeep step. (See rule 503, “Upkeep Step.”)"
+    },
+    "cited_text": {
+      "502.4": "No player receives priority during the untap step, so no spells can be cast or resolve and no abilities can be activated or resolve. Any ability that triggers during this step will be held until the next time a player would receive priority, which is usually during the upkeep step. (See rule 503, “Upkeep Step.”)",
+      "500.3": "A step in which no players receive priority ends when all specified actions that take place during that step are completed. The only such steps are the untap step (see rule 502) and certain cleanup steps (see rule 514).",
+      "117.3a": "Which player has priority is determined by the following rules: The active player receives priority at the beginning of most steps and phases, after any turn-based actions (such as drawing a card during the draw step; see rule 703) have been dealt with and abilities that trigger at the beginning of that phase or step have been put on the stack. No player receives priority during the untap step. Players usually don’t get priority during the cleanup step (see rule 514.3).",
+      "500.12": "No game events can occur between steps, phases, or turns.",
+      "503.1a": "The upkeep step has no turn-based actions. Once it begins, the active player gets priority. (See rule 117, “Timing and Priority.”) Any abilities that triggered during the untap step and any abilities that triggered at the beginning of the upkeep are put onto the stack before the active player gets priority; the order in which they triggered doesn’t matter. (See rule 603, “Handling Triggered Abilities.”)",
+      "502.3": "Third, the active player determines which permanents they control will untap. Then they untap them all simultaneously. This turn-based action doesn’t use the stack. Normally, all of a player’s permanents untap, but effects can keep one or more of a player’s permanents from untapping."
+    },
+    "rewrite_queries": [],
+    "clarification": null
+  },
+  {
+    "id": "q006",
+    "question": "are creatures still considered attacking creatures during the end of combat step?",
+    "match": "any",
+    "kind": "interaction",
+    "show_rewrite": false,
+    "rewrite_version": "v2",
+    "ruling_query_mode": "raw",
+    "condition": "v4",
+    "run": 2,
+    "answered": true,
+    "answer": "Yes. A creature remains an \"attacking creature\" until it is removed from combat or the combat phase ends, whichever comes first (see the Attacking Creature definition and rule 508.4d). Since the end of combat step is still part of the combat phase (it's the fifth and final step, per the End of Combat Step entry), creatures that attacked remain attacking creatures throughout that step. They only stop being attacking creatures once the end of combat step actually ends — rule 511.3 states that as soon as the end of combat step ends, all creatures, battles, and planeswalkers are removed from combat, and only then does the combat phase conclude and the postcombat main phase begin.\n\nSo during the end of combat step itself, before it ends, all creatures that attacked are still considered attacking creatures (and still count as such for abilities or effects that care about attacking creatures), unless something else removed them from combat earlier (rule 506.4, e.g. leaving the battlefield, changing controller, phasing out, etc.).",
+    "citations": [
+      "511.3",
+      "511.1",
+      "511.2",
+      "508.4d",
+      "Attacking Creature",
+      "506.4"
+    ],
+    "gold": [
+      "511.3"
+    ],
+    "gold_text": {
+      "511.3": "As soon as the end of combat step ends, all creatures, battles, and planeswalkers are removed from combat. After the end of combat step ends, the combat phase is over and the postcombat main phase begins (see rule 505)."
+    },
+    "cited_text": {
+      "511.3": "As soon as the end of combat step ends, all creatures, battles, and planeswalkers are removed from combat. After the end of combat step ends, the combat phase is over and the postcombat main phase begins (see rule 505).",
+      "511.1": "The end of combat step has no turn-based actions. Once it begins, the active player gets priority. (See rule 117, “Timing and Priority.”)",
+      "511.2": "Abilities that trigger “at end of combat” trigger as the end of combat step begins. Effects that last “until end of combat” expire at the end of the combat phase.",
+      "508.4d": "If a creature is put onto the battlefield attacking, its controller chooses which defending player, planeswalker a defending player controls, or battle a defending player protects it’s attacking as it enters the battlefield (unless the effect that put it onto the battlefield specifies what it’s attacking). Similarly, if an effect states that a creature is attacking, its controller chooses which defending player, planeswalker a defending player controls, or battle a defending player protects it’s attacking (unless the effect has already specified). Such creatures are “attacking” but, for the purposes of trigger events and effects, they never “attacked.” They remain attacking creatures until they’re removed from combat or the combat phase ends, whichever comes first. A creature that’s put onto the battlefield attacking during the declare blockers step, combat damage step, or end of combat step enters the battlefield as an unblocked creature. It remains unblocked until it is removed from combat, an effect says it becomes blocked, or the combat phase ends, whichever comes first.",
+      "Attacking Creature": "Attacking Creature. A creature that has either been declared as part of a legal attack during the combat phase (once all costs to attack, if any, have been paid), or a creature that has been put onto the battlefield attacking. It remains an attacking creature until it’s removed from combat or the combat phase ends, whichever comes first. See rule 508, “Declare Attackers Step.”",
+      "506.4": "A permanent is removed from combat if it leaves the battlefield, if its controller changes, if it phases out, if an effect specifically removes it from combat, if it’s a planeswalker that’s being attacked and stops being a planeswalker, if it’s a battle that’s being attacked and stops being a battle, or if it’s an attacking or blocking creature that regenerates (see rule 701.19), stops being a creature, or becomes a battle. A creature that’s removed from combat stops being an attacking, blocking, blocked, and/or unblocked creature. A planeswalker or battle that’s removed from combat stops being attacked."
+    },
+    "rewrite_queries": [],
+    "clarification": null
+  },
+  {
+    "id": "q007",
+    "question": "Do you cast lands?",
+    "match": "any",
+    "kind": "rule",
+    "show_rewrite": false,
+    "rewrite_version": "v2",
+    "ruling_query_mode": "raw",
+    "condition": "v4",
+    "run": 2,
+    "answered": true,
+    "answer": "No. Lands are never cast as spells — they're \"played,\" which is a special action that puts the land card directly onto the battlefield without ever using the stack. Since a played land never becomes a spell, it can't be countered and players can't respond to it with instants or activated abilities [305.1] [116.2a] [701.18a].\n\nThis is a deliberate distinction: casting applies to spells that go on the stack, while playing a land is a separate kind of action defined in rule 116 (\"Special Actions\") and rule 305 (\"Lands\") [601.1] [Play]. A land card also has no mana cost printed on it, and lands are played without paying any cost at all — there's nothing to \"cast\" [202.1b].\n\nEven if a card has multiple types, such as an artifact land, it still can only be played as a land and can never be cast as a spell [300.2a] [305.9] [Artifact Land]. If some other spell or ability instructs a player to \"play\" a card, that phrase means either playing it as a land or casting it as a spell, whichever is appropriate for that card — but a pure land card only ever gets played, never cast [701.18b].\n\nNormally a player may play only one land per turn, during a main phase of their own turn, only while they have priority and the stack is empty [305.1] [305.2] [305.6b], though effects can permit additional land plays [305.2b]. None of that involves casting.",
+    "citations": [
+      "305.1",
+      "116.2a",
+      "701.18a",
+      "601.1",
+      "Play",
+      "202.1b",
+      "300.2a",
+      "305.9",
+      "Artifact Land",
+      "701.18b",
+      "305.2",
+      "305.2b",
+      "505.6b"
+    ],
+    "gold": [
+      "305.1"
+    ],
+    "gold_text": {
+      "305.1": "A player who has priority may play a land card from their hand during a main phase of their turn when the stack is empty. Playing a land is a special action; it doesn’t use the stack (see rule 116). Rather, the player simply puts the land onto the battlefield. Since the land doesn’t go on the stack, it is never a spell, and players can’t respond to it with instants or activated abilities."
+    },
+    "cited_text": {
+      "305.1": "A player who has priority may play a land card from their hand during a main phase of their turn when the stack is empty. Playing a land is a special action; it doesn’t use the stack (see rule 116). Rather, the player simply puts the land onto the battlefield. Since the land doesn’t go on the stack, it is never a spell, and players can’t respond to it with instants or activated abilities.",
+      "116.2a": "There are twelve special actions: Playing a land is a special action. To play a land, a player puts that land onto the battlefield from the zone it was in (usually that player’s hand). By default, a player can take this action only once during each of their turns. A player can take this action any time they have priority and the stack is empty during a main phase of their turn. See rule 305, “Lands.”",
+      "701.18a": "Play To play a land means to put it onto the battlefield from the zone it’s in (usually the hand). A player may play a land if they have priority, it’s the main phase of their turn, the stack is empty, and they haven’t played a land this turn. Playing a land is a special action (see rule 116), so it doesn’t use the stack; it simply happens. Putting a land onto the battlefield as the result of a spell or ability isn’t the same as playing a land. See rule 305, “Lands.”",
+      "601.1": "Previously, the action of casting a spell, or casting a card as a spell, was referred to on cards as “playing” that spell or that card. Cards that were printed with that text have received errata in the Oracle card reference so they now refer to “casting” that spell or that card.",
+      "Play": "Play. To play a land is to put a land onto the battlefield as a special action. See rule 116, “Special Actions,” and rule 305, “Lands.” To play a card is to play that card as a land or cast that card as a spell, whichever is appropriate. See rule 601, “Casting Spells.” (Obsolete) Casting a spell used to be known as playing a spell. Cards with that text have received errata in the Oracle card reference. See Cast. (Obsolete) Activating an activated ability used to be known as playing an activated ability. Cards with that text have received errata in the Oracle card reference. See Activate. (Obsolete) The battlefield used to be known as the in-play zone. Cards that were printed with text that contains the phrases “in play,” “from play,” “into play,” or the like are referring to the battlefield and have received errata in the Oracle card reference. See Battlefield.",
+      "202.1b": "A card’s mana cost is indicated by mana symbols near the top of the card. (See rule 107.4.) On most cards, these symbols are printed in the upper right corner. Some cards from the Future Sight set have alternate frames in which the mana symbols appear to the left of the illustration. Some objects have no mana cost. This normally includes all land cards, any other cards that have no mana symbols where their mana cost would appear, tokens (unless the effect that creates them specifies otherwise), and nontraditional Magic cards. Having no mana cost represents an unpayable cost (see rule 118.6). Note that lands are played without paying any costs (see rule 305, “Lands”).",
+      "300.2a": "Some objects have more than one card type (for example, an artifact creature). Such objects combine the aspects of each of those card types, and are subject to spells and abilities that affect either or all of those card types. An object that’s both a land and another card type (for example, an artifact land) can only be played as a land. It can’t be cast as a spell.",
+      "305.9": "If an object is both a land and another card type, it can be played only as a land. It can’t be cast as a spell.",
+      "Artifact Land": "Artifact Land. A combination of artifact and land that’s subject to the rules for both. Artifact lands can only be played as lands, not cast as spells. See rule 301, “Artifacts,” and rule 305, “Lands.”",
+      "701.18b": "Play To play a card means to play that card as a land or to cast that card as a spell, whichever is appropriate.",
+      "305.2": "A player can normally play one land during their turn; however, continuous effects may increase this number.",
+      "305.2b": "A player can normally play one land during their turn; however, continuous effects may increase this number. A player can’t play a land, for any reason, if the number of lands the player can play this turn is equal to or less than the number of lands they have already played this turn. Ignore any part of an effect that instructs a player to do so.",
+      "505.6b": "Fourth, the active player gets priority. (See rule 117, “Timing and Priority.”) During either main phase, the active player may play one land card from their hand if the stack is empty, if the player has priority, and if they haven’t played a land this turn (unless an effect states the player may play additional lands). This action doesn’t use the stack. Neither the land nor the action of playing the land is a spell or ability, so it can’t be countered, and players can’t respond to it with instants or activated abilities. (See rule 305, “Lands.”)"
+    },
+    "rewrite_queries": [],
+    "clarification": null
+  },
+  {
+    "id": "q008",
+    "question": "can I sacrifice an evoked creature before that creature's evoke triggered ability resolves?",
+    "match": "all",
+    "kind": "interaction",
+    "show_rewrite": false,
+    "rewrite_version": "v2",
+    "ruling_query_mode": "raw",
+    "condition": "v4",
+    "run": 2,
+    "answered": true,
+    "answer": "Yes. Evoke's sacrifice is a triggered ability (\"When this permanent enters, if its evoke cost was paid, its controller sacrifices it\" per [702.74a]), and like any triggered ability it goes on the stack and only actually performs the sacrifice as it resolves. It is not itself a cost you can pay early — you can't choose to \"pay off\" the evoke trigger ahead of time. However, nothing stops you from using a *different* sacrifice outlet (another ability, spell, or cost that requires sacrificing a creature) to sacrifice that same evoked creature while the evoke trigger is still sitting on the stack waiting to resolve. Each payment of a cost only counts toward the ability or spell it's paying for ([118.10]), so sacrificing the creature to pay for something else is a completely separate event from the evoke trigger.\n\nIf you do that, then when the evoke triggered ability finally resolves, the creature is simply no longer on the battlefield — a triggered ability's instruction to sacrifice a specific permanent that's no longer there just does nothing when it resolves ([608.2a] governs how a resolving ability applies its effects/steps, and an object that's left the battlefield can't be sacrificed again). There's no penalty or 'fizzle' for the trigger itself; it just has no further effect since the permanent it referred to is gone.\n\nAssumption: I'm assuming 'sacrifice it' here means using some other effect (e.g., an activated ability with a sacrifice cost, another triggered ability, etc.) that lets you sacrifice the evoked creature before the evoke trigger resolves. If instead you meant simply choosing not to let the evoke trigger's own sacrifice happen, that's not optional — the evoke trigger's sacrifice happens automatically as part of its resolution and can't be skipped or preempted by itself.",
+    "citations": [
+      "702.74a",
+      "608.2a",
+      "118.10"
+    ],
+    "gold": [
+      "702.74a",
+      "603.3"
+    ],
+    "gold_text": {
+      "702.74a": "Evoke Evoke represents two abilities: a static ability that functions in any zone from which the card with evoke can be cast and a triggered ability that functions on the battlefield. “Evoke [cost]” means “You may cast this card by paying [cost] rather than paying its mana cost” and “When this permanent enters, if its evoke cost was paid, its controller sacrifices it.” Casting a spell for its evoke cost follows the rules for paying alternative costs in rules 601.2b and 601.2f–h.",
+      "603.3": "Once an ability has triggered, its controller puts it on the stack as an object that’s not a card the next time a player would receive priority. See rule 117, “Timing and Priority.” The ability becomes the topmost object on the stack. It has the text of the ability that created it, and no other characteristics. It remains on the stack until it’s countered, it resolves, a rule causes it to be removed from the stack, or an effect moves it elsewhere."
+    },
+    "cited_text": {
+      "702.74a": "Evoke Evoke represents two abilities: a static ability that functions in any zone from which the card with evoke can be cast and a triggered ability that functions on the battlefield. “Evoke [cost]” means “You may cast this card by paying [cost] rather than paying its mana cost” and “When this permanent enters, if its evoke cost was paid, its controller sacrifices it.” Casting a spell for its evoke cost follows the rules for paying alternative costs in rules 601.2b and 601.2f–h.",
+      "608.2a": "If the object that’s resolving is an instant spell, a sorcery spell, or an ability, its resolution may involve several steps. The steps described in rules 608.2a and 608.2b are followed first. The steps described in rules 608.2c–m are then followed as appropriate, in no specific order. The steps described in rule 608.2n and 608.2p are followed last. If a triggered ability has an intervening “if” clause, it checks whether the clause’s condition is true. If it isn’t, the ability is removed from the stack and does nothing. Otherwise, it continues to resolve. See rule 603.4.",
+      "118.10": "Each payment of a cost applies to only one spell, ability, or effect. For example, a player can’t sacrifice just one creature to activate the activated abilities of two permanents that each require sacrificing a creature as a cost. Also, the resolution of a spell or ability doesn’t pay another spell or ability’s cost, even if part of its effect is doing the same thing the other cost asks for."
+    },
+    "rewrite_queries": [],
+    "clarification": null
+  },
+  {
+    "id": "q009",
+    "question": "if a card loses all abilities, does that include keyword abilities?",
+    "match": "any",
+    "kind": "rule",
+    "show_rewrite": false,
+    "rewrite_version": "v2",
+    "ruling_query_mode": "raw",
+    "condition": "v4",
+    "run": 2,
+    "answered": true,
+    "answer": "Yes. Keyword abilities are just shorthand for abilities that are fully spelled out elsewhere - rule [702.1] explains that a keyword like flying, trample, or deathtouch is nothing more than a compact name for an ability, and [702.1d] confirms that a permanent \"with [keyword ability]\" or \"that has [keyword ability]\" simply has an ability of that name. Since an effect that removes abilities \"removes all instances of it\" ([113.10b]) and a \"loses all abilities\" effect strips every ability the object has, keyword abilities are swept away along with named, non-keyword abilities.\n\nA concrete illustration of the breadth of this kind of effect appears in [603.6d]: if a static effect says \"All creatures lose all abilities\" and a creature with an enters-the-battlefield triggered ability enters the battlefield, the loss happens the instant it enters, so that triggered ability never even triggers - showing that keyword-based and other triggered/activated/static abilities alike are all covered by a blanket \"loses all abilities\" effect.\n\nOne caveat worth flagging: a card's own printed text always controls if it phrases things differently (e.g., a card that says \"loses all abilities except flying\" would keep flying specifically). Also, characteristic-defining abilities ([604.3]) convey characteristics rather than being ordinary granted abilities in some rulings contexts, but the rules provided here don't give an explicit exception for them under a \"loses all abilities\" effect, so absent card text saying otherwise, they'd be treated as abilities too and would be lost.",
+    "citations": [
+      "702.1",
+      "702.1d",
+      "113.10b",
+      "603.6d",
+      "604.3"
+    ],
+    "gold": [
+      "702.1"
+    ],
+    "gold_text": {
+      "702.1": "Most abilities describe exactly what they do in the card’s rules text. Some, though, are very common or would require too much space to define on the card. In these cases, the object lists only the name of the ability as a “keyword”; sometimes reminder text summarizes the game rule."
+    },
+    "cited_text": {
+      "702.1": "Most abilities describe exactly what they do in the card’s rules text. Some, though, are very common or would require too much space to define on the card. In these cases, the object lists only the name of the ability as a “keyword”; sometimes reminder text summarizes the game rule.",
+      "702.1d": "Most abilities describe exactly what they do in the card’s rules text. Some, though, are very common or would require too much space to define on the card. In these cases, the object lists only the name of the ability as a “keyword”; sometimes reminder text summarizes the game rule. An effect may refer to an object “with [keyword ability]” or “that has [keyword ability].” This means the same thing as an object “with a [keyword ability] ability” or an object “that has a [keyword ability] ability.”",
+      "113.10b": "Effects can add or remove abilities of objects. An effect that adds an ability will state that the object “gains” or “has” that ability, or similar. An effect that removes an ability will state that the object “loses” that ability. Effects that remove an ability remove all instances of it.",
+      "603.6d": "Trigger events that involve objects changing zones are called “zone-change triggers.” Many abilities with zone-change triggers attempt to do something to that object after it changes zones. During resolution, these abilities look for the object in the zone that it moved to. If the object is unable to be found in the zone it went to, the part of the ability attempting to do something to the object will fail to do anything. The ability could be unable to find the object because the object never entered the specified zone, because it left the zone before the ability resolved, or because it is in a zone that is hidden from a player, such as a library or an opponent’s hand. (This rule applies even if the object leaves the zone and returns again before the ability resolves.) The most common zone-change triggers are enters-the-battlefield triggers and leaves-the-battlefield triggers. Some permanents have text that reads “[This permanent] enters with . . . ,” “As [this permanent] enters . . . ,” “[This permanent] enters as . . . ,” or “[This permanent] enters tapped.” Such text is a static ability—not a triggered ability—whose effect occurs as part of the event that puts the permanent onto the battlefield.",
+      "604.3": "Some static abilities are characteristic-defining abilities. A characteristic-defining ability conveys information about an object’s characteristics that would normally be found elsewhere on that object (such as in its mana cost, type line, or power/toughness box). Characteristic-defining abilities can add to or override information found elsewhere on that object. Characteristic-defining abilities function in all zones. They also function outside the game and before the game begins."
+    },
+    "rewrite_queries": [],
+    "clarification": null
+  },
+  {
+    "id": "q010",
+    "question": "can i draw cards if i'm already at my maximum hand size?",
+    "match": "any",
+    "kind": "rule",
+    "show_rewrite": false,
+    "rewrite_version": "v2",
+    "ruling_query_mode": "raw",
+    "condition": "v4",
+    "run": 2,
+    "answered": true,
+    "answer": "Yes. Maximum hand size doesn't stop you from drawing cards at all—it only matters at cleanup. There's no rule that prevents drawing (or being dealt cards from any other source) just because your hand is already at your maximum hand size (normally seven cards). The maximum hand size is only checked and enforced once, as a turn-based action at the very start of the active player's cleanup step: if their hand contains more cards than their maximum hand size, they discard down to that number [402.2] [514.1] [703.4n]. So during the rest of the turn you can draw as many cards as an effect tells you to, going well above your maximum hand size temporarily, and you'll only have to discard the excess (if you're the active player) when your cleanup step begins. If you're not the active player and somehow have more cards than your maximum hand size, there's no discard step for you unless something else forces it, since rule 514.1/703.4n specifically refers to the active player's hand. One caveat: if a card's own text sets a different maximum hand size (e.g., a vanguard card's hand modifier per rule 313.6/902.5b), that number replaces the normal seven for that player's cleanup-step check, but the same principle applies—drawing is unrestricted, only the cleanup-step discard is tied to maximum hand size.",
+    "citations": [
+      "402.2",
+      "514.1",
+      "703.4n",
+      "313.6",
+      "902.5b"
+    ],
+    "gold": [
+      "402.2"
+    ],
+    "gold_text": {
+      "402.2": "Each player has a maximum hand size, which is normally seven cards. A player may have any number of cards in their hand, but as part of their cleanup step, the player must discard excess cards down to the maximum hand size."
+    },
+    "cited_text": {
+      "402.2": "Each player has a maximum hand size, which is normally seven cards. A player may have any number of cards in their hand, but as part of their cleanup step, the player must discard excess cards down to the maximum hand size.",
+      "514.1": "First, if the active player’s hand contains more cards than their maximum hand size (normally seven), they discard enough cards to reduce their hand size to that number. This turn-based action doesn’t use the stack.",
+      "703.4n": "The turn-based actions are as follows: Immediately after the cleanup step begins, if the active player’s hand contains more cards than their maximum hand size (normally seven), they discard enough cards to reduce their hand size to that number. See rule 514.1.",
+      "313.6": "Each vanguard card has a hand modifier printed in its lower left corner. This is a number preceded by a plus sign, a number preceded by a minus sign, or a zero. This modifier is applied to the starting hand size and maximum hand size of the vanguard card’s owner (normally seven). The resulting number is both how many cards that player draws at the beginning of the game and their maximum hand size. See rule 103.5.",
+      "902.5b": "Each player’s starting hand size is seven cards, as modified by the hand modifier of their vanguard card. A player’s maximum hand size is seven, as modified by the hand modifier of their vanguard card. The hand modifier of a player’s vanguard card is -1. That player’s maximum hand size is six. If that player has more than six cards in their hand as their cleanup step begins, they will discard all but six of them."
+    },
+    "rewrite_queries": [],
+    "clarification": null
+  },
+  {
+    "id": "q011",
+    "question": "what happens when a planeswalker has 0 or less loyalty counters?",
+    "match": "any",
+    "kind": "rule",
+    "show_rewrite": false,
+    "rewrite_version": "v2",
+    "ruling_query_mode": "raw",
+    "condition": "v4",
+    "run": 2,
+    "answered": true,
+    "answer": "If a planeswalker has 0 (or effectively fewer, since loyalty counters can't go below 0) loyalty counters, it is put into its owner's graveyard. This happens automatically as a state-based action — it doesn't use the stack, can't be responded to, and is checked and performed as soon as any player would receive priority.\n\nMechanically: loyalty is a characteristic only planeswalkers have, tracked by loyalty counters on the permanent [306.5][306.5c]. Damage dealt to a planeswalker removes that many loyalty counters rather than being 'life loss' [120.3c][306.8], and activated loyalty abilities add or remove counters via their [+N]/[-N]/[0] symbols [107.7]. Once the loyalty counter count reaches 0, the game checks state-based actions [704.1], and rule 704.5i (echoed by 306.9 and 122.1e) requires that the planeswalker be put into its owner's graveyard. This is analogous to how a player with 0 or less life loses the game as a state-based action [119.6][104.3b], though for planeswalkers the result is the permanent going to the graveyard rather than a player losing.\n\nBecause loyalty is represented by physical counters, it can't actually go negative — if an effect would remove more loyalty counters than are present, it simply removes all of them, leaving 0, which then triggers the same graveyard rule.",
+    "citations": [
+      "704.5i",
+      "306.9",
+      "122.1e",
+      "306.5",
+      "306.5c",
+      "120.3c",
+      "306.8",
+      "107.7",
+      "704.1",
+      "119.6",
+      "104.3b"
+    ],
+    "gold": [
+      "704.5i",
+      "306.9"
+    ],
+    "gold_text": {
+      "704.5i": "The state-based actions are as follows: If a planeswalker has loyalty 0, it’s put into its owner’s graveyard.",
+      "306.9": "If a planeswalker’s loyalty is 0, it’s put into its owner’s graveyard. (This is a state-based action. See rule 704.)"
+    },
+    "cited_text": {
+      "704.5i": "The state-based actions are as follows: If a planeswalker has loyalty 0, it’s put into its owner’s graveyard.",
+      "306.9": "If a planeswalker’s loyalty is 0, it’s put into its owner’s graveyard. (This is a state-based action. See rule 704.)",
+      "122.1e": "A counter is a marker placed on an object or player that modifies its characteristics and/or interacts with a rule, ability, or effect. Counters are not objects and have no characteristics. Notably, a counter is not a token, and a token is not a counter. Counters with the same name or description are interchangeable. The number of loyalty counters on a planeswalker on the battlefield indicates how much loyalty it has. A planeswalker with 0 loyalty is put into its owner’s graveyard as a state-based action. See rule 704.",
+      "306.5": "Loyalty is a characteristic only planeswalkers have.",
+      "306.5c": "Loyalty is a characteristic only planeswalkers have. The loyalty of a planeswalker on the battlefield is equal to the number of loyalty counters on it.",
+      "120.3c": "Damage may have one or more of the following results, depending on whether the recipient of the damage is a player or permanent, the characteristics of the damage’s source, and the characteristics of the damage’s recipient (if it’s a permanent). Damage dealt to a planeswalker causes that many loyalty counters to be removed from that planeswalker.",
+      "306.8": "Damage dealt to a planeswalker results in that many loyalty counters being removed from it.",
+      "107.7": "Each activated ability of a planeswalker has a loyalty symbol in its cost. Positive loyalty symbols point upward and feature a plus sign followed by a number. Negative loyalty symbols point downward and feature a minus sign followed by a number or an X. Neutral loyalty symbols don’t point in either direction and feature a 0. [+N] means “Put N loyalty counters on this permanent,” [-N] means “Remove N loyalty counters from this permanent,” and [0] means “Put zero loyalty counters on this permanent.” Loyalty symbols may also appear in abilities that modify loyalty costs.",
+      "704.1": "State-based actions are game actions that happen automatically whenever certain conditions (listed below) are met. State-based actions don’t use the stack.",
+      "119.6": "If a player has 0 or less life, that player loses the game as a state-based action. See rule 704.",
+      "104.3b": "There are several ways to lose the game. If a player’s life total is 0 or less, that player loses the game the next time a player would receive priority. (This is a state-based action. See rule 704.)"
+    },
+    "rewrite_queries": [],
+    "clarification": null
+  },
+  {
+    "id": "q012",
+    "question": "do non-creature artifacts die?",
+    "match": "any",
+    "kind": "rule",
+    "show_rewrite": false,
+    "rewrite_version": "v2",
+    "ruling_query_mode": "raw",
+    "condition": "v4",
+    "run": 2,
+    "answered": true,
+    "answer": "No. In the strict rules sense, only creatures and planeswalkers \"die\" — the term \"dies\" is defined as \"is put into a graveyard from the battlefield,\" and that keyword definition is reserved for creatures and planeswalkers [Dies], [700.4]. A non-creature artifact (an artifact that has no creature type) can still be put into a graveyard from the battlefield — for example if it's destroyed, sacrificed, or a state-based action sends it there — but that event is simply \"put into the graveyard from the battlefield,\" not \"dies.\" This matters for triggered abilities: an ability that says \"whenever a creature dies\" will not trigger off a non-creature artifact going to the graveyard, because that artifact isn't a creature and its going to the graveyard isn't a \"dies\" event.\n\nThe exception is an artifact creature — an object with both the artifact and creature types combines the aspects of both card types [300.2], so it is a creature, and when it's put into a graveyard from the battlefield it does die, triggering \"whenever a creature dies\" abilities just like any other creature.\n\nNote that artifacts being colorless has nothing to do with this — colorless/artifact status and creature status are unrelated characteristics [301.4] — the deciding factor is purely whether the object is a creature (or planeswalker) at the time it leaves the battlefield.",
+    "citations": [
+      "Dies",
+      "700.4",
+      "300.2",
+      "301.4"
+    ],
+    "gold": [
+      "700.4"
+    ],
+    "gold_text": {
+      "700.4": "The term dies means “is put into a graveyard from the battlefield.”"
+    },
+    "cited_text": {
+      "Dies": "Dies. A creature or planeswalker “dies” if it is put into a graveyard from the battlefield. See rule 700.4.",
+      "700.4": "The term dies means “is put into a graveyard from the battlefield.”",
+      "300.2": "Some objects have more than one card type (for example, an artifact creature). Such objects combine the aspects of each of those card types, and are subject to spells and abilities that affect either or all of those card types.",
+      "301.4": "Artifacts have no characteristics specific to their card type. Most artifacts have no colored mana symbols in their mana costs, and are therefore colorless. However, there is no correlation between being colorless and being an artifact: artifacts may be colored, and colorless objects may be card types other than artifact."
+    },
+    "rewrite_queries": [],
+    "clarification": null
+  },
+  {
+    "id": "q013",
+    "question": "what happens if i should draw a card when my library is empty?",
+    "match": "any",
+    "kind": "rule",
+    "show_rewrite": false,
+    "rewrite_version": "v2",
+    "ruling_query_mode": "raw",
+    "condition": "v4",
+    "run": 2,
+    "answered": true,
+    "answer": "You don't lose the instant you try to draw — the empty draw itself just fails to put a card into your hand, but that failed attempt is a state-based action condition, and you will lose the game the next time any player would receive priority. In more detail: rule [121.4] and [704.5b] state that a player who attempts to draw from a library with no cards in it loses the game the next time a player would receive priority — this is checked as a state-based action, and state-based actions don't use the stack [704.1], so there's no way to respond to or prevent this once it happens, other than answering it before the draw occurs (e.g., gaining life isn't relevant, but effects that stop the draw or that replace the draw would matter). If the effect requires drawing more cards than remain in your library (e.g., 'draw three' but only one card is left), you draw as many as are actually there and then lose the game the same way, the next time a player would receive priority [104.3c]. Note that if some other effect replaces the draw (a 'draw a card' replacement effect), that replacement effect still applies even though there are no cards to draw, per [121.6a] and [614.11] — in that case you're not actually drawing from the empty library, so the empty-library loss condition doesn't trigger from that particular event. Also, if an effect merely offers you the choice to draw (rather than requiring it) while your library is empty, you can still choose to attempt it, per [121.3] and [121.3a] — doing so would still set up the state-based loss.",
+    "citations": [
+      "121.4",
+      "104.3c",
+      "704.5b",
+      "704.1",
+      "121.6a",
+      "614.11",
+      "121.3",
+      "121.3a"
+    ],
+    "gold": [
+      "704.5b",
+      "121.4"
+    ],
+    "gold_text": {
+      "704.5b": "The state-based actions are as follows: If a player attempted to draw a card from a library with no cards in it since the last time state-based actions were checked, that player loses the game.",
+      "121.4": "A player who attempts to draw a card from a library with no cards in it loses the game the next time a player would receive priority. (This is a state-based action. See rule 704.)"
+    },
+    "cited_text": {
+      "121.4": "A player who attempts to draw a card from a library with no cards in it loses the game the next time a player would receive priority. (This is a state-based action. See rule 704.)",
+      "104.3c": "There are several ways to lose the game. If a player is required to draw more cards than are left in their library, they draw the remaining cards and then lose the game the next time a player would receive priority. (This is a state-based action. See rule 704.)",
+      "704.5b": "The state-based actions are as follows: If a player attempted to draw a card from a library with no cards in it since the last time state-based actions were checked, that player loses the game.",
+      "704.1": "State-based actions are game actions that happen automatically whenever certain conditions (listed below) are met. State-based actions don’t use the stack.",
+      "121.6a": "Some effects replace card draws. An effect that replaces a card draw is applied even if no cards could be drawn because there are no cards in the affected player’s library.",
+      "614.11": "Some effects replace card draws. These effects are applied even if no cards could be drawn because there are no cards in the affected player’s library.",
+      "121.3": "If there are no cards in a player’s library and an effect offers that player the choice to draw a card, that player can choose to do so. However, if an effect says that a player can’t draw cards and another effect offers that player the choice to draw a card, that player can’t choose to do so.",
+      "121.3a": "If there are no cards in a player’s library and an effect offers that player the choice to draw a card, that player can choose to do so. However, if an effect says that a player can’t draw cards and another effect offers that player the choice to draw a card, that player can’t choose to do so. The same principles apply if the player who’s making the choice is not the player who would draw the card. If the latter player has no cards in their library, the choice can be taken. If an effect says that the latter player can’t draw a card, the choice can’t be taken."
+    },
+    "rewrite_queries": [],
+    "clarification": null
+  },
+  {
+    "id": "q014",
+    "question": "what are the steps in combat and when do I have priority as the defending player?",
+    "match": "all",
+    "kind": "interaction",
+    "show_rewrite": false,
+    "rewrite_version": "v2",
+    "ruling_query_mode": "raw",
+    "condition": "v4",
+    "run": 2,
+    "answered": true,
+    "answer": "The combat phase has five steps, in order: beginning of combat, declare attackers, declare blockers, combat damage, and end of combat (declare blockers and combat damage are skipped if no creatures attack, and there are two combat damage steps if any attacking or blocking creature has first strike or double strike) [506.1].\n\nAs the defending player, here is what happens in each step and where priority comes into play:\n\n- **Beginning of combat step**: If this is a multiplayer game in which the active player's opponents don't all automatically become defending players, the active player picks one opponent to be the defending player as a turn-based action that doesn't use the stack [507.1][703.4h]. In games where all opponents automatically become defending players (e.g. the standard multiplayer 'attack multiple players' setup), no such choice is made and everyone is a defending player from the start [802.2]. Once that turn-based action resolves, priority is available under the normal priority system (rule 117.1), so you may get priority as defending player if/when it's passed to you.\n- **Declare attackers step**: no turn-based action is given in the rules provided for this step; priority is again handled per 117.1.\n- **Declare blockers step**: the defending player (you) declares blockers as a turn-based action that doesn't use the stack [509.1][703.4j]. After blockers are declared, priority becomes available again.\n- **Combat damage step**: first, in APNAP (Active Player, Non-Active Player) order, each player announces how their attacking or blocking creatures assign combat damage — this is a turn-based action and doesn't use the stack [510.1][703.4k]; in multiplayer games this assignment still proceeds APNAP with the rest of the step working as in a two-player game [802.5]. Then all assigned combat damage is dealt simultaneously, also without using the stack and with no chance for anyone to cast spells or activate abilities between assignment and dealing [510.2]. Priority is available after damage is dealt.\n- **End of combat step**: there is no turn-based action here. As soon as it begins, the active player receives priority first [511.1]. As defending player, you would then receive priority once the active player passes (or after anything they do resolves), per the general priority rules [117.1].\n\nSo the concrete moments where you, as defending player, act or can act are: (1) possibly being chosen as defending player in the beginning of combat step (multiplayer only) [507.1], (2) declaring your blockers in the declare blockers step [509.1], (3) announcing your blocking creatures' damage assignment in the combat damage step [510.1], and (4) receiving priority in any step once it's passed to you, including explicitly after the active player gets first priority in the end of combat step [511.1].\n\nOne gap: the rules provided here don't include the general rule stating who receives priority first in the beginning of combat, declare attackers, declare blockers, or combat damage steps (only the end of combat step's 'active player gets priority first' rule was given, at 511.1). If you're asking specifically about priority ordering in those other steps, that isn't fully settled by the rules given — I'm assuming, consistent with 511.1's pattern, that the active player would similarly get priority first in those steps too, but that specific rule wasn't provided.\n\nThis answer assumes a standard game; if you're in a two-player game, you (as the nonactive player) are automatically the defending player and rule 507.1's opponent-choice never applies [506.2a]. In multiplayer, whether you're a defending player depends on the variant (all opponents defending automatically per 802.2, or one chosen per 507.1/703.4h), and if the table uses the Emperor variant or shared team turns, combat/priority details differ further [809.1][805.10f].",
+    "citations": [
+      "506.1",
+      "507.1",
+      "703.4h",
+      "802.2",
+      "509.1",
+      "703.4j",
+      "510.1",
+      "703.4k",
+      "802.5",
+      "510.2",
+      "511.1",
+      "117.1",
+      "506.2a",
+      "809.1",
+      "805.10f"
+    ],
+    "gold": [
+      "506.1",
+      "117.3a"
+    ],
+    "gold_text": {
+      "506.1": "The combat phase has five steps, which proceed in order: beginning of combat, declare attackers, declare blockers, combat damage, and end of combat. The declare blockers and combat damage steps are skipped if no creatures are declared as attackers or put onto the battlefield attacking (see rule 508.8). There are two combat damage steps if any attacking or blocking creature has first strike (see rule 702.7) or double strike (see rule 702.4).",
+      "117.3a": "Which player has priority is determined by the following rules: The active player receives priority at the beginning of most steps and phases, after any turn-based actions (such as drawing a card during the draw step; see rule 703) have been dealt with and abilities that trigger at the beginning of that phase or step have been put on the stack. No player receives priority during the untap step. Players usually don’t get priority during the cleanup step (see rule 514.3)."
+    },
+    "cited_text": {
+      "506.1": "The combat phase has five steps, which proceed in order: beginning of combat, declare attackers, declare blockers, combat damage, and end of combat. The declare blockers and combat damage steps are skipped if no creatures are declared as attackers or put onto the battlefield attacking (see rule 508.8). There are two combat damage steps if any attacking or blocking creature has first strike (see rule 702.7) or double strike (see rule 702.4).",
+      "507.1": "First, if the game being played is a multiplayer game in which the active player’s opponents don’t all automatically become defending players, the active player chooses one of their opponents. That player becomes the defending player. This turn-based action doesn’t use the stack. (See rule 506.2.)",
+      "703.4h": "The turn-based actions are as follows: Immediately after the beginning of combat step begins, if the game being played is a multiplayer game in which the active player’s opponents don’t all automatically become defending players, the active player chooses one of their opponents. That player becomes the defending player. See rule 507.1.",
+      "802.2": "As the combat phase starts, the attacking player doesn’t choose an opponent to become the defending player. Instead, all the attacking player’s opponents are defending players during the combat phase.",
+      "509.1": "First, the defending player declares blockers. This turn-based action doesn’t use the stack. To declare blockers, the defending player follows the steps below, in order. If at any point during the declaration of blockers, the defending player is unable to comply with any of the steps listed below, the declaration is illegal; the game returns to the moment before the declaration (see rule 733, “Handling Illegal Actions”).",
+      "703.4j": "The turn-based actions are as follows: Immediately after the declare blockers step begins, the defending player declares blockers. See rule 509.1.",
+      "510.1": "First, the active player announces how each attacking creature assigns its combat damage, then the defending player announces how each blocking creature assigns its combat damage. This turn-based action doesn’t use the stack. A player assigns a creature’s combat damage according to the following rules:",
+      "703.4k": "The turn-based actions are as follows: Immediately after the combat damage step begins, each player in APNAP order announces how each attacking or blocking creature they control assigns its combat damage. See rule 510.1.",
+      "802.5": "Combat damage is assigned in APNAP order. Other than that, the combat damage step proceeds just as in a two-player game. See rule 510, “Combat Damage Step.”",
+      "510.2": "Second, all combat damage that’s been assigned is dealt simultaneously. This turn-based action doesn’t use the stack. No player has the chance to cast spells or activate abilities between the time combat damage is assigned and the time it’s dealt.",
+      "511.1": "The end of combat step has no turn-based actions. Once it begins, the active player gets priority. (See rule 117, “Timing and Priority.”)",
+      "117.1": "Unless a spell or ability is instructing a player to take an action, which player can take actions at any given time is determined by a system of priority. The player with priority may cast spells, activate abilities, and take special actions.",
+      "506.2a": "During the combat phase, the active player is the attacking player; creatures that player controls may attack. During the combat phase of a two-player game, the nonactive player is the defending player; that player, planeswalkers they control, and battles they protect may be attacked. During the combat phase of a multiplayer game, there may be one or more defending players, depending on the variant being played and the options chosen for it. Unless all the attacking player’s opponents automatically become defending players during the combat phase, the attacking player chooses one of their opponents as a turn-based action during the beginning of combat step. (Note that the choice may be dictated by the variant being played or the options chosen for it.) That player becomes the defending player. See rule 802, “Attack Multiple Players Option,” rule 803, “Attack Left and Attack Right Options,” and rule 809, “Emperor Variant.”",
+      "809.1": "The Emperor variant involves two or more teams of three players each.",
+      "805.10f": "The shared team turns option uses different combat rules than other multiplayer options. As the combat damage step begins, the active team announces how each attacking creature will assign its combat damage. Then the defending team announces how each blocking creature will assign its combat damage. See rule 510.1."
+    },
+    "rewrite_queries": [],
+    "clarification": null
+  },
+  {
+    "id": "q015",
+    "question": "can i respond to a mana ability?",
+    "match": "all",
+    "kind": "rule",
+    "show_rewrite": false,
+    "rewrite_version": "v2",
+    "ruling_query_mode": "raw",
+    "condition": "v4",
+    "run": 2,
+    "answered": true,
+    "answer": "No. A mana ability (an activated or triggered ability that could add mana to a mana pool, requires no target, and isn't a loyalty ability, per rule 605.1a) never uses the stack. Instead of being put on the stack where it could be targeted, countered, or otherwise responded to, it simply resolves immediately after being activated (for activated mana abilities) or immediately after the ability that triggered it (for triggered mana abilities) [605.3b, 605.4a, 113.4, 405.6c]. Because it never sits on the stack waiting for priority, there's no window in which another player (or even the same player) can 'respond' to it in the rule-117.7 sense of casting a spell or activating an ability 'in response to' something still on the stack [117.7]. If a player had priority before the mana ability was activated, that player simply gets priority back after it resolves [405.6c], and any new spells or abilities cast or activated at that point are just normal actions taken with priority, not responses to the mana ability itself.",
+    "citations": [
+      "605.1a",
+      "605.3b",
+      "605.4a",
+      "113.4",
+      "405.6c",
+      "117.7"
+    ],
+    "gold": [
+      "605.3b",
+      "605.4a"
+    ],
+    "gold_text": {
+      "605.3b": "Activating an activated mana ability follows the rules for activating any other activated ability (see rule 602.2), with the following exceptions: An activated mana ability doesn’t go on the stack, so it can’t be targeted, countered, or otherwise responded to. Rather, it resolves immediately after it is activated. (See rule 405.6c.)",
+      "605.4a": "Triggered mana abilities follow all the rules for other triggered abilities (see rule 603, “Handling Triggered Abilities”), with the following exception: A triggered mana ability doesn’t go on the stack, so it can’t be targeted, countered, or otherwise responded to. Rather, it resolves immediately after the mana ability that triggered it, without waiting for priority. An enchantment reads, “Whenever a player taps a land for mana, that player adds one mana of any type that land produced.” If a player taps lands for mana while casting a spell, the additional mana is added immediately and can be used to pay for the spell."
+    },
+    "cited_text": {
+      "605.1a": "Some activated abilities and some triggered abilities are mana abilities, which are subject to special rules. Only abilities that meet either of the following two sets of criteria are mana abilities, regardless of what other effects they may generate or what timing restrictions (such as “Activate only as an instant”) they may have. An activated ability is a mana ability if it meets all of the following criteria: it doesn’t require a target (see rule 115.6), it could add mana to a player’s mana pool when it resolves, and it’s not a loyalty ability. (See rule 606, “Loyalty Abilities.”)",
+      "605.3b": "Activating an activated mana ability follows the rules for activating any other activated ability (see rule 602.2), with the following exceptions: An activated mana ability doesn’t go on the stack, so it can’t be targeted, countered, or otherwise responded to. Rather, it resolves immediately after it is activated. (See rule 405.6c.)",
+      "605.4a": "Triggered mana abilities follow all the rules for other triggered abilities (see rule 603, “Handling Triggered Abilities”), with the following exception: A triggered mana ability doesn’t go on the stack, so it can’t be targeted, countered, or otherwise responded to. Rather, it resolves immediately after the mana ability that triggered it, without waiting for priority. An enchantment reads, “Whenever a player taps a land for mana, that player adds one mana of any type that land produced.” If a player taps lands for mana while casting a spell, the additional mana is added immediately and can be used to pay for the spell.",
+      "113.4": "Some activated abilities and some triggered abilities are mana abilities. Mana abilities follow special rules: They don’t use the stack, and, under certain circumstances, a player can activate mana abilities even if they don’t have priority. See rule 605, “Mana Abilities.”",
+      "405.6c": "Some things that happen during the game don’t use the stack. Mana abilities resolve immediately. If a mana ability both produces mana and has another effect, the mana is produced and the other effect happens immediately. If a player had priority before a mana ability was activated, that player gets priority after it resolves. (See rule 605, “Mana Abilities.”)",
+      "117.7": "If a player with priority casts a spell or activates an activated ability while another spell or ability is already on the stack, the new spell or ability has been cast or activated “in response to” the earlier spell or ability. The new spell or ability will resolve first. See rule 608, “Resolving Spells and Abilities.”"
+    },
+    "rewrite_queries": [],
+    "clarification": null
+  },
+  {
+    "id": "q016",
+    "question": "can I respond to a cost being paid?",
+    "match": "any",
+    "kind": "interaction",
+    "show_rewrite": false,
+    "rewrite_version": "v2",
+    "ruling_query_mode": "raw",
+    "condition": "v4",
+    "run": 2,
+    "answered": true,
+    "answer": "No. Paying a cost is not itself a game action that uses the stack, so there is no window for other players to \"respond\" while a cost is being paid. Costs are the actions or payments a player carries out as part of casting a spell, activating an ability, or performing a turn-based action like declaring attackers or blockers ([118.1], [602.1]). For spells and activated abilities, the cost payment happens during the process of casting/activating (per rules 601.2f-h referenced in [118.2]), which occurs before the spell or ability is put on the stack; only once it's actually on the stack do players get priority and a chance to respond. Declaring attackers and declaring blockers are turn-based actions that explicitly don't use the stack at all ([508.1j], [509.1e]), and any costs paid as part of those declarations (e.g., costs to attack or block) are likewise paid without a stack-based window to react.\n\nIf a player is unable to legally complete the cost payment partway through, the whole action is reversed under rule [733.1] rather than being something an opponent can interrupt. So practically: you can't cast an instant or activate an ability \"in response to\" someone paying a cost - you can only respond once the spell or ability that required the cost is actually on the stack, or after the turn-based action (like blocker declaration) is fully completed.",
+    "citations": [
+      "118.1",
+      "602.1",
+      "508.1j",
+      "509.1e",
+      "733.1",
+      "118.2"
+    ],
+    "gold": [
+      "601.2",
+      "601.2g",
+      "601.2h",
+      "601.2i"
+    ],
+    "gold_text": {
+      "601.2": "To cast a spell is to take it from where it is (usually the hand), put it on the stack, and pay its costs, so that it will eventually resolve and have its effect. Casting a spell includes proposal of the spell (rules 601.2a–d) and determination and payment of costs (rules 601.2f–h). To cast a spell, a player follows the steps listed below, in order. A player must be legally allowed to cast the spell to begin this process (see rule 601.3). If a player is unable to comply with the requirements of a step listed below while performing that step, the casting of the spell is illegal; the game returns to the moment before the casting of that spell was proposed (see rule 733, “Handling Illegal Actions”).",
+      "601.2g": "To cast a spell is to take it from where it is (usually the hand), put it on the stack, and pay its costs, so that it will eventually resolve and have its effect. Casting a spell includes proposal of the spell (rules 601.2a–d) and determination and payment of costs (rules 601.2f–h). To cast a spell, a player follows the steps listed below, in order. A player must be legally allowed to cast the spell to begin this process (see rule 601.3). If a player is unable to comply with the requirements of a step listed below while performing that step, the casting of the spell is illegal; the game returns to the moment before the casting of that spell was proposed (see rule 733, “Handling Illegal Actions”). If the total cost includes a mana payment, the player then has a chance to activate mana abilities (see rule 605, “Mana Abilities”). Mana abilities must be activated before costs are paid.",
+      "601.2h": "To cast a spell is to take it from where it is (usually the hand), put it on the stack, and pay its costs, so that it will eventually resolve and have its effect. Casting a spell includes proposal of the spell (rules 601.2a–d) and determination and payment of costs (rules 601.2f–h). To cast a spell, a player follows the steps listed below, in order. A player must be legally allowed to cast the spell to begin this process (see rule 601.3). If a player is unable to comply with the requirements of a step listed below while performing that step, the casting of the spell is illegal; the game returns to the moment before the casting of that spell was proposed (see rule 733, “Handling Illegal Actions”). The player pays the total cost. First, they pay all costs that don’t involve random elements or moving objects from the library to a public zone, in any order. Then they pay all remaining costs in any order. Partial payments are not allowed. Unpayable costs can’t be paid. You cast Altar’s Reap, which costs {1}{B} and has an additional cost of sacrificing a creature. You sacrifice Thunderscape Familiar, whose effect makes your black spells cost {1} less to cast. Because a spell’s total cost is “locked in” before payments are actually made, you pay {B}, not {1}{B}, even though you’re sacrificing the Familiar.",
+      "601.2i": "To cast a spell is to take it from where it is (usually the hand), put it on the stack, and pay its costs, so that it will eventually resolve and have its effect. Casting a spell includes proposal of the spell (rules 601.2a–d) and determination and payment of costs (rules 601.2f–h). To cast a spell, a player follows the steps listed below, in order. A player must be legally allowed to cast the spell to begin this process (see rule 601.3). If a player is unable to comply with the requirements of a step listed below while performing that step, the casting of the spell is illegal; the game returns to the moment before the casting of that spell was proposed (see rule 733, “Handling Illegal Actions”). Once the steps described in 601.2a–h are completed, effects that modify the characteristics of the spell as it’s cast are applied, then the spell becomes cast. Any abilities that trigger when a spell is cast or put onto the stack trigger at this time. If the spell’s controller had priority before casting it, they get priority."
+    },
+    "cited_text": {
+      "118.1": "A cost is an action or payment necessary to take another action or to stop another action from taking place. To pay a cost, a player carries out the instructions specified by the spell, ability, or effect that contains that cost.",
+      "602.1": "Activated abilities have a cost and an effect. They are written as “[Cost]: [Effect.] [Activation instructions (if any).]”",
+      "508.1j": "First, the active player declares attackers. This turn-based action doesn’t use the stack. To declare attackers, the active player follows the steps below, in order. If at any point during the declaration of attackers, the active player is unable to comply with any of the steps listed below, the declaration is illegal; the game returns to the moment before the declaration (see rule 733, “Handling Illegal Actions”). Once the player has enough mana in their mana pool, they pay all costs in any order. Partial payments are not allowed.",
+      "509.1e": "First, the defending player declares blockers. This turn-based action doesn’t use the stack. To declare blockers, the defending player follows the steps below, in order. If at any point during the declaration of blockers, the defending player is unable to comply with any of the steps listed below, the declaration is illegal; the game returns to the moment before the declaration (see rule 733, “Handling Illegal Actions”). If any of the costs require mana, the defending player then has a chance to activate mana abilities (see rule 605, “Mana Abilities”).",
+      "733.1": "If a player takes an illegal action or starts to take an action but can’t legally complete it, the entire action is reversed and any payments already made are canceled. No abilities trigger and no effects apply as a result of an undone action. If the action was casting a spell, the spell returns to the zone it came from. Each player may also reverse any legal mana abilities that player activated while making the illegal play, unless mana from those abilities or from any triggered mana abilities they caused to trigger was spent on another mana ability that wasn’t reversed. Players may not reverse actions that moved cards to a library, moved cards from a library to any zone other than the stack, caused a library to be shuffled, or caused cards from a library to be revealed.",
+      "118.2": "If a cost includes a mana payment, the player paying the cost has a chance to activate mana abilities. Paying the cost to cast a spell or activate an activated ability follows the steps in rules 601.2f–h."
+    },
+    "rewrite_queries": [],
+    "clarification": null
+  },
+  {
+    "id": "q017",
+    "question": "can you explain layers?",
+    "match": "any",
+    "kind": "rule",
+    "show_rewrite": false,
+    "rewrite_version": "v2",
+    "ruling_query_mode": "raw",
+    "condition": "v4",
+    "run": 2,
+    "answered": true,
+    "answer": "Layers are the game's fixed order for applying continuous effects (effects that modify game rules or characteristics of objects for a duration) so that everyone gets the same result regardless of when each effect started. Whenever more than one continuous effect would affect an object's characteristics, the game doesn't just apply them in the order they happened — it sorts them into layers, and each layer is applied in a set sequence [613.1].\n\nStarting point: for any object, you begin with its actual printed or defined characteristics (for a card, what's printed on it; for a token or copy, what the effect that created it says) [613.1]. Then continuous effects are layered on top in this order: Layer 1 — effects that modify copiable values, such as copy effects [613.1a, 613.2a]; Layer 3 — text-changing effects [613.1c, 612.1]; Layer 4 — type-changing effects (card type, subtype, supertype) [613.1d]; Layer 5 — color-changing effects [613.1e]; and later layers (not detailed in what's given here) such as 7 for power/toughness, which itself has sublayers applied in timestamp order [613.4].\n\nWithin layer 1, there are further sublayers (e.g., 1a for copy effects), each applied in timestamp order unless dependency changes that order [613.2, 613.2a]. The same pattern holds for layer 7's sublayers [613.4].\n\nOrdering within a layer/sublayer: normally you use timestamp order — the effect that started applying earlier goes first [613.7]. But if one effect's outcome depends on what another effect does first (a 'dependency'), that dependency system overrides timestamp order [613.8, 613.6... actually 613.8 is the core cite].\n\nAn effect isn't necessarily confined to one layer. If a single effect changes multiple kinds of characteristics (e.g., 'becomes the color of your choice and gets +1/+1'), each part is applied in its own appropriate layer — color-changing in layer 5, power/toughness in layer 7c — and if the effect starts applying to an object, it keeps applying to that same object in every relevant layer even if the source of the effect is later removed [613.6].\n\nAll of this happens continuously and automatically — as soon as the game state changes, the layers are re-applied and the results are instantaneous. For example, if Honor of the Pure ('White creatures you control get +1/+1') is in play and a black creature is turned white by another effect, layer 5 (color) applies first, making it white, and then layer 7c (power/toughness) applies Honor of the Pure's bonus, making it +1/+1 bigger; if its color is later changed away from white, Honor of the Pure stops applying and the bonus goes away [613.5].\n\nNote: the rules text I have here doesn't include the full list of all layers (e.g., layers 2, 6, and 7's specific sublayers) — I've cited only what's given. The general structure (start from base characteristics, apply layers in order, use timestamp then dependency within a layer) is fully covered by the cited rules.",
+    "citations": [
+      "613.1",
+      "613.1a",
+      "613.1c",
+      "613.1d",
+      "613.1e",
+      "613.2",
+      "613.2a",
+      "613.4",
+      "613.5",
+      "613.6",
+      "613.7",
+      "613.8",
+      "612.1"
+    ],
+    "gold": [
+      "613.1",
+      "613.1a",
+      "613.1b",
+      "613.1c",
+      "613.1d",
+      "613.1e",
+      "613.1f",
+      "613.1g"
+    ],
+    "gold_text": {
+      "613.1": "The values of an object’s characteristics are determined by starting with the actual object. For a card, that means the values of the characteristics printed on that card. For a token or a copy of a spell or card, that means the values of the characteristics defined by the effect that created it. Then all applicable continuous effects are applied in a series of layers in the following order:",
+      "613.1a": "The values of an object’s characteristics are determined by starting with the actual object. For a card, that means the values of the characteristics printed on that card. For a token or a copy of a spell or card, that means the values of the characteristics defined by the effect that created it. Then all applicable continuous effects are applied in a series of layers in the following order: Layer 1: Rules and effects that modify copiable values are applied.",
+      "613.1b": "The values of an object’s characteristics are determined by starting with the actual object. For a card, that means the values of the characteristics printed on that card. For a token or a copy of a spell or card, that means the values of the characteristics defined by the effect that created it. Then all applicable continuous effects are applied in a series of layers in the following order: Layer 2: Control-changing effects are applied.",
+      "613.1c": "The values of an object’s characteristics are determined by starting with the actual object. For a card, that means the values of the characteristics printed on that card. For a token or a copy of a spell or card, that means the values of the characteristics defined by the effect that created it. Then all applicable continuous effects are applied in a series of layers in the following order: Layer 3: Text-changing effects are applied. See rule 612, “Text-Changing Effects.”",
+      "613.1d": "The values of an object’s characteristics are determined by starting with the actual object. For a card, that means the values of the characteristics printed on that card. For a token or a copy of a spell or card, that means the values of the characteristics defined by the effect that created it. Then all applicable continuous effects are applied in a series of layers in the following order: Layer 4: Type-changing effects are applied. These include effects that change an object’s card type, subtype, and/or supertype.",
+      "613.1e": "The values of an object’s characteristics are determined by starting with the actual object. For a card, that means the values of the characteristics printed on that card. For a token or a copy of a spell or card, that means the values of the characteristics defined by the effect that created it. Then all applicable continuous effects are applied in a series of layers in the following order: Layer 5: Color-changing effects are applied.",
+      "613.1f": "The values of an object’s characteristics are determined by starting with the actual object. For a card, that means the values of the characteristics printed on that card. For a token or a copy of a spell or card, that means the values of the characteristics defined by the effect that created it. Then all applicable continuous effects are applied in a series of layers in the following order: Layer 6: Ability-adding effects, keyword counters, ability-removing effects, and effects that say an object can’t have an ability are applied.",
+      "613.1g": "The values of an object’s characteristics are determined by starting with the actual object. For a card, that means the values of the characteristics printed on that card. For a token or a copy of a spell or card, that means the values of the characteristics defined by the effect that created it. Then all applicable continuous effects are applied in a series of layers in the following order: Layer 7: Power- and/or toughness-changing effects are applied."
+    },
+    "cited_text": {
+      "613.1": "The values of an object’s characteristics are determined by starting with the actual object. For a card, that means the values of the characteristics printed on that card. For a token or a copy of a spell or card, that means the values of the characteristics defined by the effect that created it. Then all applicable continuous effects are applied in a series of layers in the following order:",
+      "613.1a": "The values of an object’s characteristics are determined by starting with the actual object. For a card, that means the values of the characteristics printed on that card. For a token or a copy of a spell or card, that means the values of the characteristics defined by the effect that created it. Then all applicable continuous effects are applied in a series of layers in the following order: Layer 1: Rules and effects that modify copiable values are applied.",
+      "613.1c": "The values of an object’s characteristics are determined by starting with the actual object. For a card, that means the values of the characteristics printed on that card. For a token or a copy of a spell or card, that means the values of the characteristics defined by the effect that created it. Then all applicable continuous effects are applied in a series of layers in the following order: Layer 3: Text-changing effects are applied. See rule 612, “Text-Changing Effects.”",
+      "613.1d": "The values of an object’s characteristics are determined by starting with the actual object. For a card, that means the values of the characteristics printed on that card. For a token or a copy of a spell or card, that means the values of the characteristics defined by the effect that created it. Then all applicable continuous effects are applied in a series of layers in the following order: Layer 4: Type-changing effects are applied. These include effects that change an object’s card type, subtype, and/or supertype.",
+      "613.1e": "The values of an object’s characteristics are determined by starting with the actual object. For a card, that means the values of the characteristics printed on that card. For a token or a copy of a spell or card, that means the values of the characteristics defined by the effect that created it. Then all applicable continuous effects are applied in a series of layers in the following order: Layer 5: Color-changing effects are applied.",
+      "613.2": "Within layer 1, apply effects in a series of sublayers in the order described below. Within each sublayer, apply effects in timestamp order (see rule 613.7). Note that dependency may alter the order in which effects are applied within a sublayer. (See rule 613.8.)",
+      "613.2a": "Within layer 1, apply effects in a series of sublayers in the order described below. Within each sublayer, apply effects in timestamp order (see rule 613.7). Note that dependency may alter the order in which effects are applied within a sublayer. (See rule 613.8.) Layer 1a: Copiable effects are applied. This includes copy effects (see rule 707, “Copying Objects”) and changes to an object’s characteristics determined by merging an object with a permanent (see rule 730, “Merging with Permanents”). “As . . . enters” and “as . . . is turned face up” abilities generate copiable effects if they set power and toughness, even if they also define other characteristics.",
+      "613.4": "Within layer 7, apply effects in a series of sublayers in the order described below. Within each sublayer, apply effects in timestamp order. (See rule 613.7.) Note that dependency may alter the order in which effects are applied within a sublayer. (See rule 613.8.)",
+      "613.5": "The application of continuous effects as described by the layer system is continually and automatically performed by the game. All resulting changes to an object’s characteristics are instantaneous. Honor of the Pure is an enchantment that reads “White creatures you control get +1/+1.” Honor of the Pure and a 2/2 black creature are on the battlefield under your control. If an effect then turns the creature white (layer 5), it gets +1/+1 from Honor of the Pure (layer 7c), becoming 3/3. If the creature’s color is later changed to red (layer 5), Honor of the Pure’s effect stops applying to it, and it will return to being 2/2. Gray Ogre, a 2/2 creature, is on the battlefield. An effect puts a +1/+1 counter on it (layer 7c), making it 3/3. A spell targeting it that says “Target creature gets +4/+4 until end of turn” resolves (layer 7c), making it 7/7. An enchantment that says “Creatures you control get +0/+2” enters the battlefield (layer 7c), making it 7/9. An effect that says “Target creature becomes 0/1 until end of turn” is applied to it (layer 7b), making it 5/8 (0/1, with +4/+4 from the resolved spell, +0/+2 from the enchantment, and +1/+1 from the counter).",
+      "613.6": "If an effect should be applied in different layers and/or sublayers, the parts of the effect each apply in their appropriate ones. If an effect starts to apply in one layer and/or sublayer, it will continue to be applied to the same set of objects in each other applicable layer and/or sublayer, even if the ability generating the effect is removed during this process. An effect that reads “This creature gets +1/+1 and becomes the color of your choice until end of turn” is both a power- and toughness-changing effect and a color-changing effect. The “becomes the color of your choice” part is applied in layer 5, and then the “gets +1/+1” part is applied in layer 7c. Act of Treason has an effect that reads “Gain control of target creature until end of turn. Untap that creature. It gains haste until end of turn.” This is both a control-changing effect and an effect that adds an ability to an object. The “gain control” part is applied in layer 2, and then the “it gains haste” part is applied in layer 6. An effect that reads “All noncreature artifacts become 2/2 artifact creatures until end of turn” is both a type-changing effect and a power- and toughness-setting effect. The type-changing effect is applied to all noncreature artifacts in layer 4 and the power- and toughness-setting effect is applied to those same permanents in layer 7b, even though those permanents aren’t noncreature artifacts by then. Svogthos, the Restless Tomb, is on the battlefield. An effect that says “Until end of turn, target land becomes a 3/3 creature that’s still a land” is applied to it (layers 4 and 7b). An effect that says “Target creature gets +1/+1 until end of turn” is applied to it (layer 7c), making it a 4/4 land creature. Then while you have ten creature cards in your graveyard, you activate Svogthos’s ability: “Until end of turn, this land becomes a black and green Plant Zombie creature with ‘This creature’s power and toughness are each equal to the number of creature cards in your graveyard.’ It’s still a land.” (layers 4, 5, and 7b). It becomes an 11/11 land creature. If a creature card enters or leaves your graveyard, Svogthos’s power and toughness will be modified accordingly. If the first effect is applied to it again, it will become a 4/4 land creature again.",
+      "613.7": "Within a layer or sublayer, determining which order effects are applied in is usually done using a timestamp system. An effect with an earlier timestamp is applied before an effect with a later timestamp.",
+      "613.8": "Within a layer or sublayer, determining which order effects are applied in is sometimes done using a dependency system. If a dependency exists, it will override the timestamp system.",
+      "612.1": "Some continuous effects change an object’s text. This can apply to any words or symbols printed on that object, but generally affects only that object’s rules text (which appears in its text box) and/or the text that appears in its type line. Such an effect is a text-changing effect."
+    },
+    "rewrite_queries": [],
+    "clarification": null
+  },
+  {
+    "id": "q018",
+    "question": "how does the legend rule work?",
+    "match": "any",
+    "kind": "rule",
+    "show_rewrite": false,
+    "rewrite_version": "v2",
+    "ruling_query_mode": "raw",
+    "condition": "v4",
+    "run": 2,
+    "answered": true,
+    "answer": "The legend rule is a state-based action: if a single player controls two or more legendary permanents that share the exact same name, that player must choose one of them to keep, and all the others are put into their owners' graveyards.\n\nKey points: (1) It only applies to permanents controlled by the same player — legendary permanents with the same name controlled by different players are unaffected [704.5j], [Legend Rule]. (2) It's triggered by having the supertype \"legendary\" on a permanent [205.4d], [Legendary]. This applies to legendary creatures, artifacts, enchantments, lands, battles, and planeswalkers — planeswalkers were once handled by a separate \"planeswalker uniqueness rule,\" but that's been removed and old planeswalker cards were given errata to have the legendary supertype instead, so they're now subject to the ordinary legend rule too [306.4]. (3) Because it's a state-based action, it's checked automatically any time a player would otherwise have priority, not something a player has to remember to activate. (4) \"Same name\" matters literally — two permanents named identically trigger it even if they're different printings; a legendary token created with a specific name (e.g. via an ability that says \"create [name], a...\") counts as having that name for this purpose [111.9]. (5) Legendary supertype is independent of card type/subtype — if something changes a permanent's types but it was legendary, it stays legendary and remains subject to the rule [205.4b].\n\nNote: legendary instant/sorcery spells are a different, unrelated concept — they have a casting restriction (you must control a legendary creature or planeswalker to cast them) rather than being subject to the legend rule, since the legend rule only applies to permanents [205.4e].\n\nAssumption: the question is about the general legend rule as it applies in constructed/casual play; Commander adds extra rules about commanders but the legend rule itself works the same way there [903.1].",
+    "citations": [
+      "Legend Rule",
+      "704.5j",
+      "205.4d",
+      "Legendary",
+      "306.4",
+      "111.9",
+      "205.4b",
+      "205.4e",
+      "903.1"
+    ],
+    "gold": [
+      "704.5j"
+    ],
+    "gold_text": {
+      "704.5j": "The state-based actions are as follows: If two or more legendary permanents with the same name are controlled by the same player, that player chooses one of them, and the rest are put into their owners’ graveyards. This is called the “legend rule.”"
+    },
+    "cited_text": {
+      "Legend Rule": "Legend Rule. A state-based action that causes a player who controls two or more legendary permanents with the same name to put all but one into their owners’ graveyards. See rule 704.5j.",
+      "704.5j": "The state-based actions are as follows: If two or more legendary permanents with the same name are controlled by the same player, that player chooses one of them, and the rest are put into their owners’ graveyards. This is called the “legend rule.”",
+      "205.4d": "Supertypes Any permanent with the supertype “legendary” is subject to the state-based action for legendary permanents, also called the “legend rule” (see rule 704.5j).",
+      "Legendary": "Legendary. A supertype that’s normally relevant on permanents. See rule 205.4, “Supertypes.” See also Legend Rule.",
+      "306.4": "Previously, planeswalkers were subject to a “planeswalker uniqueness rule” that stopped a player from controlling two planeswalkers of the same planeswalker type. This rule has been removed and planeswalker cards printed before this change have received errata in the Oracle card reference to have the legendary supertype. Like other legendary permanents, they are subject to the “legend rule” (see rule 704.5j).",
+      "111.9": "Some effects instruct a player to create a legendary token. These may be written “create [name], a . . .” and list characteristics for the token. This is the same as an instruction to create a token with the listed characteristics that has the given name.",
+      "205.4b": "Supertypes An object’s supertype is independent of its card type and subtype, even though some supertypes are closely identified with specific card types. Changing an object’s card types or subtypes won’t change its supertypes. Changing an object’s supertypes won’t change its card types or subtypes. When an object gains or loses a supertype, it retains any other supertypes it had. An ability reads, “All lands are 1/1 creatures that are still lands.” If any of the affected lands were legendary, they are still legendary.",
+      "205.4e": "Supertypes Any instant or sorcery spell with the supertype “legendary” is subject to a casting restriction. A player can’t cast a legendary instant or sorcery spell unless that player controls a legendary creature or a legendary planeswalker.",
+      "903.1": "In the Commander variant, a variant created and popularized by fans, each deck is led by a legendary creature designated as that deck’s commander. The Commander variant uses all the normal rules for a Magic game, with the following additions."
+    },
+    "rewrite_queries": [],
+    "clarification": null
+  },
+  {
+    "id": "q019",
+    "question": "when does my creature die after its been marked with a lethal amount of damage?",
+    "match": "any",
+    "kind": "rule",
+    "show_rewrite": false,
+    "rewrite_version": "v2",
+    "ruling_query_mode": "raw",
+    "condition": "v4",
+    "run": 2,
+    "answered": true,
+    "answer": "Your creature doesn't die the instant the damage is dealt — damage itself never destroys a creature. Instead, that damage is marked on the creature, and then the very next time state-based actions are checked (which happens automatically before any player would be given priority, and doesn't use the stack), the game checks whether the total damage marked on the creature is greater than or equal to its toughness. If so, that's \"lethal damage,\" and the creature is destroyed as a state-based action at that moment, not by the damage or its source directly.\n\nIn practice this means: after a damage event resolves (e.g., a spell dealing damage, or combat damage being dealt simultaneously in the combat damage step), no player gets priority and no further spells/abilities can be put on the stack until state-based actions are performed. So the creature dies essentially immediately after the damage is marked, but as a discrete rules step, not as part of the damage event itself.\n\nA few notes on the underlying rules: damage from a source without wither or infect is simply marked on the creature [302.7][120.3e]. If total marked damage is greater than or equal to toughness, the creature has been dealt lethal damage and is destroyed by the state-based action [704.5g][Lethal Damage]. Damage itself, or its source, does not destroy the creature — it's the state-based action that does, based on the results of that damage [120.5]. State-based actions are checked and applied before any player receives priority, repeating until none remain [117.5][117.2d]. Damage stays marked on the creature until the cleanup step removes it (or the creature regenerates) [120.6].\n\nOne exception worth flagging: if a creature is dealt damage by a source with deathtouch, it's destroyed as a state-based action regardless of whether the damage total reaches its toughness [702.2b][704.5h] — but that's a different trigger from ordinary \"lethal damage\" and isn't what you asked about if your source has no deathtouch.\n\nI'm assuming your question is about a normal damage source without deathtouch, wither, or infect; if any of those apply the destruction condition differs slightly as noted above.",
+    "citations": [
+      "302.7",
+      "120.3e",
+      "704.5g",
+      "Lethal Damage",
+      "120.5",
+      "117.5",
+      "117.2d",
+      "120.6",
+      "702.2b",
+      "704.5h"
+    ],
+    "gold": [
+      "704.5g",
+      "302.7"
+    ],
+    "gold_text": {
+      "704.5g": "The state-based actions are as follows: If a creature has toughness greater than 0, it has damage marked on it, and the total damage marked on it is greater than or equal to its toughness, that creature has been dealt lethal damage and is destroyed. Regeneration can replace this event.",
+      "302.7": "Damage dealt to a creature by a source with neither wither nor infect is marked on that creature (see rule 120.3). If the total damage marked on that creature is greater than or equal to its toughness, that creature has been dealt lethal damage and is destroyed as a state-based action (see rule 704). All damage marked on a creature is removed when it regenerates (see rule 701.19, “Regenerate”) and during the cleanup step (see rule 514.2)."
+    },
+    "cited_text": {
+      "302.7": "Damage dealt to a creature by a source with neither wither nor infect is marked on that creature (see rule 120.3). If the total damage marked on that creature is greater than or equal to its toughness, that creature has been dealt lethal damage and is destroyed as a state-based action (see rule 704). All damage marked on a creature is removed when it regenerates (see rule 701.19, “Regenerate”) and during the cleanup step (see rule 514.2).",
+      "120.3e": "Damage may have one or more of the following results, depending on whether the recipient of the damage is a player or permanent, the characteristics of the damage’s source, and the characteristics of the damage’s recipient (if it’s a permanent). Damage dealt to a creature by a source with neither wither nor infect causes that much damage to be marked on that creature.",
+      "704.5g": "The state-based actions are as follows: If a creature has toughness greater than 0, it has damage marked on it, and the total damage marked on it is greater than or equal to its toughness, that creature has been dealt lethal damage and is destroyed. Regeneration can replace this event.",
+      "Lethal Damage": "Lethal Damage. An amount of damage greater than or equal to a creature’s toughness. See rules 120.4a, 120.6, 510.1, and 704.5g.",
+      "120.5": "Damage dealt to a creature, planeswalker, or battle doesn’t destroy it. Likewise, the source of that damage doesn’t destroy it. Rather, state-based actions may destroy a creature or otherwise put a permanent into its owner’s graveyard, due to the results of the damage dealt to that permanent. See rule 704. A player casts Lightning Bolt, an instant that says “Lightning Bolt deals 3 damage to any target,” targeting a 2/2 creature. After Lightning Bolt deals 3 damage to that creature, the creature is destroyed as a state-based action. Neither Lightning Bolt nor the damage dealt by Lightning Bolt destroyed that creature.",
+      "117.5": "Each time a player would get priority, the game first performs all applicable state-based actions as a single event (see rule 704, “State-Based Actions”), then repeats this process until no state-based actions are performed. Then triggered abilities are put on the stack (see rule 603, “Handling Triggered Abilities”). These steps repeat in order until no further state-based actions are performed and no abilities trigger. Then the player who would have received priority does so.",
+      "117.2d": "Other kinds of abilities and actions are automatically generated or performed by the game rules, or are performed by players without receiving priority. State-based actions happen automatically when certain conditions are met. See rule 704. They’re dealt with before a player would receive priority. See rule 117.5.",
+      "120.6": "Damage marked on a creature remains until the cleanup step, even if that permanent stops being a creature. If the total damage marked on a creature is greater than or equal to its toughness, that creature has been dealt lethal damage and is destroyed as a state-based action (see rule 704). All damage marked on a permanent is removed when it regenerates (see rule 701.19, “Regenerate”) and during the cleanup step (see rule 514.2).",
+      "702.2b": "Deathtouch A creature with toughness greater than 0 that’s been dealt damage by a source with deathtouch since the last time state-based actions were checked is destroyed as a state-based action. See rule 704.",
+      "704.5h": "The state-based actions are as follows: If a creature has toughness greater than 0, and it’s been dealt damage by a source with deathtouch since the last time state-based actions were checked, that creature is destroyed. Regeneration can replace this event."
+    },
+    "rewrite_queries": [],
+    "clarification": null
+  },
+  {
+    "id": "q020",
+    "question": "can I cast my commander from exile?",
+    "match": "all",
+    "kind": "interaction",
+    "show_rewrite": false,
+    "rewrite_version": "v2",
+    "ruling_query_mode": "raw",
+    "condition": "v4",
+    "run": 2,
+    "answered": true,
+    "answer": "Not directly, in the normal case: your commander is meant to be cast from the command zone, not from exile. Under [903.8], \"A player may cast a commander they own from the command zone,\" paying the commander tax for each previous time it's been cast from there that game — that's the standard route.\n\nIf your commander's card is currently sitting in exile (for example, because it died or was exiled and stayed there), rule [903.9a] gives you, as its owner, a state-based action option: any time state-based actions are checked, if that commander card was put into exile (or a graveyard) since the last check, you may move it into the command zone instead. Once it's there, you can cast it from the command zone as normal (with tax) per [903.8].\n\nIf you decline that option, or if the state-based action has already passed and you left it in exile, the card is just a normal card in exile at that point, and rule [601.3f] means you can only cast a spell if some rule or effect specifically allows it. There's no general rule letting you cast a card straight out of exile just because it's your commander — you'd need a separate specific enabler (for example, a Plot ability under [702.170d], or an Adventure-related exile permission under [715.3d], or some other card/effect that says you may cast cards from exile). None of those are indicated in your question, so I'm assuming no such effect is in play.\n\nSo: the practical answer is move it to the command zone via [903.9a] and cast it from there via [903.8], rather than trying to cast it directly out of exile.",
+    "citations": [
+      "903.8",
+      "903.9",
+      "903.9a",
+      "601.3f"
+    ],
+    "gold": [
+      "903.8",
+      "903.9a"
+    ],
+    "gold_text": {
+      "903.8": "A player may cast a commander they own from the command zone. A commander cast from the command zone costs an additional {2} for each previous time the player casting it has cast it from the command zone that game. This additional cost is informally known as the “commander tax.”",
+      "903.9a": "A commander may return to the command zone during a Commander game. If a commander is in a graveyard or in exile and that object was put into that zone since the last time state-based actions were checked, its owner may put it into the command zone. This is a state-based action. See rule 704."
+    },
+    "cited_text": {
+      "903.8": "A player may cast a commander they own from the command zone. A commander cast from the command zone costs an additional {2} for each previous time the player casting it has cast it from the command zone that game. This additional cost is informally known as the “commander tax.”",
+      "903.9": "A commander may return to the command zone during a Commander game.",
+      "903.9a": "A commander may return to the command zone during a Commander game. If a commander is in a graveyard or in exile and that object was put into that zone since the last time state-based actions were checked, its owner may put it into the command zone. This is a state-based action. See rule 704.",
+      "601.3f": "A player can begin to cast a spell only if a rule or effect allows that player to cast it and no rule or effect prohibits that player from casting it. Some effects allow a player to cast a spell with certain qualities from among face-down cards in exile. A player may begin to cast such a spell only if they can look at the face-down card in exile."
+    },
+    "rewrite_queries": [],
+    "clarification": null
+  },
+  {
+    "id": "q021",
+    "question": "what happens during the cleanup step?",
+    "match": "all",
+    "kind": "rule",
+    "show_rewrite": false,
+    "rewrite_version": "v2",
+    "ruling_query_mode": "raw",
+    "condition": "v4",
+    "run": 2,
+    "answered": true,
+    "answer": "The cleanup step (rule 512.1, the second step of the ending phase) does the following, in order:\n\n1. Discard to hand size: If the active player's hand contains more cards than their maximum hand size (normally seven), they discard down to that number. This is a turn-based action and doesn't use the stack [514.1] [703.4n].\n\n2. Damage removal and effect expiration: Immediately after that discard (if any was needed), two things happen simultaneously: all damage marked on all permanents (including phased-out ones) is removed, and all \"until end of turn\" and \"this turn\" effects end. This also doesn't use the stack [514.2] [703.4p].\n\n3. Normally no priority: Ordinarily no player receives priority during the cleanup step, so no one can cast spells or activate abilities during it [514.3] [514.3a].\n\n4. Exception check: However, right after step 2, the game checks whether any state-based actions need to be performed (for example, a creature whose damage total is now compared against its toughness before the damage was wiped, or some other SBA like a 0-toughness creature dying) or whether any triggered abilities are waiting to be put on the stack (including ones that trigger \"at the beginning of the next cleanup step\"). If either is true, those state-based actions happen, the triggered abilities go on the stack, and then the active player actually gets priority — players can cast spells and activate abilities normally [514.3a] [704.3]. Once the stack empties and everyone passes in succession, a brand-new cleanup step begins from the top (repeating this whole process) [514.3a].\n\n5. Step ends: If, on the very first check after the damage/effects wipe, there are no pending state-based actions and no triggered abilities waiting, then no player gets priority at all and the cleanup step simply ends [704.3]. The cleanup step is one of the two step types (along with the untap step) where no one normally gets priority, and it ends once all its specified actions are complete [500.3].\n\nSeparately, if some effect ends the turn or ends the combat phase, that can force the game to skip straight into a cleanup step outside the normal sequence, and if the turn-ending effect itself causes additional triggers, another cleanup step follows before the turn truly ends [724.1d] [724.1f] [724.2d].",
+    "citations": [
+      "512.1",
+      "514.1",
+      "703.4n",
+      "514.2",
+      "703.4p",
+      "514.3",
+      "514.3a",
+      "704.3",
+      "500.3",
+      "724.1d",
+      "724.1f",
+      "724.2d"
+    ],
+    "gold": [
+      "514.1",
+      "514.2"
+    ],
+    "gold_text": {
+      "514.1": "First, if the active player’s hand contains more cards than their maximum hand size (normally seven), they discard enough cards to reduce their hand size to that number. This turn-based action doesn’t use the stack.",
+      "514.2": "Second, the following actions happen simultaneously: all damage marked on permanents (including phased-out permanents) is removed and all “until end of turn” and “this turn” effects end. This turn-based action doesn’t use the stack."
+    },
+    "cited_text": {
+      "512.1": "The ending phase consists of two steps: end and cleanup.",
+      "514.1": "First, if the active player’s hand contains more cards than their maximum hand size (normally seven), they discard enough cards to reduce their hand size to that number. This turn-based action doesn’t use the stack.",
+      "703.4n": "The turn-based actions are as follows: Immediately after the cleanup step begins, if the active player’s hand contains more cards than their maximum hand size (normally seven), they discard enough cards to reduce their hand size to that number. See rule 514.1.",
+      "514.2": "Second, the following actions happen simultaneously: all damage marked on permanents (including phased-out permanents) is removed and all “until end of turn” and “this turn” effects end. This turn-based action doesn’t use the stack.",
+      "703.4p": "The turn-based actions are as follows: Immediately after the active player has discarded cards (if necessary) during the cleanup step, all damage is removed from permanents and all “until end of turn” and “this turn” effects end. These actions happen simultaneously. See rule 514.2.",
+      "514.3": "Normally, no player receives priority during the cleanup step, so no spells can be cast and no abilities can be activated. However, this rule is subject to the following exception:",
+      "514.3a": "Normally, no player receives priority during the cleanup step, so no spells can be cast and no abilities can be activated. However, this rule is subject to the following exception: At this point, the game checks to see if any state-based actions would be performed and/or any triggered abilities are waiting to be put onto the stack (including those that trigger “at the beginning of the next cleanup step”). If so, those state-based actions are performed, then those triggered abilities are put on the stack, then the active player gets priority. Players may cast spells and activate abilities. Once the stack is empty and all players pass in succession, another cleanup step begins.",
+      "704.3": "Whenever a player would get priority (see rule 117, “Timing and Priority”), the game checks for any of the listed conditions for state-based actions, then performs all applicable state-based actions simultaneously as a single event. If any state-based actions are performed as a result of a check, the check is repeated; otherwise all triggered abilities that are waiting to be put on the stack are put on the stack, then the check is repeated. Once no more state-based actions have been performed as the result of a check and no triggered abilities are waiting to be put on the stack, the appropriate player gets priority. This process also occurs during the cleanup step (see rule 514), except that if no state-based actions are performed as the result of the step’s first check and no triggered abilities are waiting to be put on the stack, then no player gets priority and the step ends.",
+      "500.3": "A step in which no players receive priority ends when all specified actions that take place during that step are completed. The only such steps are the untap step (see rule 502) and certain cleanup steps (see rule 514).",
+      "724.1d": "Some cards end the turn. When an effect ends the turn, follow these steps in order, as they differ from the normal process for resolving spells and abilities (see rule 608, “Resolving Spells and Abilities”). The current phase and/or step ends. If this happens during combat, remove all creatures and planeswalkers from combat. The game skips straight to the cleanup step; skip any phases or steps between this phase or step and the cleanup step. If an effect ends the turn during the cleanup step, a new cleanup step begins.",
+      "724.1f": "Some cards end the turn. When an effect ends the turn, follow these steps in order, as they differ from the normal process for resolving spells and abilities (see rule 608, “Resolving Spells and Abilities”). No player gets priority during this process, so triggered abilities are not put onto the stack. If any triggered abilities have triggered since this process began, those abilities are put onto the stack during the cleanup step, then the active player gets priority and players can cast spells and activate abilities. Then there will be another cleanup step before the turn finally ends. If no triggered abilities have triggered during this process, no player gets priority during the cleanup step. See rule 514, “Cleanup Step.”",
+      "724.2d": "One card (Mandate of Peace) ends the combat phase. When an effect ends the combat phase, follow these steps in order, as they differ from the normal process for resolving spells and abilities (see rule 608, “Resolving Spells and Abilities”). The current combat phase ends. Remove all creatures and planeswalkers from combat. Effects that last “until end of combat” expire. The game skips straight to the next phase, usually the postcombat main phase; skip any steps between this step and that phase."
+    },
+    "rewrite_queries": [],
+    "clarification": null
+  },
+  {
+    "id": "q022",
+    "question": "when are state-based actions checked?",
+    "match": "any",
+    "kind": "rule",
+    "show_rewrite": false,
+    "rewrite_version": "v2",
+    "ruling_query_mode": "raw",
+    "condition": "v4",
+    "run": 2,
+    "answered": true,
+    "answer": "State-based actions (SBAs) are checked every time a player would receive priority, not on a fixed clock or schedule. Specifically: [704.3] whenever a player would get priority, the game checks for any of the listed SBA conditions and performs all applicable ones simultaneously as a single event; if any were performed, the check repeats, and this cycle continues until a check produces no SBAs and no triggered abilities are waiting to be put on the stack — only then does the appropriate player actually get priority. [117.5] confirms this same process: before a player gets priority, all applicable SBAs are performed as a single event, repeated until none occur, then triggered abilities go on the stack, and this whole loop repeats until stable.\n\nA few important refinements to 'whenever a player would get priority': \n- [703.3] Turn-based actions tied to a step or phase (like the draw step's draw) are handled first when that step/phase begins, before SBAs are checked and before anything goes on the stack.\n- [514.3a] Normally no one gets priority during the cleanup step, but the game still checks there for SBAs (and waiting triggered abilities); if any exist, they're performed/put on the stack and the active player does get priority that cleanup step.\n- [704.4] SBAs do NOT pay attention to what happens mid-resolution of a spell or ability — they are only checked at the points described above (i.e., when priority would next be granted), not continuously during resolution. The Maro example given illustrates this: Maro can briefly hit toughness 0 mid-resolution of a discard-and-draw spell without dying, because SBAs aren't checked until the spell finishes resolving and a player is about to get priority.\n- [724.2c] Some effects (like one that ends the combat phase) explicitly call for an SBA check as part of their own resolution process, outside the normal priority-based timing, but this is a special case of a card/effect using this rule, not the general timing rule.\n\nSo in short: SBAs are checked continuously in the sense that they're checked every single time before priority would be handed out (including in the cleanup step under the stated exception), and this checking loop repeats until stable — they are never checked mid-resolution of a spell or ability.",
+    "citations": [
+      "704.2",
+      "704.3",
+      "704.5",
+      "704.1a",
+      "704.1",
+      "704.4",
+      "703.3",
+      "514.3a",
+      "117.5",
+      "117.3a",
+      "724.2c"
+    ],
+    "gold": [
+      "704.3"
+    ],
+    "gold_text": {
+      "704.3": "Whenever a player would get priority (see rule 117, “Timing and Priority”), the game checks for any of the listed conditions for state-based actions, then performs all applicable state-based actions simultaneously as a single event. If any state-based actions are performed as a result of a check, the check is repeated; otherwise all triggered abilities that are waiting to be put on the stack are put on the stack, then the check is repeated. Once no more state-based actions have been performed as the result of a check and no triggered abilities are waiting to be put on the stack, the appropriate player gets priority. This process also occurs during the cleanup step (see rule 514), except that if no state-based actions are performed as the result of the step’s first check and no triggered abilities are waiting to be put on the stack, then no player gets priority and the step ends."
+    },
+    "cited_text": {
+      "704.2": "State-based actions are checked throughout the game and are not controlled by any player.",
+      "704.3": "Whenever a player would get priority (see rule 117, “Timing and Priority”), the game checks for any of the listed conditions for state-based actions, then performs all applicable state-based actions simultaneously as a single event. If any state-based actions are performed as a result of a check, the check is repeated; otherwise all triggered abilities that are waiting to be put on the stack are put on the stack, then the check is repeated. Once no more state-based actions have been performed as the result of a check and no triggered abilities are waiting to be put on the stack, the appropriate player gets priority. This process also occurs during the cleanup step (see rule 514), except that if no state-based actions are performed as the result of the step’s first check and no triggered abilities are waiting to be put on the stack, then no player gets priority and the step ends.",
+      "704.5": "The state-based actions are as follows:",
+      "704.1a": "State-based actions are game actions that happen automatically whenever certain conditions (listed below) are met. State-based actions don’t use the stack. Abilities that watch for a specified game state are triggered abilities, not state-based actions. (See rule 603, “Handling Triggered Abilities.”)",
+      "704.1": "State-based actions are game actions that happen automatically whenever certain conditions (listed below) are met. State-based actions don’t use the stack.",
+      "704.4": "Unlike triggered abilities, state-based actions pay no attention to what happens during the resolution of a spell or ability. A player controls Maro, a creature with the ability “Maro’s power and toughness are each equal to the number of cards in your hand” and casts a spell whose effect is “Discard your hand, then draw seven cards.” Maro will temporarily have toughness 0 in the middle of the spell’s resolution but will be back up to toughness 7 when the spell finishes resolving. Thus Maro will survive when state-based actions are checked. In contrast, an ability that triggers when the player has no cards in hand goes on the stack after the spell resolves, because its trigger event happened during resolution.",
+      "703.3": "Whenever a step or phase begins, if it’s a step or phase that has any turn-based action associated with it, those turn-based actions are automatically dealt with first. This happens before state-based actions are checked, before triggered abilities are put on the stack, and before players receive priority.",
+      "514.3a": "Normally, no player receives priority during the cleanup step, so no spells can be cast and no abilities can be activated. However, this rule is subject to the following exception: At this point, the game checks to see if any state-based actions would be performed and/or any triggered abilities are waiting to be put onto the stack (including those that trigger “at the beginning of the next cleanup step”). If so, those state-based actions are performed, then those triggered abilities are put on the stack, then the active player gets priority. Players may cast spells and activate abilities. Once the stack is empty and all players pass in succession, another cleanup step begins.",
+      "117.5": "Each time a player would get priority, the game first performs all applicable state-based actions as a single event (see rule 704, “State-Based Actions”), then repeats this process until no state-based actions are performed. Then triggered abilities are put on the stack (see rule 603, “Handling Triggered Abilities”). These steps repeat in order until no further state-based actions are performed and no abilities trigger. Then the player who would have received priority does so.",
+      "117.3a": "Which player has priority is determined by the following rules: The active player receives priority at the beginning of most steps and phases, after any turn-based actions (such as drawing a card during the draw step; see rule 703) have been dealt with and abilities that trigger at the beginning of that phase or step have been put on the stack. No player receives priority during the untap step. Players usually don’t get priority during the cleanup step (see rule 514.3).",
+      "724.2c": "One card (Mandate of Peace) ends the combat phase. When an effect ends the combat phase, follow these steps in order, as they differ from the normal process for resolving spells and abilities (see rule 608, “Resolving Spells and Abilities”). Check state-based actions. No player gets priority, and no triggered abilities are put onto the stack."
+    },
+    "rewrite_queries": [],
+    "clarification": null
+  },
+  {
+    "id": "q024",
+    "question": "when can I concede a game?",
+    "match": "any",
+    "kind": "rule",
+    "show_rewrite": false,
+    "rewrite_version": "v2",
+    "ruling_query_mode": "raw",
+    "condition": "v4",
+    "run": 2,
+    "answered": true,
+    "answer": "You can concede at any time. Rule [104.3a] states a player can concede at any time, and doing so immediately removes you from the game and counts as a loss for you. This right is absolute: rule [101.1] specifically carves out conceding as the one thing no card's text can override, and rule [723.6] confirms that even if another player is controlling you (e.g., via a mind-control effect), that controller can't force you to concede, but you yourself may still concede whenever you wish. Conceding doesn't use the stack — per [405.6g] it happens immediately, not as a spell or ability that could be responded to. If you're playing Two-Headed Giant, conceding is different in effect: per [810.8b], when one player on a team concedes, their entire team leaves the game immediately and that whole team loses, not just the conceding player.",
+    "citations": [
+      "104.3a",
+      "101.1",
+      "723.6",
+      "405.6g",
+      "810.8b"
+    ],
+    "gold": [
+      "104.3a",
+      "723.6"
+    ],
+    "gold_text": {
+      "104.3a": "There are several ways to lose the game. A player can concede the game at any time. A player who concedes leaves the game immediately. That player loses the game.",
+      "723.6": "The controller of another player can’t make that player concede. A player may concede the game at any time, even if they are controlled by another player. See rule 104.3a."
+    },
+    "cited_text": {
+      "104.3a": "There are several ways to lose the game. A player can concede the game at any time. A player who concedes leaves the game immediately. That player loses the game.",
+      "101.1": "Whenever a card’s text directly contradicts these rules, the card takes precedence. The card overrides only the rule that applies to that specific situation. The only exception is that a player can concede the game at any time (see rule 104.3a).",
+      "723.6": "The controller of another player can’t make that player concede. A player may concede the game at any time, even if they are controlled by another player. See rule 104.3a.",
+      "405.6g": "Some things that happen during the game don’t use the stack. A player may concede the game at any time. That player leaves the game immediately. See rule 104.3a.",
+      "810.8b": "The Two-Headed Giant variant uses the normal rules for winning or losing the game (see rule 104), with the following additions and specifications. If a player concedes, their team leaves the game immediately. That team loses the game."
+    },
+    "rewrite_queries": [],
+    "clarification": null
+  },
+  {
+    "id": "q025",
+    "question": "how do I know who the active player is?",
+    "match": "any",
+    "kind": "glossary",
+    "show_rewrite": false,
+    "rewrite_version": "v2",
+    "ruling_query_mode": "raw",
+    "condition": "v4",
+    "run": 2,
+    "answered": true,
+    "answer": "The active player is simply the player whose turn it is right now. Rule [102.1] defines it that way: \"The active player is the player whose turn it is. The other players are nonactive players.\" So at any moment, whoever's turn is currently being played is the active player — everyone else, regardless of how many other players are at the table, is a nonactive player.\n\nA few clarifications that matter in practice:\n- If a player's turn is somehow being controlled by another player (e.g., via a control effect), the player whose turn it actually is remains the active player — control of the player doesn't change who is active [723.3].\n- In games using the shared team turns option, it's a whole team's turn rather than one player's, so the team whose turn it is is the \"active team,\" and each other team is a nonactive team [805.4a]. An ability that refers to \"the active player\" in a shared-team-turns game still refers to one specific player on that team, chosen by the ability's controller when the effect applies [805.9].\n- During the combat phase, the active player doubles as the attacking player — creatures they control may attack — and in a two-player game, the nonactive player is the defending player [506.2].\n- The active player also gets priority first at several points during a turn (e.g., beginning of each step/phase) [508.2, 509.2, 504.2, 507.2, 510.3, 505.6], and when multiple players must make simultaneous choices, the active player chooses first, followed by other players in turn order (the APNAP rule) [101.4, 101.4e].\n\nSo to identify the active player: look at whose turn is currently in progress (check the turn/phase indicator or simply track turn order at the table) — that player is active, and every other player at the table is nonactive.",
+    "citations": [
+      "102.1",
+      "723.3",
+      "805.4a",
+      "805.9",
+      "506.2",
+      "508.2",
+      "509.2",
+      "504.2",
+      "507.2",
+      "510.3",
+      "505.6",
+      "101.4",
+      "101.4e"
+    ],
+    "gold": [
+      "102.1",
+      "Active Player"
+    ],
+    "gold_text": {
+      "102.1": "A player is one of the people in the game. The active player is the player whose turn it is. The other players are nonactive players.",
+      "Active Player": "Active Player. The player whose turn it is. See rule 102.1."
+    },
+    "cited_text": {
+      "102.1": "A player is one of the people in the game. The active player is the player whose turn it is. The other players are nonactive players.",
+      "723.3": "Only control of the player changes. All objects are controlled by their normal controllers. A player who’s being controlled during their turn is still the active player.",
+      "805.4a": "Each team takes turns rather than each player. The team whose turn it is is the active team. Each other team is a nonactive team.",
+      "805.9": "Any ability that refers to the “active player” refers to one specific active player, not to all of the active players. The ability’s controller chooses which one the ability refers to at the time its effect is applied.",
+      "506.2": "During the combat phase, the active player is the attacking player; creatures that player controls may attack. During the combat phase of a two-player game, the nonactive player is the defending player; that player, planeswalkers they control, and battles they protect may be attacked.",
+      "508.2": "Second, the active player gets priority. (See rule 117, “Timing and Priority.”)",
+      "509.2": "Second, the active player gets priority. (See rule 117, “Timing and Priority.”)",
+      "504.2": "Second, the active player gets priority. (See rule 117, “Timing and Priority.”)",
+      "507.2": "Second, the active player gets priority. (See rule 117, “Timing and Priority.”)",
+      "510.3": "Third, the active player gets priority. (See rule 117, “Timing and Priority.”)",
+      "505.6": "Fourth, the active player gets priority. (See rule 117, “Timing and Priority.”)",
+      "101.4": "If multiple players would make choices and/or take actions at the same time, the active player (the player whose turn it is) makes any choices required, then the next player in turn order (usually the player seated to the active player’s left) makes any choices required, followed by the remaining nonactive players in turn order. Then the actions happen simultaneously. This rule is often referred to as the “Active Player, Nonactive Player (APNAP) order” rule. A card reads “Each player sacrifices a creature.” First, the active player chooses a creature they control. Then each of the nonactive players, in turn order, chooses a creature they control. Then all creatures chosen this way are sacrificed simultaneously.",
+      "101.4e": "If multiple players would make choices and/or take actions at the same time, the active player (the player whose turn it is) makes any choices required, then the next player in turn order (usually the player seated to the active player’s left) makes any choices required, followed by the remaining nonactive players in turn order. Then the actions happen simultaneously. This rule is often referred to as the “Active Player, Nonactive Player (APNAP) order” rule. If multiple players would make choices or take actions while starting the game, the starting player is considered the active player and each other player is considered a nonactive player."
+    },
+    "rewrite_queries": [],
+    "clarification": null
+  },
+  {
+    "id": "q026",
+    "question": "when someone other than the active player casts a spell, who gets priority first?",
+    "match": "any",
+    "kind": "rule",
+    "show_rewrite": false,
+    "rewrite_version": "v2",
+    "ruling_query_mode": "raw",
+    "condition": "v4",
+    "run": 2,
+    "answered": true,
+    "answer": "The player who cast the spell gets priority first, even though they're not the active player. Rule [117.3c] states that if a player has priority when they cast a spell, activate an ability, or take a special action, that player receives priority afterward — this applies regardless of whether that player is the active player or not. So a non-active player who casts a spell (assuming they had priority to do so in the first place, which they must have in order to cast it) retains priority immediately after the spell is cast/put on the stack, and gets to act again (e.g., cast another spell in response, or pass) before anyone else, including the active player.\n\nThis is distinct from the rules like [504.2], [508.2], [509.2], [507.2], [510.3], and [505.6], which say the active player gets priority at the start of steps/phases — those govern the beginning of a step or phase, not what happens right after a spell is cast. Once a spell resolves, priority does pass to the active player per [117.3b], but that's a different moment (after resolution, not after casting).",
+    "citations": [
+      "117.3c",
+      "117.3b",
+      "504.2"
+    ],
+    "gold": [
+      "117.3c"
+    ],
+    "gold_text": {
+      "117.3c": "Which player has priority is determined by the following rules: If a player has priority when they cast a spell, activate an ability, or take a special action, that player receives priority afterward."
+    },
+    "cited_text": {
+      "117.3c": "Which player has priority is determined by the following rules: If a player has priority when they cast a spell, activate an ability, or take a special action, that player receives priority afterward.",
+      "117.3b": "Which player has priority is determined by the following rules: The active player receives priority after a spell or ability (other than a mana ability) resolves.",
+      "504.2": "Second, the active player gets priority. (See rule 117, “Timing and Priority.”)"
+    },
+    "rewrite_queries": [],
+    "clarification": null
+  },
+  {
+    "id": "q027",
+    "question": "when the active player cast a spell, who gets priority first?",
+    "match": "any",
+    "kind": "rule",
+    "show_rewrite": false,
+    "rewrite_version": "v2",
+    "ruling_query_mode": "raw",
+    "condition": "v4",
+    "run": 2,
+    "answered": true,
+    "answer": "The active player gets priority first. Rule [117.3c] states that if a player has priority when they cast a spell, activate an ability, or take a special action, that same player receives priority afterward. So once the active player casts a spell, that spell goes on the stack, and the active player immediately receives priority again (before anyone else, and before the spell resolves) — this lets them respond to their own spell if they wish, such as by casting another spell or activating an ability.\n\nIf the active player instead passes priority without acting further, the turn order for priority then moves to the next player in turn order (in a two-player game, that's the opponent), per the normal APNAP-style progression described in [117.3] and [101.4] for simultaneous actions. Once all players in succession pass priority, the spell on top of the stack resolves per [608.1].",
+    "citations": [
+      "117.3c",
+      "608.1",
+      "117.3",
+      "101.4"
+    ],
+    "gold": [
+      "117.3c"
+    ],
+    "gold_text": {
+      "117.3c": "Which player has priority is determined by the following rules: If a player has priority when they cast a spell, activate an ability, or take a special action, that player receives priority afterward."
+    },
+    "cited_text": {
+      "117.3c": "Which player has priority is determined by the following rules: If a player has priority when they cast a spell, activate an ability, or take a special action, that player receives priority afterward.",
+      "608.1": "Each time all players pass in succession, the spell or ability on top of the stack resolves. (See rule 609, “Effects.”)",
+      "117.3": "Which player has priority is determined by the following rules:",
+      "101.4": "If multiple players would make choices and/or take actions at the same time, the active player (the player whose turn it is) makes any choices required, then the next player in turn order (usually the player seated to the active player’s left) makes any choices required, followed by the remaining nonactive players in turn order. Then the actions happen simultaneously. This rule is often referred to as the “Active Player, Nonactive Player (APNAP) order” rule. A card reads “Each player sacrifices a creature.” First, the active player chooses a creature they control. Then each of the nonactive players, in turn order, chooses a creature they control. Then all creatures chosen this way are sacrificed simultaneously."
+    },
+    "rewrite_queries": [],
+    "clarification": null
+  },
+  {
+    "id": "q028",
+    "question": "can I hold priority to cast more spells after I've cast one or more spells?",
+    "match": "any",
+    "kind": "rule",
+    "show_rewrite": false,
+    "rewrite_version": "v2",
+    "ruling_query_mode": "raw",
+    "condition": "v4",
+    "run": 2,
+    "answered": true,
+    "answer": "Yes. As long as you had priority before casting a spell, you get priority back immediately after that spell becomes cast, and you can use that priority to cast another spell (or activate an ability) before anyone else gets a chance to act. This is what's usually called \"holding priority.\"\n\nHere's how it works: when you cast a spell, it goes on the stack and becomes a cast spell once all the steps of casting (proposal, cost payment, etc.) are complete. Rule [601.2i] and rule [117.3c] both state that if the spell's controller had priority before casting it, they get priority afterward. So immediately after your first spell is on the stack, you have priority again, and under rule [117.1] the player with priority may cast spells or activate abilities. You can repeat this process, stacking spell after spell, each one on top of the last.\n\nEach later spell you cast this way is cast \"in response to\" the earlier one(s) still on the stack, and per rule [117.7] the newest spell/ability will resolve first — so the last thing you put on the stack resolves before anything underneath it. Only once you actually pass priority (and your opponent, or in multiplayer all other players, also pass in succession with the stack non-empty, per rule [500.2]) will the top spell on the stack begin to resolve.\n\nOne assumption: this answer covers the standard single-stack game. In a Grand Melee multiplayer variant, there are multiple stacks, and rule [807.5b] requires you to specify which stack each new spell or ability goes on — you still get priority back the same way, but you must declare the stack for each cast spell.",
+    "citations": [
+      "601.2i",
+      "117.3c",
+      "117.1",
+      "117.7",
+      "500.2",
+      "807.5b"
+    ],
+    "gold": [
+      "117.3c"
+    ],
+    "gold_text": {
+      "117.3c": "Which player has priority is determined by the following rules: If a player has priority when they cast a spell, activate an ability, or take a special action, that player receives priority afterward."
+    },
+    "cited_text": {
+      "601.2i": "To cast a spell is to take it from where it is (usually the hand), put it on the stack, and pay its costs, so that it will eventually resolve and have its effect. Casting a spell includes proposal of the spell (rules 601.2a–d) and determination and payment of costs (rules 601.2f–h). To cast a spell, a player follows the steps listed below, in order. A player must be legally allowed to cast the spell to begin this process (see rule 601.3). If a player is unable to comply with the requirements of a step listed below while performing that step, the casting of the spell is illegal; the game returns to the moment before the casting of that spell was proposed (see rule 733, “Handling Illegal Actions”). Once the steps described in 601.2a–h are completed, effects that modify the characteristics of the spell as it’s cast are applied, then the spell becomes cast. Any abilities that trigger when a spell is cast or put onto the stack trigger at this time. If the spell’s controller had priority before casting it, they get priority.",
+      "117.3c": "Which player has priority is determined by the following rules: If a player has priority when they cast a spell, activate an ability, or take a special action, that player receives priority afterward.",
+      "117.1": "Unless a spell or ability is instructing a player to take an action, which player can take actions at any given time is determined by a system of priority. The player with priority may cast spells, activate abilities, and take special actions.",
+      "117.7": "If a player with priority casts a spell or activates an activated ability while another spell or ability is already on the stack, the new spell or ability has been cast or activated “in response to” the earlier spell or ability. The new spell or ability will resolve first. See rule 608, “Resolving Spells and Abilities.”",
+      "500.2": "A phase or step in which players receive priority ends when the stack is empty and all players pass in succession. Simply having the stack become empty doesn’t cause such a phase or step to end; all players have to pass in succession with the stack empty. Because of this, each player gets a chance to add new things to the stack before that phase or step ends.",
+      "807.5b": "Rather than having a single stack, Grand Melee games contain multiple stacks. Each turn marker represents its own stack. If a player has priority for multiple stacks and casts a spell, activates an ability, or a triggered ability they control triggers, the player must specify which one of those stacks the spell or ability is put on. If an object on one of those stacks caused the triggered ability to trigger, the player must put it on that stack. If a resolving spell or ability on one of those stacks causes a player to cast a spell or create a copy of a spell, the new spell must be put on the same stack. If a spell or ability targets an object on one of those stacks, it must be put on the same stack as its target; it can’t target objects on multiple stacks."
+    },
+    "rewrite_queries": [],
+    "clarification": null
+  },
+  {
+    "id": "q029",
+    "question": "when are lore counters put on sagas?",
+    "match": "all",
+    "kind": "rule",
+    "show_rewrite": false,
+    "rewrite_version": "v2",
+    "ruling_query_mode": "raw",
+    "condition": "v4",
+    "run": 2,
+    "answered": true,
+    "answer": "A lore counter is put on each Saga automatically at the very start of its controller's precombat main phase — but only on turns when that player is the active player. Specifically, as soon as the active player's precombat main phase begins, that player puts one lore counter on each Saga enchantment they control that has one or more chapter abilities (rules 505.4, 714.3c). This is a turn-based action, meaning it happens automatically without using the stack (714.3c). In an Archenemy game, this placement happens after the archenemy's scheme action for that turn (703.4f).\n\nNote this is separate from the lore counter(s) a Saga gets when it first enters the battlefield: a Saga without read ahead enters with one lore counter already on it (714.3a), while a Saga with read ahead lets its controller choose a number of lore counters between one and the Saga's final chapter number as it enters (714.3b, 702.155a/b). Both of these are replacement effects tied to the Saga entering (614.1c), not the turn-based lore-counter placement described above.\n\nEach time lore counters are added, the game checks whether any chapter abilities trigger (a chapter ability triggers when the lore-counter count crosses at least its chapter number, per 107.15a/714.2b), and as a state-based action, if the Saga's lore counters are now at or above its final chapter number and no chapter ability from it is still on the stack, its controller sacrifices it (714.4, 704.5s).",
+    "citations": [
+      "505.4",
+      "714.3c",
+      "703.4f",
+      "714.3a",
+      "714.3b",
+      "702.155a",
+      "702.155b",
+      "614.1c",
+      "107.15a",
+      "714.2b",
+      "714.4",
+      "704.5s"
+    ],
+    "gold": [
+      "714.3c",
+      "714.3a"
+    ],
+    "gold_text": {
+      "714.3c": "Sagas use lore counters to track their progress. As a player’s precombat main phase begins, that player puts a lore counter on each Saga they control with one or more chapter abilities. This turn-based action doesn’t use the stack.",
+      "714.3a": "Sagas use lore counters to track their progress. Each Saga without read ahead has the intrinsic ability “This Saga enters with a lore counter on it.” This ability creates a replacement effect (see rule 614.1c)."
+    },
+    "cited_text": {
+      "505.4": "Second, if the active player controls one or more Saga enchantments and it’s the active player’s precombat main phase, the active player puts a lore counter on each Saga they control with one or more chapter abilities. (See rule 714, “Saga Cards.”) This turn-based action doesn’t use the stack.",
+      "714.3c": "Sagas use lore counters to track their progress. As a player’s precombat main phase begins, that player puts a lore counter on each Saga they control with one or more chapter abilities. This turn-based action doesn’t use the stack.",
+      "703.4f": "The turn-based actions are as follows: Immediately after a player’s precombat main phase begins, that player puts a lore counter on each Saga enchantment they control with one or more chapter abilities. In an Archenemy game, this happens after the archenemy’s scheme action. See rule 714, “Saga Cards.”",
+      "714.3a": "Sagas use lore counters to track their progress. Each Saga without read ahead has the intrinsic ability “This Saga enters with a lore counter on it.” This ability creates a replacement effect (see rule 614.1c).",
+      "714.3b": "Sagas use lore counters to track their progress. Each Saga with read ahead has the intrinsic abilities “As this Saga enters, choose a number between one and this Saga’s final chapter number” and “This Saga enters with the chosen number of lore counters on it.” (See rule 702.155, “Read Ahead.”) These abilities create replacement effects (see rule 614.1c).",
+      "702.155a": "Read Ahead Read ahead is a keyword found on some Saga cards. “Read ahead” means “Chapter abilities of this Saga can’t trigger the turn it entered the battlefield unless it has exactly the number of lore counters on it specified in the chapter symbol of that ability.” See rule 714, “Saga Cards.”",
+      "702.155b": "Read Ahead Each Saga with read ahead has the intrinsic abilities “As this Saga enters, choose a number between one and this Saga’s final chapter number” and “This Saga enters with the chosen number of lore counters on it.” See rule 714.3b.",
+      "614.1c": "Some continuous effects are replacement effects. Like prevention effects (see rule 615), replacement effects apply continuously as events happen—they aren’t locked in ahead of time. Such effects watch for a particular event that would happen and completely or partially replace that event with a different event. They act like “shields” around whatever they’re affecting. Effects that read “[This permanent] enters with . . . ,” “As [this permanent] enters . . . ,” or “[This permanent] enters as . . . “ are replacement effects.",
+      "107.15a": "The text box of a Saga card contains chapter symbols, each of which is a keyword ability that represents a triggered ability. A chapter symbol includes a Roman numeral, indicated here as “rN”. The text printed in the text box striation to the right of a chapter symbol is the effect of the triggered ability it represents. See rule 714, “Saga Cards.” “{rN}—[Effect]” means “When one or more lore counters are put onto this Saga, if the number of lore counters on it was less than N and became at least N, [effect].”",
+      "714.2b": "A chapter symbol is a keyword ability that represents a triggered ability referred to as a chapter ability. “{rN}—[Effect]” means “When one or more lore counters are put onto this Saga, if the number of lore counters on it was less than N and became at least N, [effect].”",
+      "714.4": "If the number of lore counters on a Saga permanent with one or more chapter abilities is greater than or equal to its final chapter number, and it isn’t the source of a chapter ability that has triggered but not yet left the stack, that Saga’s controller sacrifices it. This state-based action doesn’t use the stack.",
+      "704.5s": "The state-based actions are as follows: If the number of lore counters on a Saga permanent with one or more chapter abilities is greater than or equal to its final chapter number and it isn’t the source of a chapter ability that has triggered but not yet left the stack, that Saga’s controller sacrifices it. See rule 714, “Saga Cards.”"
+    },
+    "rewrite_queries": [],
+    "clarification": null
+  },
+  {
+    "id": "q030",
+    "question": "what is a delayed triggered ability?",
+    "match": "any",
+    "kind": "glossary",
+    "show_rewrite": false,
+    "rewrite_version": "v2",
+    "ruling_query_mode": "raw",
+    "condition": "v4",
+    "run": 2,
+    "answered": true,
+    "answer": "A delayed triggered ability is a triggered ability that isn't part of a permanent's or card's normal printed abilities, but is instead created on the fly by the resolution of a spell or ability (or by a replacement effect or certain static abilities), and which will do something at a later point in the game rather than immediately. It always contains the word \"when,\" \"whenever,\" or \"at\" somewhere in its text, even though that word usually won't be the first word of the ability [Delayed Triggered Ability; 603.7].\n\nMore specifically: [610.2] a one-shot effect from a resolving spell or ability can create a delayed triggered ability that instructs a player to do something later — usually at a specific future time — instead of doing it right away as part of that resolution. For example, an effect might say \"When this creature leaves the battlefield, return it to its owner's hand at the beginning of the next end step\" — the return doesn't happen immediately; a delayed triggered ability is created that will fire at the next end step [603.7a].\n\nKey rules about how delayed triggered abilities behave:\n- They aren't created until the spell or ability actually resolves (or the replacement effect/static ability actually applies), even if the described trigger event already happened just before that point — if the trigger event becomes impossible before the ability is created, it simply never triggers [603.7a].\n- Normally a delayed triggered ability triggers only once, the next time its trigger event occurs, unless it specifies a duration like \"this turn\" [603.7b].\n- The source and controller of a delayed triggered ability depend on what created it: a spell that creates one has that spell as its source and the spell's controller as its controller [603.7d]; an activated/triggered ability that creates one shares that ability's source, with the controller being whoever controlled that ability as it resolved [603.7e]; a static ability generating a replacement effect that creates one has the object with the static ability as the source, with the controller being that object's controller at the time the replacement effect applied [603.7f]; and a static ability that lets a player take an action and creates a delayed ability in response has the source be the object with the static ability and the controller be that object's controller at the time the action was taken [603.7g].\n- A delayed triggered ability that refers to a particular object keeps affecting that object even if its characteristics change, but if the object has left the zone it's expected to be in by the time the ability would resolve, the ability does nothing (and if the object left and came back, it's a new object per rule 400.7, so it isn't affected) [603.7c].\n\nA special subtype called a \"reflexive triggered ability\" follows all these same rules, except it's checked immediately upon creation and triggers based on whether its trigger event already happened during the resolution of the ability that created it — this is used for effects like \"When you do, [something happens]\" [603.12].",
+    "citations": [
+      "Delayed Triggered Ability",
+      "603.7",
+      "610.2",
+      "603.7a",
+      "603.7b",
+      "603.7c",
+      "603.7d",
+      "603.7e",
+      "603.7f",
+      "603.7g",
+      "603.12"
+    ],
+    "gold": [
+      "Delayed Triggered Ability",
+      "603.7"
+    ],
+    "gold_text": {
+      "Delayed Triggered Ability": "Delayed Triggered Ability. An ability created by effects generated when some spells or abilities resolve, or when some replacement effects are applied, that does something later on rather than at that time. See rule 603.7.",
+      "603.7": "An effect may create a delayed triggered ability that can do something at a later time. A delayed triggered ability will contain “when,” “whenever,” or “at,” although that word won’t usually begin the ability."
+    },
+    "cited_text": {
+      "Delayed Triggered Ability": "Delayed Triggered Ability. An ability created by effects generated when some spells or abilities resolve, or when some replacement effects are applied, that does something later on rather than at that time. See rule 603.7.",
+      "603.7": "An effect may create a delayed triggered ability that can do something at a later time. A delayed triggered ability will contain “when,” “whenever,” or “at,” although that word won’t usually begin the ability.",
+      "610.2": "Some one-shot effects create a delayed triggered ability, which instructs a player to do something later in the game (usually at a specific time) rather than as the spell or ability that’s creating the one-shot effect resolves. See rule 603.7.",
+      "603.7a": "An effect may create a delayed triggered ability that can do something at a later time. A delayed triggered ability will contain “when,” “whenever,” or “at,” although that word won’t usually begin the ability. Delayed triggered abilities are created during the resolution of spells or abilities, as the result of a replacement effect being applied, or as a result of a static ability that allows a player to take an action. A delayed triggered ability won’t trigger until it has actually been created, even if its trigger event occurred just beforehand. Other events that happen earlier may make the trigger event impossible. Part of an effect reads “When this creature leaves the battlefield,” but the creature in question leaves the battlefield before the spell or ability creating the effect resolves. In this case, the delayed ability never triggers. If an effect reads “When this creature becomes untapped” and the named creature becomes untapped before the effect resolves, the ability waits for the next time that creature untaps.",
+      "603.7b": "An effect may create a delayed triggered ability that can do something at a later time. A delayed triggered ability will contain “when,” “whenever,” or “at,” although that word won’t usually begin the ability. A delayed triggered ability will trigger only once—the next time its trigger event occurs—unless it has a stated duration, such as “this turn.” If its trigger event occurs more than once simultaneously and the ability doesn’t have a stated duration, the controller of the delayed triggered ability chooses which event causes the ability to trigger.",
+      "603.7c": "An effect may create a delayed triggered ability that can do something at a later time. A delayed triggered ability will contain “when,” “whenever,” or “at,” although that word won’t usually begin the ability. A delayed triggered ability that refers to a particular object still affects it even if the object changes characteristics. However, if that object is no longer in the zone it’s expected to be in at the time the delayed triggered ability resolves, the ability won’t affect it. (Note that if that object left that zone and then returned, it’s a new object and thus won’t be affected. See rule 400.7.) An ability that reads “Exile this creature at the beginning of the next end step” will exile the permanent even if it’s no longer a creature during the next end step. However, it won’t do anything if the permanent left the battlefield before then.",
+      "603.7d": "An effect may create a delayed triggered ability that can do something at a later time. A delayed triggered ability will contain “when,” “whenever,” or “at,” although that word won’t usually begin the ability. If a spell creates a delayed triggered ability, the source of that delayed triggered ability is that spell. The controller of that delayed triggered ability is the player who controlled that spell as it resolved.",
+      "603.7e": "An effect may create a delayed triggered ability that can do something at a later time. A delayed triggered ability will contain “when,” “whenever,” or “at,” although that word won’t usually begin the ability. If an activated or triggered ability creates a delayed triggered ability, the source of that delayed triggered ability is the same as the source of that other ability. The controller of that delayed triggered ability is the player who controlled that other ability as it resolved.",
+      "603.7f": "An effect may create a delayed triggered ability that can do something at a later time. A delayed triggered ability will contain “when,” “whenever,” or “at,” although that word won’t usually begin the ability. If a static ability generates a replacement effect which causes a delayed triggered ability to be created, the source of that delayed triggered ability is the object with that static ability. The controller of that delayed triggered ability is the same as the controller of that object at the time the replacement effect was applied.",
+      "603.7g": "An effect may create a delayed triggered ability that can do something at a later time. A delayed triggered ability will contain “when,” “whenever,” or “at,” although that word won’t usually begin the ability. If a static ability allows a player to take an action and creates a delayed triggered ability if that player does so, the source of that delayed triggered ability is the object with that static ability. The controller of that delayed triggered ability is the same as the controller of that object at the time the action was taken.",
+      "603.12": "A resolving spell or ability may allow or instruct a player to take an action and create a triggered ability that triggers “when [a player] [does or doesn’t]” take that action or “when [something happens] this way.” These reflexive triggered abilities follow the rules for delayed triggered abilities (see rule 603.7), except that they’re checked immediately after being created and trigger based on whether the trigger event or events occurred earlier during the resolution of the spell or ability that created them. Heart-Piercer Manticore has an ability that reads “When this creature enters, you may sacrifice another creature. When you do, this creature deals damage equal to that creature’s power to any target.” The reflexive triggered ability triggers only when you sacrifice another creature due to the original triggered ability, and not if you sacrifice a creature for any other reason."
+    },
+    "rewrite_queries": [],
+    "clarification": null
+  },
+  {
+    "id": "q031",
+    "question": "can non-permanent spells have abilities?",
+    "match": "any",
+    "kind": "rule",
+    "show_rewrite": false,
+    "rewrite_version": "v2",
+    "ruling_query_mode": "raw",
+    "condition": "v4",
+    "run": 2,
+    "answered": true,
+    "answer": "Yes. Instants and sorceries (non-permanent spells) can and do have abilities. Any text on an instant or sorcery spell counts as a \"spell ability\" unless it's specifically an activated ability, a triggered ability, or a static ability that fits the criteria in rule 113.6 - a spell ability is simply a set of instructions that's followed while the instant or sorcery is resolving [113.3a]. So the default kind of ability found on a non-permanent spell is a spell ability, but instants and sorceries can also carry activated abilities, triggered abilities, or (in the limited cases listed in 113.6) static abilities. Normally, an ability on a non-permanent spell functions only while that spell is on the stack, since 'abilities of all other objects usually function only while that object is on the battlefield' and instants/sorceries are the named exception that instead functions on the stack - but rule 113.6 lists specific exceptions where an ability can function elsewhere. One notable exception is a characteristic-defining ability, which conveys information about the object's own characteristics (like power/toughness or color) and functions in every zone, including while the card is a non-permanent spell on the stack or even in hand or exile [604.3]. Abilities in general are defined by an object's rules text or by the effect that created them, and they generate one-shot or continuous effects that can affect the object itself, other objects, or players [113.1a, 113.2d].",
+    "citations": [
+      "113.3a",
+      "113.6",
+      "604.3",
+      "113.1a",
+      "113.2d"
+    ],
+    "gold": [
+      "113.3a",
+      "113.6"
+    ],
+    "gold_text": {
+      "113.3a": "There are four general categories of abilities: Spell abilities are abilities that are followed as instructions while an instant or sorcery spell is resolving. Any text on an instant or sorcery spell is a spell ability unless it’s an activated ability, a triggered ability, or a static ability that fits the criteria described in rule 113.6.",
+      "113.6": "Abilities of an instant or sorcery spell usually function only while that object is on the stack. Abilities of all other objects usually function only while that object is on the battlefield. The exceptions are as follows:"
+    },
+    "cited_text": {
+      "113.3a": "There are four general categories of abilities: Spell abilities are abilities that are followed as instructions while an instant or sorcery spell is resolving. Any text on an instant or sorcery spell is a spell ability unless it’s an activated ability, a triggered ability, or a static ability that fits the criteria described in rule 113.6.",
+      "113.6": "Abilities of an instant or sorcery spell usually function only while that object is on the stack. Abilities of all other objects usually function only while that object is on the battlefield. The exceptions are as follows:",
+      "604.3": "Some static abilities are characteristic-defining abilities. A characteristic-defining ability conveys information about an object’s characteristics that would normally be found elsewhere on that object (such as in its mana cost, type line, or power/toughness box). Characteristic-defining abilities can add to or override information found elsewhere on that object. Characteristic-defining abilities function in all zones. They also function outside the game and before the game begins.",
+      "113.1a": "An ability can be one of three things: An ability can be a characteristic an object has that lets it affect the game. An object’s abilities are defined by its rules text or by the effect that created it. Abilities can also be granted to objects by rules or effects. (Effects that grant abilities usually use the words “has,” “have,” “gains,” or “gain.”) Abilities generate effects. (See rule 609, “Effects.”)",
+      "113.2d": "Abilities can affect the objects they’re on. They can also affect other objects and/or players. Abilities can generate one-shot effects or continuous effects. Some continuous effects are replacement effects or prevention effects. See rule 609, “Effects.”"
+    },
+    "rewrite_queries": [],
+    "clarification": null
+  },
+  {
+    "id": "q032",
+    "question": "can I use a mana ability when a spell with split-second is on the stack?",
+    "match": "any",
+    "kind": "rule",
+    "show_rewrite": false,
+    "rewrite_version": "v2",
+    "ruling_query_mode": "raw",
+    "condition": "v4",
+    "run": 2,
+    "answered": true,
+    "answer": "Yes. Split second only stops players from casting spells or activating non‑mana abilities while the spell with split second is on the stack; mana abilities are explicitly carved out as still usable.\n\nRule 702.61a defines split second as: \"As long as this spell is on the stack, players can't cast other spells or activate abilities that aren't mana abilities.\" Rule 702.61b reinforces this directly, stating that players may activate mana abilities and take special actions while a spell with split second is on the stack, and that triggered abilities (including triggered mana abilities) still trigger and go on the stack normally (or resolve immediately if they're mana abilities, per 605.4a).\n\nThis matters practically because mana abilities (605.1, 113.4) don't use the stack and resolve immediately (605.3b, 405.6c), so they were never something split second needed to prevent — the restriction is aimed at spells and non‑mana activated/triggered abilities that could be used to answer the split‑second spell before it resolves. So you can freely tap lands or use other mana abilities to pay costs while a split‑second spell is on the stack; you just can't cast instants, activate non‑mana abilities (like most removal or counterspell effects), in response to it.",
+    "citations": [
+      "702.61a",
+      "702.61b",
+      "605.1",
+      "113.4",
+      "605.3b",
+      "405.6c",
+      "605.4a"
+    ],
+    "gold": [
+      "702.61a",
+      "702.61b"
+    ],
+    "gold_text": {
+      "702.61a": "Split Second Split second is a static ability that functions only while the spell with split second is on the stack. “Split second” means “As long as this spell is on the stack, players can’t cast other spells or activate abilities that aren’t mana abilities.”",
+      "702.61b": "Split Second Players may activate mana abilities and take special actions while a spell with split second is on the stack. Triggered abilities trigger and are put on the stack as normal while a spell with split second is on the stack."
+    },
+    "cited_text": {
+      "702.61a": "Split Second Split second is a static ability that functions only while the spell with split second is on the stack. “Split second” means “As long as this spell is on the stack, players can’t cast other spells or activate abilities that aren’t mana abilities.”",
+      "702.61b": "Split Second Players may activate mana abilities and take special actions while a spell with split second is on the stack. Triggered abilities trigger and are put on the stack as normal while a spell with split second is on the stack.",
+      "605.1": "Some activated abilities and some triggered abilities are mana abilities, which are subject to special rules. Only abilities that meet either of the following two sets of criteria are mana abilities, regardless of what other effects they may generate or what timing restrictions (such as “Activate only as an instant”) they may have.",
+      "113.4": "Some activated abilities and some triggered abilities are mana abilities. Mana abilities follow special rules: They don’t use the stack, and, under certain circumstances, a player can activate mana abilities even if they don’t have priority. See rule 605, “Mana Abilities.”",
+      "605.3b": "Activating an activated mana ability follows the rules for activating any other activated ability (see rule 602.2), with the following exceptions: An activated mana ability doesn’t go on the stack, so it can’t be targeted, countered, or otherwise responded to. Rather, it resolves immediately after it is activated. (See rule 405.6c.)",
+      "405.6c": "Some things that happen during the game don’t use the stack. Mana abilities resolve immediately. If a mana ability both produces mana and has another effect, the mana is produced and the other effect happens immediately. If a player had priority before a mana ability was activated, that player gets priority after it resolves. (See rule 605, “Mana Abilities.”)",
+      "605.4a": "Triggered mana abilities follow all the rules for other triggered abilities (see rule 603, “Handling Triggered Abilities”), with the following exception: A triggered mana ability doesn’t go on the stack, so it can’t be targeted, countered, or otherwise responded to. Rather, it resolves immediately after the mana ability that triggered it, without waiting for priority. An enchantment reads, “Whenever a player taps a land for mana, that player adds one mana of any type that land produced.” If a player taps lands for mana while casting a spell, the additional mana is added immediately and can be used to pay for the spell."
+    },
+    "rewrite_queries": [],
+    "clarification": null
+  }
+]

@@ -1,0 +1,2402 @@
+{
+  "model": "openai/gpt-5-mini",
+  "rewrite_version": "v2",
+  "ruling_query_mode": "raw",
+  "condition": "h2h_gpt5mini",
+  "run": 1,
+  "reasoning": null,
+  "prompts_cache": null,
+  "results": [
+    {
+      "id": "rg7",
+      "question": "Nico controls Analia's [Bane Alley Blackguard] enchanted with their [Corrupted Conscience]. Analia casts their own [Lay Claim], targeting Nico's Corrupted Conscience. After it resolves, who controls the Bane Alley Blackguard? Who controls the Corrupted Conscience?",
+      "served_model": "openai/gpt-5-mini",
+      "provider": "OpenAI",
+      "temperature_sent": null,
+      "seed_sent": 42,
+      "usage": {
+        "prompt_tokens": 3361,
+        "completion_tokens": 3192,
+        "total_tokens": 6553,
+        "cost": 0.00650425,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 3200,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.00650425,
+          "upstream_inference_prompt_cost": 0.00012025,
+          "upstream_inference_completions_cost": 0.006384
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 2688,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "retrieved_rule_ids": [
+        "303.4e",
+        "110.2b",
+        "723.3",
+        "700.9",
+        "702.65b",
+        "301.5d",
+        "110.2",
+        "608.3c",
+        "303.4m",
+        "701.12b",
+        "603.6e",
+        "730.2c",
+        "701.3c",
+        "303.4j",
+        "400.7f",
+        "111.2",
+        "800.4c",
+        "122.1",
+        "301.5",
+        "303.4"
+      ],
+      "answered": true,
+      "text": "Analia controls Analia's Bane Alley Blackguard and Analia controls Corrupted Conscience after Lay Claim resolves. \n\nReasoning: When Lay Claim resolves it becomes an Aura attached to the targeted permanent (Corrupted Conscience) and is put onto the battlefield attached to that target (rules: an Aura spell becoming a permanent and attaching to its target: [608.3c]; Auras enter the battlefield attached to objects or players: [303.4]). Lay Claim’s text (“You control enchanted permanent.”) makes Analia the controller of the permanent it enchants, which is Corrupted Conscience (Lay Claim card text). Because Corrupted Conscience’s text says “You control enchanted creature,” that effect applies to the controller of Corrupted Conscience (Corrupted Conscience card text) and therefore makes Analia the controller of the creature Analia's Bane Alley Blackguard. Changing which player controls an Aura or the enchanted object doesn’t by itself remove attachments; the Aura remains attached (see that an Aura’s controller is separate from the enchanted object’s controller: [303.4e]; and the Lay Claim ruling clarifies that effects that change control don’t cause attached Auras to move and that an Aura’s “you” refers to its controller: [Lay Claim ruling #0]).\n\nAssumption: I assume the timing is as stated—Lay Claim resolved and became attached to Corrupted Conscience. If instead Lay Claim had been countered or otherwise failed to enter the battlefield, the control-change wouldn’t occur (resolution assumption).",
+      "citations": [
+        "608.3c",
+        "303.4",
+        "303.4e",
+        "Corrupted Conscience",
+        "Lay Claim",
+        "Lay Claim ruling #0"
+      ],
+      "error": null,
+      "raw_text": null
+    },
+    {
+      "id": "rg115",
+      "question": "Nathanael controls [Grizzly Bears] and [Muraganda Petroglyphs]. They cast and resolve [Crowd's Favor], targeting Grizzly Bears. Amia then casts [Archetype of Courage]. After it resolves, what are the power and toughness of Grizzly Bears?",
+      "served_model": "openai/gpt-5-mini",
+      "provider": "OpenAI",
+      "temperature_sent": null,
+      "seed_sent": 42,
+      "usage": {
+        "prompt_tokens": 4808,
+        "completion_tokens": 5421,
+        "total_tokens": 10229,
+        "cost": 0.012044,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.012044,
+          "upstream_inference_prompt_cost": 0.001202,
+          "upstream_inference_completions_cost": 0.010842
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 4416,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "retrieved_rule_ids": [
+        "611.3c",
+        "208.2b",
+        "613.4d",
+        "613.4c",
+        "613.4b",
+        "613.5",
+        "613.4a",
+        "208.4b",
+        "613.2a",
+        "613.1g",
+        "611.3b",
+        "208.4a",
+        "302.4c",
+        "208.3a",
+        "613.6",
+        "614.1",
+        "707.2",
+        "613.7",
+        "613.8",
+        "604.3"
+      ],
+      "answered": true,
+      "text": "After Archetype of Courage resolves, Grizzly Bears is a 5/4.\n\nReasoning (stepwise):\n- Grizzly Bears’s printed power and toughness are 2/2 (see rule 302.4c).  Muraganda Petroglyphs has the static ability “Creatures with no abilities get +2/+2,” which generates a continuous effect that modifies power/toughness while Muraganda Petroglyphs is on the battlefield (see Muraganda Petroglyphs and rules 611.3b and 613.1g). Initially, because Grizzly Bears had no abilities, Muraganda Petroglyphs would make Grizzly Bears a 4/4.\n- When Crowd's Favor resolved earlier, it created two continuous effects: one that gives the targeted creature +1/+0 until end of turn (a power/toughness modifier applied in layer 7c) and one that gives that creature first strike until end of turn (an ability-adding effect applied in layer 6) (see Crowd's Favor and rule 613.4c and 613.6). While Grizzly Bears had first strike from Crowd's Favor, it did not satisfy “Creatures with no abilities,” so the Muraganda Petroglyphs bonus did not apply; Grizzly Bears would thus have been 3/2 (2/2 +1/+0) while it still had first strike.\n- After Archetype of Courage resolves, Archetype of Courage’s continuous effect causes creatures its controller’s opponents control to lose first strike and to be unable to have or gain first strike (that effect is an ability-changing continuous effect applied in layer 6). Because Archetype of Courage’s effect has a later timestamp (it resolved after Crowd's Favor), in layer 6 it removes the first strike that Crowd's Favor had given Grizzly Bears (see Archetype of Courage and rules 613.7 and 613.6).\n- Once that first-strike ability is removed, Grizzly Bears again has no abilities, so Muraganda Petroglyphs’s +2/+2 applies again in layer 7c. In layer 7c both Muraganda Petroglyphs’s +2/+2 and Crowd's Favor’s +1/+0 are applied (timestamps determine order within the sublayer but both are modifiers and thus both apply). The result is base 2/2 +2/+2 +1/+0 = 5/4.\n\nKey term definitions used above:\n- Continuous effect: a game effect generated (for example) by a static ability that applies as long as the object generating it is in the appropriate zone; such effects can modify characteristics like power and toughness (see rules 611.3b and 611.3c).\n- Layers and timestamps: The game applies continuous effects by the layer system (power/toughness changes happen in layer 7), and within a layer or sublayer effects are ordered by timestamp unless dependency overrides that (see rules 613.1g, 613.4c, and 613.7). This is why ability changes in layer 6 (first strike being added or removed) affect whether a “no abilities” condition is true before layer 7c applies power/toughness modifiers (see rule 613.6).\n\nAssumption about timing: I assumed the timeline given (Crowd's Favor resolved first, then Archetype of Courage resolved). If Archetype of Courage had been on the battlefield before Crowd's Favor resolved, then the “can't have or gain first strike” part of Archetype of Courage would have prevented Crowd's Favor from ever giving Grizzly Bears first strike; in that case Muraganda Petroglyphs would continuously give +2/+2 while Crowd's Favor would only add +1/+0, also producing a 5/4 result. (The cited layer/timestamp rules cover both orders.)",
+      "citations": [
+        "302.4c",
+        "611.3b",
+        "611.3c",
+        "613.1g",
+        "613.4c",
+        "613.6",
+        "613.7",
+        "Muraganda Petroglyphs",
+        "Crowd's Favor",
+        "Archetype of Courage",
+        "Grizzly Bears"
+      ],
+      "error": null,
+      "raw_text": null
+    },
+    {
+      "id": "rg126",
+      "question": "Albert controls [Life and Limb], [Blood Moon], and [Murmuring Bosk], that entered the battlefield in that order. Is Murmuring Bosk a creature?",
+      "served_model": "openai/gpt-5-mini",
+      "provider": "OpenAI",
+      "temperature_sent": null,
+      "seed_sent": 42,
+      "usage": {
+        "prompt_tokens": 3874,
+        "completion_tokens": 3624,
+        "total_tokens": 7498,
+        "cost": 0.0082165,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.0082165,
+          "upstream_inference_prompt_cost": 0.0009685,
+          "upstream_inference_completions_cost": 0.007248
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 2880,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "retrieved_rule_ids": [
+        "205.3c",
+        "205.4b",
+        "205.1b",
+        "613.1d",
+        "305.6",
+        "205.3i",
+        "205.4c",
+        "Forest",
+        "Swamp",
+        "Land Type",
+        "305.7",
+        "Basic",
+        "Creature Type",
+        "Basic Land Type",
+        "Changeling",
+        "107.4a",
+        "605.1",
+        "305.1",
+        "302.1",
+        "308.1"
+      ],
+      "answered": true,
+      "text": "No. Murmuring Bosk is not a creature. Blood Moon’s effect (which was applied after Life and Limb) sets Murmuring Bosk’s land subtype to Mountain, so Murmuring Bosk is no longer a Forest and therefore isn’t affected by Life and Limb’s “Forests are ... creatures” effect.\n\nReasoning and assumptions\n- Define “creature”: an object is a creature if it has the card type creature (card types appear on the type line) [205.1b].\n- Relevant continuous/type-changing effects present when Murmuring Bosk entered: Murmuring Bosk’s printed characteristics (it is a Land with the Forest land type), Life and Limb’s effect that makes Forests creatures, and Blood Moon’s effect that makes nonbasic lands Mountains. These are type-changing effects, so they are applied in Layer 4 (type-changing effects) [613.1d].\n- Murmuring Bosk’s printed card data shows it is a Forest (it has the Forest land type) [Murmuring Bosk ruling #0].\n- Life and Limb makes each Forest have the card types creature and land and include the Forest subtype [Life and Limb ruling #3]. If Murmuring Bosk were a Forest while that effect applied, Murmuring Bosk would gain the creature card type from Life and Limb.\n- Blood Moon makes nonbasic lands Mountains; Murmuring Bosk is not a basic land [Murmuring Bosk ruling #0], so Blood Moon sets Murmuring Bosk’s land subtype to Mountain. When an effect sets a land’s subtype to one or more basic land types, the land no longer has its old land type(s) (it loses its prior land types) [305.7].\n- Because Blood Moon was played after Life and Limb (it has the later timestamp), Blood Moon’s Layer 4 effect that sets Murmuring Bosk to be a Mountain overrides the Forest land type that would make Life and Limb apply. The net result is Murmuring Bosk is a Mountain land (not a Forest) and thus is not made a creature by Life and Limb. (Effects are grouped and applied in the layer for type changes, so the later timestamp wins for conflicting type-setting effects.) [613.1d, 305.7, Life and Limb ruling #3, Murmuring Bosk ruling #0]\n\nIf the order had been different (for example, if Life and Limb entered after Blood Moon), the timestamp situation could change which subtype-setting effect “wins,” and that could change whether Murmuring Bosk ends up a Forest and thus a creature. (The reasoning above assumes the order you gave: Life and Limb, then Blood Moon, then Murmuring Bosk.)",
+      "citations": [
+        "613.1d",
+        "305.7",
+        "Life and Limb ruling #3",
+        "Murmuring Bosk ruling #0",
+        "205.1b"
+      ],
+      "error": null,
+      "raw_text": null
+    },
+    {
+      "id": "rg127",
+      "question": "Angelica controls a [Blood Moon], a [Life and Limb], and a [Sheltered Thicket], that entered the battlefield in that order. Is the Sheltered Thicket a creature?",
+      "served_model": "openai/gpt-5-mini",
+      "provider": "OpenAI",
+      "temperature_sent": null,
+      "seed_sent": 42,
+      "usage": {
+        "prompt_tokens": 4440,
+        "completion_tokens": 4799,
+        "total_tokens": 9239,
+        "cost": 0.010708,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.010708,
+          "upstream_inference_prompt_cost": 0.00111,
+          "upstream_inference_completions_cost": 0.009598
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 3840,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "retrieved_rule_ids": [
+        "205.4b",
+        "205.1b",
+        "305.7",
+        "305.8",
+        "305.9",
+        "613.6",
+        "Nonbasic Land",
+        "300.2a",
+        "Mountain",
+        "603.6b",
+        "Land Type",
+        "205.4c",
+        "Artifact Land",
+        "Land",
+        "305.5",
+        "305.6",
+        "603.6d",
+        "305.1",
+        "205.3i",
+        "301.1"
+      ],
+      "answered": false,
+      "text": "I can’t conclusively say yes or no with only the provided rules — the context here doesn’t include the rule that determines the order to apply multiple continuous effects in the same layer (the timestamp/continuous-effect–ordering rule), which is necessary to decide whether Blood Moon or Life and Limb “wins” here.\n\nWhy it’s undecided from the provided material:\n- Sheltered Thicket is printed as a land with subtypes Mountain and Forest (see Sheltered Thicket card data and rule 305.5 and 205.1b). By the printed characteristics it is a Forest when it’s put onto the battlefield. [Sheltered Thicket, 305.5, 205.1b]\n- Blood Moon’s effect (“Nonbasic lands are Mountains.”) is a continuous effect that sets a nonbasic land’s land subtype(s) to a basic land type (Mountain). Rule 305.7 says that when an effect sets a land’s subtype to one or more basic land types, the land no longer has its old land type(s), and it loses abilities generated from its rules text and old land types and gains the appropriate mana ability. So if Blood Moon’s subtype-setting effect is applied to Sheltered Thicket, Sheltered Thicket would cease to have the Forest land type. [Blood Moon, 305.7]\n- Life and Limb’s effect (“All Forests and all Saprolings are 1/1 green Saproling creatures and Forest lands in addition to their other types…”) is a continuous effect that makes Forests into creatures (and also sets power/toughness). If Life and Limb’s effect is applied to Sheltered Thicket (i.e., Sheltered Thicket is considered a Forest at the time that effect applies), it becomes a 1/1 creature as part of that single effect (see 613.6 about effects that change types and set power/toughness applying to the same set of objects). [Life and Limb, 613.6]\n- Which of those results actually obtains for Sheltered Thicket depends on which layer-4 subtype-setting effect is applied last (Blood Moon’s “becomes Mountain” or Life and Limb’s effect that identifies “Forests” and makes them creatures). The provided rules do not include the rule that tells us how to order multiple continuous effects that apply in the same layer (timestamp ordering among continuous effects), so we cannot determine from the supplied material whether Sheltered Thicket keeps being a Forest for the purposes of Life and Limb or has its Forest subtype removed by Blood Moon before Life and Limb would affect it.\n\nWhat’s missing to answer definitively:\n- The rules that specify how to order and apply multiple continuous effects in the same layer (timestamp/order-of-application rules from the comprehensive rules, e.g., the timestamp rule in the layer system). Without that, the interaction between Blood Moon’s subtype-setting effect and Life and Limb’s Forest-targeting effect is unresolved in the supplied context.\n\nDefinitions (from the provided rules):\n- “Creature”: an object with the card type creature; an object that’s both a land and another card type combines the aspects of each card type (see 300.2a and 205.1b). [300.2a, 205.1b]\n- “Setting a land’s subtype to a basic land type”: an effect that replaces the land’s old land type(s) with the specified basic land type(s) and causes it to lose abilities generated from its rules text and old land types (see 305.7). [305.7]\n\nBecause the decisive rule about ordering continuous effects in the same layer isn’t present in the supplied context, I must mark this answer as unresolved rather than guess which enchantment’s effect prevails.",
+      "citations": [
+        "Sheltered Thicket",
+        "305.5",
+        "205.1b",
+        "Blood Moon",
+        "305.7",
+        "Life and Limb",
+        "613.6",
+        "300.2a"
+      ],
+      "error": null,
+      "raw_text": null
+    },
+    {
+      "id": "rg129",
+      "question": "Alex controls a [Life and Limb], a [Blood Moon], and a 1/1 Green Saproling Creature token, that entered the battlefield in that order. What is the Saproling?",
+      "served_model": "openai/gpt-5-mini",
+      "provider": "OpenAI",
+      "temperature_sent": null,
+      "seed_sent": 42,
+      "usage": {
+        "prompt_tokens": 5335,
+        "completion_tokens": 3997,
+        "total_tokens": 9332,
+        "cost": 0.00932775,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.00932775,
+          "upstream_inference_prompt_cost": 0.00133375,
+          "upstream_inference_completions_cost": 0.007994
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 3328,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "retrieved_rule_ids": [
+        "205.1b",
+        "613.6",
+        "603.6b",
+        "305.7",
+        "205.4b",
+        "113.12",
+        "613.1f",
+        "614.12",
+        "113.11",
+        "707.9d",
+        "113.10c",
+        "Forest",
+        "Changeling",
+        "607.5a",
+        "111.3",
+        "603.6d",
+        "604.3",
+        "614.1c",
+        "616.1",
+        "204.1"
+      ],
+      "answered": true,
+      "text": "Answer: The token is a 1/1 green Saproling creature that is also a Mountain land and has “{T}: Add {R}.” It is no longer a Forest and does not have the Forest mana ability.\n\nExplanation and key-term definitions\n- “Basic” (a supertype) is independent of an object’s card types and subtypes, so gaining the Forest subtype does not make a permanent a basic land (205.4b). Because Life and Limb doesn’t give the basic supertype, the Saproling is a nonbasic land after Life and Limb’s effect (Life and Limb; Life and Limb ruling #3).\n- Life and Limb’s continuous effect makes Saprolings 1/1 green Saproling creatures and Forest lands in addition to their other types; a Saproling entering while Life and Limb is in play enters as a land creature (Life and Limb; Life and Limb ruling #1; Life and Limb ruling #3).\n- Blood Moon’s effect makes nonbasic lands Mountains and causes those nonbasic lands to lose any other land types and abilities they had, and to gain the Mountain subtype and the ability “{T}: Add {R}” (Blood Moon; Blood Moon ruling #2).\n\nBecause the Saproling entered while both enchantments were on the battlefield, Life and Limb made it a 1/1 green Saproling creature and a Forest land, but it is not a basic land. Blood Moon then makes that nonbasic land a Mountain, removing its other land types and land-gained abilities (so it loses Forest as a land type and the Forest mana ability) and gives it the Mountain tap-for-{R} ability. Nothing in Blood Moon removes the creature type, power/toughness, or color set by Life and Limb, so the token remains a 1/1 green Saproling creature.\n\nTiming assumption\n- I’m assuming the Saproling token entered the battlefield after both enchantments were already on the battlefield (as stated). If the order were different (for example Blood Moon entering after the token), the final land subtype and abilities could differ because Blood Moon would then subsequently replace the land’s types (see Blood Moon ruling #2 and 305.7).\n",
+      "citations": [
+        "Life and Limb",
+        "Life and Limb ruling #1",
+        "Life and Limb ruling #3",
+        "Blood Moon",
+        "Blood Moon ruling #2",
+        "[205.4b]",
+        "[305.7]"
+      ],
+      "error": null,
+      "raw_text": null
+    },
+    {
+      "id": "rg130",
+      "question": "Aubriella controls a [Life and Limb], a [Blood Moon], a [Sapseep Forest], and a 1/1 Green Saproling Creature token, that entered the battlefield in that order. What do the Sapseep Forest and Saproling look like?",
+      "served_model": "openai/gpt-5-mini",
+      "provider": "OpenAI",
+      "temperature_sent": null,
+      "seed_sent": 42,
+      "usage": {
+        "prompt_tokens": 5575,
+        "completion_tokens": 9178,
+        "total_tokens": 14753,
+        "cost": 0.01974975,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.01974975,
+          "upstream_inference_prompt_cost": 0.00139375,
+          "upstream_inference_completions_cost": 0.018356
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 8064,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "retrieved_rule_ids": [
+        "613.6",
+        "205.1b",
+        "205.4b",
+        "603.6b",
+        "613.5",
+        "613.1d",
+        "707.9f",
+        "305.7",
+        "613.4d",
+        "613.2a",
+        "611.2e",
+        "613.1",
+        "613.2c",
+        "700.5a",
+        "205.3c",
+        "603.6d",
+        "613.7",
+        "613.8",
+        "707.1",
+        "730.1"
+      ],
+      "answered": true,
+      "text": "Sapseep Forest and the 1/1 green Saproling creature token are each a green 1/1 Saproling creature and a land whose land type is Mountain; their type line would read “Land Creature — Mountain Saproling,” they are green, they are 1/1, and each has the mana ability “{T}: Add {R}.” They do not have Sapseep Forest’s printed “{G}, {T}: You gain 1 life” ability (nor the printed “this land enters tapped” effect) nor the “{T}: Add {G}” ability coming from being a Forest, because Blood Moon’s effect makes them Mountains and replaces those land types/abilities.\n\nShort explanation of terms: “What they look like” here means each object’s card types, subtypes, color, power/toughness, and mana/other abilities.\n\nWhy this is the result (assumption about timing first): I am assuming the game state given is literal — Life and Limb and Blood Moon were already on the battlefield when Sapseep Forest entered, and the Saproling token entered after Sapseep Forest. Continuous effects that modify permanents apply the moment a permanent is on the battlefield, so the two enchantments’ effects both apply to Sapseep Forest as it enters and to the Saproling token as it enters (see rules 603.6d and 611.2e). Life and Limb’s effect and Blood Moon’s effect are both type-changing effects applied in layer 4; within layer 4 they are applied in timestamp order, so Life and Limb (older) applies first, then Blood Moon (later) applies (613.1, 613.7). Life and Limb makes Forests and Saprolings into 1/1 green Saproling creatures and Forest lands in addition to their other types (Life and Limb ruling #3, #1, #2). Blood Moon’s layer-4 effect then makes nonbasic lands Mountains; when an effect sets a land’s subtype to a basic land type, the land loses its old land type and loses abilities that came from those old land types and from its rules text and copiable effects, and it gains the appropriate mana ability for the new basic land type (305.7 and Blood Moon ruling #2). Because of that, the Forest land type and the “{T}: Add {G}” ability that Life and Limb produced are lost, Sapseep Forest’s printed land-related abilities and its “enters tapped” line are lost, and each object instead has the Mountain land type and the Mountain mana ability “{T}: Add {R}.” Life and Limb’s color-changing (green) and power/toughness-setting (1/1) parts still apply in their respective layers, so both permanents are green 1/1 Saproling creatures (613.1, 613.5, 613.6). Note that because they are creatures, they have summoning sickness if they haven’t been controlled since the turn began and therefore can’t pay a {T} cost until they’ve been under your control since the start of your turn (Life and Limb ruling #0).\n\nIf the timing were different (for example, if Sapseep Forest had entered before Blood Moon was on the battlefield), Sapseep Forest would have initially entered with its printed abilities and land type and those printed abilities would have existed at least until Blood Moon entered and changed things; the outcome after Blood Moon’s later arrival would still make it a Mountain and replace its land types/abilities per the rules above, but whether it ever entered tapped or had its printed abilities in effect for any window of time would depend on that different ordering (613.7, 611.2e).",
+      "citations": [
+        "613.1",
+        "613.5",
+        "613.6",
+        "613.7",
+        "611.2e",
+        "603.6d",
+        "305.7",
+        "205.3c",
+        "Life and Limb ruling #3",
+        "Life and Limb ruling #1",
+        "Life and Limb ruling #2",
+        "Life and Limb ruling #0",
+        "Blood Moon ruling #2",
+        "Sapseep Forest"
+      ],
+      "error": null,
+      "raw_text": null
+    },
+    {
+      "id": "rg131",
+      "question": "Ainsley controls a [Blood Moon], a [Life and Limb], a [Cinder Glade], and a 1/1 Green Saproling Creature token, that entered the battlefield in that order. What do the Cinder Glade and Saproling look like?",
+      "served_model": "openai/gpt-5-mini",
+      "provider": "OpenAI",
+      "temperature_sent": null,
+      "seed_sent": 42,
+      "usage": {
+        "prompt_tokens": 4370,
+        "completion_tokens": 3873,
+        "total_tokens": 8243,
+        "cost": 0.0088385,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.0088385,
+          "upstream_inference_prompt_cost": 0.0010925,
+          "upstream_inference_completions_cost": 0.007746
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 2560,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "retrieved_rule_ids": [
+        "205.4b",
+        "205.1b",
+        "613.6",
+        "305.7",
+        "Nonbasic Land",
+        "Artifact Land",
+        "Lander Token",
+        "305.6",
+        "205.3c",
+        "111.3",
+        "305.9",
+        "709.5",
+        "205.4c",
+        "Basic Landcycling",
+        "111.10u",
+        "301.1",
+        "305.1",
+        "111.10",
+        "107.4a",
+        "605.1"
+      ],
+      "answered": false,
+      "text": "Answered: no. The provided rules and rulings here don’t include the rule needed to decide which continuous effect wins when two static effects both try to change a land’s land types (i.e., the layered/timestamp tiebreak rule for continuous effects), so I can’t definitively say which final land subtype(s) Cinder Glade and the Saproling have.\n\nWhat is missing (so you can get a definitive ruling): the comprehensive layer/timestamp rule (the parts of CR 613 that describe ordering of continuous effects in the same layer and how later timestamps override earlier ones). Without that rule, the two applicable authoritative rulings conflict for Cinder Glade and the Saproling and there is no way to determine which effect takes priority.\n\nWhat the provided material does establish (but not the final outcome):\n- Blood Moon’s ruling (#2) says that “Nonbasic lands will lose any other land types and abilities they had. They will gain the land type Mountain and gain the ability “{T}: Add {R}.” (This tells you what Blood Moon attempts to do to a nonbasic land: set its land type to Mountain, remove other land types and abilities that came from the land’s rules text or its prior land types, and give the Mountain mana ability.) [Blood Moon ruling #2; 305.7]\n- Life and Limb’s card text and rulings say “All Forests and all Saprolings are 1/1 green Saproling creatures and Forest lands in addition to their other types.” In particular, Life and Limb ruling #3 says each Forest and Saproling will have the card types creature and land and the subtypes Forest and Saproling; Life and Limb ruling #1 says Saprolings enter as land creatures. That is what Life and Limb attempts to make Cinder Glade and the Saproling token into (1/1 green Saproling creature lands with subtype Forest). [Life and Limb; Life and Limb ruling #3; Life and Limb ruling #1]\n- Cinder Glade’s printed characteristics are “Land — Mountain Forest” with “{T}: Add {R} or {G}.” Cinder Glade is a nonbasic land (it lacks the basic supertype). [Cinder Glade; Nonbasic Land; 111.3]\n- Tokens have only the characteristics the creating effect gives them; Life and Limb’s ruling #1 says Saproling tokens enter as land creatures (so the Saproling token is affected by Life and Limb when it enters). [111.3; Life and Limb ruling #1]\n- If an effect “sets a land’s subtype to one or more of the basic land types,” rule 305.7 explains that the land no longer has its old land type(s), loses abilities generated from its rules text/old land types, and gains the mana ability appropriate to the new basic land type. This is what Blood Moon’s ruling describes it doing. [305.7]\n\nWhy that still doesn’t let me give a final state here: both Blood Moon’s ruling and Life and Limb’s ruling directly describe what should apply to Cinder Glade (and to Saprolings treated as lands). They are both continuous effects that change land subtypes (layer-4 type-changing effects) and Blood Moon’s ruling tells those nonbasic lands lose their previous land types while Life and Limb tells Forests and Saprolings gain the Forest land subtype and become land creatures. To determine which effect is actually in force on Cinder Glade and the Saproling token you need the rule that orders continuous effects that apply in the same layer (the timestamp / later-effect-wins rule from the full CR 613). That ordering rule is not included in the provided context, so I can’t lawfully pick between the two outcomes here.\n\nIf you supply the missing layer/timestamp rule (the parts of CR 613 that specify how to order multiple continuous effects that apply in the same layer), I will apply it to these specific continuous effects and tell you exactly what Cinder Glade and the Saproling look like.\n\n(Definitions of key terms used above)\n- “Basic land type”: one of Plains, Island, Swamp, Mountain, Forest. An object with the land card type and a basic land type has the intrinsic ability “{T}: Add [that color]”. [305.6]\n- “Nonbasic land”: any land that doesn’t have the supertype “basic.” [Nonbasic Land; 205.4c]\n- “Set a land’s subtype to one or more of the basic land types”: when an effect does this, the land loses its old land type(s) and abilities from its rules text and gains the ability to tap for the mana of the new basic land type(s). [305.7]\n- “Token”: a game object created by a spell or ability that has only the characteristics that the creating effect defines. [111.3]\n\nCitations: 305.7; 305.6; Nonbasic Land; 111.3; Blood Moon ruling #2; Life and Limb ruling #1; Life and Limb ruling #3; Cinder Glade; 613.6\n\n",
+      "citations": [
+        "305.7",
+        "305.6",
+        "Nonbasic Land",
+        "111.3",
+        "Blood Moon ruling #2",
+        "Life and Limb ruling #1",
+        "Life and Limb ruling #3",
+        "Cinder Glade",
+        "613.6"
+      ],
+      "error": null,
+      "raw_text": null
+    },
+    {
+      "id": "rg132",
+      "question": "Alannah controls [Ore-Rich Stalactite], [Life and Limb], [March of the Machines], and [Xenograft] naming \"Saproling\", that entered the battlefield in that order. What is the Ore-Rich Stalactite?",
+      "served_model": "openai/gpt-5-mini",
+      "provider": "OpenAI",
+      "temperature_sent": null,
+      "seed_sent": 42,
+      "usage": {
+        "prompt_tokens": 3853,
+        "completion_tokens": 5372,
+        "total_tokens": 9225,
+        "cost": 0.01130405,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 1792,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.01130405,
+          "upstream_inference_prompt_cost": 0.00056005,
+          "upstream_inference_completions_cost": 0.010744
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 4352,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "retrieved_rule_ids": [
+        "205.1b",
+        "613.6",
+        "205.4b",
+        "305.7",
+        "205.3c",
+        "Land Type",
+        "712.5f",
+        "205.3i",
+        "613.1d",
+        "205.2b",
+        "305.5",
+        "Artifact Type",
+        "300.2",
+        "Nonbasic Land",
+        "Mountain",
+        "305.1",
+        "305.6",
+        "301.1",
+        "205.3g"
+      ],
+      "answered": false,
+      "text": "I can’t give a definitive single-game-state answer with only the provided rules. The missing rule needed is the one that tells how to order and apply multiple continuous effects that all change types in the same layer (timestamp order within layer 4); that missing rule is required to decide whether Life and Limb’s effect applies to Ore-Rich Stalactite after March of the Machines and Xenograft have made it a creature and given it a creature type.\n\nDefinitions (from the supplied rules):\n- “Type-changing effect”: a continuous effect that changes an object’s card type, subtype, and/or supertype; such effects are applied in layer 4 (see rule [613.1d]).\n- “Saproling”: a creature subtype (a subtype correlated to the creature card type); subtypes that are correlated to a card type are listed as that card type’s subtypes (see rule [205.3c]).\n- “Noncreature artifact”: an object that has the artifact card type but is not currently also a creature (see rule [205.2b] and the March of the Machines card text).\n\nWhat the provided rules and card texts do tell you (but not which wins without the missing rule):\n- Ore-Rich Stalactite is an artifact by its printed card type (see Ore-Rich Stalactite card data).\n- Life and Limb’s effect makes all Saprolings (and all Forests) into 1/1 green Saproling creatures and Forest lands in addition to their other types (see Life and Limb card data). That is a type-changing effect (layer 4), a color-changing effect (layer 5), and a P/T-setting effect (layer 7b) per the layering framework ([613.1d], [613.6]).\n- March of the Machines’ effect makes each noncreature artifact an artifact creature with power and toughness each equal to its mana value (this is a type-changing effect in layer 4 and a P/T-setting effect in layer 7b) (see March of the Machines card data and [613.1d], [613.6]).\n- Xenograft makes each creature you control the chosen creature type in addition to its other types (a layer 4 type-changing effect) (see Xenograft card data and [613.1d]).\n\nWhy that isn’t enough here: all three continuous effects (Life and Limb’s Saproling-related parts, March of the Machines’ artifact→creature part, and Xenograft’s “becomes Saproling” part) are type-changing effects applied in layer 4 ([613.1d]). The provided rules do not include the rule that dictates how to order and apply multiple continuous effects that act in the same layer (timestamp order within layer 4). Without that rule, we cannot determine whether Life and Limb gets to affect Ore-Rich Stalactite after it becomes a creature and gains the Saproling type (via March of the Machines and Xenograft), or whether Life and Limb was applied earlier and therefore does not begin to apply to Ore-Rich Stalactite.\n\nWhat’s missing to finish the answer: the rule(s) that specify how to apply multiple continuous effects in the same layer (the timestamp-order / same-layer tiebreaker rule). With that rule included, the final characteristics of Ore-Rich Stalactite (whether it becomes a Saproling Forest land and 1/1 green, or remains only an artifact creature with P/T equal to its mana value and gains the Saproling creature type) can be determined by applying the layer-4 ordering and then layers 5 and 7b as appropriate ([613.1d], [613.6]).",
+      "citations": [
+        "613.1d",
+        "613.6",
+        "205.2b",
+        "205.3c",
+        "Ore-Rich Stalactite // Cosmium Catalyst",
+        "Life and Limb",
+        "March of the Machines",
+        "Xenograft"
+      ],
+      "error": null,
+      "raw_text": null
+    },
+    {
+      "id": "rg182",
+      "question": "Ainsley controls [Furycalm Snarl], [Humility], [Magus of the Moon], and [Crosis's Catacombs] that entered the battlefield in that order. What are the characteristics of the Furycalm Snarl and Crosis's Catacombs?",
+      "served_model": "openai/gpt-5-mini",
+      "provider": "OpenAI",
+      "temperature_sent": null,
+      "seed_sent": 42,
+      "usage": {
+        "prompt_tokens": 4244,
+        "completion_tokens": 3693,
+        "total_tokens": 7937,
+        "cost": 0.008447,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.008447,
+          "upstream_inference_prompt_cost": 0.001061,
+          "upstream_inference_completions_cost": 0.007386
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 3328,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "retrieved_rule_ids": [
+        "Swamp",
+        "305.6",
+        "708.2a",
+        "202.3b",
+        "707.3",
+        "712.2c",
+        "Manifest Dread",
+        "111.10j",
+        "702.167b",
+        "106.5",
+        "Basic Land Type",
+        "205.4c",
+        "Forest",
+        "Creature",
+        "106.7",
+        "107.4a",
+        "605.1",
+        "613.1",
+        "707.1",
+        "110.5"
+      ],
+      "answered": true,
+      "text": "Both Furycalm Snarl and Crosis's Catacombs are lands that are Mountains while Magus of the Moon is on the battlefield, so each has the intrinsic “{T}: Add {R}” ability in addition to its printed characteristics; specifically, Furycalm Snarl is a land that (because of Magus of the Moon) has the Mountain basic land type and therefore has an intrinsic “{T}: Add {R}” ability as well as its printed “{T}: Add {R} or {W}” ability, and Crosis's Catacombs is a Land — Lair that (because of Magus of the Moon) has the Mountain basic land type and therefore has an intrinsic “{T}: Add {R}” ability in addition to its printed “{T}: Add {U}, {B}, or {R}” ability and its enter-the-battlefield instruction (the “When this land enters…” line).",
+      "citations": [
+        "613.1",
+        "305.6",
+        "205.4c",
+        "Furycalm Snarl ruling #1",
+        "Furycalm Snarl",
+        "Magus of the Moon",
+        "Crosis's Catacombs"
+      ],
+      "error": null,
+      "raw_text": null
+    },
+    {
+      "id": "rg222",
+      "question": "Nickolas controls [Dryad Arbor]. Aniya casts [Overwhelming Splendor], enchanting Nickolas. After it resolves, can Nickolas tap the Dryad Arbor for {G}?",
+      "served_model": "openai/gpt-5-mini",
+      "provider": "OpenAI",
+      "temperature_sent": null,
+      "seed_sent": 42,
+      "usage": {
+        "prompt_tokens": 3630,
+        "completion_tokens": 3001,
+        "total_tokens": 6631,
+        "cost": 0.0069095,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.0069095,
+          "upstream_inference_prompt_cost": 0.0009075,
+          "upstream_inference_completions_cost": 0.006002
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 2368,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "retrieved_rule_ids": [
+        "118.3c",
+        "605.2",
+        "106.7",
+        "605.4a",
+        "605.3b",
+        "113.4",
+        "405.6c",
+        "117.1d",
+        "605.3a",
+        "605.3c",
+        "605.3",
+        "106.6",
+        "508.1i",
+        "602.5",
+        "509.1e",
+        "202.1",
+        "602.1",
+        "603.1",
+        "602.2",
+        "605.1"
+      ],
+      "answered": true,
+      "text": "No. After Overwhelming Splendor resolves attached to Nickolas, Nickolas can’t tap Dryad Arbor for {G} because Dryad Arbor’s activated mana ability (“{T}: Add {G}.”) is removed by Overwhelming Splendor’s effect that makes creatures the enchanted player controls lose all abilities.\n\nReasoning and definitions (short):\n- An activated ability is written as “[Cost]: [Effect.]” and is activated by putting it onto the stack and paying its costs (definition of “activate”) [602.1] [602.2].\n- A mana ability is a triggered or activated ability that meets the criteria to be a mana ability; mana abilities are subject to special rules but they must exist first to be activated [605.1].\n- Overwhelming Splendor’s text says creatures the enchanted player controls “lose all abilities” (and additionally restricts activating abilities that aren’t mana or loyalty abilities). That game text removes Dryad Arbor’s printed activated ability “{T}: Add {G}.” Because that ability no longer exists, there is nothing Nickolas can activate to produce {G} [Overwhelming Splendor].\n- If an ability were granted to a creature after Overwhelming Splendor became attached, that newly granted ability wouldn’t be lost (Overwhelming Splendor ruling #5), but that exception doesn’t apply here because Dryad Arbor’s own printed ability was present and is removed when Overwhelming Splendor resolves [Overwhelming Splendor ruling #5].\n- Dryad Arbor is a land with the printed ability “{T}: Add {G}.” Losing abilities removes that printed mana ability, so Nickolas can’t tap Dryad Arbor for {G} while Overwhelming Splendor is attached to Nickolas (see Dryad Arbor card text) [Dryad Arbor].\n\nTL;DR: No — Overwhelming Splendor makes Nickolas’s creatures lose all abilities, so Dryad Arbor’s “{T}: Add {G}.” ability is removed and can’t be used.\n",
+      "citations": [
+        "[602.1]",
+        "[602.2]",
+        "[605.1]",
+        "[118.3c]",
+        "Dryad Arbor",
+        "Overwhelming Splendor",
+        "Overwhelming Splendor ruling #5"
+      ],
+      "error": null,
+      "raw_text": null
+    },
+    {
+      "id": "rg365",
+      "question": "Allison controls [Dralnu's Crusade] and [Leopard-Spotted Jiao]. Allison then casts [Conspiracy] naming \"Goblin\". What are the creature types of Leopard-Spotted Jiao and does it get +1/+1? ",
+      "served_model": "openai/gpt-5-mini",
+      "provider": "OpenAI",
+      "temperature_sent": null,
+      "seed_sent": 42,
+      "usage": {
+        "prompt_tokens": 5670,
+        "completion_tokens": 5898,
+        "total_tokens": 11568,
+        "cost": 0.0132135,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.0132135,
+          "upstream_inference_prompt_cost": 0.0014175,
+          "upstream_inference_completions_cost": 0.011796
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 5312,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "retrieved_rule_ids": [
+        "205.1b",
+        "205.4b",
+        "613.1d",
+        "Changeling",
+        "315.4",
+        "613.6",
+        "Type-Changing Effect",
+        "702.73a",
+        "702.1c",
+        "205.1a",
+        "612.2",
+        "707.11",
+        "Creature Type",
+        "707.9d",
+        "613.5",
+        "305.7",
+        "604.3",
+        "302.1",
+        "308.1",
+        "205.3m"
+      ],
+      "answered": true,
+      "text": "Leopard-Spotted Jiao becomes a Goblin and only a Goblin; it does not become a Zombie from Dralnu's Crusade and it does not get the +1/+1 from Dralnu's Crusade. \n\nReasoning: Conspiracy makes “Creatures you control are the chosen type” and “Affected … creatures lose all of their other creature types,” so Leopard-Spotted Jiao’s creature type is set to Goblin (losing Beast) by Conspiracy (Conspiracy ruling #4). Dralnu's Crusade’s effect is a single continuous effect with multiple parts (it changes types, color, and power/toughness). Applying continuous effects uses the layer system (type-changing effects are applied in layer 4) (613.1d; Type-Changing Effect). Because Dralnu's Crusade’s type-changing part is applied before Conspiracy’s (Dralnu's Crusade was already on the battlefield), Dralnu's Crusade’s set of objects it affects is determined when its layer-4 part is applied. Per the rules for multi-part effects, the set of objects an effect applies to is fixed when the effect first applies and that same set is used for its later parts in later layers (613.6). When Dralnu's Crusade’s layer-4 part is applied, Leopard-Spotted Jiao was a Beast, not a Goblin, so it was not in the set of objects Dralnu's Crusade affects; therefore Dralnu's Crusade’s later parts (making Goblins black, adding Zombie in addition to their other creature types, and giving +1/+1) do not apply to Leopard-Spotted Jiao after Conspiracy enters. (Dralnu's Crusade ruling #0 explains how Dralnu's Crusade normally affects Goblins, but it does not change the layer/timestamp interaction described above.) \n\nSo the final result: Leopard-Spotted Jiao’s creature type(s): Goblin only. Leopard-Spotted Jiao does not get +1/+1 from Dralnu's Crusade.",
+      "citations": [
+        "Conspiracy ruling #4",
+        "Dralnu's Crusade ruling #0",
+        "613.1d",
+        "613.6",
+        "Type-Changing Effect",
+        "205.3m"
+      ],
+      "error": null,
+      "raw_text": null
+    },
+    {
+      "id": "rg614",
+      "question": "Aya controls a [Skullbriar, the Walking Grave] with 3 +1/+1 counters on it. Nico casts [Duplicant] and has it exile Skullbriar, the Walking Grave. What are Duplicant's power and toughness after the imprint ability resolves?",
+      "served_model": "openai/gpt-5-mini",
+      "provider": "OpenAI",
+      "temperature_sent": null,
+      "seed_sent": 42,
+      "usage": {
+        "prompt_tokens": 4773,
+        "completion_tokens": 3608,
+        "total_tokens": 8381,
+        "cost": 0.00840925,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.00840925,
+          "upstream_inference_prompt_cost": 0.00119325,
+          "upstream_inference_completions_cost": 0.007216
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 3136,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "retrieved_rule_ids": [
+        "712.21b",
+        "123.8a",
+        "208.2a",
+        "208.2b",
+        "712.2c",
+        "711.6",
+        "613.2a",
+        "718.3d",
+        "123.8",
+        "208.4b",
+        "707.9d",
+        "122.1a",
+        "721.2b",
+        "701.10b",
+        "613.2c",
+        "613.7m",
+        "613.4b",
+        "613.7",
+        "604.3",
+        "614.1"
+      ],
+      "answered": true,
+      "text": "Duplicant's power and toughness become 4/4 after Duplicant's imprint ability resolves.\n\nReasoning: Skullbriar, the Walking Grave is a 1/1 creature card with three +1/+1 counters on it (see Skullbriar, the Walking Grave card text). Skullbriar, the Walking Grave's ability keeps those counters on Skullbriar, the Walking Grave as it moves to exile, so Skullbriar, the Walking Grave in exile still has those three +1/+1 counters ([Skullbriar, the Walking Grave ruling #2]). By rule [122.1a], +1/+1 counters on a creature card in a zone other than the battlefield add to that object's power and toughness, so Skullbriar, the Walking Grave in exile is 1/1 plus three +1/+1 counters = 4/4. Duplicant's ability makes Duplicant have the power and toughness of the last creature card exiled with Duplicant, and Duplicant's base power and toughness change to the imprinted card's power and toughness ([Duplicant ruling #0]); therefore Duplicant's power and toughness become 4/4. (Duplicant's power and toughness would update if Skullbriar, the Walking Grave's power/toughness or counters changed later [Duplicant ruling #3].)",
+      "citations": [
+        "[122.1a]",
+        "[Duplicant ruling #0]",
+        "[Duplicant ruling #3]",
+        "[Skullbriar, the Walking Grave ruling #2]",
+        "Skullbriar, the Walking Grave (card data)",
+        "Duplicant (card data)"
+      ],
+      "error": null,
+      "raw_text": null
+    },
+    {
+      "id": "rg776",
+      "question": "Adriel controls [Wandering Ones] equipped with [Fleetfeather Sandals]. On Nico's turn, they enchant it with [Tightening Coils]. On Adriel's next turn, they activate Fleetfeather Sandals's equip ability, targeting Wandering Ones. After that resolves, does it have flying?",
+      "served_model": "openai/gpt-5-mini",
+      "provider": "OpenAI",
+      "temperature_sent": null,
+      "seed_sent": 42,
+      "usage": {
+        "prompt_tokens": 3524,
+        "completion_tokens": 2213,
+        "total_tokens": 5737,
+        "cost": 0.005307,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.005307,
+          "upstream_inference_prompt_cost": 0.000881,
+          "upstream_inference_completions_cost": 0.004426
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 1664,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "retrieved_rule_ids": [
+        "301.5f",
+        "612.3",
+        "113.12",
+        "301.5d",
+        "101.2a",
+        "613.7a",
+        "701.3d",
+        "301.5c",
+        "113.10c",
+        "113.11",
+        "113.10b",
+        "607.1a",
+        "702.16d",
+        "702.151b",
+        "604.4",
+        "604.3",
+        "113.10",
+        "613.7e",
+        "704.1",
+        "613.1"
+      ],
+      "answered": true,
+      "text": "Yes. After Fleetfeather Sandals’s equip ability resolves, Wandering Ones will have flying.\n\nWhy: Tightening Coils’s text makes the enchanted creature “lose[] flying,” which is an effect that removes an ability. Fleetfeather Sandals’s static ability that says “Equipped creature has flying and haste” creates a continuous effect that grants flying when Fleetfeather Sandals becomes attached to Wandering Ones. When effects add and remove the same ability, the most recent continuous effect prevails; which effect is “most recent” is determined by timestamps (the later timestamp wins). An Aura or Equipment receives a new timestamp when it becomes attached to a creature, so Fleetfeather Sandals’s granting effect will have a later timestamp when you equip it after Tightening Coils is already attached, and therefore Wandering Ones ends up with flying. This outcome is also stated explicitly by the ruling on Tightening Coils: “If an effect gives the enchanted creature flying after Tightening Coils became attached to it, the creature will have flying.”\n\nAssumption about timing: I’m assuming Tightening Coils was already attached to Wandering Ones on Nico’s turn and that Fleetfeather Sandals’s equip ability resolves later on Adriel’s turn. If instead Fleetfeather Sandals had been attached first and Tightening Coils became attached afterward, Tightening Coils’s later removal would make Wandering Ones lose flying.\n\nKey term definitions:\n- “Loses flying” means the effect removes the flying ability from the object (an ability-removing continuous effect).\n- “Has” or “gains” flying means a continuous effect adds the flying ability to the object.\n- A timestamp is the ordering marker used to determine which continuous effect applies last when multiple effects in the same layer add or remove the same ability; an Aura or Equipment gets a new timestamp each time it becomes attached.\n",
+      "citations": [
+        "[113.10c]",
+        "[613.7a]",
+        "[613.7e]",
+        "[301.5f]",
+        "[Tightening Coils]",
+        "[Tightening Coils ruling #0]",
+        "[Fleetfeather Sandals]"
+      ],
+      "error": null,
+      "raw_text": null
+    },
+    {
+      "id": "rg783",
+      "question": "Ari controls [Bludgeon Brawl] and [Soldevi Digger]. They cast [Titania's Song]. Once it resolves, what are the characteristics of Soldevi Digger?",
+      "served_model": "openai/gpt-5-mini",
+      "provider": "OpenAI",
+      "temperature_sent": null,
+      "seed_sent": 42,
+      "usage": {
+        "prompt_tokens": 4759,
+        "completion_tokens": 5149,
+        "total_tokens": 9908,
+        "cost": 0.01148775,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.01148775,
+          "upstream_inference_prompt_cost": 0.00118975,
+          "upstream_inference_completions_cost": 0.010298
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 4352,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "retrieved_rule_ids": [
+        "205.1b",
+        "707.9b",
+        "611.2e",
+        "Continuous Artifact (Obsolete)",
+        "613.6",
+        "Enchantment",
+        "113.12",
+        "Poly Artifact (Obsolete)",
+        "612.1",
+        "Mono Artifact (Obsolete)",
+        "Artifact",
+        "603.6b",
+        "205.1a",
+        "Fortification",
+        "700.5a",
+        "303.1",
+        "604.3",
+        "301.1",
+        "603.6d",
+        "613.10"
+      ],
+      "answered": true,
+      "text": "Soldevi Digger becomes an artifact creature with power and toughness 2/2, has no abilities (its {2} activated ability and any equip/equipment abilities from Bludgeon Brawl are gone), and is not an Equipment while Titania’s Song’s effect is in place. Its mana value remains 2.\n\nReasoning and definitions\n- \"Lose all abilities\": an effect that removes an object’s abilities (it stops having abilities that were granted or printed) (see rule 113.12). Titania's Song’s text tells us affected permanents “lose all abilities.”\n- \"Becomes an artifact creature\": when an effect says an object “becomes an artifact creature,” it will be both an artifact and a creature (it retains the artifact card type) (see rule 205.1b).\n\nStep-by-step\n1) Before Titania’s Song resolves, Bludgeon Brawl’s continuous effect would apply to any noncreature, non-Equipment artifact Ari controls and make that artifact an Equipment with an equip ability and the “Equipped creature gets +X/+0” ability (Bludgeon Brawl). Soldevi Digger met Bludgeon Brawl’s condition prior to Titania’s Song resolving (Soldevi Digger).\n2) When Titania’s Song resolves, its continuous effect applies to each noncreature artifact: those artifacts “lose all abilities and become an artifact creature with power and toughness each equal to its mana value” (Titania's Song). Soldevi Digger is a noncreature artifact with mana value 2, so Titania's Song makes Soldevi Digger an artifact creature and sets its power and toughness to 2/2 (rules on “becomes an artifact creature” and layer application: 205.1b and 613.6).\n3) Because Titania's Song makes Soldevi Digger “lose all abilities,” Soldevi Digger’s printed activated ability ({2}: …) and any abilities it had because of Bludgeon Brawl (for example, equip and the “Equipped creature gets +X/+0” ability) are removed (113.12). Also, once Soldevi Digger is a creature, it no longer meets Bludgeon Brawl’s condition of being a noncreature artifact, so Bludgeon Brawl’s effect no longer makes it an Equipment.\n\nTherefore the final characteristics while Titania's Song’s continuous effect applies: Soldevi Digger is an artifact and a creature (an artifact creature), with P/T 2/2 (its mana value), no abilities, and not an Equipment. Its mana value remains 2.\n\nAssumption about timing: I am assuming Titania's Song has resolved after Bludgeon Brawl was already on the battlefield (the scenario you described). If Titania's Song had been the only effect or had a different timestamp relationship, the same continuous-effect logic above still determines the result based on which effects currently apply.\n",
+      "citations": [
+        "205.1b",
+        "613.6",
+        "113.12",
+        "Bludgeon Brawl",
+        "Soldevi Digger",
+        "Titania's Song"
+      ],
+      "error": null,
+      "raw_text": null
+    },
+    {
+      "id": "rg807",
+      "question": "Ariah controls [Wayward Angel] and has 7 cards in their graveyard. Nickolas casts [Turn to Frog], targeting Wayward Angel. What are Wayward Angel's characteristics after Turn to Frog resolves?",
+      "served_model": "openai/gpt-5-mini",
+      "provider": "OpenAI",
+      "temperature_sent": null,
+      "seed_sent": 42,
+      "usage": {
+        "prompt_tokens": 4925,
+        "completion_tokens": 5071,
+        "total_tokens": 9996,
+        "cost": 0.01137325,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.01137325,
+          "upstream_inference_prompt_cost": 0.00123125,
+          "upstream_inference_completions_cost": 0.010142
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 3840,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "retrieved_rule_ids": [
+        "613.4d",
+        "208.4b",
+        "208.2b",
+        "613.4b",
+        "613.2a",
+        "613.4a",
+        "208.4a",
+        "302.4c",
+        "208.4",
+        "Base Power, Base Toughness",
+        "208.2a",
+        "707.9d",
+        "613.1g",
+        "113.12",
+        "613.6",
+        "613.7",
+        "613.8",
+        "613.1",
+        "614.1",
+        "707.2"
+      ],
+      "answered": true,
+      "text": "Direct answer: After Turn to Frog resolves, Wayward Angel is a blue Frog creature with base power and toughness 1/1, then it gets +3/+3 from its threshold effect, so its final power/toughness is 4/4; it has no abilities (so it does not have flying, vigilance, trample, or the threshold-granted triggered ability). It is blue (not black or white).\n\nReasoning and definitions\n- Base power and base toughness are the values that count as a creature’s “base” numbers for later modifications; they are the numbers printed on the card unless an effect sets them to specific values (see rule 208.4a and rule 302.4c).\n- To determine characteristics you start with the card’s printed values and then apply continuous effects in the layer system (see rules 613.1 and 613.1g).\n- Turn to Frog’s effect includes several parts: it makes the target “become a blue Frog,” it sets the creature’s base power and toughness to 1/1, and it makes the target “lose all abilities.” Those parts apply in the appropriate layers (for example, color/type changes in their layer, base power/toughness setting in layer 7b, and gaining/losing abilities in layer 6); different parts of the same effect apply in different layers (see rule 613.6).\n- Wayward Angel’s threshold static ability (already active because Ariah has seven cards in the graveyard) is a continuous effect that gives “+3/+3,” makes Wayward Angel black, and grants trample and a triggered upkeep ability. The “gets +3/+3” part is a power/toughness modifying effect (layer 7c), the color change is a color-changing effect, and the granted trample/triggered ability are granted abilities (see rule 113.12 and examples in 613.6).\n- Timestamp order determines which continuous effects that apply in the same layer overwrite earlier ones (see rule 613.7). Turn to Frog resolved after Wayward Angel’s threshold was already in effect, so Turn to Frog’s color change and base-power-setting have later timestamps and apply after the earlier effects.\n- Turn to Frog’s text explicitly “becomes a blue Frog with base power and toughness 1/1.” The Turn to Frog ruling #0 says Turn to Frog overwrites previous effects that set the creature’s base power and toughness to specific values; therefore Turn to Frog sets Wayward Angel’s base P/T to 1/1 (overwriting any prior P/T-setting). The threshold’s +3/+3 is a modifier (not a base-setting), so it still applies on top of the new base (see rules 208.4a, 613.4b, and 613.4c/7c ordering implied by 613.1g and 613.6). So base 1/1 +3/+3 = final 4/4.\n- Turn to Frog makes the target “lose all abilities,” so the printed abilities (flying, vigilance) and the threshold-granted abilities (trample and the upkeep-triggered ability) are removed by that effect (see rule 113.12 distinguishing setting characteristics and granted abilities). Turn to Frog ruling #3 notes that if a creature gains an ability after Turn to Frog resolves it will keep that ability; that is not happening here, so Wayward Angel has no abilities while Turn to Frog’s effect lasts.\n- Concerning color: Wayward Angel ruling #0 says that when you have seven or more cards in your graveyard Wayward Angel is black (not white). However, Turn to Frog’s color-changing part is a later continuous effect that makes the creature blue; later timestamped color-changing effects overwrite earlier ones in the same layer (see rule 613.7 and rule 613.6). Therefore the creature is blue while Turn to Frog’s effect lasts (not black or white).\n- For type/subtype: Turn to Frog’s text makes the creature “become a ... Frog.” As Turn to Frog changes the creature type in its layer and has a later timestamp, the creature will be a Frog creature while Turn to Frog’s effect lasts (see Turn to Frog ruling #4 for an example of how Turn to Frog replaces creature types).\n\nAssumption: I assume there is no other effect or subsequent timestamped effect affecting Wayward Angel before you check its characteristics. If another later effect sets power/toughness or grants abilities after Turn to Frog resolves, that later effect could change the final values (Turn to Frog ruling #0 and rule 613.7 explain later effects overwrite earlier ones when they apply in the same layer).\n",
+      "citations": [
+        "[302.4c]",
+        "[613.1]",
+        "[613.1g]",
+        "[613.4a]",
+        "[613.4b]",
+        "[613.6]",
+        "[613.7]",
+        "[113.12]",
+        "[208.4a]",
+        "[Turn to Frog ruling #0]",
+        "[Turn to Frog ruling #3]",
+        "[Turn to Frog ruling #4]",
+        "[Wayward Angel ruling #0]"
+      ],
+      "error": null,
+      "raw_text": null
+    },
+    {
+      "id": "rg811",
+      "question": "Ariella controls a manifested [Wayward Angel] and has 7 cards in their graveyard. Nathaniel casts [Turn to Frog], targeting Wayward Angel. After that resolves, Ariella turns Wayward Angel face up. What are Wayward Angel's characteristics afterwards?",
+      "served_model": "openai/gpt-5-mini",
+      "provider": "OpenAI",
+      "temperature_sent": null,
+      "seed_sent": 42,
+      "usage": {
+        "prompt_tokens": 3893,
+        "completion_tokens": 5924,
+        "total_tokens": 9817,
+        "cost": 0.01282125,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.01282125,
+          "upstream_inference_prompt_cost": 0.00097325,
+          "upstream_inference_completions_cost": 0.011848
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 4736,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "retrieved_rule_ids": [
+        "701.40b",
+        "708.8",
+        "701.40a",
+        "701.40f",
+        "701.40g",
+        "707.3",
+        "701.40c",
+        "708.12",
+        "708.2a",
+        "708.4",
+        "730.2e",
+        "708.10",
+        "712.8c",
+        "Manifest",
+        "708.11",
+        "116.2b",
+        "110.5",
+        "702.37e",
+        "613.1",
+        "707.1"
+      ],
+      "answered": true,
+      "text": "Direct answer: After Ariella turns Wayward Angel face up, Wayward Angel is a black 4/4 creature whose creature type is Frog, and it has trample and the triggered ability “At the beginning of your upkeep, sacrifice a creature.” It does not have flying or vigilance while Turn to Frog’s effect lasts; its mana cost, name, and printed copiable values are those of Wayward Angel (you showed and paid for Wayward Angel when you turned it face up). \n\nReasoning and exact steps (short):\n- While manifested, Wayward Angel is a face-down permanent that is a 2/2 face-down creature with no name, no types, no abilities, and no mana cost (701.40a; 708.2a). \n- Nathaniel’s Turn to Frog resolved while Wayward Angel was face down. That continuous effect was applied to the face-down permanent (Turn to Frog makes the object lose all abilities and makes it a blue Frog with base P/T 1/1 until end of turn) (Turn to Frog ruling #0; Turn to Frog ruling #1). \n- When Ariella turns Wayward Angel face up using the manifest procedure, the card’s normal copiable values revert to the printed copiable values of Wayward Angel and it regains its normal characteristics; any effects that had been applied to the face-down permanent still apply to the face-up permanent (701.40b; 708.8). \n- The result is computed by starting from Wayward Angel’s printed characteristics and then applying continuing effects that are still in effect (613.1; 708.8). Wayward Angel’s Threshold line is a continuous effect that gives “+3/+3, is black, has trample, and has ‘At the beginning of your upkeep, sacrifice a creature’” while there are seven or more cards in the controller’s graveyard; Wayward Angel’s ruling #0 confirms that when that condition is met the card is black (Wayward Angel ruling #0). \n- Turn to Frog set the base power/toughness to 1/1. Threshold’s “gets +3/+3” is a separate P/T-modifying continuous effect, so the base 1/1 from Turn to Frog plus the +3/+3 from Threshold yields a 4/4 final power/toughness (613.1; Turn to Frog ruling #0). \n- Turn to Frog removed all abilities when it resolved. Because Wayward Angel’s threshold grants trample and a triggered upkeep ability after you turn it face up, those abilities are gained after Turn to Frog resolved; per Turn to Frog ruling #3, abilities gained after Turn to Frog resolves will remain. Therefore Wayward Angel ends up with trample and the upkeep-triggered ability, but its printed abilities (flying and vigilance) are removed while Turn to Frog’s effect remains in effect (Turn to Frog ruling #3). \n- Creature types: Turn to Frog replaces creature types with Frog and removes the other creature types; because Turn to Frog’s continuous effect remains in effect as the permanent is turned face up (708.8; Turn to Frog ruling #1) Wayward Angel’s printed types (Angel — Horror) are removed and the permanent’s creature type will be Frog while Turn to Frog’s effect lasts. \n\nTiming assumption and alternative: I am assuming the usual timestamp/layer interaction where Turn to Frog’s continuous effect (applied when it resolved while Wayward Angel was face down) remains in effect and then Wayward Angel’s Threshold continuous effects begin applying when it becomes face up; under that ordering the Threshold color-setting (“is black”) and +3/+3 apply after Turn to Frog’s earlier effect, producing the black 4/4 with trample and the upkeep trigger described above (see Wayward Angel ruling #0 and Turn to Frog rulings). If instead you assumed that Turn to Frog’s color-setting effect should overwrite the Threshold color (for example, if one judged Turn to Frog’s later timestamp to be later than Threshold’s), the permanent’s color could be blue instead; the rest of the reasoning about P/T and abilities would change only if the assumed timestamps between the two continuous effects were swapped. \n\nWhat this means for play: At the moment Wayward Angel is turned face up, the controller shows the card and pays its costs (701.40b). The permanent’s printed characteristics appear, then the continuing Turn to Frog effect and the continuing Threshold effects are applied to produce the characteristics given above (701.40b; 708.8; Turn to Frog rulings; Wayward Angel ruling #0).",
+      "citations": [
+        "701.40a",
+        "701.40b",
+        "708.8",
+        "708.2a",
+        "613.1",
+        "Turn to Frog ruling #0",
+        "Turn to Frog ruling #1",
+        "Turn to Frog ruling #3",
+        "Wayward Angel ruling #0"
+      ],
+      "error": null,
+      "raw_text": null
+    },
+    {
+      "id": "rg813",
+      "question": "Ahmad controls [Conspiracy] (naming \"Ferret\"), [Kormus Bell], [Urborg, Tomb of Yawgmoth], and a [Vastwood Zendikon] enchanting Urborg, Tomb of Yawgmoth that entered the battlefield in that order. Is Urborg, Tomb of Yawgmoth a creature? If so, what are its creature types?",
+      "served_model": "openai/gpt-5-mini",
+      "provider": "OpenAI",
+      "temperature_sent": null,
+      "seed_sent": 42,
+      "usage": {
+        "prompt_tokens": 5249,
+        "completion_tokens": 6734,
+        "total_tokens": 11983,
+        "cost": 0.01437705,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 1792,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.01437705,
+          "upstream_inference_prompt_cost": 0.00090905,
+          "upstream_inference_completions_cost": 0.013468
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 6080,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "retrieved_rule_ids": [
+        "613.6",
+        "205.1b",
+        "205.4b",
+        "613.1d",
+        "611.2e",
+        "603.6b",
+        "613.5",
+        "305.7",
+        "702.1c",
+        "707.9f",
+        "315.4",
+        "613.9",
+        "205.3c",
+        "613.1b",
+        "205.2b",
+        "603.6d"
+      ],
+      "answered": true,
+      "text": "Yes. Urborg, Tomb of Yawgmoth is a creature, and its creature type is Elemental (not Ferret).\n\nWhy: Vastwood Zendikon’s text makes “Enchanted land ... a 6/4 green Elemental creature” and Vastwood Zendikon’s ruling confirms “The enchanted permanent will be both a land and a creature” (so Urborg becomes a creature with creature type Elemental when Vastwood Zendikon enchants it) (Vastwood Zendikon ruling #5). Creature-type and other type changes are “type-changing effects” applied in layer 4 (613.1d, 205.1b, 205.3c). When multiple type-changing continuous effects apply, the game applies them in timestamp order so the one generated last wins if they conflict (613.9). Conspiracy’s effect that makes “Creatures you control” the chosen type (Ferret) and causes affected creatures to lose other creature types is a type-changing effect (Conspiracy ruling #4). Because Conspiracy entered earlier and Vastwood Zendikon’s type-changing effect was generated later (Vastwood Zendikon enchanted Urborg after Conspiracy was already on the battlefield), the later Vastwood Zendikon effect sets Urborg’s creature type to Elemental, overriding the earlier Conspiracy creature-type setting (613.1d, 613.9, Conspiracy ruling #4, Vastwood Zendikon ruling #5).\n\nNotes and definitions (short):\n- “Creature type” is a subtype applied to creatures (see 205.3c) and is determined by type-changing continuous effects in layer 4 (613.1d). \n- A “type-changing effect” is any continuous effect that changes card types, supertypes, or subtypes; those are applied in layer 4 (613.1d). \n- “Timestamp order” means effects in the same layer are applied in the order they began; the later one wins when they conflict (613.9).\n\nAssumption: I’m assuming no other effects or timestamps besides the order you gave (Conspiracy, then Kormus Bell, then Urborg, then Vastwood Zendikon). If Vastwood Zendikon had entered earlier than Conspiracy, the result about the creature type could differ because of timestamp order.\n",
+      "citations": [
+        "613.1d",
+        "613.9",
+        "205.1b",
+        "205.3c",
+        "Conspiracy ruling #4",
+        "Vastwood Zendikon ruling #5",
+        "Urborg, Tomb of Yawgmoth ruling #0",
+        "Kormus Bell ruling #0"
+      ],
+      "error": null,
+      "raw_text": null
+    },
+    {
+      "id": "rg814",
+      "question": "Andre controls [Raugrin Triome] and [Prismatic Omen]. Nala casts [Blood Moon]. After it resolves, what land types does Raugrin Triome have?",
+      "served_model": "openai/gpt-5-mini",
+      "provider": "OpenAI",
+      "temperature_sent": null,
+      "seed_sent": 42,
+      "usage": {
+        "prompt_tokens": 3621,
+        "completion_tokens": 2777,
+        "total_tokens": 6398,
+        "cost": 0.00645925,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.00645925,
+          "upstream_inference_prompt_cost": 0.00090525,
+          "upstream_inference_completions_cost": 0.005554
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 2432,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "retrieved_rule_ids": [
+        "305.7",
+        "Mountain",
+        "205.1b",
+        "305.5",
+        "205.4b",
+        "305.6",
+        "205.4c",
+        "305.8",
+        "Basic Landcycling",
+        "Basic",
+        "205.3i",
+        "Plains",
+        "Basic Land Type",
+        "Nonbasic Land",
+        "106.5",
+        "107.4a",
+        "605.1",
+        "305.1"
+      ],
+      "answered": true,
+      "text": "After Blood Moon resolves, Raugrin Triome’s only land type is Mountain.\n\nReasoning: Prismatic Omen makes lands you control have the land types Plains, Island, Swamp, Mountain, and Forest in addition to their other types ([Prismatic Omen ruling #0]). Raugrin Triome is a nonbasic land (it does not have the basic supertype) ([305.8]). Blood Moon’s effect makes nonbasic lands Mountains and causes those nonbasic lands to lose any other land types and abilities they had ([Blood Moon ruling #2]). Therefore the basic land types added by Prismatic Omen are removed by Blood Moon, leaving Raugrin Triome with only the Mountain land type.\n\nDefinitions: A “nonbasic land” is any land that doesn’t have the supertype “basic” ([305.8]). The five basic land types are Plains, Island, Swamp, Mountain, and Forest ([305.6]).",
+      "citations": [
+        "[Prismatic Omen ruling #0]",
+        "[Blood Moon ruling #2]",
+        "[305.8]",
+        "[305.6]"
+      ],
+      "error": null,
+      "raw_text": null
+    },
+    {
+      "id": "rg845",
+      "question": "Adan restarts the game with [Karn Liberated]. Adan puts [Blood Moon], [Prismatic Omen] and [Winged Temple of Orazca] onto the battlefield with Karn Liberated. What colors of mana can Winged Temple of Orazca tap for?",
+      "served_model": "openai/gpt-5-mini",
+      "provider": "OpenAI",
+      "temperature_sent": null,
+      "seed_sent": 42,
+      "usage": {
+        "prompt_tokens": 3857,
+        "completion_tokens": 5362,
+        "total_tokens": 9219,
+        "cost": 0.01168825,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.01168825,
+          "upstream_inference_prompt_cost": 0.00096425,
+          "upstream_inference_completions_cost": 0.010724
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 4544,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "retrieved_rule_ids": [
+        "106.5",
+        "106.7",
+        "106.9",
+        "106.12b",
+        "605.4a",
+        "305.7",
+        "106.8",
+        "106.10",
+        "106.11",
+        "111.10h",
+        "720.3b",
+        "106.6",
+        "Mountain",
+        "305.6",
+        "Plains",
+        "605.1",
+        "603.1",
+        "603.7a",
+        "107.4a"
+      ],
+      "answered": true,
+      "text": "Winged Temple of Orazca can be tapped to produce white, blue, black, red, or green mana (any one of the five colors). \n\nReasoning and assumptions (direct answer above): Karn Liberated’s restart puts Blood Moon, Prismatic Omen, and Winged Temple of Orazca onto the battlefield together, under Adan’s control (Karn Liberated’s restart effect creates that event). [Karn Liberated] Blood Moon’s effect makes nonbasic lands Mountains and causes those nonbasic lands to lose other land types and the abilities they had from their rules text, and to gain the Mountain mana ability “{T}: Add {R}.” [Blood Moon ruling #2] Winged Temple of Orazca is a nonbasic legendary land (it’s the transformed face of Hadana's Climb), so Blood Moon’s setting of its subtype causes it to lose the mana ability printed on Winged Temple of Orazca’s card text. [Hadana's Climb // Winged Temple of Orazca] [305.7] \n\nPrismatic Omen makes lands you control every basic land type in addition to their other types and gives those lands the mana ability of each basic land type. [Prismatic Omen ruling #0] The five basic land types correspond to the five colored mana abilities ({T}: Add {W}, {U}, {B}, {R}, {G}). [305.6] Because Prismatic Omen grants the basic-land mana abilities, Winged Temple of Orazca will have the abilities to tap for white, blue, black, red, and green mana even though Blood Moon removed its printed “add one mana of any color” ability. (To “tap for mana” means to activate a mana ability that includes {T} in its activation cost.) [106.12b]\n\nresolve_layers([{source: \"Blood Moon\", layer: 4, timestamp: simultaneous, effect: \"Sets nonbasic lands’ subtype to Mountain; land loses abilities from its rules text and old land types; gains '{T}: Add {R}'.\"}, {source: \"Prismatic Omen\", layer: 4/6, timestamp: simultaneous, effect: \"Lands you control are Plains/Island/Swamp/Mountain/Forest in addition to other types and gain each basic land type’s mana ability (e.g. '{T}: Add {G}').\"}, {source: \"Winged Temple of Orazca (printed)\", layer: 6, timestamp: simultaneous, effect: \"Printed ability '{T}: Add one mana of any color.' (this printed ability is removed by Blood Moon’s type-setting effect).\"}])\n\nIf the three permanents did not enter simultaneously (for example, if Prismatic Omen entered after Blood Moon and had a later timestamp), the timestamp order of these continuous effects could change which specific type-changing vs. ability-granting effects apply first; the above answer assumes they were put onto the battlefield together by Karn Liberated’s restart. [Karn Liberated]",
+      "citations": [
+        "Karn Liberated",
+        "[Blood Moon ruling #2]",
+        "[Prismatic Omen ruling #0]",
+        "Hadana's Climb // Winged Temple of Orazca",
+        "[305.7]",
+        "[305.6]",
+        "[106.12b]"
+      ],
+      "error": null,
+      "raw_text": null
+    },
+    {
+      "id": "rg1128",
+      "question": "Apollo controls [Realmwright] naming \"Island\", [Arcane Adaptation] naming \"Saproling\", and [Life and Limb], which entered the battlefield in that order. What are the types and subtypes of Realmwright?",
+      "served_model": "openai/gpt-5-mini",
+      "provider": "OpenAI",
+      "temperature_sent": null,
+      "seed_sent": 42,
+      "usage": {
+        "prompt_tokens": 5840,
+        "completion_tokens": 2997,
+        "total_tokens": 8837,
+        "cost": 0.007454,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.007454,
+          "upstream_inference_prompt_cost": 0.00146,
+          "upstream_inference_completions_cost": 0.005994
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 2752,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "retrieved_rule_ids": [
+        "205.1b",
+        "613.1d",
+        "613.6",
+        "205.1a",
+        "205.4b",
+        "613.4d",
+        "Type-Changing Effect",
+        "Changeling",
+        "205.3m",
+        "302.3",
+        "613.5",
+        "702.73a",
+        "305.7",
+        "707.9d",
+        "205.3c",
+        "613.7",
+        "613.8",
+        "604.3",
+        "204.1"
+      ],
+      "answered": true,
+      "text": "Realmwright is a creature and a land. Its card types are Creature and Land; its creature subtypes are Vedalken, Wizard, and Saproling; its land subtype is Forest.",
+      "citations": [
+        "Realmwright",
+        "Arcane Adaptation",
+        "Life and Limb",
+        "Arcane Adaptation ruling #1",
+        "Life and Limb ruling #3",
+        "205.1b",
+        "205.3c",
+        "302.3",
+        "205.3m"
+      ],
+      "error": null,
+      "raw_text": null
+    },
+    {
+      "id": "rg1469",
+      "question": "Addison controls [Dryad of the Ilysian Grove] and casts [Blood Moon]. What are the characteristics of [Snow-Covered Island], [Study Hall], [Dryad Arbor], and [Mountain] after Blood Moon resolves?",
+      "served_model": "openai/gpt-5-mini",
+      "provider": "OpenAI",
+      "temperature_sent": null,
+      "seed_sent": 42,
+      "usage": {
+        "prompt_tokens": 5316,
+        "completion_tokens": 5746,
+        "total_tokens": 11062,
+        "cost": 0.012821,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.012821,
+          "upstream_inference_prompt_cost": 0.001329,
+          "upstream_inference_completions_cost": 0.011492
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 4224,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "retrieved_rule_ids": [
+        "305.7",
+        "205.4c",
+        "305.6",
+        "Mountain",
+        "603.6b",
+        "205.4b",
+        "Basic Land Type",
+        "205.1b",
+        "613.6",
+        "Swamp",
+        "106.7",
+        "Snow",
+        "106.5",
+        "205.3c",
+        "305.5",
+        "107.4a",
+        "605.1",
+        "603.6d",
+        "305.1",
+        "205.3i"
+      ],
+      "answered": true,
+      "text": "Direct answer: After Blood Moon resolves, Snow-Covered Island remains a Snow basic land and has all five basic land types (Plains, Island, Swamp, Mountain, Forest) and the corresponding mana abilities; Study Hall becomes a Mountain (land type Mountain) and has only “{T}: Add {R}” (it loses its other land types and its other abilities); Dryad Arbor becomes a Mountain but remains a creature and a Dryad and remains green, and has only “{T}: Add {R}” (it loses its other land types and its other land-generated mana ability); Mountain (the basic Mountain) remains a basic Mountain and, because of Dryad of the Ilysian Grove, has all five basic land types and the mana ability for each.\n\nExplanation and reasoning (rules quoted by number):\n\nKey definition — “basic land type”: The five basic land types are Plains, Island, Swamp, Mountain, and Forest; an object with the land card type and a basic land type has the intrinsic ability “{T}: Add [that color]” (see [305.6], “Basic Land Type”).\n\nWhy Snow-Covered Island ends up that way\n- Snow-Covered Island is a basic land (it has the basic land supertype printed), so Blood Moon’s effect applies only to nonbasic lands and therefore does not affect Snow-Covered Island ([Blood Moon ruling #1]).\n- Dryad of the Ilysian Grove’s effect makes each land you control have the land types Plains, Island, Swamp, Mountain, and Forest and gives the mana ability for each basic land type (Dryad of the Ilysian Grove ruling #0; see also [305.6]).\n- Conclusion: Snow-Covered Island remains Snow-Covered Island (its supertype and name unchanged), gains/keeps Plains, Island, Swamp, Mountain, and Forest as land types, and has the mana abilities “{T}: Add {W},” “{T}: Add {U},” “{T}: Add {B},” “{T}: Add {R},” and “{T}: Add {G}” (it also retains any printed abilities and the Snow supertype; Blood Moon does not affect it per [Blood Moon ruling #1]).\n\nWhy Study Hall ends up a single Mountain with only {T}: Add {R}\n- Study Hall is a nonbasic land. Blood Moon’s effect makes nonbasic lands Mountains and (per its ruling) causes nonbasic lands to lose any other land types and abilities they had, and to gain the land type Mountain and the ability “{T}: Add {R}” (Blood Moon ruling #2).\n- Although Dryad of the Ilysian Grove would, absent Blood Moon, add all basic land types and their mana abilities to Study Hall (Dryad of the Ilysian Grove ruling #0), Blood Moon’s ruling explicitly states nonbasic lands lose other land types and abilities and become Mountains (Blood Moon ruling #2), so Study Hall becomes a Mountain and has only “{T}: Add {R}.”\n- (Setting a land’s subtype to a basic land type removes old land types and the abilities generated from those old land types in the process; see [305.7].)\n\nWhy Dryad Arbor becomes a Mountain but remains a creature/Dryad/green\n- Dryad Arbor’s type line is “Land Creature — Forest Dryad” but it does not have the basic supertype; therefore it is a nonbasic land despite having the Forest land type ([205.4c] and Dryad Arbor rulings).\n- Blood Moon affects nonbasic lands, so Dryad Arbor is affected. Blood Moon’s ruling says nonbasic lands lose their other land types and abilities and become Mountains with “{T}: Add {R}” (Blood Moon ruling #2).\n- Setting a land’s subtype to a basic land type does not remove card types such as creature, so Dryad Arbor remains a creature and remains a Dryad and remains green (see [305.7]; and Dryad Arbor ruling #0 and Dryad Arbor ruling #2 state Dryad Arbor continues to be a creature and a green Dryad if changed to another basic land type).\n- Conclusion: Dryad Arbor becomes a Mountain (land type Mountain), has the mana ability “{T}: Add {R},” and remains a 1/1 (printed) Dryad creature that is green; it loses its other land types and its other land-generated mana ability(s).\n\nWhy Mountain (the basic Mountain) ends up that way\n- Mountain is a basic land, so Blood Moon’s “nonbasic lands are Mountains” effect does not apply to it (Blood Moon ruling #1).\n- Dryad of the Ilysian Grove makes lands you control every basic land type in addition to their other types, and gives the mana ability for each basic land type (Dryad of the Ilysian Grove ruling #0 and [305.6]).\n- Conclusion: Mountain remains a basic Mountain and (because of Dryad of the Ilysian Grove) has the land types Plains, Island, Swamp, Mountain, and Forest and the five corresponding mana abilities.\n\nRelevant citations: [305.6], [305.7], [205.4c], Dryad of the Ilysian Grove ruling #0, Blood Moon ruling #2, Blood Moon ruling #1, Dryad Arbor ruling #0, Dryad Arbor ruling #2.\n\nAssumption/ordering note: The question states Addison controls Dryad of the Ilysian Grove and then casts Blood Moon; the answer above assumes Dryad of the Ilysian Grove was already affecting the battlefield when Blood Moon resolves and uses the authoritative card rulings for the resulting interaction (see the Blood Moon and Dryad rulings cited). If instead Dryad of the Ilysian Grove entered after Blood Moon resolved, the practical outcomes would differ because Dryad of the Ilysian Grove’s effect would then later make lands you control every basic land type in addition to their other types (Dryad of the Ilysian Grove ruling #0).\n",
+      "citations": [
+        "305.6",
+        "305.7",
+        "205.4c",
+        "Dryad of the Ilysian Grove ruling #0",
+        "Blood Moon ruling #2",
+        "Blood Moon ruling #1",
+        "Dryad Arbor ruling #0",
+        "Dryad Arbor ruling #2"
+      ],
+      "error": null,
+      "raw_text": null
+    },
+    {
+      "id": "rg1643",
+      "question": "Nico controls [Thespian's Stage] that's currently a copy of [Temple of Triumph]. Alayna casts [Alpine Moon] and names \"Temple of Triumph\" as it resolves. Alayna then activates a second Thespian's Stage targeting Temple of Triumph. What does each Thespian's Stage look like?",
+      "served_model": "openai/gpt-5-mini",
+      "provider": "OpenAI",
+      "temperature_sent": null,
+      "seed_sent": 42,
+      "usage": {
+        "prompt_tokens": 5379,
+        "completion_tokens": 6327,
+        "total_tokens": 11706,
+        "cost": 0.01399875,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.01399875,
+          "upstream_inference_prompt_cost": 0.00134475,
+          "upstream_inference_completions_cost": 0.012654
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 5568,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "retrieved_rule_ids": [
+        "707.11",
+        "707.10b",
+        "123.6c",
+        "707.9f",
+        "201.5a",
+        "201.5",
+        "201.5b",
+        "612.2",
+        "707.4",
+        "707.3",
+        "707.9c",
+        "400.7i",
+        "707.9b",
+        "612.8",
+        "707.9d",
+        "601.1",
+        "613.1c",
+        "612.1",
+        "708.1",
+        "123.5"
+      ],
+      "answered": true,
+      "text": "Direct answer: Nico’s Thespian's Stage is a land named Temple of Triumph that has lost its other abilities and now only has “{T}: Add one mana of any color.” Alayna’s Thespian's Stage is a copy of Temple of Triumph (it has Temple of Triumph’s tap ability “{T}: Add {R} or {W}”) and also has Thespian's Stage’s copy-making activated ability “{2}, {T}: This land becomes a copy of target land, except it has this ability.” Neither Thespian's Stage currently has Thespian's Stage’s original “{T}: Add {C}” ability while it’s a copy of Temple of Triumph.\n\nWhy: • “Becomes a copy” means the copying permanent’s copiable values become the copied object’s copiable information (name, rules text, abilities as appropriate), as described by the copy rule; the copy-making ability can be preserved as an exception when the copying effect says so [707.3].\n• Thespian's Stage’s copy exception makes the copying Thespian's Stage keep the copy-making activated ability (the ability referred to in the card text), and a land that is a copy of another land won’t cause the copied land’s enters-the-battlefield abilities to trigger when it became a copy [Thespian's Stage ruling #0; Thespian's Stage ruling #1; 707.9c; 707.9d].\n• Alpine Moon’s continuous effect makes lands an opponent controls with the chosen name lose all land types and abilities and gives them “{T}: Add one mana of any color” [Alpine Moon ruling #1]. That removed the abilities (including the copy-making ability and the Temple’s “{T}: Add {R} or {W}”) from Nico’s Thespian's Stage and replaced them with Alpine Moon’s granted ability. Because Alpine Moon affects only lands an opponent controls with the chosen name, Alayna’s Thespian's Stage (which is controlled by Alayna) is not affected by Alpine Moon and therefore became a normal copy of Temple of Triumph with the copy-making ability intact [Alpine Moon ruling #1; Thespian's Stage ruling #0; 707.3].\n\nAssumption: I’m assuming the sequence given is exact: Alpine Moon resolves (naming “Temple of Triumph”) before Alayna activates her Thespian's Stage. If Alpine Moon had not yet resolved before the second Thespian's Stage’s activation resolved, the outcome could differ (for example, an affected land might be different when the copy effect resolves).",
+      "citations": [
+        "707.3",
+        "707.9c",
+        "707.9d",
+        "Thespian's Stage ruling #0",
+        "Thespian's Stage ruling #1",
+        "Alpine Moon ruling #1"
+      ],
+      "error": null,
+      "raw_text": null
+    },
+    {
+      "id": "rg1756",
+      "question": "Allen controls [Thraben Purebloods] which is enchanted by [Kenrith's Transformation]. Thraben Purebloods then becomes enchanted by [One with the Stars]. What happens?",
+      "served_model": "openai/gpt-5-mini",
+      "provider": "OpenAI",
+      "temperature_sent": null,
+      "seed_sent": 42,
+      "usage": {
+        "prompt_tokens": 5726,
+        "completion_tokens": 4365,
+        "total_tokens": 10091,
+        "cost": 0.0101615,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.0101615,
+          "upstream_inference_prompt_cost": 0.0014315,
+          "upstream_inference_completions_cost": 0.00873
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 3456,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "retrieved_rule_ids": [
+        "613.9",
+        "702.5c",
+        "613.5",
+        "205.1b",
+        "702.1c",
+        "613.4d",
+        "702.112c",
+        "120.4d",
+        "712.18",
+        "113.12",
+        "611.3c",
+        "613.6",
+        "702.140e",
+        "712.21d",
+        "Mutating Creature Spell",
+        "613.7",
+        "613.8",
+        "603.4",
+        "604.3",
+        "903.9b"
+      ],
+      "answered": true,
+      "text": "Direct answer: Thraben Purebloods ends up as an enchantment (no longer a creature) because One with the Stars’ later type-changing effect overwrites Kenrith's Transformation’s type-changing effect; Kenrith's creature-setting and ability-removal effects therefore don't apply while One with the Stars is winning the timestamp contest. If One with the Stars leaves, Kenrith's Transformation's effects will apply again and Thraben Purebloods will become a green Elk creature with base power/toughness 3/3 and lose other card types and (while a creature) lose abilities.\n\nReasoning and definitions (brief):\n- Continuous effect: an effect that continuously modifies object characteristics and is applied automatically by the game (see rule 613.5 describing continuous effects applying via the layer system).\n- Timestamp: when multiple continuous effects apply in the same layer or sublayer, the game uses timestamps (the time each effect was generated) to order them; a later timestamp can override an earlier one (rule 613.7 and rule 613.9).\n- Both Kenrith's Transformation and One with the Stars create continuous type-changing effects that affect the enchanted permanent. When two such effects conflict in the same layer, the one with the later timestamp wins (613.7, 613.9). Because Kenrith's Transformation was already attached and then One with the Stars became attached later, One with the Stars has the later timestamp and its type-changing effect makes the enchanted permanent an enchantment and removes other card types (One with the Stars ruling #2). One with the Stars’ effect also “still has its abilities,” so it does not remove abilities.\n- Kenrith's Transformation’s text and rulings show it normally overwrites colors, creature types, and sets base power/toughness and removes abilities while it makes the enchanted object a green Elk creature with base 3/3 (Kenrith's Transformation ruling #3 and ruling #2). But because its type-changing part is overwritten by the later One with the Stars effect, Kenrith's effect does not successfully make Thraben Purebloods a creature for the purpose of the other parts of its effect; an effect must start to apply in its appropriate layer(s) to continue applying in the other layers (613.6). Thus Kenrith's creature-setting and ability-removal parts do not apply to Thraben Purebloods while One with the Stars’ effect is overwriting them.\n- Note about legality of attachment: multiple Auras with enchant abilities can be attached so long as the permanent meets each Aura’s enchant restriction at the time the Aura became attached (702.5c). That is why both Auras can be attached here (Kenrith's Transformation enchanted a creature, and One with the Stars can enchant a creature or an enchantment).\n\nPractical final state while both Auras are attached: Thraben Purebloods is an enchantment (not a creature), it loses any creature card types/subtypes (One with the Stars ruling #2), it keeps supertypes, and it keeps its abilities (One with the Stars doesn’t remove abilities). If One with the Stars is removed, the later-effect status changes and Kenrith's Transformation will then make Thraben Purebloods a green Elk with base 3/3 and remove other card types and (while it is a creature) remove abilities per Kenrith's Transformation.",
+      "citations": [
+        "613.5",
+        "613.7",
+        "613.9",
+        "613.6",
+        "702.5c",
+        "One with the Stars ruling #2",
+        "Kenrith's Transformation ruling #3"
+      ],
+      "error": null,
+      "raw_text": null
+    },
+    {
+      "id": "rg1900",
+      "question": "Avery manifests the top card of their library with [Soul Summons]. Then, they mutate [Trumpeting Gnarr] targeting the manifested creature. What are the characteristics of the resulting creature if Avery chooses to put the manifested creature on top?",
+      "served_model": "openai/gpt-5-mini",
+      "provider": "OpenAI",
+      "temperature_sent": null,
+      "seed_sent": 42,
+      "usage": {
+        "prompt_tokens": 3783,
+        "completion_tokens": 3755,
+        "total_tokens": 7538,
+        "cost": 0.00845575,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.00845575,
+          "upstream_inference_prompt_cost": 0.00094575,
+          "upstream_inference_completions_cost": 0.00751
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 3136,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "retrieved_rule_ids": [
+        "702.140e",
+        "702.140c",
+        "Mutating Creature Spell",
+        "730.2e",
+        "712.8b",
+        "707.3",
+        "608.3d",
+        "702.140f",
+        "707.2",
+        "701.40f",
+        "712.8c",
+        "613.2a",
+        "707.8",
+        "708.10",
+        "730.2j",
+        "730.1",
+        "110.5",
+        "608.3a",
+        "608.3c",
+        "613.7"
+      ],
+      "answered": true,
+      "text": "Result: The permanent becomes a merged, face-down 2/2 colorless creature represented by the manifested card on top with Trumpeting Gnarr beneath; it is face down and has all abilities printed on Trumpeting Gnarr (including “Whenever this creature mutates, create a 3/3 green Beast creature token”).\n\nWhy: Soul Summons put the top card of Avery’s library onto the battlefield face down as a 2/2 creature (manifest) (Soul Summons). Trumpeting Gnarr, cast for its mutate cost, merges with the targeted manifested creature as it resolves and the spell’s controller chose to put the manifested card on top (702.140c; Mutating Creature Spell; 608.3d; 730.2e). A mutated (merged) permanent has all abilities of each card that represents it, while “other characteristics” (name, types, power/toughness, mana cost, color, etc.) are derived from the topmost card or token (702.140e). Because the topmost component is the manifested face-down card, the merged permanent’s other characteristics are those of a face-down manifested creature (a 2/2 face-down, which is colorless and lacks a name, printed types, printed abilities, and a mana cost as described in the face-down examples) (Soul Summons; 707.3; 708.10). Its face-down/face-up status is determined by the topmost component (110.5; 730.2e).\n\nPutting that together: the merged permanent is face down and is a 2/2 colorless creature (the manifested card’s face-down characteristics), but it also ‘‘has all abilities of each card and token that represents it’’ so it carries Trumpeting Gnarr’s printed abilities (for example, Trumpeting Gnarr’s triggered ability that creates a 3/3 green Beast when it mutates) (702.140e; Trumpeting Gnarr). If the manifested card is later turned face up, the merged permanent’s other characteristics would then be derived from that now-face-up top component while it continues to have the abilities of both components (730.2e; 702.140e).",
+      "citations": [
+        "Soul Summons",
+        "Trumpeting Gnarr",
+        "702.140c",
+        "702.140e",
+        "730.2e",
+        "608.3d",
+        "110.5",
+        "707.3",
+        "708.10",
+        "Mutating Creature Spell"
+      ],
+      "error": null,
+      "raw_text": null
+    },
+    {
+      "id": "rg1932",
+      "question": "April casts [Spontaneous Flight] targeting their [Mist Dragon]. After that resolves April then activates its 'lose flying' ability. They cast another Spontaneous Flight targeting Mist Dragon. After that resolves they then use [Hex Parasite] to remove one flying counter. Does Mist Dragon have flying?",
+      "served_model": "openai/gpt-5-mini",
+      "provider": "OpenAI",
+      "temperature_sent": null,
+      "seed_sent": 42,
+      "usage": {
+        "prompt_tokens": 3889,
+        "completion_tokens": 3614,
+        "total_tokens": 7503,
+        "cost": 0.00820025,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.00820025,
+          "upstream_inference_prompt_cost": 0.00097225,
+          "upstream_inference_completions_cost": 0.007228
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 2880,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "retrieved_rule_ids": [
+        "702.9c",
+        "613.9",
+        "113.10b",
+        "732.3",
+        "113.10c",
+        "702.1c",
+        "613.7a",
+        "113.12",
+        "702.58b",
+        "702.26p",
+        "702.63c",
+        "113.2c",
+        "400.6",
+        "702.125c",
+        "702.16m",
+        "613.1",
+        "613.7e",
+        "604.3",
+        "702.1"
+      ],
+      "answered": false,
+      "text": "I can’t definitively answer with only the provided rules and card text — the context doesn’t say what a “flying counter” does or how counters that appear to grant abilities interact with continuous effects that make a creature “lose [ability].”\n\nWhat we can say from the provided material:\n- Flying is a keyword ability; multiple instances of flying on the same creature are redundant ([702.9c]).\n- An effect that says “This creature loses flying” is an effect that removes an ability; effects that remove an ability remove all instances of that ability ([113.10b], [113.10c]).\n- When two continuous effects add and remove the same ability, generally the most recent one (by timestamp) prevails; apply continuous effects in timestamp order to determine which one “wins” ([613.9], [613.7a]).\n- The example in [732.3] shows that if a gain-flying effect resolves and then a lose-flying effect resolves later, the creature ends up without flying (the later effect causes it to not have flying). That is analogous to part of your sequence.\n\nWhat is missing to settle this specific sequence: the rules provided do not define whether a “flying counter” (the counter placed by Spontaneous Flight) itself grants the flying ability as a continuous effect or in some other way, and if it does, whether removing one such counter removes an “instance” of flying or otherwise interacts with a continuous “loses flying” effect. In short, the context lacks a rule that says how named ability-granting counters work and how they interact with effects that remove abilities and with timestamps.\n\nNeeded rule(s) to answer: a rule or authoritative text that says what a “flying counter” does (does it grant the flying ability? is that considered an instance of the flying ability?), and how adding or removing such counters is treated relative to continuous effects that add or remove abilities (i.e., how counters participate in the timestamp/continuous-effect system). Without that, we can’t determine whether the final state has flying after the second Spontaneous Flight and the Hex Parasite removal.\n\nAssumption note: if one assumes (not from the provided rules) that a flying counter grants an instance of the flying ability and that removing one flying counter simply removes one instance, then because multiple instances of flying are redundant ([702.9c]), the presence of any remaining flying source would normally give flying unless a later “loses flying” continuous effect prevails by timestamp ([613.9]). But I must not rely on that unstated assumption here.\n",
+      "citations": [
+        "[702.9c]",
+        "[113.10b]",
+        "[113.10c]",
+        "[613.9]",
+        "[613.7a]",
+        "[732.3]",
+        "Spontaneous Flight",
+        "Mist Dragon",
+        "Hex Parasite"
+      ],
+      "error": null,
+      "raw_text": null
+    },
+    {
+      "id": "rg2855",
+      "question": "Alex controls [Magus of the Moon] and [Forgotten Monument]. Neil casts [Lizard, Connors's Curse] targeting Magus of the Moon. After Lizard, Connors's Curse has resolved, what are the characteristics of Forgotten Monument?",
+      "served_model": "openai/gpt-5-mini",
+      "provider": "OpenAI",
+      "temperature_sent": null,
+      "seed_sent": 42,
+      "usage": {
+        "prompt_tokens": 5490,
+        "completion_tokens": 2624,
+        "total_tokens": 8114,
+        "cost": 0.0066205,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.0066205,
+          "upstream_inference_prompt_cost": 0.0013725,
+          "upstream_inference_completions_cost": 0.005248
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 1856,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "retrieved_rule_ids": [
+        "707.9f",
+        "112.4",
+        "205.1b",
+        "603.6b",
+        "205.4b",
+        "712.13a",
+        "718.3b",
+        "710.2",
+        "712.9",
+        "305.7",
+        "Mountain",
+        "613.6",
+        "110.5c",
+        "608.3d",
+        "708.10",
+        "400.7",
+        "603.6d",
+        "105.2",
+        "305.6",
+        "608.3a"
+      ],
+      "answered": true,
+      "text": "After Lizard, Connors's Curse has resolved, Forgotten Monument is a Mountain (a land with the basic land type Mountain) that has the ability “{T}: Add {R}.” It is no longer a Cave, it has lost Forgotten Monument’s “{T}: Add {C}.” ability and it no longer grants other Caves you control “{T}, Pay 1 life: Add one mana of any color.” Forgotten Monument keeps its name and any supertypes it had.\n\nReasoning and definitions\n\nDefinition of “characteristics”: For this question I mean the permanent’s card types, supertypes, and subtypes (the type line) [205.1b]; its basic-land-derived mana ability for a basic land type [305.6]; and other abilities printed on the card or granted to it. (Color is defined by mana cost [105.2], but Forgotten Monument’s color isn’t relevant here.)\n\nWhat happens here: Magus of the Moon’s effect makes nonbasic lands Mountains and replaces their other land types and abilities with the Mountain basic-land characteristics. Magus of the Moon’s printed text and its rulings state that nonbasic lands lose other land types and abilities and gain the land type Mountain and the ability “{T}: Add {R}” [Magus of the Moon ruling #4]. Rule 305.7 describes that when a land’s subtype is set to a basic land type it loses its old land types and the abilities generated from its rules text and gains the appropriate mana ability for the new basic land type; rule 305.6 defines the Mountain mana ability as “{T}: Add {R}.” Forgotten Monument is a nonbasic land (Land — Cave), so it becomes a Mountain and loses its Cave subtype and its printed and granted abilities, and it gains “{T}: Add {R}” as described above [305.7] [305.6] [Magus of the Moon ruling #4].\n\nMagus of the Moon does not change names or supertypes, so Forgotten Monument keeps its name and any supertypes it had (for example, it does not become a basic land) [Magus of the Moon ruling #1] [205.4b].\n\nBecause Lizard, Connors's Curse’s triggered ability targeted Magus of the Moon and caused Magus of the Moon to lose abilities and become a different creature, Magus of the Moon’s effect still produces the result above when applied; the provided Magus of the Moon rulings explain how the subtype-changing effect applies to nonbasic lands (see citation) [Magus of the Moon ruling #4].",
+      "citations": [
+        "205.1b",
+        "205.4b",
+        "305.6",
+        "305.7",
+        "Magus of the Moon ruling #4",
+        "Magus of the Moon ruling #1"
+      ],
+      "error": null,
+      "raw_text": null
+    },
+    {
+      "id": "rg2965",
+      "question": "Ainsley enchants their [Colossus Hammer] with [Rune of Flight]. Then they equip it to [Skeletal Snake]. Does Skeletal Snake have flying?",
+      "served_model": "openai/gpt-5-mini",
+      "provider": "OpenAI",
+      "temperature_sent": null,
+      "seed_sent": 42,
+      "usage": {
+        "prompt_tokens": 3698,
+        "completion_tokens": 3516,
+        "total_tokens": 7214,
+        "cost": 0.0079565,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.0079565,
+          "upstream_inference_prompt_cost": 0.0009245,
+          "upstream_inference_completions_cost": 0.007032
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 3008,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "retrieved_rule_ids": [
+        "301.5f",
+        "301.5d",
+        "613.7a",
+        "113.12",
+        "301.5a",
+        "Modified",
+        "301.5b",
+        "301.5c",
+        "303.4m",
+        "702.6c",
+        "701.3a",
+        "303.4e",
+        "701.3d",
+        "Equip",
+        "702.6d",
+        "613.7e",
+        "604.3",
+        "700.9",
+        "704.1",
+        "301.1"
+      ],
+      "answered": true,
+      "text": "Yes. Skeletal Snake has flying (and also gets +10/+10).\n\nReasoning: An Equipment’s attached creature is called the “equipped creature” (see rule [301.5a]). Rune of Flight’s text gives the enchanted permanent “Equipped creature has flying,” and Colossus Hammer’s text gives the equipped creature “gets +10/+10 and loses flying” (see the Rune of Flight and Colossus Hammer card text). Both of those are continuous effects that grant or remove an ability, so they interact by timestamp order rather than by being a characteristic-defining effect (see rule [113.12]). The rules example about this exact interaction explains that the ability granted by Rune of Flight has a later timestamp than Colossus Hammer’s own abilities when Rune of Flight is attached to Colossus Hammer, and that when Colossus Hammer becomes attached to a creature both abilities receive new timestamps while keeping that relative order (see rule [613.7a] and rule [613.7e]). Because the Rune of Flight–granted ability has the later timestamp, its “Equipped creature has flying” effect is applied after Colossus Hammer’s “loses flying” effect and so the equipped creature ends up with flying.\n\nAssumption: I’m answering under the timing you gave (Ainsley enchants Colossus Hammer with Rune of Flight first, then equips Colossus Hammer to Skeletal Snake). If the order were different (for example, Colossus Hammer were attached to Skeletal Snake before Rune of Flight became attached to Colossus Hammer), the timestamp ordering described above would still leave the Rune of Flight–granted ability with the later timestamp and the same final result (Skeletal Snake having flying).",
+      "citations": [
+        "301.5a",
+        "113.12",
+        "613.7a",
+        "613.7e",
+        "Rune of Flight",
+        "Colossus Hammer"
+      ],
+      "error": null,
+      "raw_text": null
+    },
+    {
+      "id": "rg4023",
+      "question": "Nico controls [Urza's Saga] with two lore counters on it. Alexzander uses [Jinx] to change its land type. What happens?",
+      "served_model": "openai/gpt-5-mini",
+      "provider": "OpenAI",
+      "temperature_sent": null,
+      "seed_sent": 42,
+      "usage": {
+        "prompt_tokens": 5207,
+        "completion_tokens": 3798,
+        "total_tokens": 9005,
+        "cost": 0.00889775,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.00889775,
+          "upstream_inference_prompt_cost": 0.00130175,
+          "upstream_inference_completions_cost": 0.007596
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 3136,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "retrieved_rule_ids": [
+        "205.1b",
+        "205.4b",
+        "613.6",
+        "707.9f",
+        "205.1a",
+        "305.7",
+        "603.6b",
+        "613.1d",
+        "110.4c",
+        "707.11",
+        "611.2e",
+        "612.2",
+        "Type-Changing Effect",
+        "707.9d",
+        "707.9b",
+        "603.6d",
+        "604.3",
+        "204.1"
+      ],
+      "answered": true,
+      "text": "Jinx makes Urza's Saga become the basic land type chosen until end of turn; as a result Urza's Saga loses its old Urza land type and loses the abilities generated from its rules text (including its chapter abilities) and gains the mana ability appropriate to the chosen basic land type — because it lost all of its chapter abilities while still being a Saga, Urza's Saga is immediately sacrificed.\n\nReasoning and definitions (rules cited):\n- Jinx is a type-changing effect that sets a land’s land type to a basic land type until end of turn (a land-subtype–setting effect applied in layer 4). See the Type-Changing Effect definition and rule [613.1d] for the layer where type changes apply.\n- When an effect sets a land’s subtype to one or more basic land types, the land no longer has its old land type, it “loses all abilities generated from its rules text, its old land types, and any copiable effects affecting that land,” and it “gains the appropriate mana ability for each new basic land type.” That is exactly what applies to Urza's Saga when Jinx resolves. See [305.7].\n- Urza's Saga had gained abilities from its first and second chapters while it had two lore counters; those chapter abilities are abilities generated from Urza's Saga’s rules text. (See [Urza's Saga ruling #5].)\n- If Urza's Saga loses all of its chapter abilities but is still a Saga (which it remains — it being a Saga is not removed by Jinx), it will immediately be sacrificed. Therefore, once Jinx causes Urza's Saga to lose those chapter abilities, Urza's Saga is sacrificed immediately. See [Urza's Saga ruling #1] and [Urza's Saga ruling #4].\n\nTiming assumption: I assume Jinx resolves and its continuous effect is applied (i.e., you choose the basic land type as part of resolution). If Jinx were countered or otherwise didn’t resolve, none of the above happens. The immediate sacrifice happens as a consequence of the type/subtype-setting effect removing the chapter abilities while Urza's Saga remains a Saga.\n",
+      "citations": [
+        "[Type-Changing Effect]",
+        "[613.1d]",
+        "[305.7]",
+        "[Urza's Saga ruling #5]",
+        "[Urza's Saga ruling #1]",
+        "[Urza's Saga ruling #4]"
+      ],
+      "error": null,
+      "raw_text": null
+    },
+    {
+      "id": "rg4747",
+      "question": "Ari casts [Aeve, Progenitor Ooze], with two spells having been cast before then. Nadia controls [Humility]. What will Ari's battlefield look like once the stack fully resolves and state-based actions are checked?",
+      "served_model": "openai/gpt-5-mini",
+      "provider": "OpenAI",
+      "temperature_sent": null,
+      "seed_sent": 42,
+      "usage": {
+        "prompt_tokens": 5078,
+        "completion_tokens": 5493,
+        "total_tokens": 10571,
+        "cost": 0.0122555,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.0122555,
+          "upstream_inference_prompt_cost": 0.0012695,
+          "upstream_inference_completions_cost": 0.010986
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 4608,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "retrieved_rule_ids": [
+        "701.36b",
+        "111.3",
+        "201.5a",
+        "702.175a",
+        "707.10e",
+        "Offspring",
+        "208.2a",
+        "616.1g",
+        "208.2b",
+        "111.4",
+        "701.7a",
+        "612.2a",
+        "111.12",
+        "708.2a",
+        "111.5",
+        "601.1",
+        "604.3",
+        "101.4",
+        "616.1a",
+        "614.1"
+      ],
+      "answered": false,
+      "text": "I can’t fully answer whether any of the Aeve, Progenitor Ooze permanents will be removed by the legend rule because the provided rules don’t include the interaction between Humility removing an ability that changes a permanent’s legendary supertype and the rules that determine supertypes/legendary status and resulting state-based actions. What is certain from the provided rules: Ari cast Aeve, Progenitor Ooze with two spells already cast this turn, so Storm creates two copies (they become tokens) and they enter the battlefield one at a time, then the original enters [Aeve, Progenitor Ooze ruling #2] and [707.10e]. As each Aeve enters, it enters with a number of +1/+1 counters equal to the number of other Oozes that player controls as it enters: the first entering copy sees 0 other Oozes and gets 0 counters, the second entering copy sees 1 other Ooze and gets 1 counter, and the original Aeve enters after those two and gets 2 counters [Aeve, Progenitor Ooze ruling #2]. The copies are tokens whose copiable characteristics come from the copied spell/creature, and tokens are created by putting the specified token objects onto the battlefield [111.3], [111.4], [701.7a], [707.10e]. Nadia’s Humility makes “all creatures lose all abilities and have base power and toughness 1/1”; Humility’s continuous effect removes abilities and sets base power/toughness as described in its ruling and applies during continuous-effect layering (abilities removed in layer 6) [Humility ruling #2]. Combining those points that are settled by the provided material: after everything has resolved and continuous effects are applied, all three Aeve permanents will be creatures with no abilities and base power/toughness 1/1 due to Humility, then their +1/+1 counters produce final power/toughness of 1/1 (first token with 0 counters), 2/2 (second token with 1 counter), and 3/3 (original Aeve with 2 counters) assuming Ari controlled no other Oozes at the start [Aeve, Progenitor Ooze ruling #2] and [Humility ruling #2]. What is missing to finish the answer: the provided rules do not include (a) the rules that govern how a static printed ability that makes “Aeve isn’t legendary if it’s a token” interacts with Humility’s removal of abilities (specifically how supertypes like Legendary are set or prevented in the layering system), and (b) the legend rule and the relevant state-based-action rules that would say whether multiple permanents named Aeve, Progenitor Ooze that are legendary would cause any of them to be put into graveyards. Because those pieces are not included in the supplied rules/rulings, I can’t determine from the given material whether Ari will end up with multiple legendary Aeve permanents or whether any are sacrificed by state-based actions. If you provide the legend rule and the detailed layering/continuous-effect rules about supertypes and static abilities that alter supertypes, I can finish the determination precisely.",
+      "citations": [
+        "Aeve, Progenitor Ooze ruling #2",
+        "707.10e",
+        "111.3",
+        "111.4",
+        "701.7a",
+        "Humility ruling #2"
+      ],
+      "error": null,
+      "raw_text": null
+    },
+    {
+      "id": "rg4854",
+      "question": "Natalie controls [High Fae Trickster]. Allen activates the crew ability of [Capenna Express]. Before it resolves Natalie casts [One with the Stars] targeting Capenna Express. What happens when the crew ability resolves?",
+      "served_model": "openai/gpt-5-mini",
+      "provider": "OpenAI",
+      "temperature_sent": null,
+      "seed_sent": 42,
+      "usage": {
+        "prompt_tokens": 3675,
+        "completion_tokens": 2534,
+        "total_tokens": 6209,
+        "cost": 0.00598675,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.00598675,
+          "upstream_inference_prompt_cost": 0.00091875,
+          "upstream_inference_completions_cost": 0.005068
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 1856,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "retrieved_rule_ids": [
+        "208.3a",
+        "702.122e",
+        "702.122c",
+        "702.122d",
+        "702.103e",
+        "702.122a",
+        "702.122b",
+        "608.3b",
+        "303.4i",
+        "Crew",
+        "Modified",
+        "303.4k",
+        "303.4j",
+        "301.7",
+        "700.7",
+        "608.3a",
+        "608.3c",
+        "608.2b",
+        "702.140b",
+        "301.1"
+      ],
+      "answered": true,
+      "text": "One with the Stars is put into its owner’s graveyard without entering the battlefield, and then the crew ability resolves and Capenna Express becomes an artifact creature until end of turn (crewed by High Fae Trickster if High Fae Trickster was tapped to pay the crew cost). \n\nWhy: When One with the Stars tries to resolve as an Aura spell it checks whether its target is still legal; One with the Stars can only enchant a creature or an enchantment, and Capenna Express is currently a noncreature artifact, so the target is illegal and the Aura spell doesn’t resolve (it’s put into its owner’s graveyard instead of entering the battlefield) [608.3b, 608.2b, 303.4i]. After that, the already-activated crew ability resolves: Crew N is an activated ability that makes the Vehicle become an artifact creature until end of turn when its crew cost is paid; a creature “crews a Vehicle” when it was tapped to pay that crew cost [702.122a, 702.122b, 702.122c]. \n\nDefinitions relied on: \n- “Crewing” / “crewed”: A Vehicle is crewed by a creature if that creature was tapped to pay the cost to activate that Vehicle’s crew ability; “Crew N” is an activated ability that taps creatures with total power N or more to make the Vehicle an artifact creature until end of turn [702.122a, 702.122b, 702.122c]. \n- “Illegal target” (for a resolving spell): A spell that specifies targets checks whether those targets are still legal as it begins to resolve; if all of its targets are illegal, the spell doesn’t resolve and is put into its owner’s graveyard (special rules apply for bestowed Auras and mutating creature spells, which don’t apply here) [608.2b, 608.3b]. \n\nNote on a different timing: If One with the Stars had been cast (or resolved) after Capenna Express had already become an artifact creature, One with the Stars could legally enchant Capenna Express while it was a creature; One with the Stars’s effect could then cause the enchanted Capenna Express to be an enchantment and lose other card types (see One with the Stars ruling #1) [One with the Stars ruling #1].",
+      "citations": [
+        "608.3b",
+        "608.2b",
+        "303.4i",
+        "702.122a",
+        "702.122b",
+        "702.122c",
+        "One with the Stars ruling #1"
+      ],
+      "error": null,
+      "raw_text": null
+    },
+    {
+      "id": "rg4985",
+      "question": "Nico controls [Humility]. Aitana casts [Finale of Devastation] with X = 10. Will the creature they find have haste?",
+      "served_model": "openai/gpt-5-mini",
+      "provider": "OpenAI",
+      "temperature_sent": null,
+      "seed_sent": 42,
+      "usage": {
+        "prompt_tokens": 4786,
+        "completion_tokens": 3492,
+        "total_tokens": 8278,
+        "cost": 0.0081805,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.0081805,
+          "upstream_inference_prompt_cost": 0.0011965,
+          "upstream_inference_completions_cost": 0.006984
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 2944,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "retrieved_rule_ids": [
+        "603.6b",
+        "113.10b",
+        "702.10c",
+        "612.3",
+        "113.12",
+        "101.2a",
+        "113.11",
+        "113.10c",
+        "Haste",
+        "614.17d",
+        "614.12",
+        "611.3c",
+        "707.4",
+        "707.9d",
+        "702.10a",
+        "603.6d",
+        "302.6",
+        "604.3",
+        "113.10",
+        "613.1"
+      ],
+      "answered": true,
+      "text": "Yes — the creature Finale of Devastation finds will have haste (until end of turn). Finale of Devastation with X = 10 creates a continuous effect that gives creatures you control +X/+X and haste; the official ruling says the creature you put onto the battlefield “will get +X/+X and haste” when X is 10 or more, and that nothing happens between revealing the card and it getting those effects ([Finale of Devastation ruling #2]; [Finale of Devastation ruling #0]). Humility’s static ability makes “All creatures lose all abilities and have base power and toughness 1/1” (Humility). When effects add and remove abilities, the more recent continuous effect generally prevails ([113.10c]; [113.10]). Because the continuous effect from Finale of Devastation is created when Finale resolves (after Humility is already on the battlefield), that later effect grants haste to the creature as it enters. Also, continuous effects that apply to an entering permanent are applied as it enters, so the haste from Finale will be present as the creature enters the battlefield ([611.3]; [613.1]). Haste is a static ability ([702.10a]) that lets the creature’s controller activate its activated abilities whose cost includes the tap or untap symbol and lets it attack despite the “summoning sickness” restriction ([702.10c]). Assumption: Humility was already on the battlefield before Finale resolved; if Humility instead entered after Finale’s effect was created, timestamps and layer interactions would need to be checked (the most recent continuous effect would still generally determine whether the creature ends up with haste).",
+      "citations": [
+        "Humility",
+        "[Finale of Devastation ruling #2]",
+        "[Finale of Devastation ruling #0]",
+        "[113.10c]",
+        "[113.10]",
+        "[611.3]",
+        "[613.1]",
+        "[702.10a]",
+        "[702.10c]"
+      ],
+      "error": null,
+      "raw_text": null
+    },
+    {
+      "id": "rg6626",
+      "question": "Aubree casts [Blood Moon]. Nikolas activates [Inkmoth Nexus]'s ability in response. What will Inkmoth Nexus look like after everything resolves? What will it look like next turn?",
+      "served_model": "openai/gpt-5-mini",
+      "provider": "OpenAI",
+      "temperature_sent": null,
+      "seed_sent": 42,
+      "usage": {
+        "prompt_tokens": 5581,
+        "completion_tokens": 5675,
+        "total_tokens": 11256,
+        "cost": 0.01234205,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 1792,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.01234205,
+          "upstream_inference_prompt_cost": 0.00099205,
+          "upstream_inference_completions_cost": 0.01135
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 4800,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "retrieved_rule_ids": [
+        "613.6",
+        "613.1d",
+        "205.1b",
+        "205.4b",
+        "603.6b",
+        "305.7",
+        "205.1a",
+        "613.3",
+        "613.2a",
+        "707.9f",
+        "712.13a",
+        "613.1f",
+        "613.1b",
+        "700.5a",
+        "611.2e",
+        "603.6d",
+        "604.3",
+        "613.7",
+        "613.8",
+        "707.1"
+      ],
+      "answered": true,
+      "text": "After both spells/abilities resolve, Inkmoth Nexus is a 1/1 Phyrexian Blinkmoth artifact creature with flying and infect and is also a land with the land type Mountain; it has the Mountain mana ability “{T}: Add {R}” and has lost its printed “{T}: Add {C}” ability. Next turn (after the “until end of turn” effect from Inkmoth Nexus’s activated ability ends), Inkmoth Nexus will be just a land with land type Mountain that has “{T}: Add {R}” (it will no longer be an artifact or creature, and will no longer have flying, infect, or be 1/1).\n\nReasoning and assumptions (short): I assume Nikolas’s activation resolved first because it was activated in response to Aubree casting Blood Moon; that puts the continuous effect from Inkmoth Nexus’s activated ability on the stack first and gives it the earlier timestamp when it begins applying (but the final result is the same whichever resolved first, because both continuous effects will be applied in layer 4 and Blood Moon’s later-applied effect will set the land type to Mountain). Layer and ability interactions: the Inkmoth Nexus activated ability makes “This land becomes a 1/1 Phyrexian Blinkmoth artifact creature with flying and infect until end of turn. It’s still a land,” which is a type-changing/ability-adding continuous effect applied in layer 4 (see rule 613.1d and the example in 613.6). An effect that sets a land’s subtype to a basic land type (Blood Moon’s effect) causes the land to lose its old land types and lose abilities generated from its rules text, and to gain the new basic land type’s mana ability; it doesn’t remove abilities granted by other effects (see rule 305.7 and Blood Moon ruling #2). Because Inkmoth Nexus’s activated ability’s continuous effect already exists, it continues to make Inkmoth Nexus an artifact creature with flying, infect, and P/T 1/1 until end of turn even though Blood Moon causes the land to lose its printed mana ability (613.6 and 305.7). Blood Moon therefore replaces Inkmoth Nexus’s land subtype with Mountain and gives “{T}: Add {R}” (Blood Moon ruling #2); the printed “{T}: Add {C}” is removed because it was generated from Inkmoth Nexus’s rules text (305.7). When the until-end-of-turn effect from Inkmoth Nexus’s activated ability expires on the next turn, the artifact and creature types and the flying/infect and 1/1 setting end, leaving Inkmoth Nexus as a Mountain that has “{T}: Add {R}.”\n\nIf the timing were reversed (Blood Moon resolves before the activated ability resolves), the same final state after both have resolved obtains: Inkmoth Nexus would still end up a 1/1 Phyrexian Blinkmoth artifact creature with flying and infect and land type Mountain while the activated ability’s effect lasts, then revert to being a Mountain that produces {R} on the next turn.\n",
+      "citations": [
+        "613.1d",
+        "613.6",
+        "613.7",
+        "305.7",
+        "205.1b",
+        "Blood Moon ruling #2",
+        "Inkmoth Nexus ruling #0"
+      ],
+      "error": null,
+      "raw_text": null
+    },
+    {
+      "id": "rg6634",
+      "question": "Niko controls [Urza's Saga] on chapter 2. Ainsley casts [Magus of the Moon]. What happens to Urza's Saga?",
+      "served_model": "openai/gpt-5-mini",
+      "provider": "OpenAI",
+      "temperature_sent": null,
+      "seed_sent": 42,
+      "usage": {
+        "prompt_tokens": 5617,
+        "completion_tokens": 4315,
+        "total_tokens": 9932,
+        "cost": 0.01003425,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.01003425,
+          "upstream_inference_prompt_cost": 0.00140425,
+          "upstream_inference_completions_cost": 0.00863
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 3520,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "retrieved_rule_ids": [
+        "305.7",
+        "205.1b",
+        "603.6b",
+        "Mountain",
+        "707.9f",
+        "205.4b",
+        "613.6",
+        "400.7i",
+        "113.12",
+        "106.7",
+        "106.5",
+        "305.6",
+        "305.5",
+        "707.9d",
+        "613.1d",
+        "603.6d",
+        "604.3",
+        "107.4a",
+        "605.1",
+        "205.3i"
+      ],
+      "answered": true,
+      "text": "Urza's Saga becomes a Mountain (losing its Urza’s land subtype) but keeps the chapter I and II abilities it gained earlier and also gains the Mountain mana ability. In short: Urza's Saga is affected by Magus of the Moon, becomes a Mountain and therefore has “{T}: Add {R},” yet Urza's Saga still keeps its chapter-granted “{T}: Add {C}” and “{2}, {T}: Create a 0/0 colorless Construct…” abilities, so it is not immediately sacrificed by this change.\n\nReasoning and definitions:\n- Magus of the Moon’s continuous effect makes nonbasic lands Mountains, so any nonbasic land Niko controls becomes a Mountain when Magus of the Moon is on the battlefield (this is a subtype-setting effect) ([305.7]; [Magus of the Moon ruling #0]).\n- By “nonbasic land” here I mean a land that does not already have one of the basic land types Plains/Island/Swamp/Mountain/Forest (the basic land types are listed in rule [305.6]).\n- When a land’s subtype is set to a basic land type, that land gains the appropriate intrinsic mana ability for that basic land type (a Mountain gives “{T}: Add {R}”) ([305.6]; [305.7]). Therefore Urza's Saga gains “{T}: Add {R}.”\n- Rule [305.7] normally causes a land whose subtype is set to a basic land type to lose abilities generated from its rules text, but the official ruling for Urza's Saga states that “Urza's Saga gains an ability from its first and second chapters. It keeps those abilities for as long as it's on the battlefield.” Because that ruling is authoritative for Urza's Saga, Urza's Saga keeps the chapter I and II abilities it already gained while on the battlefield (Urza's Saga ruling #5). As a result Urza's Saga still has the chapter I ability “{T}: Add {C}” and the chapter II ability “{2}, {T}: Create a 0/0 colorless Construct…”.\n- If at some later time Urza's Saga did actually lose all of its chapter abilities while still a Saga (for example, due to a different effect that removes those abilities), Urza's Saga would be sacrificed immediately per the official ruling ([Urza's Saga ruling #1]). Also note that Urza's Saga is still a Saga while it is a land, and it will be sacrificed after its last chapter ability resolves as described by its ruling ([Urza's Saga ruling #4]).",
+      "citations": [
+        "[305.7]",
+        "[305.6]",
+        "[Magus of the Moon ruling #0]",
+        "[Urza's Saga ruling #5]",
+        "[Urza's Saga ruling #1]",
+        "[Urza's Saga ruling #4]"
+      ],
+      "error": null,
+      "raw_text": null
+    },
+    {
+      "id": "rg6682",
+      "question": "Ariana controls [Painter's Servant] naming \"blue.\" Nico casts [Dress Down]. What color are Painter's Servant and Dress Down?",
+      "served_model": "openai/gpt-5-mini",
+      "provider": "OpenAI",
+      "temperature_sent": null,
+      "seed_sent": 42,
+      "usage": {
+        "prompt_tokens": 3342,
+        "completion_tokens": 4140,
+        "total_tokens": 7482,
+        "cost": 0.0091155,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.0091155,
+          "upstream_inference_prompt_cost": 0.0008355,
+          "upstream_inference_completions_cost": 0.00828
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 3648,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "retrieved_rule_ids": [
+        "Devoid",
+        "202.2b",
+        "202.2f",
+        "702.114a",
+        "105.3",
+        "707.2a",
+        "903.4c",
+        "Colorless",
+        "202.2",
+        "105.2",
+        "114.3",
+        "106.5",
+        "105.2c",
+        "607.5a",
+        "903.4a",
+        "604.3",
+        "204.1",
+        "207.2",
+        "105.1",
+        "202.1"
+      ],
+      "answered": true,
+      "text": "Painter's Servant is blue; Dress Down is blue.\n\nReasoning: “Color” means the color or colors of the mana symbols in an object’s mana cost (and can be changed by effects) ([202.2], [105.2], [105.3]). Dress Down’s mana cost includes {U}, so Dress Down is blue as a spell (its color comes from its mana cost) ([202.2]; Dress Down). Painter's Servant’s text makes “all cards that aren't on the battlefield, spells, and permanents” the chosen color in addition to their other colors (Painter's Servant). That ability adds blue to objects that already have colors and makes normally colorless objects the chosen color (Painter's Servant ruling #5; Painter's Servant ruling #0). Painter's Servant has no colored mana symbols in its mana cost, so Painter's Servant would be colorless except for its own chosen-color effect; because of Painter's Servant’s effect and ruling #0, Painter's Servant becomes blue (not “colorless and blue”) once the choice is made. Dress Down remains blue (it is already blue from its mana cost; Painter's Servant’s ability adds blue but doesn’t change that) (Painter's Servant ruling #5; [202.2]).\n\nAssumption: I’m assuming Painter's Servant is already on the battlefield and has chosen blue when Nico casts Dress Down. If Painter's Servant entered after Dress Down was cast, Painter's Servant’s characteristic-defining ability will apply once Painter's Servant’s choice exists and will make the spell blue as described (Painter's Servant; [604.3]).",
+      "citations": [
+        "[202.2]",
+        "[105.2]",
+        "[105.3]",
+        "[604.3]",
+        "Painter's Servant",
+        "[Painter's Servant ruling #0]",
+        "[Painter's Servant ruling #5]",
+        "Dress Down"
+      ],
+      "error": null,
+      "raw_text": null
+    },
+    {
+      "id": "rg6821",
+      "question": "Anabella controls [Blood Moon] and enchants their [Sunlit Marsh] with [Urban Utopia]. What colors can it tap for?",
+      "served_model": "openai/gpt-5-mini",
+      "provider": "OpenAI",
+      "temperature_sent": null,
+      "seed_sent": 42,
+      "usage": {
+        "prompt_tokens": 3244,
+        "completion_tokens": 3548,
+        "total_tokens": 6792,
+        "cost": 0.007907,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.007907,
+          "upstream_inference_prompt_cost": 0.000811,
+          "upstream_inference_completions_cost": 0.007096
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 3072,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "retrieved_rule_ids": [
+        "106.5",
+        "106.7",
+        "Monocolored Hybrid Mana Symbols",
+        "305.6",
+        "Mountain",
+        "Basic Landcycling",
+        "106.9",
+        "106.10",
+        "Island",
+        "605.4a",
+        "305.7",
+        "111.10h",
+        "106.12b",
+        "202.2b",
+        "Swamp",
+        "107.4a",
+        "605.1",
+        "603.1"
+      ],
+      "answered": true,
+      "text": "Sunlit Marsh can be tapped to add one mana of any color (via Urban Utopia) or to add {R} (as a Mountain created by Blood Moon). \n\nReasoning: \"To ‘tap [a permanent] for mana’\" means to activate a mana ability that includes {T} in its activation cost (definition from rule [106.12b]). Blood Moon makes nonbasic lands Mountains and gives them the ability \"{T}: Add {R}\" (see Blood Moon ruling #2 and the basic land/mountain rule [305.6]), and in doing so a nonbasic land loses abilities generated from its rules text per rule [305.7] (so Sunlit Marsh’s printed \"{T}: Add {W} or {B}.\" is lost). Urban Utopia grants the enchanted land the ability \"{T}: Add one mana of any color,\" and the Urban Utopia ruling #0 states the enchanted land won’t lose other abilities it had because of that aura; in particular the ability Urban Utopia grants remains (and 305.7 does not remove abilities granted by other effects). Because Sunlit Marsh therefore has both the Urban Utopia granted ability and the Mountain ability from Blood Moon, you may choose to activate either one when you tap Sunlit Marsh: Urban Utopia’s ability can produce any color (white, blue, black, red, or green), while the Mountain ability produces {R}. Note that each is a {T}-activation, so tapping Sunlit Marsh to activate one of them prevents activating the other until Sunlit Marsh becomes untapped ([106.12b]).",
+      "citations": [
+        "106.12b",
+        "305.7",
+        "305.6",
+        "Blood Moon ruling #2",
+        "Urban Utopia ruling #0",
+        "Sunlit Marsh",
+        "Blood Moon",
+        "Urban Utopia"
+      ],
+      "error": null,
+      "raw_text": null
+    },
+    {
+      "id": "rg7357",
+      "question": "Avery enchants their [Hall] with [Unbridled Growth]. Next turn, Nickolas casts [Blood Moon]. What colors of mana can Hall tap for?",
+      "served_model": "openai/gpt-5-mini",
+      "provider": "OpenAI",
+      "temperature_sent": null,
+      "seed_sent": 42,
+      "usage": {
+        "prompt_tokens": 4606,
+        "completion_tokens": 1889,
+        "total_tokens": 6495,
+        "cost": 0.0049295,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.0049295,
+          "upstream_inference_prompt_cost": 0.0011515,
+          "upstream_inference_completions_cost": 0.003778
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 1472,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "retrieved_rule_ids": [
+        "305.7",
+        "106.7",
+        "605.4a",
+        "106.5",
+        "Mountain",
+        "113.12",
+        "305.6",
+        "106.12b",
+        "101.2",
+        "605.2",
+        "613.9",
+        "106.6",
+        "205.1b",
+        "106.9",
+        "607.5a",
+        "603.1",
+        "604.3",
+        "107.4a",
+        "605.1",
+        "603.7a"
+      ],
+      "answered": true,
+      "text": "After Blood Moon resolves, Hall can tap only for {R}. \n\nReasoning: Unbridled Growth grants the enchanted land the ability “{T}: Add one mana of any color” (Unbridled Growth). Blood Moon makes nonbasic lands Mountains and, per the Blood Moon ruling #2, “Nonbasic lands will lose any other land types and abilities they had. They will gain the land type Mountain and gain the ability ‘{T}: Add {R}.’” Because Hall is a nonbasic land and is affected by Blood Moon, Hall loses its other abilities (including the one granted by Unbridled Growth) and becomes a Mountain with the Mountain mana ability. The result is that Hall has only the Mountain ability “{T}: Add {R}” and so can tap for {R} only. \n\nDefinition: To “tap [a permanent] for mana” means to activate a mana ability of that permanent that includes {T} in its activation cost (106.12b). \n\nAssumption/timing: This assumes Blood Moon has resolved and is governing the battlefield; if Blood Moon were later removed, Hall would regain any abilities it is supposed to have at that time (for example, an ability granted by an attached Unbridled Growth if that Aura is still attached).",
+      "citations": [
+        "Unbridled Growth",
+        "Hall",
+        "Blood Moon ruling #2",
+        "305.7",
+        "305.6",
+        "106.12b"
+      ],
+      "error": null,
+      "raw_text": null
+    }
+  ],
+  "summary": {
+    "n_questions": 36,
+    "answered": 31,
+    "parse_failures": 0,
+    "total_cost": 0.3525029,
+    "prompts_cache": null,
+    "prompts_cache_sha256": null
+  },
+  "variance": null
+}

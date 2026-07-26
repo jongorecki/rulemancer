@@ -1,0 +1,61 @@
+{
+  "model": "openai/gpt-5-mini",
+  "rewrite_version": "v2",
+  "ruling_query_mode": "raw",
+  "condition": "v4smoke",
+  "run": 0,
+  "reasoning": null,
+  "prompts_cache": "evals\\answers\\_prompts_v4.json",
+  "results": [
+    {
+      "id": "q001",
+      "question": "Do creatures phasing back in trigger enter the battlefield abilities?",
+      "served_model": "openai/gpt-5-mini",
+      "provider": "OpenAI",
+      "temperature_sent": null,
+      "seed_sent": 42,
+      "usage": {
+        "prompt_tokens": 4949,
+        "completion_tokens": 1554,
+        "total_tokens": 6503,
+        "cost": 0.00434525,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.00434525,
+          "upstream_inference_prompt_cost": 0.00123725,
+          "upstream_inference_completions_cost": 0.003108
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 1152,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "answered": true,
+      "text": "No. A permanent phasing in doesn’t trigger enters-the-battlefield abilities because phasing isn't a zone change and zone-change triggers don’t trigger when a permanent phases in or out. Phasing is a static ability that causes certain permanents to phase out during the untap step and phased-out permanents that phased out under that player’s control to phase in (the game treats a permanent that phases in as “phased in” and as though it exists again) [702.26a, 702.26c]. However, phasing doesn’t move a permanent between zones, and “zone-change triggers” (including enters-the-battlefield triggers) don’t trigger when a permanent phases in or out [702.26d; 603.6a]. Note one related exception: abilities that trigger when a permanent phases out are treated specially and look back in time to see if they trigger; that exception applies to phasing-out triggers, not to enters-the-battlefield triggers when a permanent phases in [603.10b]. Also, triggered abilities that trigger when a permanent becomes attached or unattached don’t trigger because of phasing in or out [702.26j].",
+      "citations": [
+        "702.26a",
+        "702.26c",
+        "702.26d",
+        "603.6a",
+        "603.10b",
+        "702.26j"
+      ],
+      "error": null,
+      "raw_text": null
+    }
+  ],
+  "summary": {
+    "n_questions": 1,
+    "answered": 1,
+    "parse_failures": 0,
+    "total_cost": 0.00434525
+  },
+  "variance": null
+}

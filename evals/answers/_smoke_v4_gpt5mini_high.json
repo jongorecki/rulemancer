@@ -1,0 +1,63 @@
+{
+  "model": "openai/gpt-5-mini",
+  "rewrite_version": "v2",
+  "ruling_query_mode": "raw",
+  "condition": "v4smoke",
+  "run": 0,
+  "reasoning": {
+    "effort": "high"
+  },
+  "prompts_cache": "evals\\answers\\_prompts_v4.json",
+  "results": [
+    {
+      "id": "q001",
+      "question": "Do creatures phasing back in trigger enter the battlefield abilities?",
+      "served_model": "openai/gpt-5-mini",
+      "provider": "OpenAI",
+      "temperature_sent": null,
+      "seed_sent": 42,
+      "usage": {
+        "prompt_tokens": 4949,
+        "completion_tokens": 7839,
+        "total_tokens": 12788,
+        "cost": 0.01691525,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.01691525,
+          "upstream_inference_prompt_cost": 0.00123725,
+          "upstream_inference_completions_cost": 0.015678
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 7424,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "answered": true,
+      "text": "No — creatures that phase in do not trigger enter-the-battlefield abilities.\n\nPhasing is a static ability that changes how permanents behave during the untap step: phased-in permanents with phasing phase out and phased-out permanents that phased out under that player’s control phase in (702.26a), and when a permanent phases in its status becomes “phased in” and the game again treats it as though it exists (702.26c). Enters-the-battlefield abilities are zone-change triggers that trigger when a permanent actually enters the battlefield (603.6a). Phasing isn’t a zone change (a phased-out permanent isn’t treated as having left the battlefield), and rule 702.26d explicitly states that “Zone-change triggers don’t trigger when a permanent phases in or out.” Therefore a creature phasing in does not cause enters-the-battlefield triggers to trigger. The only special “look back in time” exception shown in the provided rules applies to abilities that trigger when a permanent phases out (603.10b) and does not make phasing in count as entering the battlefield. Also note that abilities that trigger when a permanent becomes attached or unattached don’t trigger when that permanent phases in or out (702.26j).\n\nAssumption: No additional card-specific text in this situation changes the general rules given above; the provided rules are sufficient to answer the question.",
+      "citations": [
+        "702.26a",
+        "702.26c",
+        "603.6a",
+        "702.26d",
+        "603.10b",
+        "702.26j"
+      ],
+      "error": null,
+      "raw_text": null
+    }
+  ],
+  "summary": {
+    "n_questions": 1,
+    "answered": 1,
+    "parse_failures": 0,
+    "total_cost": 0.01691525
+  },
+  "variance": null
+}

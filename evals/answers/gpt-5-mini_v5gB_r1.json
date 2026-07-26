@@ -1,0 +1,235 @@
+{
+  "model": "openai/gpt-5-mini",
+  "rewrite_version": "v2",
+  "ruling_query_mode": "raw",
+  "condition": "v5gB",
+  "run": 1,
+  "reasoning": null,
+  "prompts_cache": "evals\\answers\\_prompts_variant_B.json",
+  "results": [
+    {
+      "id": "c002",
+      "question": "My [Charging Rhino] has trample and is blocked by [Vampire Nighthawk], which has deathtouch. How much combat damage do I have to assign to the blocker before I can trample the rest over to the player?",
+      "served_model": "openai/gpt-5-mini",
+      "provider": "OpenAI",
+      "temperature_sent": null,
+      "seed_sent": 42,
+      "usage": {
+        "prompt_tokens": 3242,
+        "completion_tokens": 2168,
+        "total_tokens": 5410,
+        "cost": 0.0044553,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 3072,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.0044553,
+          "upstream_inference_prompt_cost": 0.0001193,
+          "upstream_inference_completions_cost": 0.004336
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 1728,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "answered": true,
+      "text": "You must assign 1 damage from Charging Rhino to Vampire Nighthawk; the remaining 3 damage can be assigned to the defending player. \n\nReasoning: Charging Rhino is a 4/4, so it will deal 4 combat damage. Trample requires the controller of an attacking creature with trample to assign lethal damage to the creature(s) blocking it before assigning any excess to the player (see rule [702.19b]). Vampire Nighthawk’s deathtouch means any nonzero amount of damage it’s dealt by a source with deathtouch is considered lethal for the purpose of assigning excess damage, so assigning 1 damage from Charging Rhino to Vampire Nighthawk counts as assigning lethal damage (see rule [702.2c]). \"Lethal damage\" normally means damage greater than or equal to a creature’s toughness (see rules [302.4b] and [120.6]), but deathtouch modifies that determination as described in [702.2c]. The attacking creature’s controller (the controller of Charging Rhino) makes the assignment of its combat damage first (see rule [510.1]).\n\nAssumption: no damage is already marked on Vampire Nighthawk and no other creatures are assigning damage at the same time; if there were, you must take that into account when determining how much is needed to be considered lethal (see rule [120.6]).",
+      "citations": [
+        "[702.19b]",
+        "[702.2c]",
+        "[302.4b]",
+        "[120.6]",
+        "[510.1]",
+        "Charging Rhino",
+        "Vampire Nighthawk"
+      ],
+      "error": null,
+      "raw_text": null
+    },
+    {
+      "id": "c004",
+      "question": "My opponent's [Grizzly Bears] has 2 damage marked on it. Do state-based actions make it die before my [Lightning Bolt] resolves?",
+      "served_model": "openai/gpt-5-mini",
+      "provider": "OpenAI",
+      "temperature_sent": null,
+      "seed_sent": 42,
+      "usage": {
+        "prompt_tokens": 2916,
+        "completion_tokens": 3640,
+        "total_tokens": 6556,
+        "cost": 0.0076058,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 1792,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.0076058,
+          "upstream_inference_prompt_cost": 0.0003258,
+          "upstream_inference_completions_cost": 0.00728
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 3200,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "answered": true,
+      "text": "Yes. If Grizzly Bears already has 2 damage marked on it (equal to its toughness), state-based actions will destroy Grizzly Bears before Lightning Bolt resolves.\n\nWhy: A “state-based action” is a game action that happens automatically whenever certain conditions are met (definition from rule 704.1). A creature that has total damage marked on it greater than or equal to its toughness has been dealt lethal damage and is destroyed as a state-based action (rules 302.7 and 120.6). The game performs all applicable state-based actions each time a player would get priority (rule 117.5), and spells on the stack only resolve after players pass and priority leads to resolution (rule 608.1). Therefore, if Grizzly Bears already has 2 damage marked before Lightning Bolt resolves, the game will perform the state-based action that destroys Grizzly Bears before Lightning Bolt resolves.\n\nTiming note: If Lightning Bolt is already in the middle of resolving (i.e., it is currently resolving and dealing its 3 damage), state-based actions aren’t checked during that resolution; they’re checked after the spell finishes resolving (rule 704.4). Under that different timing, Lightning Bolt’s damage would be processed first and then state-based actions would be checked.\n",
+      "citations": [
+        "704.1",
+        "302.7",
+        "120.6",
+        "117.5",
+        "608.1",
+        "704.4",
+        "Grizzly Bears",
+        "Lightning Bolt"
+      ],
+      "error": null,
+      "raw_text": null
+    },
+    {
+      "id": "c011",
+      "question": "My cascade spell exiles cards until it hits [Valki, God of Lies], whose back face is the seven-mana planeswalker Tibalt, Cosmic Impostor. Is that a legal cascade hit, and can I cast the Tibalt side for free?",
+      "served_model": "openai/gpt-5-mini",
+      "provider": "OpenAI",
+      "temperature_sent": null,
+      "seed_sent": 42,
+      "usage": {
+        "prompt_tokens": 3331,
+        "completion_tokens": 4376,
+        "total_tokens": 7707,
+        "cost": 0.00895115,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 2816,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.00895115,
+          "upstream_inference_prompt_cost": 0.00019915,
+          "upstream_inference_completions_cost": 0.008752
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 3712,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "answered": true,
+      "text": "Yes. Valki, God of Lies // Tibalt, Cosmic Impostor is a legal cascade hit if your cascade spell’s mana value is greater than 2, and you may cast Tibalt, Cosmic Impostor (the Tibalt face) without paying its mana cost. \n\nReasoning: Cascade exiles cards until you exile a nonland card whose mana value is less than this spell’s mana value and then lets you cast that card without paying its mana cost (702.85a). Cards exiled by cascade are exiled face up so you can see that the exiled card is Valki, God of Lies // Tibalt, Cosmic Impostor (406.3b). The card’s printed mana value is 2 (Valki, God of Lies // Tibalt, Cosmic Impostor), so it meets the “less than” requirement if your cascade spell’s mana value is greater than 2 (702.85a; Valki, God of Lies // Tibalt, Cosmic Impostor). \n\nBecause Valki, God of Lies // Tibalt, Cosmic Impostor is a modal double-faced card, an effect that lets you cast a spell from among a group of cards (such as cascade’s allowance to cast the exiled card) lets you cast that modal double-faced card using either face that fits the effect’s criteria (Valki, God of Lies // Tibalt, Cosmic Impostor ruling #16). The cascade effect’s criteria are satisfied (the card’s mana value is less than the cascade spell’s), so you may cast Tibalt, Cosmic Impostor (the back face) without paying its mana cost even though its printed mana cost is {5}{B}{R}. \n\nAssumption: I’m assuming your cascade spell’s mana value is greater than 2. If your cascade spell’s mana value is 2 or less, Valki, God of Lies // Tibalt, Cosmic Impostor would not be a valid cascade hit because cascade requires the exiled card’s mana value be strictly less than the cascading spell’s mana value (702.85a).",
+      "citations": [
+        "702.85a",
+        "406.3b",
+        "Valki, God of Lies // Tibalt, Cosmic Impostor"
+      ],
+      "error": null,
+      "raw_text": null
+    },
+    {
+      "id": "c012",
+      "question": "I cast [Emrakul, the Promised End]. With its cast trigger on the stack, I copy that trigger with [Lithoform Engine]. Then I untap Lithoform Engine with [Voltaic Key] and use it again to copy [Emrakul, the Promised End] itself as a permanent spell. How many of my opponent's turns do I control, do I get a second Emrakul, and does copying the Emrakul spell give me another control-a-turn trigger?",
+      "served_model": "openai/gpt-5-mini",
+      "provider": "OpenAI",
+      "temperature_sent": null,
+      "seed_sent": 42,
+      "usage": {
+        "prompt_tokens": 8185,
+        "completion_tokens": 3041,
+        "total_tokens": 11226,
+        "cost": 0.00812825,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.00812825,
+          "upstream_inference_prompt_cost": 0.00204625,
+          "upstream_inference_completions_cost": 0.006082
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 3041,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "answered": true,
+      "text": "You will control your opponent for only one of that opponent’s turns (the single “next turn”), you will get a second Emrakul, the Promised End as a token when the copied permanent spell resolves, and copying the Emrakul, the Promised End spell does not produce an additional “When you cast this spell” trigger.\n\nWhy: • Lithoform Engine’s ability can copy a triggered ability that’s on the stack and put that copy on the stack; the copy is itself an ability on the stack and will resolve separately (Lithoform Engine ruling #3; 707.10). When that copied triggered ability resolves it will create the same effects Emrakul, the Promised End’s trigger would create (gain control of the targeted opponent during that player’s next turn, and after that turn that player takes an extra turn). • Later you untap Lithoform Engine with Voltaic Key and use Lithoform Engine to copy the Emrakul, the Promised End permanent spell; that creates a copy on the stack (the copy is not cast) and when that copy resolves it becomes a token permanent with the characteristics of Emrakul, the Promised End (Lithoform Engine ruling #6; Lithoform Engine ruling #5; 111.13). That token entering the battlefield is from a copied spell that was not cast, so it does not cause any “When you cast this spell” triggers (Lithoform Engine ruling #6; 707.10). • Both the original Emrakul, the Promised End’s cast trigger (the one already on the stack from casting the real Emrakul, the Promised End) and the copy of that trigger you created will, when they resolve, each produce the pair of effects (control during that player’s next turn, then an extra turn after that). Multiple player-controlling effects that affect the same player overwrite each other; the last such control effect to be created is the one that actually governs who controls that player’s turn (Emrakul, the Promised End ruling #14). Because you put a copy of the triggered ability onto the stack after the original trigger existed, the copy will resolve first (stack LIFO) and the original trigger will resolve later; the original trigger is therefore the last control effect created and is the one that will determine who controls that player’s next turn. • Each resolved trigger still creates its extra-turn effect, so you will cause two extra turns to be added for that player after that next turn. If a player is given multiple extra turns, they are added one at a time and the most recently created extra turn is taken first (500.7). (If the targeted player ends up skipping their next turn for some reason, the control and extra-turn timing shift as described on the card; see Emrakul, the Promised End ruling #16.)\n\nAssumption about timing: I assumed the copy-of-trigger was put on the stack after the original trigger existed (your described sequence). If you instead copied the trigger after other ordering changes, the “last-created” rule still determines which control effect wins.\n",
+      "citations": [
+        "707.10",
+        "111.13",
+        "500.7",
+        "Lithoform Engine ruling #3",
+        "Lithoform Engine ruling #5",
+        "Lithoform Engine ruling #6",
+        "Emrakul, the Promised End ruling #14",
+        "Emrakul, the Promised End ruling #16"
+      ],
+      "error": null,
+      "raw_text": null
+    },
+    {
+      "id": "c015",
+      "question": "[Grist, the Hunger Tide] is in my graveyard. Can I return it with [Animate Dead], and what happens?",
+      "served_model": "openai/gpt-5-mini",
+      "provider": "OpenAI",
+      "temperature_sent": null,
+      "seed_sent": 42,
+      "usage": {
+        "prompt_tokens": 3670,
+        "completion_tokens": 4944,
+        "total_tokens": 8614,
+        "cost": 0.0100279,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 3456,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.0100279,
+          "upstream_inference_prompt_cost": 0.0001399,
+          "upstream_inference_completions_cost": 0.009888
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 4224,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "answered": true,
+      "text": "Yes. You can cast Animate Dead targeting Grist, the Hunger Tide in your graveyard; Animate Dead will return Grist, the Hunger Tide to the battlefield under your control, Grist, the Hunger Tide will be a planeswalker once it’s on the battlefield, Animate Dead won’t be able to legally attach to Grist, the Hunger Tide and will go to the graveyard, and Animate Dead’s delayed triggered ability will trigger but won’t cause you to sacrifice Grist, the Hunger Tide because Grist, the Hunger Tide is not a creature on the battlefield.\n\nWhy: Grist, the Hunger Tide is a creature card while it’s in your graveyard, so Animate Dead can target that card when you cast Animate Dead (see Grist, the Hunger Tide ruling #1 and Animate Dead ruling #1). Animate Dead’s enter-the-battlefield effect returns the enchanted creature card to the battlefield and then attempts to attach the Aura to that returned object (see Animate Dead ruling #1). Once Grist, the Hunger Tide is on the battlefield, Grist, the Hunger Tide is no longer a creature and is just a planeswalker (see Grist, the Hunger Tide ruling #1), so Animate Dead can’t legally be attached to Grist, the Hunger Tide. Per Animate Dead ruling #4, if Animate Dead can’t legally attach to the returned object, Animate Dead is put into its owner’s graveyard as a state-based action and that causes Animate Dead’s delayed triggered ability to trigger; that delayed trigger reads (in effect) “When this Aura leaves the battlefield, that creature’s controller sacrifices it,” and when that trigger resolves it sacrifices the returned object only if that returned object is still a creature on the battlefield (see Animate Dead ruling #4). Because Grist, the Hunger Tide is not a creature on the battlefield at that time, the condition is false and you don’t sacrifice Grist, the Hunger Tide. The final result: Grist, the Hunger Tide ends up on the battlefield under your control as a planeswalker, Animate Dead ends up in your graveyard, and no sacrifice occurs.\n\nAssumption: I’m assuming the normal timing of Animate Dead’s enter-the-battlefield sequence described in its ruling (Animate Dead ruling #1) and the follow-up state-based action described in Animate Dead ruling #4. If Animate Dead were not on the battlefield as its triggered ability resolved, none of its effects would happen (see Animate Dead ruling #0).",
+      "citations": [
+        "Grist, the Hunger Tide ruling #1",
+        "Animate Dead ruling #1",
+        "Animate Dead ruling #4",
+        "Animate Dead ruling #0"
+      ],
+      "error": null,
+      "raw_text": null
+    }
+  ],
+  "summary": {
+    "n_questions": 5,
+    "answered": 5,
+    "parse_failures": 0,
+    "total_cost": 0.0391684,
+    "prompts_cache": "evals\\answers\\_prompts_variant_B.json",
+    "prompts_cache_sha256": "e8c3b17dd61a581b5bbdb0955449914b1451bfa980bd3e72bb3fd03cdb96c079"
+  },
+  "variance": null
+}

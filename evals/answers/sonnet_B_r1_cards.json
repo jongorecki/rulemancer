@@ -1,0 +1,621 @@
+[
+  {
+    "id": "c001",
+    "question": "[Counterspell] is on top of the stack targeting my [Divination]. When everyone passes priority, what resolves first, and does Divination still resolve?",
+    "match": "any",
+    "kind": "card-interaction",
+    "show_rewrite": false,
+    "rewrite_version": "v1",
+    "ruling_query_mode": "raw",
+    "condition": "B",
+    "run": 1,
+    "answered": true,
+    "answer": "Counterspell resolves first, and Divination does not resolve. Counterspell is on top of the stack, so when all players pass priority in succession, rule [608.1] dictates that the topmost object—Counterspell—resolves first. Since Counterspell's effect is \"Counter target spell,\" its resolution counters Divination per rule [701.6a]: Divination is removed from the stack, it doesn't resolve, and none of its effects (drawing two cards) occur. Divination is then put into its owner's graveyard as a countered spell, rather than resolving normally as an instant/sorcery would under [112.1] and [608.2n]. Note also that the caster of Divination doesn't get a refund of the mana paid to cast it ([701.6b])—the {2}{U} spent is gone regardless.\n\nTiming assumption: this assumes no one responds further once both spells are on the stack (i.e., Counterspell truly is on top and next to resolve). If another spell or ability were cast in response to Counterspell, that new spell/ability would resolve first per [117.7], but Counterspell would still eventually resolve before Divination since it remains on top of the stack.\n\nCard data from Scryfall (scryfall.com).",
+    "citations": [
+      "608.1",
+      "701.6a",
+      "701.6b",
+      "112.1",
+      "608.2n",
+      "117.7"
+    ],
+    "gold": [],
+    "gold_text": {},
+    "cited_text": {
+      "608.1": "Each time all players pass in succession, the spell or ability on top of the stack resolves. (See rule 609, “Effects.”)",
+      "701.6a": "Counter To counter a spell or ability means to cancel it, removing it from the stack. It doesn’t resolve and none of its effects occur. A countered spell is put into its owner’s graveyard.",
+      "701.6b": "Counter The player who cast a countered spell or activated a countered ability doesn’t get a “refund” of any costs that were paid.",
+      "112.1": "A spell is a card on the stack. As the first step of being cast (see rule 601, “Casting Spells”), the card becomes a spell and is moved to the top of the stack from the zone it was in, which is usually its owner’s hand. (See rule 405, “Stack.”) A spell remains on the stack as a spell until it resolves (see rule 608, “Resolving Spells and Abilities”), is countered (see rule 701.6), or otherwise leaves the stack. For more information, see section 6, “Spells, Abilities, and Effects.”",
+      "608.2n": "If the object that’s resolving is an instant spell, a sorcery spell, or an ability, its resolution may involve several steps. The steps described in rules 608.2a and 608.2b are followed first. The steps described in rules 608.2c–m are then followed as appropriate, in no specific order. The steps described in rule 608.2n and 608.2p are followed last. As the final part of an instant or sorcery spell’s resolution, the spell is put into its owner’s graveyard. As the final part of an ability’s resolution, the ability is removed from the stack and ceases to exist.",
+      "117.7": "If a player with priority casts a spell or activates an activated ability while another spell or ability is already on the stack, the new spell or ability has been cast or activated “in response to” the earlier spell or ability. The new spell or ability will resolve first. See rule 608, “Resolving Spells and Abilities.”"
+    },
+    "rewrite_queries": [],
+    "clarification": null
+  },
+  {
+    "id": "c002",
+    "question": "My [Charging Rhino] has trample and is blocked by [Vampire Nighthawk], which has deathtouch. How much combat damage do I have to assign to the blocker before I can trample the rest over to the player?",
+    "match": "any",
+    "kind": "card-interaction",
+    "show_rewrite": false,
+    "rewrite_version": "v1",
+    "ruling_query_mode": "raw",
+    "condition": "B",
+    "run": 1,
+    "answered": true,
+    "answer": "You must assign at least 3 damage to Vampire Nighthawk before any of Charging Rhino's remaining damage can trample over to the defending player, leaving 1 damage to trample through (since Charging Rhino is a 4/4).\n\nVampire Nighthawk's deathtouch is irrelevant here: deathtouch only affects the amount of damage needed to be lethal when the *source with deathtouch* is the one dealing the damage. Here Vampire Nighthawk is the blocker, not the source of the damage being assigned - Charging Rhino is assigning the damage, and Charging Rhino does not have deathtouch. So the normal 'lethal damage' rule applies to Vampire Nighthawk based on its toughness: an amount of damage greater than or equal to its toughness (3) counts as lethal, factoring in damage already marked on it and damage from other creatures being assigned in the same combat damage step, but not any abilities/effects that might change the damage actually dealt (which would include deathtouch on the receiving end if it applied, but it doesn't here since Vampire Nighthawk isn't the source).\n\nSince Vampire Nighthawk has 3 toughness and (presumably) no damage already marked on it, Charging Rhino's controller must assign at least 3 damage to Vampire Nighthawk to count as lethal before assigning any of the remaining damage to the defending player. Charging Rhino is a 4/4, so it has 4 total combat damage to assign: 3 to Vampire Nighthawk (lethal) and the remaining 1 can trample over to the defending player. Note this is a two-player-framed answer; the underlying rule about assigning lethal damage to blockers works the same regardless of how many players are in the game, since it only concerns the attacking creature, its blocker(s), and the defending player it's attacking.\n\nCard data from Scryfall (scryfall.com).",
+    "citations": [
+      "702.19b",
+      "702.19a",
+      "120.4a",
+      "702.2c",
+      "510.1a",
+      "Lethal Damage"
+    ],
+    "gold": [],
+    "gold_text": {},
+    "cited_text": {
+      "702.19b": "Trample The controller of an attacking creature with trample first assigns damage to the creature(s) blocking it. Once all those blocking creatures are assigned lethal damage, any excess damage is assigned as its controller chooses among those blocking creatures and the player, planeswalker, or battle the creature is attacking. When checking for assigned lethal damage, take into account damage already marked on the creature and damage from other creatures that’s being assigned during the same combat damage step, but not any abilities or effects that might change the amount of damage that’s actually dealt. The attacking creature’s controller need not assign lethal damage to all those blocking creatures but in that case can’t assign any damage to the player or planeswalker it’s attacking. A 2/2 creature that can block an additional creature blocks two attackers: a 1/1 with no abilities and a 3/3 with trample. The active player could assign 1 damage from the first attacker and 1 damage from the second to the blocking creature, and 2 damage to the defending player from the creature with trample. A 6/6 green creature with trample is blocked by a 2/2 creature with protection from green. The attacking creature’s controller must assign at least 2 damage to the blocker, even though that damage will be prevented by the blocker’s protection ability. The attacking creature’s controller can divide the rest of the damage as they choose between the blocking creature and the defending player.",
+      "702.19a": "Trample Trample is a static ability that modifies the rules for assigning an attacking creature’s combat damage. The ability has no effect when a creature with trample is blocking or is dealing noncombat damage. (See rule 510, “Combat Damage Step.”)",
+      "120.4a": "Damage is processed in a four-part sequence. First, if an effect that’s causing damage to be dealt states that excess damage that would be dealt to a permanent is dealt to another permanent or player instead, the damage event is modified accordingly. If the first permanent is a creature, the excess damage is the amount of damage in excess of what would be lethal damage, taking into account damage already marked on the creature and damage from other sources that would be dealt at the same time. (See rule 120.6.) Any amount of damage greater than 1 is excess damage if the source dealing that damage to a creature has deathtouch. (See rule 702.2.) If the first permanent is a planeswalker, the excess damage is the amount of damage in excess of that planeswalker’s loyalty, taking into account damage from other sources that would be dealt at the same time. If the first permanent is a battle, the excess damage is the amount of damage in excess of that battle’s defense, taking into account damage from other sources that would be dealt at the same time. If the first permanent has multiple card types from among the list of creature, planeswalker, and battle, the excess damage is the greatest of the calculated amounts for each of the card types it has.",
+      "702.2c": "Deathtouch Any nonzero amount of combat damage assigned to a creature by a source with deathtouch is considered to be lethal damage for the purposes of determining if excess damage is being dealt.",
+      "510.1a": "First, the active player announces how each attacking creature assigns its combat damage, then the defending player announces how each blocking creature assigns its combat damage. This turn-based action doesn’t use the stack. A player assigns a creature’s combat damage according to the following rules: Each attacking creature and each blocking creature assigns combat damage equal to its power. Creatures that would assign 0 or less damage this way don’t assign combat damage at all.",
+      "Lethal Damage": "Lethal Damage. An amount of damage greater than or equal to a creature’s toughness. See rules 120.4a, 120.6, 510.1, and 704.5g."
+    },
+    "rewrite_queries": [],
+    "clarification": null
+  },
+  {
+    "id": "c003",
+    "question": "I have [Monastery Swiftspear] on the battlefield and I cast [Shardless Agent]. When its cascade ability puts a noncreature spell onto the stack, does Monastery Swiftspear's prowess trigger before or after that cascaded spell resolves?",
+    "match": "any",
+    "kind": "card-interaction",
+    "show_rewrite": false,
+    "rewrite_version": "v1",
+    "ruling_query_mode": "raw",
+    "condition": "B",
+    "run": 1,
+    "answered": true,
+    "answer": "Monastery Swiftspear's prowess will resolve before the cascaded noncreature spell resolves. Here's why: casting Shardless Agent triggers cascade (rule [702.85a]); Shardless Agent itself is a creature spell, so casting it does not trigger prowess ([702.108a], [Monastery Swiftspear ruling #1]). Cascade's ability then resolves, and per [608.2g], when an effect \"specifically instructs or allows a player to cast a spell during resolution,\" that spell is cast following the normal casting steps except that no player receives priority after it's cast; the cast card becomes the topmost object on the stack, and the cascade ability continues resolving to completion (including putting the remaining exiled cards on the bottom of the library, per [Shardless Agent ruling #1] and [Shardless Agent ruling #7]).\n\nIf that exiled/cast card is a noncreature spell, casting it satisfies prowess's trigger condition (\"Whenever you cast a noncreature spell...\", [702.108a]). Because that cast happens during the resolution of the cascade ability rather than at a time when players have priority, rule [704.4] applies: the trigger event occurred during resolution, so the prowess ability doesn't go on the stack immediately -- it is put on the stack only after the cascade ability finishes resolving. At that point the cascaded spell is already sitting on the stack (it was placed there as the topmost object per [608.2g]), so prowess is stacked on top of it. Per [Monastery Swiftspear ruling #2], \"Prowess goes on the stack on top of the spell that caused it to trigger. It will resolve before that spell.\" Following [608.1] (stack resolves top-down as players pass in succession), prowess resolves first, then the cascaded noncreature spell, and finally the original Shardless Agent spell.\n\nThis reasoning assumes the cascaded card found is a noncreature spell that is actually cast (if it's a land or the player declines to cast it, no prowess trigger occurs, and if it's a creature spell, prowess also won't trigger per [702.108a]/[Monastery Swiftspear ruling #1]). This is a general two-player-or-multiplayer-neutral sequencing rule -- nothing here depends on the number of players at the table.\n\nCard data from Scryfall (scryfall.com).",
+    "citations": [
+      "702.108a",
+      "608.2g",
+      "704.4",
+      "608.1",
+      "702.85a",
+      "Monastery Swiftspear ruling #1",
+      "Monastery Swiftspear ruling #2",
+      "Shardless Agent ruling #1",
+      "Shardless Agent ruling #7"
+    ],
+    "gold": [],
+    "gold_text": {},
+    "cited_text": {
+      "702.108a": "Prowess Prowess is a triggered ability. “Prowess” means “Whenever you cast a noncreature spell, this creature gets +1/+1 until end of turn.”",
+      "608.2g": "If the object that’s resolving is an instant spell, a sorcery spell, or an ability, its resolution may involve several steps. The steps described in rules 608.2a and 608.2b are followed first. The steps described in rules 608.2c–m are then followed as appropriate, in no specific order. The steps described in rule 608.2n and 608.2p are followed last. If an effect gives a player the option to pay mana, they may activate mana abilities before taking that action. If an effect specifically instructs or allows a player to cast a spell during resolution, they do so by following the steps in rules 601.2a–i, except no player receives priority after it’s cast. That spell becomes the topmost object on the stack, and the currently resolving spell or ability continues to resolve, which may include casting other spells this way. No other spells can normally be cast and no other abilities can normally be activated during resolution.",
+      "704.4": "Unlike triggered abilities, state-based actions pay no attention to what happens during the resolution of a spell or ability. A player controls Maro, a creature with the ability “Maro’s power and toughness are each equal to the number of cards in your hand” and casts a spell whose effect is “Discard your hand, then draw seven cards.” Maro will temporarily have toughness 0 in the middle of the spell’s resolution but will be back up to toughness 7 when the spell finishes resolving. Thus Maro will survive when state-based actions are checked. In contrast, an ability that triggers when the player has no cards in hand goes on the stack after the spell resolves, because its trigger event happened during resolution.",
+      "608.1": "Each time all players pass in succession, the spell or ability on top of the stack resolves. (See rule 609, “Effects.”)",
+      "702.85a": "Cascade Cascade is a triggered ability that functions only while the spell with cascade is on the stack. “Cascade” means “When you cast this spell, exile cards from the top of your library until you exile a nonland card whose mana value is less than this spell’s mana value. You may cast that card without paying its mana cost if the resulting spell’s mana value is less than this spell’s mana value. Then put all cards exiled this way that weren’t cast on the bottom of your library in a random order.”"
+    },
+    "rewrite_queries": [],
+    "clarification": null
+  },
+  {
+    "id": "c004",
+    "question": "My opponent's [Grizzly Bears] has 2 damage marked on it. Do state-based actions make it die before my [Lightning Bolt] resolves?",
+    "match": "groups",
+    "kind": "card-interaction",
+    "show_rewrite": false,
+    "rewrite_version": "v1",
+    "ruling_query_mode": "raw",
+    "condition": "B",
+    "run": 1,
+    "answered": true,
+    "answer": "Yes. Grizzly Bears is a 2/2, and if it already has 2 damage marked on it, that damage is equal to its toughness, so it already qualifies for the state-based action in rule [704.5g]: \"If a creature has toughness greater than 0, it has damage marked on it, and the total damage marked on it is greater than or equal to its toughness, that creature has been dealt lethal damage and is destroyed.\" This mirrors the general damage rules in [120.6] and [302.7].\n\nThe key timing point is that state-based actions are checked every time a player would receive priority, and this happens *before* that priority is granted (see [704.3] and [117.5]: \"Each time a player would get priority, the game first performs all applicable state-based actions... Then the player who would have received priority does so\"; also [117.2d] and [405.6f] note SBAs are dealt with before a player gets priority). Casting Lightning Bolt requires you to have priority. So if the 2 damage was already marked on Grizzly Bears before you cast Lightning Bolt, Grizzly Bears would already have been destroyed as a state-based action *before* you were even able to cast the spell — it wouldn't survive to be a legal target, let alone to have Lightning Bolt resolve on it.\n\nI'm assuming the timing where the 2 damage was marked on Grizzly Bears at some point before you attempt to cast Lightning Bolt (e.g., from an earlier source of damage this turn). If instead the 2 damage were somehow marked *during* the resolution of Lightning Bolt itself (for example, if some other effect tied to Lightning Bolt's resolution added damage mid-resolution), then per [704.4] state-based actions don't check mid-resolution — they'd only be checked once Lightning Bolt finishes resolving, at which point Grizzly Bears (now with 2 damage from that other source, or 2+3=5 from Lightning Bolt's own damage) would be destroyed immediately afterward when SBAs are next checked, not \"before it resolves.\" But since Grizzly Bears already had lethal damage marked prior to Lightning Bolt being cast at all, per the question as posed, it dies before Lightning Bolt can even be cast, and therefore certainly before it resolves. Note also that damage itself doesn't destroy creatures directly — it's always the state-based action, per [120.5], that puts a lethally-damaged creature into the graveyard.\n\nCard data from Scryfall (scryfall.com).",
+    "citations": [
+      "704.5g",
+      "120.6",
+      "302.7",
+      "704.3",
+      "117.5",
+      "117.2d",
+      "405.6f",
+      "704.4",
+      "120.5"
+    ],
+    "gold": [
+      "704.3",
+      "120.5",
+      "117.2d",
+      "704.5g",
+      "704.4",
+      "120.6",
+      "302.7"
+    ],
+    "gold_text": {
+      "704.3": "Whenever a player would get priority (see rule 117, “Timing and Priority”), the game checks for any of the listed conditions for state-based actions, then performs all applicable state-based actions simultaneously as a single event. If any state-based actions are performed as a result of a check, the check is repeated; otherwise all triggered abilities that are waiting to be put on the stack are put on the stack, then the check is repeated. Once no more state-based actions have been performed as the result of a check and no triggered abilities are waiting to be put on the stack, the appropriate player gets priority. This process also occurs during the cleanup step (see rule 514), except that if no state-based actions are performed as the result of the step’s first check and no triggered abilities are waiting to be put on the stack, then no player gets priority and the step ends.",
+      "120.5": "Damage dealt to a creature, planeswalker, or battle doesn’t destroy it. Likewise, the source of that damage doesn’t destroy it. Rather, state-based actions may destroy a creature or otherwise put a permanent into its owner’s graveyard, due to the results of the damage dealt to that permanent. See rule 704. A player casts Lightning Bolt, an instant that says “Lightning Bolt deals 3 damage to any target,” targeting a 2/2 creature. After Lightning Bolt deals 3 damage to that creature, the creature is destroyed as a state-based action. Neither Lightning Bolt nor the damage dealt by Lightning Bolt destroyed that creature.",
+      "117.2d": "Other kinds of abilities and actions are automatically generated or performed by the game rules, or are performed by players without receiving priority. State-based actions happen automatically when certain conditions are met. See rule 704. They’re dealt with before a player would receive priority. See rule 117.5.",
+      "704.5g": "The state-based actions are as follows: If a creature has toughness greater than 0, it has damage marked on it, and the total damage marked on it is greater than or equal to its toughness, that creature has been dealt lethal damage and is destroyed. Regeneration can replace this event.",
+      "704.4": "Unlike triggered abilities, state-based actions pay no attention to what happens during the resolution of a spell or ability. A player controls Maro, a creature with the ability “Maro’s power and toughness are each equal to the number of cards in your hand” and casts a spell whose effect is “Discard your hand, then draw seven cards.” Maro will temporarily have toughness 0 in the middle of the spell’s resolution but will be back up to toughness 7 when the spell finishes resolving. Thus Maro will survive when state-based actions are checked. In contrast, an ability that triggers when the player has no cards in hand goes on the stack after the spell resolves, because its trigger event happened during resolution.",
+      "120.6": "Damage marked on a creature remains until the cleanup step, even if that permanent stops being a creature. If the total damage marked on a creature is greater than or equal to its toughness, that creature has been dealt lethal damage and is destroyed as a state-based action (see rule 704). All damage marked on a permanent is removed when it regenerates (see rule 701.19, “Regenerate”) and during the cleanup step (see rule 514.2).",
+      "302.7": "Damage dealt to a creature by a source with neither wither nor infect is marked on that creature (see rule 120.3). If the total damage marked on that creature is greater than or equal to its toughness, that creature has been dealt lethal damage and is destroyed as a state-based action (see rule 704). All damage marked on a creature is removed when it regenerates (see rule 701.19, “Regenerate”) and during the cleanup step (see rule 514.2)."
+    },
+    "cited_text": {
+      "704.5g": "The state-based actions are as follows: If a creature has toughness greater than 0, it has damage marked on it, and the total damage marked on it is greater than or equal to its toughness, that creature has been dealt lethal damage and is destroyed. Regeneration can replace this event.",
+      "120.6": "Damage marked on a creature remains until the cleanup step, even if that permanent stops being a creature. If the total damage marked on a creature is greater than or equal to its toughness, that creature has been dealt lethal damage and is destroyed as a state-based action (see rule 704). All damage marked on a permanent is removed when it regenerates (see rule 701.19, “Regenerate”) and during the cleanup step (see rule 514.2).",
+      "302.7": "Damage dealt to a creature by a source with neither wither nor infect is marked on that creature (see rule 120.3). If the total damage marked on that creature is greater than or equal to its toughness, that creature has been dealt lethal damage and is destroyed as a state-based action (see rule 704). All damage marked on a creature is removed when it regenerates (see rule 701.19, “Regenerate”) and during the cleanup step (see rule 514.2).",
+      "704.3": "Whenever a player would get priority (see rule 117, “Timing and Priority”), the game checks for any of the listed conditions for state-based actions, then performs all applicable state-based actions simultaneously as a single event. If any state-based actions are performed as a result of a check, the check is repeated; otherwise all triggered abilities that are waiting to be put on the stack are put on the stack, then the check is repeated. Once no more state-based actions have been performed as the result of a check and no triggered abilities are waiting to be put on the stack, the appropriate player gets priority. This process also occurs during the cleanup step (see rule 514), except that if no state-based actions are performed as the result of the step’s first check and no triggered abilities are waiting to be put on the stack, then no player gets priority and the step ends.",
+      "117.5": "Each time a player would get priority, the game first performs all applicable state-based actions as a single event (see rule 704, “State-Based Actions”), then repeats this process until no state-based actions are performed. Then triggered abilities are put on the stack (see rule 603, “Handling Triggered Abilities”). These steps repeat in order until no further state-based actions are performed and no abilities trigger. Then the player who would have received priority does so.",
+      "117.2d": "Other kinds of abilities and actions are automatically generated or performed by the game rules, or are performed by players without receiving priority. State-based actions happen automatically when certain conditions are met. See rule 704. They’re dealt with before a player would receive priority. See rule 117.5.",
+      "405.6f": "Some things that happen during the game don’t use the stack. State-based actions don’t use the stack; they happen automatically when certain conditions are met. See rule 704. They are dealt with before a player would receive priority. See rule 117.5.",
+      "704.4": "Unlike triggered abilities, state-based actions pay no attention to what happens during the resolution of a spell or ability. A player controls Maro, a creature with the ability “Maro’s power and toughness are each equal to the number of cards in your hand” and casts a spell whose effect is “Discard your hand, then draw seven cards.” Maro will temporarily have toughness 0 in the middle of the spell’s resolution but will be back up to toughness 7 when the spell finishes resolving. Thus Maro will survive when state-based actions are checked. In contrast, an ability that triggers when the player has no cards in hand goes on the stack after the spell resolves, because its trigger event happened during resolution.",
+      "120.5": "Damage dealt to a creature, planeswalker, or battle doesn’t destroy it. Likewise, the source of that damage doesn’t destroy it. Rather, state-based actions may destroy a creature or otherwise put a permanent into its owner’s graveyard, due to the results of the damage dealt to that permanent. See rule 704. A player casts Lightning Bolt, an instant that says “Lightning Bolt deals 3 damage to any target,” targeting a 2/2 creature. After Lightning Bolt deals 3 damage to that creature, the creature is destroyed as a state-based action. Neither Lightning Bolt nor the damage dealt by Lightning Bolt destroyed that creature."
+    },
+    "rewrite_queries": [],
+    "clarification": null
+  },
+  {
+    "id": "c005",
+    "question": "It's my upkeep. My [Phyrexian Arena]'s beginning-of-upkeep trigger and my opponent's own beginning-of-upkeep trigger both want to go on the stack. Who chooses the order, and when exactly do they trigger?",
+    "match": "any",
+    "kind": "card-interaction",
+    "show_rewrite": false,
+    "rewrite_version": "v1",
+    "ruling_query_mode": "raw",
+    "condition": "B",
+    "run": 1,
+    "answered": true,
+    "answer": "During your upkeep, both triggered abilities trigger at the same moment (when the upkeep step begins), and you—the active player—control the order in which the abilities are placed on the stack relative to your opponent's, but the actual sequencing follows the APNAP (Active Player, Nonactive Player) rule rather than a simple 'whoever wants can choose.'\n\nTiming: Per rule [500.6] and [603.2b], both Phyrexian Arena's ability and your opponent's beginning-of-upkeep ability trigger simultaneously the instant the upkeep step begins. Rule [503.1] confirms the upkeep step itself has no turn-based actions, and per [503.1a]/[117.3a], any abilities that triggered at the beginning of upkeep are put onto the stack before the active player (you) gets priority.\n\nOrdering: Per [603.3b] and [101.4], since both abilities triggered since the last time a player received priority, they're placed on the stack in APNAP order: you, the active player, put any triggered abilities you control (Phyrexian Arena's trigger) onto the stack first, then your opponent, as the nonactive player, puts their triggered ability onto the stack. Rule [405.3] clarifies the mechanical result: your Phyrexian Arena trigger is placed on the stack first (lowest), and your opponent's trigger is placed on top of it. Since the stack resolves last-in-first-out, your opponent's ability will resolve first, and Phyrexian Arena's trigger (draw a card, lose 1 life) will resolve second.\n\nNeither player 'chooses' whose ability goes on the stack in the sense of picking priority order to control resolution — each player only chooses the relative order of *their own* multiple triggered abilities if they control more than one (not relevant here, since each of you controls just one). The APNAP framework itself dictates that the active player's abilities go on the stack before the nonactive player's.\n\nNote: this explanation assumes a two-player game. In a multiplayer game, the same APNAP process would apply but would extend through all nonactive players in turn order (per the general APNAP principle in [101.4]), not just one opponent.\n\nCard data from Scryfall (scryfall.com).",
+    "citations": [
+      "500.6",
+      "603.2b",
+      "503.1",
+      "503.1a",
+      "117.3a",
+      "603.3b",
+      "101.4",
+      "405.3",
+      "Phyrexian Arena"
+    ],
+    "gold": [],
+    "gold_text": {},
+    "cited_text": {
+      "500.6": "When a phase or step begins, any abilities that trigger “at the beginning of” that phase or step trigger. They are put on the stack the next time a player would receive priority. (See rule 117, “Timing and Priority.”)",
+      "603.2b": "Whenever a game event or game state matches a triggered ability’s trigger event, that ability automatically triggers. The ability doesn’t do anything at this point. When a phase or step begins, all abilities that trigger “at the beginning of” that phase or step trigger.",
+      "503.1": "The upkeep step has no turn-based actions. Once it begins, the active player gets priority. (See rule 117, “Timing and Priority.”)",
+      "503.1a": "The upkeep step has no turn-based actions. Once it begins, the active player gets priority. (See rule 117, “Timing and Priority.”) Any abilities that triggered during the untap step and any abilities that triggered at the beginning of the upkeep are put onto the stack before the active player gets priority; the order in which they triggered doesn’t matter. (See rule 603, “Handling Triggered Abilities.”)",
+      "117.3a": "Which player has priority is determined by the following rules: The active player receives priority at the beginning of most steps and phases, after any turn-based actions (such as drawing a card during the draw step; see rule 703) have been dealt with and abilities that trigger at the beginning of that phase or step have been put on the stack. No player receives priority during the untap step. Players usually don’t get priority during the cleanup step (see rule 514.3).",
+      "603.3b": "Once an ability has triggered, its controller puts it on the stack as an object that’s not a card the next time a player would receive priority. See rule 117, “Timing and Priority.” The ability becomes the topmost object on the stack. It has the text of the ability that created it, and no other characteristics. It remains on the stack until it’s countered, it resolves, a rule causes it to be removed from the stack, or an effect moves it elsewhere. If multiple abilities have triggered since the last time a player received priority, the abilities are placed on the stack in a two-part process. First, each player, in APNAP order, puts each triggered ability they control with a trigger condition that isn’t another ability triggering on the stack in any order they choose. (See rule 101.4.) Second, each player, in APNAP order, puts all remaining triggered abilities they control on the stack in any order they choose. Then the game once again checks for and performs state-based actions until none are performed, then abilities that triggered during this process go on the stack. This process repeats until no new state-based actions are performed and no abilities trigger. Then the appropriate player gets priority.",
+      "101.4": "If multiple players would make choices and/or take actions at the same time, the active player (the player whose turn it is) makes any choices required, then the next player in turn order (usually the player seated to the active player’s left) makes any choices required, followed by the remaining nonactive players in turn order. Then the actions happen simultaneously. This rule is often referred to as the “Active Player, Nonactive Player (APNAP) order” rule. A card reads “Each player sacrifices a creature.” First, the active player chooses a creature they control. Then each of the nonactive players, in turn order, chooses a creature they control. Then all creatures chosen this way are sacrificed simultaneously.",
+      "405.3": "If an effect puts two or more objects on the stack at the same time, those controlled by the active player are put on lowest, followed by each other player’s objects in APNAP order (see rule 101.4). If a player controls more than one of these objects, that player chooses their relative order on the stack."
+    },
+    "rewrite_queries": [],
+    "clarification": null
+  },
+  {
+    "id": "c006",
+    "question": "I cast a sorcery with buyback and pay its buyback cost, then copy that spell with [Fork]. Once everything resolves, how many copies of the card end up back in my hand?",
+    "match": "any",
+    "kind": "card-interaction",
+    "show_rewrite": false,
+    "rewrite_version": "v1",
+    "ruling_query_mode": "raw",
+    "condition": "B",
+    "run": 1,
+    "answered": true,
+    "answer": "Only one copy of the card ends up in your hand — the original sorcery card, not anything from the Fork copy.\n\nWhen you cast the sorcery and pay its buyback cost, that payment is \"locked in\" as part of casting it (rules [601.2b] and [601.2f]). Buyback itself is a static ability that says \"If the buyback cost was paid, put this spell into its owner's hand instead of into that player's graveyard as it resolves\" ([702.27a], [Buyback]). Because the buyback cost was paid on the original spell, when it resolves it goes to your hand instead of the graveyard.\n\nWhen Fork resolves and copies that sorcery, the copy on the stack does copy the fact that the buyback cost was paid, since a copy \"copies... all decisions made for it, including... additional or alternative costs\" ([707.10], [707.10b], [707.10d]). However, a copy of a spell has no physical card associated with it — it's just a copy sitting on the stack ([112.1a], [707.10]). Fork's own card goes to your graveyard when Fork resolves, leaving only the cardless copy on the stack (Fork ruling #10). When that copy would resolve and its (copied) buyback ability tries to \"put this spell into its owner's hand,\" there is no actual card to move — the copy simply has nothing to give you, per Fork ruling #8: \"If you copy a spell for which Buyback has been paid, you get nothing back since the copied spell does not have a card to give you.\" Consistent with this, state-based actions specify that a copy of a spell in any zone other than the stack simply ceases to exist ([704.5e]) — it never actually becomes a card in your hand.\n\nSo after everything resolves: the original sorcery card is in your hand (1 card), and the Fork copy vanishes without producing anything.\n\nCard data from Scryfall (scryfall.com).",
+    "citations": [
+      "702.27a",
+      "Buyback",
+      "707.10",
+      "707.10b",
+      "707.10d",
+      "112.1a",
+      "601.2b",
+      "601.2f",
+      "704.5e",
+      "Fork ruling #8",
+      "Fork ruling #10"
+    ],
+    "gold": [],
+    "gold_text": {},
+    "cited_text": {
+      "702.27a": "Buyback Buyback appears on some instants and sorceries. It represents two static abilities that function while the spell is on the stack. “Buyback [cost]” means “You may pay an additional [cost] as you cast this spell” and “If the buyback cost was paid, put this spell into its owner’s hand instead of into that player’s graveyard as it resolves.” Paying a spell’s buyback cost follows the rules for paying additional costs in rules 601.2b and 601.2f–h.",
+      "Buyback": "Buyback. A keyword ability of instants and sorceries that can let the spell return to its owner’s hand as it resolves. See rule 702.27, “Buyback.”",
+      "707.10": "To copy a spell, activated ability, or triggered ability means to put a copy of it onto the stack; a copy of a spell isn’t cast and a copy of an activated ability isn’t activated. A copy of a spell or ability copies both the characteristics of the spell or ability and all decisions made for it, including modes, targets, the value of X, and additional or alternative costs. (See rule 601, “Casting Spells.”) Choices that are normally made on resolution are not copied. If an effect of the copy refers to objects used to pay its costs, it uses the objects used to pay the costs of the original spell or ability. A copy of a spell is owned by the player under whose control it was put on the stack. A copy of a spell or ability is controlled by the player under whose control it was put on the stack. A copy of a spell is itself a spell, even though it has no spell card associated with it. A copy of an ability is itself an ability. A player casts Fork, targeting an Emerald Charm. Fork reads, “Copy target instant or sorcery spell, except that the copy is red. You may choose new targets for the copy.” Emerald Charm is a modal green instant. When the Fork resolves, it puts a copy of the Emerald Charm on the stack except the copy is red, not green. The copy has the same mode that was chosen for the original Emerald Charm. It does not necessarily have the same target, but only because Fork allows choosing of new targets. Fling is an instant that reads, “As an additional cost to cast this spell, sacrifice a creature” and “Fling deals damage equal to the sacrificed creature’s power to any target.” When determining how much damage a copy of Fling deals, it checks the power of the creature sacrificed to pay for the original Fling. Dawnglow Infusion is a sorcery that reads, “You gain X life if {G} was spent to cast this spell and X life if {W} was spent to cast it.” Because mana isn’t an object, a copy of Dawnglow Infusion won’t cause you to gain any life, no matter what mana was spent to cast the original spell.",
+      "707.10b": "To copy a spell, activated ability, or triggered ability means to put a copy of it onto the stack; a copy of a spell isn’t cast and a copy of an activated ability isn’t activated. A copy of a spell or ability copies both the characteristics of the spell or ability and all decisions made for it, including modes, targets, the value of X, and additional or alternative costs. (See rule 601, “Casting Spells.”) Choices that are normally made on resolution are not copied. If an effect of the copy refers to objects used to pay its costs, it uses the objects used to pay the costs of the original spell or ability. A copy of a spell is owned by the player under whose control it was put on the stack. A copy of a spell or ability is controlled by the player under whose control it was put on the stack. A copy of a spell is itself a spell, even though it has no spell card associated with it. A copy of an ability is itself an ability. A copy of an ability has the same source as the original ability. If the ability refers to its source by name, the copy refers to that same object and not to any other object with the same name. The copy is considered to be the same ability by effects that count how many times that ability has resolved during the turn.",
+      "707.10d": "To copy a spell, activated ability, or triggered ability means to put a copy of it onto the stack; a copy of a spell isn’t cast and a copy of an activated ability isn’t activated. A copy of a spell or ability copies both the characteristics of the spell or ability and all decisions made for it, including modes, targets, the value of X, and additional or alternative costs. (See rule 601, “Casting Spells.”) Choices that are normally made on resolution are not copied. If an effect of the copy refers to objects used to pay its costs, it uses the objects used to pay the costs of the original spell or ability. A copy of a spell is owned by the player under whose control it was put on the stack. A copy of a spell or ability is controlled by the player under whose control it was put on the stack. A copy of a spell is itself a spell, even though it has no spell card associated with it. A copy of an ability is itself an ability. Some effects copy a spell or ability for each player or object it “could target.” The copies are put onto the stack with those targets in the order of their controller’s choice. If the spell or ability has more than one target, each of its targets must be the same player or object. If that player or object isn’t a legal target for each instance of the word “target,” a copy isn’t created for that player or object.",
+      "112.1a": "A spell is a card on the stack. As the first step of being cast (see rule 601, “Casting Spells”), the card becomes a spell and is moved to the top of the stack from the zone it was in, which is usually its owner’s hand. (See rule 405, “Stack.”) A spell remains on the stack as a spell until it resolves (see rule 608, “Resolving Spells and Abilities”), is countered (see rule 701.6), or otherwise leaves the stack. For more information, see section 6, “Spells, Abilities, and Effects.” A copy of a spell is also a spell, even if it has no card associated with it. See rule 707.10.",
+      "601.2b": "To cast a spell is to take it from where it is (usually the hand), put it on the stack, and pay its costs, so that it will eventually resolve and have its effect. Casting a spell includes proposal of the spell (rules 601.2a–d) and determination and payment of costs (rules 601.2f–h). To cast a spell, a player follows the steps listed below, in order. A player must be legally allowed to cast the spell to begin this process (see rule 601.3). If a player is unable to comply with the requirements of a step listed below while performing that step, the casting of the spell is illegal; the game returns to the moment before the casting of that spell was proposed (see rule 733, “Handling Illegal Actions”). If the spell is modal, the player announces the mode choice (see rule 700.2). If the player wishes to splice any cards onto the spell (see rule 702.47), they reveal those cards in their hand. If the spell has alternative or additional costs that will be paid as it’s being cast such as buyback or kicker costs (see rules 118.8 and 118.9), the player announces their intentions to pay any or all of those costs (see rule 601.2f). A player can’t apply two alternative methods of casting or two alternative costs to a single spell. If the spell has a variable cost that will be paid as it’s being cast (such as an {X} in its mana cost; see rule 107.3), the player announces the value of that variable. If the value of that variable is defined in the text of the spell by a choice that player would make later in the announcement or resolution of the spell, that player makes that choice at this time instead of that later time. If a cost that will be paid as the spell is being cast includes hybrid mana symbols, the player announces the nonhybrid equivalent cost they intend to pay. If a cost that will be paid as the spell is being cast includes Phyrexian mana symbols, the player announces whether they intend to pay 2 life or a corresponding colored mana cost for each of those symbols. Previously made choices (such as choosing to cast a spell with flashback from a graveyard or choosing to cast a creature with morph face down) may restrict the player’s options when making these choices.",
+      "601.2f": "To cast a spell is to take it from where it is (usually the hand), put it on the stack, and pay its costs, so that it will eventually resolve and have its effect. Casting a spell includes proposal of the spell (rules 601.2a–d) and determination and payment of costs (rules 601.2f–h). To cast a spell, a player follows the steps listed below, in order. A player must be legally allowed to cast the spell to begin this process (see rule 601.3). If a player is unable to comply with the requirements of a step listed below while performing that step, the casting of the spell is illegal; the game returns to the moment before the casting of that spell was proposed (see rule 733, “Handling Illegal Actions”). The player determines the total cost of the spell. Usually this is just the mana cost. Some spells have additional or alternative costs. Some effects may increase or reduce the cost to pay, or may provide other alternative costs. Costs may include paying mana, tapping permanents, sacrificing permanents, discarding cards, and so on. The total cost is the mana cost or alternative cost (as determined in rule 601.2b), plus all additional costs and cost increases, and minus all cost reductions. If multiple cost reductions apply, the player may apply them in any order. If the mana component of the total cost is reduced to nothing by cost reduction effects, it is considered to be {0}. It can’t be reduced to less than {0}. Once the total cost is determined, any effects that directly affect the total cost are applied. Then the resulting total cost becomes “locked in.” If effects would change the total cost after this time, they have no effect.",
+      "704.5e": "The state-based actions are as follows: If a copy of a spell is in a zone other than the stack, it ceases to exist. If a copy of a card is in any zone other than the stack or the battlefield, it ceases to exist."
+    },
+    "rewrite_queries": [],
+    "clarification": null
+  },
+  {
+    "id": "c007",
+    "question": "I have a face-down manifested card that's really [Lightning Bolt]. It dies and I imprint it on [Mimic Vat]. Later I activate Mimic Vat's copy ability -- do I get a token?",
+    "match": "any",
+    "kind": "card-interaction",
+    "show_rewrite": false,
+    "rewrite_version": "v1",
+    "ruling_query_mode": "raw",
+    "condition": "B",
+    "run": 1,
+    "answered": true,
+    "answer": "No — you don't get a token. When Lightning Bolt (which had been manifested as a face-down permanent) dies, it stops being a permanent and becomes an ordinary card in the graveyard; permanents' face-down status doesn't apply to cards off the battlefield (110.5d), so what you exile with Mimic Vat's imprint trigger is just the Lightning Bolt card, face up and fully visible as an instant. Mimic Vat's activated ability reads \"Create a token that's a copy of a card exiled with this artifact,\" and Lightning Bolt is an instant card, not a permanent card. As the Mimic Vat rulings explain, you can't create a token that's a copy of a nonpermanent card, so no token is created when you activate the copy ability while only Lightning Bolt is exiled with Mimic Vat.\n\nThis matches the exact scenario called out in Mimic Vat's own rulings: if the creature that died was actually an instant or sorcery card that had been manifested, Mimic Vat may end up with a nonpermanent card exiled, and no token is created when you try to copy it. If, by the time the copy ability resolves, some other (permanent) card has since been imprinted instead (imprinting replaces the previously exiled card by returning it to its owner's graveyard), then that later card would determine whether a token is made — Mimic Vat's ability always looks at whatever card is exiled with it at the time the ability resolves, not at the time it was activated.\n\nCard data from Scryfall (scryfall.com).",
+    "citations": [
+      "110.5d",
+      "406.3a",
+      "Mimic Vat ruling #0",
+      "Mimic Vat ruling #4",
+      "Mimic Vat ruling #6",
+      "701.40g"
+    ],
+    "gold": [],
+    "gold_text": {},
+    "cited_text": {
+      "110.5d": "A permanent’s status is its physical state. There are four status categories, each of which has two possible values: tapped/untapped, flipped/unflipped, face up/face down, and phased in/phased out. Each permanent always has one of these values for each of these categories. Only permanents have status. Cards not on the battlefield do not. Although an exiled card may be face down, this has no correlation to the face-down status of a permanent. Similarly, cards not on the battlefield are neither tapped nor untapped, regardless of their physical state.",
+      "406.3a": "Exiled cards are, by default, kept face up and may be examined by any player at any time. Cards “exiled face down” can’t be examined by any player except when instructions allow it. However, if a player is instructed to look at a card and then exile it face down, or once a player is allowed to look at a card exiled face down, that player may continue to look at that card until it leaves the exile zone or is part of a pile of cards that are shuffled, even if the instruction allowing the player to do so no longer applies. A card exiled face down has no characteristics, but the spell or ability that exiled it may allow it to be played from exile. Unless that card is being cast face down (see rule 708.4), the card is turned face up just before the player announces that they are playing the card (see rule 601.2).",
+      "701.40g": "Manifest If a manifested permanent that’s represented by an instant or sorcery card would turn face up, its controller reveals it and leaves it face down. Abilities that trigger whenever a permanent is turned face up won’t trigger."
+    },
+    "rewrite_queries": [],
+    "clarification": null
+  },
+  {
+    "id": "c008",
+    "question": "My [Fiend Hunter]'s enters-the-battlefield ability is on the stack, about to exile a creature. I copy that ability with [Lithoform Engine] and target a second creature. Both get exiled. When Fiend Hunter later leaves the battlefield, do both come back?",
+    "match": "any",
+    "kind": "card-interaction",
+    "show_rewrite": false,
+    "rewrite_version": "v1",
+    "ruling_query_mode": "raw",
+    "condition": "B",
+    "run": 1,
+    "answered": true,
+    "answer": "Yes — both exiled creatures return to the battlefield when Fiend Hunter leaves the battlefield. Fiend Hunter's enters-the-battlefield ability (\"you may exile another target creature\") and its leaves-the-battlefield ability (\"return the exiled card to the battlefield under its owner's control\") are linked abilities under rule 607.1. When you copy the enters-the-battlefield ability with Lithoform Engine and choose a new target, the copy is still linked to the same leaves-the-battlefield ability, per Lithoform Engine's own ruling: 'If an ability is linked to a second ability, copies of that first ability are also linked to that second ability... if Fiend Hunter's enters-the-battlefield ability is copied and two creatures are exiled, they both return when Fiend Hunter leaves the battlefield.' This matches the general linked-abilities rule [607.3], which states that when one ability of a linked pair refers to 'the exiled card' but the other has exiled multiple cards, the referring ability applies to each exiled card, and any action it performs on 'the' card is performed on each one. So Fiend Hunter's leaves-the-battlefield trigger will return both of the exiled creatures to the battlefield under their owners' control simultaneously, each as a new object (per the usual rule that returned permanents have no memory of their previous existence, as noted in Fiend Hunter's own rulings about counters/auras not carrying over).\n\nCard data from Scryfall (scryfall.com).",
+    "citations": [
+      "607.1",
+      "607.3",
+      "Lithoform Engine ruling #4",
+      "Fiend Hunter ruling #1"
+    ],
+    "gold": [],
+    "gold_text": {},
+    "cited_text": {
+      "607.1": "An object may have two abilities printed on it such that one of them causes actions to be taken or objects or players to be affected and the other one directly refers to those actions, objects, or players. If so, these two abilities are linked: the second refers only to actions that were taken or objects or players that were affected by the first, and not by any other ability.",
+      "607.3": "If, within a pair of linked abilities, one ability refers to a single object as “the exiled card,” “a card exiled with [this object],” or a similar phrase, and the other ability has exiled multiple cards (usually because it was copied), the ability refers to each of the exiled cards. If that ability asks for any information about the exiled card, such as a characteristic or mana value, it gets multiple answers. If these answers are used to determine the value of a variable, the sum of the answers is used. If that ability performs any actions on “the” card, it performs that action on each exiled card. If that ability creates a token that is a copy of “the” card, then for each exiled card, it creates a token that is a copy of that card. If that ability performs any actions on “a” card, the controller of the ability chooses which card is affected."
+    },
+    "rewrite_queries": [],
+    "clarification": null
+  },
+  {
+    "id": "c009",
+    "question": "My own [Banishing Light] has an opponent's creature exiled. On my opponent's turn I cast [Teferi's Protection], phasing out my Banishing Light. Does the exiled creature return to the battlefield?",
+    "match": "any",
+    "kind": "card-interaction",
+    "show_rewrite": false,
+    "rewrite_version": "v1",
+    "ruling_query_mode": "raw",
+    "condition": "B",
+    "run": 1,
+    "answered": true,
+    "answer": "No. The opponent's creature stays exiled. Teferi's Protection causes your Banishing Light to phase out, and phasing out is not the same as \"leaving the battlefield\" — the permanent is just treated as though it doesn't exist for a while, but no zone change actually occurs. Because Banishing Light's exile effect only ends \"until this enchantment leaves the battlefield,\" and phasing out doesn't trigger that condition, the exiled creature remains exiled both while Banishing Light is phased out and after it phases back in (unless Banishing Light later actually leaves the battlefield for some other reason).\n\nThis is confirmed directly: Teferi's Protection ruling #21 states that any one-shot effect waiting \"until [this] leaves the battlefield,\" such as Banishing Light's, won't happen when a permanent phases out. This is consistent with rule [702.26d], which says the phasing event doesn't actually cause a permanent to change zones or control, and that zone-change triggers/effects don't fire from phasing. It's also consistent with Teferi's Protection ruling #17, which notes phasing out doesn't cause \"leaves the battlefield\" abilities to trigger, and with Banishing Light ruling #1, which confirms the exiled permanent only returns if Banishing Light's triggered ability's exile condition is undone by an actual leaves-the-battlefield event (which phasing is not).\n\nWhen Banishing Light phases back in during your untap step, it's treated as though it never left, and its exile effect simply continues uninterrupted — the creature stays exiled under it.\n\nCard data from Scryfall (scryfall.com).",
+    "citations": [
+      "Teferi's Protection ruling #21",
+      "Teferi's Protection ruling #17",
+      "702.26d",
+      "Banishing Light ruling #1"
+    ],
+    "gold": [],
+    "gold_text": {},
+    "cited_text": {
+      "702.26d": "Phasing The phasing event doesn’t actually cause a permanent to change zones or control, even though it’s treated as though it’s not on the battlefield and not under its controller’s control while it’s phased out. Zone-change triggers don’t trigger when a permanent phases in or out. Tokens continue to exist on the battlefield while phased out. Counters and stickers remain on a permanent while it’s phased out. Effects that check a phased-in permanent’s history won’t treat the phasing event as having caused the permanent to leave or enter the battlefield or its controller’s control."
+    },
+    "rewrite_queries": [],
+    "clarification": null
+  },
+  {
+    "id": "c010",
+    "question": "I cast [Emrakul, the Promised End]. In response to its cast trigger, my opponent tries to [Counterspell] it. Can they even target it given protection from instants, and if it's countered, do I still control their next turn?",
+    "match": "any",
+    "kind": "card-interaction",
+    "show_rewrite": false,
+    "rewrite_version": "v1",
+    "ruling_query_mode": "raw",
+    "condition": "B",
+    "run": 1,
+    "answered": true,
+    "answer": "Yes, the Counterspell can legally target Emrakul, the Promised End while it's on the stack, and even if it resolves and counters Emrakul, you still gain control of your opponent during their next turn.\n\nFirst, targeting: Emrakul, the Promised End's protection from instants only applies while Emrakul, the Promised End is on the battlefield, per [Emrakul, the Promised End ruling #2] — \"Protection abilities only apply while the object with the ability is on the battlefield. Notably, Emrakul may be the target of a spell that targets it while on the stack, such as Syncopate.\" While your opponent's Counterspell is being cast and resolving, Emrakul, the Promised End is still a spell on the stack, not a permanent (see [109.2b], which distinguishes a permanent on the battlefield from a spell on the stack). So Counterspell's \"Counter target spell\" can legally choose Emrakul, the Promised End as its target — protection from instants doesn't block this.\n\nSecond, the sequencing: casting Emrakul, the Promised End causes its triggered ability (\"When you cast this spell, you gain control of target opponent...\") to trigger at the moment the spell is cast [601.2i]. Triggered abilities don't go on the stack immediately when they trigger; the game rules put them on the stack the next time a player would receive priority [117.2a]. So after you finish casting Emrakul, the Promised End and before anyone else can act, that triggered ability is put on the stack on top of the Emrakul, the Promised End spell. When an ability goes on the stack this way, it exists there as its own object with no card attached to it [405.1] — it is not the same object as the Emrakul, the Promised End spell underneath it.\n\nWhen your opponent casts Counterspell targeting Emrakul, the Promised End \"in response to\" the triggered ability, Counterspell resolves first because spells/abilities cast or activated later resolve before the ones they were responding to [117.7]. If Counterspell resolves and successfully counters Emrakul, the Promised End, that only removes the Emrakul, the Promised End spell from the stack (per [608.2m], it fully resolves as designed, sending Emrakul, the Promised End to the graveyard as a countered spell). The triggered ability, being a separate object already on the stack independent of the spell that created it [405.1], is unaffected by the spell being countered — it still resolves normally afterward, targeting your opponent and giving you control of them during their next turn, after which that player takes an extra turn (per Emrakul, the Promised End's own printed ability text, which as card text controls here).\n\nOne timing note: this assumes the triggered ability is already on the stack above the Emrakul spell when Counterspell is cast, which is how the rules place it once you receive priority after casting. If instead you imagine Counterspell somehow being cast before the trigger is placed on the stack (not possible under these rules, but worth flagging), the outcome would be the same anyway, since the ability doesn't depend on the spell still being on the stack to resolve.\n\nCard data from Scryfall (scryfall.com).",
+    "citations": [
+      "601.2i",
+      "117.2a",
+      "117.7",
+      "405.1",
+      "608.2m",
+      "109.2b",
+      "Emrakul, the Promised End ruling #1",
+      "Emrakul, the Promised End ruling #2",
+      "Emrakul, the Promised End ruling #14"
+    ],
+    "gold": [],
+    "gold_text": {},
+    "cited_text": {
+      "601.2i": "To cast a spell is to take it from where it is (usually the hand), put it on the stack, and pay its costs, so that it will eventually resolve and have its effect. Casting a spell includes proposal of the spell (rules 601.2a–d) and determination and payment of costs (rules 601.2f–h). To cast a spell, a player follows the steps listed below, in order. A player must be legally allowed to cast the spell to begin this process (see rule 601.3). If a player is unable to comply with the requirements of a step listed below while performing that step, the casting of the spell is illegal; the game returns to the moment before the casting of that spell was proposed (see rule 733, “Handling Illegal Actions”). Once the steps described in 601.2a–h are completed, effects that modify the characteristics of the spell as it’s cast are applied, then the spell becomes cast. Any abilities that trigger when a spell is cast or put onto the stack trigger at this time. If the spell’s controller had priority before casting it, they get priority.",
+      "117.2a": "Other kinds of abilities and actions are automatically generated or performed by the game rules, or are performed by players without receiving priority. Triggered abilities can trigger at any time, including while a spell is being cast, an ability is being activated, or a spell or ability is resolving. (See rule 603, “Handling Triggered Abilities.”) However, nothing actually happens at the time an ability triggers. Each time a player would receive priority, each ability that has triggered but hasn’t yet been put on the stack is put on the stack. See rule 117.5.",
+      "117.7": "If a player with priority casts a spell or activates an activated ability while another spell or ability is already on the stack, the new spell or ability has been cast or activated “in response to” the earlier spell or ability. The new spell or ability will resolve first. See rule 608, “Resolving Spells and Abilities.”",
+      "405.1": "When a spell is cast, the physical card is put on the stack (see rule 601.2a). When an ability is activated or triggers, it goes on top of the stack without any card associated with it (see rules 602.2a and 603.3).",
+      "608.2m": "If the object that’s resolving is an instant spell, a sorcery spell, or an ability, its resolution may involve several steps. The steps described in rules 608.2a and 608.2b are followed first. The steps described in rules 608.2c–m are then followed as appropriate, in no specific order. The steps described in rule 608.2n and 608.2p are followed last. If an instant spell, sorcery spell, or ability that can legally resolve leaves the stack once it starts to resolve, it will continue to resolve fully.",
+      "109.2b": "If a spell or ability uses a description of an object that includes a card type or subtype, but doesn’t refer to a specific zone or include the word “card,” “spell,” “source,” or “scheme,” it means a permanent of that card type or subtype on the battlefield. If a spell or ability uses a description of an object that includes the word “spell,” it means a spell matching that description on the stack."
+    },
+    "rewrite_queries": [],
+    "clarification": null
+  },
+  {
+    "id": "c011",
+    "question": "My cascade spell exiles cards until it hits [Valki, God of Lies], whose back face is the seven-mana planeswalker Tibalt, Cosmic Impostor. Is that a legal cascade hit, and can I cast the Tibalt side for free?",
+    "match": "any",
+    "kind": "card-interaction",
+    "show_rewrite": false,
+    "rewrite_version": "v1",
+    "ruling_query_mode": "raw",
+    "condition": "B",
+    "run": 1,
+    "answered": true,
+    "answer": "Yes, exiling into Valki, God of Lies // Tibalt, Cosmic Impostor is a legal cascade hit — but no, you generally cannot cast the Tibalt, Cosmic Impostor face for free off that hit unless your cascading spell's own mana value is greater than 7.\n\nHere's why. Cascade (rule [702.85a]) works in two separate steps, each with its own mana-value check:\n\n1. **The exile-until check.** You exile cards from the top of your library until you hit a nonland card whose mana value is less than the cascading spell's mana value. For a modal double-faced card sitting in exile (not on the stack), its mana value is that of its front face — Valki, God of Lies, whose mana cost is {1}{B}, giving a mana value of 2. This matches the card's listed mana value of 2. So as long as your cascading spell's mana value is greater than 2, stopping on this card is a completely legal cascade hit ([702.85a]).\n\n2. **The free-cast check.** Separately, cascade only lets you cast the exiled card without paying its mana cost \"if the resulting spell's mana value is less than this spell's [the cascading spell's] mana value\" ([702.85a]). \"Resulting spell\" means whichever face you actually choose to cast. Ruling #16 for Valki, God of Lies // Tibalt, Cosmic Impostor confirms that when an effect lets you cast a card \"from among\" a set (which is what cascade does with the exiled card), you may cast a modal double-faced card using either face, as long as that face fits the effect's criteria. Each face of a double-faced card has its own full set of characteristics ([712.8c]), so if you choose the Tibalt, Cosmic Impostor face, the resulting spell's mana value is calculated from Tibalt's own mana cost, {5}{B}{R}, i.e. mana value 7 — not the front face's value of 2.\n\nSo casting Tibalt, Cosmic Impostor for free off this cascade trigger is only permitted if your cascading spell's mana value is strictly greater than 7. If your cascading spell's mana value is 7 or less (true of essentially all cascade cards), you cannot cast the Tibalt, Cosmic Impostor face through this trigger at all — cascade's permission to cast that face simply doesn't apply, so it isn't cast, and it will be put on the bottom of your library in a random order along with any other uncast exiled cards. You *can*, however, cast the Valki, God of Lies face for free, since its resulting mana value (2) is less than your cascading spell's mana value (which is why it was a legal hit in the first place).\n\nNote: this all assumes you're evaluating the card while it's exiled from cascade, not once it's already on the stack or battlefield — the mana-value math changes only for the face actually chosen to be cast, per the rules above.\n\nCard data from Scryfall (scryfall.com).",
+    "citations": [
+      "702.85a",
+      "712.8c",
+      "406.3b",
+      "Valki, God of Lies // Tibalt, Cosmic Impostor ruling #16"
+    ],
+    "gold": [
+      "702.85a"
+    ],
+    "gold_text": {
+      "702.85a": "Cascade Cascade is a triggered ability that functions only while the spell with cascade is on the stack. “Cascade” means “When you cast this spell, exile cards from the top of your library until you exile a nonland card whose mana value is less than this spell’s mana value. You may cast that card without paying its mana cost if the resulting spell’s mana value is less than this spell’s mana value. Then put all cards exiled this way that weren’t cast on the bottom of your library in a random order.”"
+    },
+    "cited_text": {
+      "702.85a": "Cascade Cascade is a triggered ability that functions only while the spell with cascade is on the stack. “Cascade” means “When you cast this spell, exile cards from the top of your library until you exile a nonland card whose mana value is less than this spell’s mana value. You may cast that card without paying its mana cost if the resulting spell’s mana value is less than this spell’s mana value. Then put all cards exiled this way that weren’t cast on the bottom of your library in a random order.”",
+      "712.8c": "Each face of a double-faced card that isn’t a meld card has its own set of characteristics. The front face of each meld card and the combined face formed by a meld pair each has its own set of characteristics. Normally, a nonmodal double-faced spell has its front face up while on the stack and has only the characteristics of its front face. However, if an effect allows a player to cast a nonmodal double-faced card “transformed” or “converted,” the resulting spell will have its back face up and have only the characteristics of its back face. Its mana value is calculated using the mana cost of its front face.",
+      "406.3b": "Exiled cards are, by default, kept face up and may be examined by any player at any time. Cards “exiled face down” can’t be examined by any player except when instructions allow it. However, if a player is instructed to look at a card and then exile it face down, or once a player is allowed to look at a card exiled face down, that player may continue to look at that card until it leaves the exile zone or is part of a pile of cards that are shuffled, even if the instruction allowing the player to do so no longer applies. Some spells and abilities allow a player to cast spells with certain qualities from among face-down cards in exile. A player may cast such a spell only if they are allowed to look at the face-down card in exile and if the resulting spell has the specified qualities."
+    },
+    "rewrite_queries": [],
+    "clarification": null
+  },
+  {
+    "id": "c012",
+    "question": "I cast [Emrakul, the Promised End]. With its cast trigger on the stack, I copy that trigger with [Lithoform Engine]. Then I untap Lithoform Engine with [Voltaic Key] and use it again to copy [Emrakul, the Promised End] itself as a permanent spell. How many of my opponent's turns do I control, do I get a second Emrakul, and does copying the Emrakul spell give me another control-a-turn trigger?",
+    "match": "any",
+    "kind": "card-interaction",
+    "show_rewrite": false,
+    "rewrite_version": "v1",
+    "ruling_query_mode": "raw",
+    "condition": "B",
+    "run": 1,
+    "answered": true,
+    "answer": "You end up controlling exactly one of your opponent's turns, you do get a second Emrakul, the Promised End (as a token copy), and copying the Emrakul, the Promised End spell does NOT give you another \"gain control\" trigger.\n\nBreaking it down:\n\n1) Copying Emrakul, the Promised End's triggered ability with Lithoform Engine's first mode puts a second copy of that triggered ability on the stack (rule [707.10]/[707.10b]: to copy a triggered ability means to put a copy of it onto the stack, copying its target(s) unless you choose new ones). You now have two instances of \"When you cast this spell, you gain control of target opponent during that player's next turn. After that turn, that player takes an extra turn,\" both targeting the same opponent. The copy (created later on the stack) resolves first, the original resolves second. Per [Emrakul, the Promised End ruling #14], \"Multiple player-controlling effects that affect the same player overwrite each other. The last one to be created is the one that works\" — so only one of the two 'gain control of the opponent's next turn' effects actually ends up governing that single upcoming turn (the later-created one wins), meaning you control that opponent's next turn only once, not twice. However, that same ruling also says \"each ability's effect will create an extra turn,\" so both delayed 'after that turn, that player takes an extra turn' triggers still fire independently — your opponent will take two extra turns after the one turn you controlled, but you don't automatically control those extra turns (Emrakul, the Promised End's text only grants control of the immediate 'next turn,' not of the later extra turns).\n\n2) Untapping Lithoform Engine with Voltaic Key and using its third mode (\"{4}, {T}: Copy target permanent spell you control. (The copy becomes a token.)\") copies the Emrakul, the Promised End spell itself while it's still on the stack. Per rule [111.13], \"A copy of a permanent spell becomes a token as it resolves,\" and that token has the copied characteristics (13/13, flying, trample, protection from instants). So when everything resolves, assuming nothing is countered, you'll have two Emrakul, the Promised End permanents on the battlefield: the original (from the real spell resolving) and a token copy (from the Lithoform Engine copy resolving).\n\n3) That second copy does NOT retrigger the \"When you cast this spell\" ability. Rule [707.10] explicitly states \"a copy of a spell isn't cast,\" and [Lithoform Engine ruling #6] confirms \"Creating the copy won't cause abilities that trigger when a player casts a spell...to trigger.\" So the token Emrakul, the Promised End never generates its own control-a-turn trigger.\n\nThis analysis assumes a two-player game (a single opponent); the rules given don't include multiplayer-specific wording for this exact scenario, but [Emrakul, the Promised End ruling #14] applies the same overwrite logic regardless of player count as long as both triggers target the same opponent.\n\nCard data from Scryfall (scryfall.com).",
+    "citations": [
+      "707.10",
+      "707.10b",
+      "111.13",
+      "Lithoform Engine ruling #5",
+      "Lithoform Engine ruling #6",
+      "Emrakul, the Promised End ruling #14"
+    ],
+    "gold": [],
+    "gold_text": {},
+    "cited_text": {
+      "707.10": "To copy a spell, activated ability, or triggered ability means to put a copy of it onto the stack; a copy of a spell isn’t cast and a copy of an activated ability isn’t activated. A copy of a spell or ability copies both the characteristics of the spell or ability and all decisions made for it, including modes, targets, the value of X, and additional or alternative costs. (See rule 601, “Casting Spells.”) Choices that are normally made on resolution are not copied. If an effect of the copy refers to objects used to pay its costs, it uses the objects used to pay the costs of the original spell or ability. A copy of a spell is owned by the player under whose control it was put on the stack. A copy of a spell or ability is controlled by the player under whose control it was put on the stack. A copy of a spell is itself a spell, even though it has no spell card associated with it. A copy of an ability is itself an ability. A player casts Fork, targeting an Emerald Charm. Fork reads, “Copy target instant or sorcery spell, except that the copy is red. You may choose new targets for the copy.” Emerald Charm is a modal green instant. When the Fork resolves, it puts a copy of the Emerald Charm on the stack except the copy is red, not green. The copy has the same mode that was chosen for the original Emerald Charm. It does not necessarily have the same target, but only because Fork allows choosing of new targets. Fling is an instant that reads, “As an additional cost to cast this spell, sacrifice a creature” and “Fling deals damage equal to the sacrificed creature’s power to any target.” When determining how much damage a copy of Fling deals, it checks the power of the creature sacrificed to pay for the original Fling. Dawnglow Infusion is a sorcery that reads, “You gain X life if {G} was spent to cast this spell and X life if {W} was spent to cast it.” Because mana isn’t an object, a copy of Dawnglow Infusion won’t cause you to gain any life, no matter what mana was spent to cast the original spell.",
+      "707.10b": "To copy a spell, activated ability, or triggered ability means to put a copy of it onto the stack; a copy of a spell isn’t cast and a copy of an activated ability isn’t activated. A copy of a spell or ability copies both the characteristics of the spell or ability and all decisions made for it, including modes, targets, the value of X, and additional or alternative costs. (See rule 601, “Casting Spells.”) Choices that are normally made on resolution are not copied. If an effect of the copy refers to objects used to pay its costs, it uses the objects used to pay the costs of the original spell or ability. A copy of a spell is owned by the player under whose control it was put on the stack. A copy of a spell or ability is controlled by the player under whose control it was put on the stack. A copy of a spell is itself a spell, even though it has no spell card associated with it. A copy of an ability is itself an ability. A copy of an ability has the same source as the original ability. If the ability refers to its source by name, the copy refers to that same object and not to any other object with the same name. The copy is considered to be the same ability by effects that count how many times that ability has resolved during the turn.",
+      "111.13": "A copy of a permanent spell becomes a token as it resolves. The token has the characteristics of the spell that became that token. The token is not “created” for the purposes of any replacement effects or triggered abilities that refer to creating a token."
+    },
+    "rewrite_queries": [],
+    "clarification": null
+  },
+  {
+    "id": "c013",
+    "question": "I've imprinted a creature on [Mimic Vat] and activate its ability to make a token copy. While that ability is on the stack, I copy it with [Lithoform Engine]. Do I get two tokens?",
+    "match": "any",
+    "kind": "card-interaction",
+    "show_rewrite": false,
+    "rewrite_version": "v1",
+    "ruling_query_mode": "raw",
+    "condition": "B",
+    "run": 1,
+    "answered": true,
+    "answer": "Yes — you end up with two token copies of the exiled creature card, as long as that card is still exiled with Mimic Vat when each ability resolves. Here's why: Mimic Vat's activated ability \"Create a token that's a copy of a card exiled with this artifact...\" is put on the stack. When you activate Lithoform Engine's first ability targeting that Mimic Vat ability, Lithoform Engine's ability, once it resolves, puts a copy of Mimic Vat's activated ability onto the stack [707.10]. A copy of an activated ability isn't 'activated' again, but it is itself an ability with the same source (Mimic Vat) as the original [707.10]. Since Mimic Vat's ability text refers to 'this artifact,' the copy still refers to the same Mimic Vat as its source [201.5a]. So you now have two separate instances of the 'create a token' ability on the stack: the original and the copy from Lithoform Engine. Each one, when it resolves, independently checks whatever card is exiled with Mimic Vat at that moment and creates a token copy of it — this is explicitly how Mimic Vat's ability works, since the token created is a copy of whatever card is exiled *at the time the ability resolves*, not necessarily the card exiled when it was activated [Mimic Vat ruling #4]. As long as the creature card you imprinted is still exiled with Mimic Vat when both abilities resolve, each resolution creates its own 1/1... well, its own token copy of that creature, each gaining haste and each being exiled at the beginning of the next end step, per Mimic Vat's own text. If for some reason the exiled card were removed before one of the two resolutions (e.g. it were returned to a graveyard by Mimic Vat's triggered ability before the second resolution), that resolution would create no token instead, per the ruling that no card exiled means no token is created [Mimic Vat ruling #6]. Lithoform Engine's copy doesn't need new targets chosen, since Mimic Vat's ability has no targets [Lithoform Engine ruling #3].\n\nCard data from Scryfall (scryfall.com).",
+    "citations": [
+      "707.10",
+      "201.5a",
+      "Mimic Vat ruling #4",
+      "Mimic Vat ruling #6",
+      "Lithoform Engine ruling #3",
+      "Lithoform Engine ruling #0"
+    ],
+    "gold": [],
+    "gold_text": {},
+    "cited_text": {
+      "707.10": "To copy a spell, activated ability, or triggered ability means to put a copy of it onto the stack; a copy of a spell isn’t cast and a copy of an activated ability isn’t activated. A copy of a spell or ability copies both the characteristics of the spell or ability and all decisions made for it, including modes, targets, the value of X, and additional or alternative costs. (See rule 601, “Casting Spells.”) Choices that are normally made on resolution are not copied. If an effect of the copy refers to objects used to pay its costs, it uses the objects used to pay the costs of the original spell or ability. A copy of a spell is owned by the player under whose control it was put on the stack. A copy of a spell or ability is controlled by the player under whose control it was put on the stack. A copy of a spell is itself a spell, even though it has no spell card associated with it. A copy of an ability is itself an ability. A player casts Fork, targeting an Emerald Charm. Fork reads, “Copy target instant or sorcery spell, except that the copy is red. You may choose new targets for the copy.” Emerald Charm is a modal green instant. When the Fork resolves, it puts a copy of the Emerald Charm on the stack except the copy is red, not green. The copy has the same mode that was chosen for the original Emerald Charm. It does not necessarily have the same target, but only because Fork allows choosing of new targets. Fling is an instant that reads, “As an additional cost to cast this spell, sacrifice a creature” and “Fling deals damage equal to the sacrificed creature’s power to any target.” When determining how much damage a copy of Fling deals, it checks the power of the creature sacrificed to pay for the original Fling. Dawnglow Infusion is a sorcery that reads, “You gain X life if {G} was spent to cast this spell and X life if {W} was spent to cast it.” Because mana isn’t an object, a copy of Dawnglow Infusion won’t cause you to gain any life, no matter what mana was spent to cast the original spell.",
+      "201.5a": "Text that refers to the object it’s on by name means just that particular object and not any other objects with that name, regardless of any name changes caused by game effects. If an ability’s effect grants another ability to an object, and that second ability refers to that first ability’s source by name, the name refers only to the specific object which is that first ability’s source. The second ability does not refer to any other object with the same name as the first ability’s source. However, if the second ability also moved the first ability’s source to a different public zone, the name refers to the object the source became in its new zone. This is also true if the second ability is copied onto a new object. Gutter Grime has an ability that reads “Whenever a nontoken creature you control dies, put a slime counter on this enchantment, then create a green Ooze creature token with ‘This token’s power and toughness are each equal to the number of slime counters on Gutter Grime.’” The ability granted to the token only looks at the Gutter Grime that created the token, not at any other Gutter Grime on the battlefield. A copy of that token would also have an ability that referred only to the Gutter Grime that created the original token."
+    },
+    "rewrite_queries": [],
+    "clarification": null
+  },
+  {
+    "id": "c014",
+    "question": "An opponent controls an untapped [Trinisphere], and I have a permanent that makes my green spells cost {1} less. I want to cast [Awaken the Woods] for value. If I cast it with X=0, what does it cost and what do I get, and what X should I actually choose?",
+    "match": "any",
+    "kind": "card-interaction",
+    "show_rewrite": false,
+    "rewrite_version": "v1",
+    "ruling_query_mode": "raw",
+    "condition": "B",
+    "run": 1,
+    "answered": true,
+    "answer": "With X=0, Awaken the Woods ends up costing {1}{G}{G} (3 mana total: 1 generic + 2 green) and you get zero Forest Dryad tokens — a completely wasted cast. You should instead choose X=2: it costs the exact same {1}{G}{G} (3 mana), but nets you 2 Forest Dryad tokens instead of 0.\n\nHere's why. Awaken the Woods' mana cost is {X}{G}{G} (601.2b: you announce the value of X as part of casting). Under 601.2f/Total Cost, you start with the mana cost, then apply cost reductions, then Trinisphere's tax. Your permanent that reduces green spells by {1} only reduces the *generic* mana component of the cost (rule 118.7a: 'Effects that reduce a cost by an amount of generic mana affect only the generic mana component of that cost. They can't affect the colored or colorless mana components.'). In {X}{G}{G}, X is the generic component and {G}{G} is fixed and unreducible.\n\n- X=0: cost is {G}{G} (0 generic + 2 green = 2 mana). The {1} reduction has nothing to reduce (generic component is already 0; per 118.7, a cost can't go below {0} and there's no generic left to cut), so the cost stays {G}{G}, which is 2 mana — less than three. Trinisphere ('each spell that would cost less than three mana to cast costs three mana to cast,' with the extra payable in any color/colorless mana per Trinisphere's own text and ruling #0) then raises this to 3 total mana by adding {1} generic, giving a final locked-in total cost of {1}{G}{G}. You create X=0 tokens — none.\n- X=1: base cost 1 generic + {G}{G} = 3 mana. Your reduction cuts 1 generic, leaving {G}{G} = 2 mana, which is again under three, so Trinisphere bumps it back to {1}{G}{G} (3 mana). You get 1 token.\n- X=2: base cost 2 generic + {G}{G} = 4 mana. Your reduction cuts 1 generic, leaving {1}{G}{G} = 3 mana exactly. Since 3 mana is not *less than* three mana, Trinisphere's tax doesn't apply at all. Total cost stays {1}{G}{G} (3 mana), and you get 2 tokens.\n- X=3 would cost {2}{G}{G} (4 mana) for 3 tokens — more expensive, since Trinisphere no longer helps you at that point.\n\nSo X=0 and X=1 both get inflated by Trinisphere up to the same 3-mana floor as X=2, but give you fewer (or zero) tokens for that same price. X=2 is the sweet spot: it's the largest X you can reach before Trinisphere's minimum stops mattering, so you get the most tokens for the mana you're forced to spend anyway. Note that per Trinisphere's ruling, the spell's mana value is unaffected by any of this — Awaken the Woods' mana value is still X+2 regardless of what you actually pay.\n\nCard data from Scryfall (scryfall.com).",
+    "citations": [
+      "601.2f",
+      "601.2b",
+      "118.7",
+      "118.7a",
+      "Trinisphere",
+      "Trinisphere ruling #0",
+      "Awaken the Woods"
+    ],
+    "gold": [],
+    "gold_text": {},
+    "cited_text": {
+      "601.2f": "To cast a spell is to take it from where it is (usually the hand), put it on the stack, and pay its costs, so that it will eventually resolve and have its effect. Casting a spell includes proposal of the spell (rules 601.2a–d) and determination and payment of costs (rules 601.2f–h). To cast a spell, a player follows the steps listed below, in order. A player must be legally allowed to cast the spell to begin this process (see rule 601.3). If a player is unable to comply with the requirements of a step listed below while performing that step, the casting of the spell is illegal; the game returns to the moment before the casting of that spell was proposed (see rule 733, “Handling Illegal Actions”). The player determines the total cost of the spell. Usually this is just the mana cost. Some spells have additional or alternative costs. Some effects may increase or reduce the cost to pay, or may provide other alternative costs. Costs may include paying mana, tapping permanents, sacrificing permanents, discarding cards, and so on. The total cost is the mana cost or alternative cost (as determined in rule 601.2b), plus all additional costs and cost increases, and minus all cost reductions. If multiple cost reductions apply, the player may apply them in any order. If the mana component of the total cost is reduced to nothing by cost reduction effects, it is considered to be {0}. It can’t be reduced to less than {0}. Once the total cost is determined, any effects that directly affect the total cost are applied. Then the resulting total cost becomes “locked in.” If effects would change the total cost after this time, they have no effect.",
+      "601.2b": "To cast a spell is to take it from where it is (usually the hand), put it on the stack, and pay its costs, so that it will eventually resolve and have its effect. Casting a spell includes proposal of the spell (rules 601.2a–d) and determination and payment of costs (rules 601.2f–h). To cast a spell, a player follows the steps listed below, in order. A player must be legally allowed to cast the spell to begin this process (see rule 601.3). If a player is unable to comply with the requirements of a step listed below while performing that step, the casting of the spell is illegal; the game returns to the moment before the casting of that spell was proposed (see rule 733, “Handling Illegal Actions”). If the spell is modal, the player announces the mode choice (see rule 700.2). If the player wishes to splice any cards onto the spell (see rule 702.47), they reveal those cards in their hand. If the spell has alternative or additional costs that will be paid as it’s being cast such as buyback or kicker costs (see rules 118.8 and 118.9), the player announces their intentions to pay any or all of those costs (see rule 601.2f). A player can’t apply two alternative methods of casting or two alternative costs to a single spell. If the spell has a variable cost that will be paid as it’s being cast (such as an {X} in its mana cost; see rule 107.3), the player announces the value of that variable. If the value of that variable is defined in the text of the spell by a choice that player would make later in the announcement or resolution of the spell, that player makes that choice at this time instead of that later time. If a cost that will be paid as the spell is being cast includes hybrid mana symbols, the player announces the nonhybrid equivalent cost they intend to pay. If a cost that will be paid as the spell is being cast includes Phyrexian mana symbols, the player announces whether they intend to pay 2 life or a corresponding colored mana cost for each of those symbols. Previously made choices (such as choosing to cast a spell with flashback from a graveyard or choosing to cast a creature with morph face down) may restrict the player’s options when making these choices.",
+      "118.7": "What a player actually needs to do to pay a cost may be changed or reduced by effects. If the mana component of a cost is reduced to nothing by cost reduction effects, it’s considered to be {0}. Paying a cost changed or reduced by an effect counts as paying the original cost.",
+      "118.7a": "What a player actually needs to do to pay a cost may be changed or reduced by effects. If the mana component of a cost is reduced to nothing by cost reduction effects, it’s considered to be {0}. Paying a cost changed or reduced by an effect counts as paying the original cost. Effects that reduce a cost by an amount of generic mana affect only the generic mana component of that cost. They can’t affect the colored or colorless mana components of that cost."
+    },
+    "rewrite_queries": [],
+    "clarification": null
+  },
+  {
+    "id": "c015",
+    "question": "[Grist, the Hunger Tide] is in my graveyard. Can I return it with [Animate Dead], and what happens?",
+    "match": "any",
+    "kind": "card-interaction",
+    "show_rewrite": false,
+    "rewrite_version": "v1",
+    "ruling_query_mode": "raw",
+    "condition": "B",
+    "run": 1,
+    "answered": true,
+    "answer": "Yes, you can target Grist, the Hunger Tide with Animate Dead while it's in your graveyard, but the return will fail to \"stick\" as a creature and Animate Dead will end up sacrificing Grist. Here's why:\n\nWhile Grist, the Hunger Tide is anywhere other than the battlefield, its own text (\"As long as Grist isn't on the battlefield, it's a 1/1 Insect creature in addition to its other types\") makes it a Legendary Planeswalker Creature card. Per [Grist, the Hunger Tide ruling #1], that means Grist is a legal target for Animate Dead's \"enchant creature card in a graveyard\" ability while it's in the graveyard, so casting Animate Dead targeting it is fine.\n\nWhen Animate Dead resolves and enters the battlefield, its triggered ability fires: it loses \"enchant creature card in a graveyard,\" gains \"enchant creature put onto the battlefield with this Aura,\" and returns Grist, the Hunger Tide to the battlefield under your control, attaching itself to it ([Animate Dead ruling #1]). But the instant Grist, the Hunger Tide is on the battlefield, its own \"as long as it isn't on the battlefield, it's a creature\" clause stops applying, so it is now just a planeswalker, not a creature ([Grist, the Hunger Tide ruling #1]). Animate Dead's enchant ability requires it be attached to a creature, and Grist, the Hunger Tide no longer qualifies, so Animate Dead can't legally attach to it.\n\nThis is exactly the scenario covered by [Animate Dead ruling #4]: when the returned card can't legally be enchanted by Animate Dead, Animate Dead is put into the graveyard as a state-based action, which triggers its delayed triggered ability (\"When this Aura leaves the battlefield, that creature's controller sacrifices it\"). When that delayed trigger resolves, since Grist, the Hunger Tide is still on the battlefield, you (as its controller) must sacrifice it.\n\nNet result: Grist, the Hunger Tide briefly returns to the battlefield as a planeswalker (with 3 loyalty, its printed starting loyalty), Animate Dead falls off into your graveyard, and then you sacrifice Grist, the Hunger Tide, sending it back to your graveyard. You get no lasting benefit from the reanimation. This assumes Grist, the Hunger Tide has no protection from black or other targeting issues when Animate Dead is cast; if it did, Animate Dead simply couldn't target it in the first place, per the same ruling.\n\nCard data from Scryfall (scryfall.com).",
+    "citations": [
+      "Grist, the Hunger Tide ruling #1",
+      "Animate Dead ruling #1",
+      "Animate Dead ruling #4"
+    ],
+    "gold": [],
+    "gold_text": {},
+    "cited_text": {},
+    "rewrite_queries": [],
+    "clarification": null
+  },
+  {
+    "id": "c016",
+    "question": "My commander [Skullbriar, the Walking Grave] has four +1/+1 counters on it. It dies, I move it to the command zone, then recast it. Does it keep the counters, and does [Doubling Season] double them as it re-enters?",
+    "match": "any",
+    "kind": "card-interaction",
+    "show_rewrite": false,
+    "rewrite_version": "v1",
+    "ruling_query_mode": "raw",
+    "condition": "B",
+    "run": 1,
+    "answered": true,
+    "answer": "Yes, Skullbriar, the Walking Grave keeps its four +1/+1 counters through this whole sequence, but Doubling Season will NOT double them.\n\nWhy the counters survive: Skullbriar's own printed text says \"Counters remain on Skullbriar as it moves to any zone other than a player's hand or library.\" This is card text that overrides the general rule that an object becomes a new object with no memory of its previous existence when it changes zones [400.7], and it also overrides the general rule that counters simply cease to exist when an object changes zones [122.2]. When your commander Skullbriar dies, you may use the commander replacement effect to put it into the command zone instead of the graveyard [903.9b]; that's a zone other than hand or library, so the four counters remain, and the card in the command zone is effectively a 5/5 there (per Skullbriar's own ruling that off-battlefield P/T-modifying counters still apply, [Skullbriar, the Walking Grave ruling #3]). Note that putting a card into the command zone when it's already there makes it a technically new object [400.10], but Skullbriar's counter-retention clause isn't limited to \"the battlefield\" - it applies to a move into *any* zone other than hand or library, so the counters still remain despite that new-object status.\n\nWhen you then recast Skullbriar, the card moves from the command zone to the stack, and then (on resolution) from the stack to the battlefield. Neither the stack nor the battlefield is a player's hand or library, so under Skullbriar's ability the four counters remain the whole way through, and Skullbriar enters the battlefield as a 5/5 (1/1 base plus four +1/+1 counters).\n\nDoubling Season, however, only doubles counters that an effect \"puts\" onto a permanent you control. Skullbriar's ability doesn't place or put new counters on it as it changes zones - the counters simply remain, they were never removed and re-added. Per the official ruling, \"The counters that remain on Skullbriar as it changes zones aren't 'placed' on Skullbriar. Effects like Doubling Season's... won't affect those counters\" ([Skullbriar, the Walking Grave ruling #2]). So Doubling Season has nothing to double here - Skullbriar re-enters with exactly the same four +1/+1 counters it had before, not eight.\n\nOne timing note: this assumes the sequence is (1) Skullbriar dies, (2) you choose the command-zone replacement instead of going to the graveyard, (3) you later cast it from the command zone. If instead you let it go to the graveyard first and later returned it to the command zone by some other means, the same retention rule would still apply as long as it never passed through a hand or library zone in between - only a trip through hand or library would strip the counters.\n\nCard data from Scryfall (scryfall.com).",
+    "citations": [
+      "903.9b",
+      "400.7",
+      "122.2",
+      "400.10",
+      "Skullbriar, the Walking Grave ruling #2",
+      "Skullbriar, the Walking Grave ruling #3"
+    ],
+    "gold": [],
+    "gold_text": {},
+    "cited_text": {
+      "903.9b": "A commander may return to the command zone during a Commander game. If a commander would be put into its owner’s hand or library from anywhere, its owner may put it into the command zone instead. This replacement effect may apply more than once to the same event. This is an exception to rule 614.5.",
+      "400.7": "An object that moves from one zone to another becomes a new object with no memory of, or relation to, its previous existence. This rule has the following exceptions.",
+      "122.2": "Counters on an object are not retained if that object moves from one zone to another. The counters are not “removed”; they simply cease to exist. See rule 400.7.",
+      "400.10": "If an object in the command zone is put into the command zone, it doesn’t change zones, but it becomes a new object that has just entered the command zone."
+    },
+    "rewrite_queries": [],
+    "clarification": null
+  },
+  {
+    "id": "c017",
+    "question": "I cast [Final Fortune] to take an extra turn. During that extra turn I use [Sundial of the Infinite] to end the turn before the end step. Do I still lose the game?",
+    "match": "any",
+    "kind": "card-interaction",
+    "show_rewrite": false,
+    "rewrite_version": "v1",
+    "ruling_query_mode": "raw",
+    "condition": "B",
+    "run": 1,
+    "answered": true,
+    "answer": "No — you do not lose the game. Sundial of the Infinite's ability ends the extra turn before the end step ever begins, which means Final Fortune's delayed triggered ability (\"At the beginning of that turn's end step, you lose the game\") never gets the chance to trigger.\n\nHere's why: Final Fortune's ability is a delayed trigger tied specifically to the end step of \"that turn\" — the extra turn it granted you. When you activate Sundial of the Infinite's ability during that extra turn, rule [724.1d] says the current phase or step ends immediately and the game skips straight to the cleanup step, skipping any phases or steps in between — including the end step itself. Since that end step of that specific turn never begins at all, the condition for Final Fortune's trigger (\"at the beginning of that turn's end step\") is never met.\n\nThis is confirmed by [Sundial of the Infinite ruling #1], which explains that any \"at the beginning of the end step\"-triggered ability won't get the chance to trigger that turn because the end step is skipped — it would normally wait for the next turn's end step, similar to how rule [513.2] treats late-arriving end-step triggers. But Final Fortune's ability isn't a generic \"at the beginning of the end step\" trigger that can roll over to a future turn; it's bound specifically to \"that turn's end step\" (the extra turn), so once that particular end step is skipped and never occurs, the ability simply has no end step left to trigger on for that turn and does not fire at all.\n\nThis lines up with [Final Fortune ruling #1], which states that if you end up skipping the extra turn that Final Fortune grants, you don't lose the game — the same logic applies here: because the end step of that granted turn is skipped entirely (never begun), the loss trigger never happens.\n\nAssumption on timing: I'm assuming you activate Sundial of the Infinite's ability during the extra turn while still in an earlier phase/step, strictly before the end step begins (Sundial can only be activated during your turn, and its own text says \"Activate only during your turn\"). If instead the end step had already begun before you activated Sundial of the Infinite, Final Fortune's trigger would already be on the stack or already have triggered, and ending the turn afterward would not stop the loss — the trigger would still resolve normally.\n\nCard data from Scryfall (scryfall.com).",
+    "citations": [
+      "724.1d",
+      "513.2",
+      "Sundial of the Infinite ruling #1",
+      "Final Fortune ruling #1",
+      "Final Fortune"
+    ],
+    "gold": [],
+    "gold_text": {},
+    "cited_text": {
+      "724.1d": "Some cards end the turn. When an effect ends the turn, follow these steps in order, as they differ from the normal process for resolving spells and abilities (see rule 608, “Resolving Spells and Abilities”). The current phase and/or step ends. If this happens during combat, remove all creatures and planeswalkers from combat. The game skips straight to the cleanup step; skip any phases or steps between this phase or step and the cleanup step. If an effect ends the turn during the cleanup step, a new cleanup step begins.",
+      "513.2": "If a permanent with an ability that triggers “at the beginning of the end step” enters the battlefield during this step, that ability won’t trigger until the next turn’s end step. Likewise, if a delayed triggered ability that triggers “at the beginning of the next end step” is created during this step, that ability won’t trigger until the next turn’s end step. In other words, the step doesn’t “back up” so those abilities can go on the stack. This rule applies only to triggered abilities; it doesn’t apply to continuous effects whose durations say “until end of turn” or “this turn.” (See rule 514, “Cleanup Step.”)"
+    },
+    "rewrite_queries": [],
+    "clarification": null
+  },
+  {
+    "id": "c018",
+    "question": "I cast [Clone]. When and how do I choose what it copies, and can my opponent respond to that choice?",
+    "match": "any",
+    "kind": "card-interaction",
+    "show_rewrite": false,
+    "rewrite_version": "v1",
+    "ruling_query_mode": "raw",
+    "condition": "B",
+    "run": 1,
+    "answered": true,
+    "answer": "You choose what Clone copies as part of it entering the battlefield, and your opponent cannot respond to that choice.\n\nClone's card text says \"You may have this creature enter as a copy of any creature on the battlefield.\" This is an \"as ... enters the battlefield\" instruction, which under rule [707.6] means the choice is made by Clone's controller (you) at the moment Clone enters the battlefield, not while Clone is on the stack as a spell and not as a separate ability that goes on the stack. Because this choice is baked into the replacement effect governing how Clone enters, no player gets priority to respond to it — there's no window for instants or abilities to interject between \"Clone is entering\" and \"the copy choice is applied,\" since they happen as a single event. This is also confirmed by [Clone ruling #0]: Clone's ability doesn't target the chosen creature, so there's nothing for an opponent to respond to (e.g., no way to remove the chosen creature in response to the targeting, because there is no targeting at all).\n\nPractically: when Clone would enter the battlefield, you look at the creatures already on the battlefield at that time and pick one to copy, or decline to copy anything. Per [Clone ruling #2], you may only choose a creature that was already on the battlefield before Clone entered — if Clone enters simultaneously with another creature, you can't copy that other creature. Per [Clone ruling #5], you can also choose not to copy anything, in which case Clone stays a 0/0 Shapeshifter and will likely die to state-based actions immediately. Once you make the choice, Clone's copiable values become those of the chosen creature per [707.2], and this happens all at once as Clone enters — there is no priority pass in between for opponents to react specifically to your choice (though normal priority still occurs before and after Clone's entering as usual, e.g., they could still respond to your casting of the Clone spell itself before it resolves, per [601.2c], but not to the in-battlefield copy choice itself).\n\nCard data from Scryfall (scryfall.com).",
+    "citations": [
+      "707.6",
+      "707.2",
+      "Clone ruling #0",
+      "Clone ruling #2",
+      "Clone ruling #5",
+      "601.2c"
+    ],
+    "gold": [],
+    "gold_text": {},
+    "cited_text": {
+      "707.6": "When copying a permanent, any choices that have been made for that permanent aren’t copied. Instead, if an object enters the battlefield as a copy of another permanent, the object’s controller will get to make any “as [this] enters the battlefield” choices for it. A Clone enters the battlefield as a copy of Adaptive Automaton. Adaptive Automaton reads, in part, “As this creature enters, choose a creature type.” The Clone won’t copy the creature type choice of the Automaton; rather, the controller of the Clone will get to make a new choice.",
+      "707.2": "When copying an object, the copy acquires the copiable values of the original object’s characteristics and, for an object on the stack, choices made when casting or activating it (mode, targets, the value of X, whether it was kicked, how it will affect multiple targets, and so on). The copiable values are the values derived from the text printed on the object (that text being name, mana cost, color indicator, card type, subtype, supertype, rules text, power, toughness, and/or loyalty), as modified by other copy effects, by its face-down status, and by “as . . . enters” and “as . . . is turned face up” abilities that set power and toughness (and may also set additional characteristics). Other effects (including type-changing and text-changing effects), status, counters, and stickers are not copied. Chimeric Staff is an artifact that reads, “{X}: This artifact becomes an X/X Construct artifact creature until end of turn.” Clone is a creature that reads, “You may have this creature enter as a copy of any creature on the battlefield.” After a Staff has become a 5/5 Construct artifact creature, a Clone enters the battlefield as a copy of it. The Clone is an artifact, not a 5/5 Construct artifact creature. (The copy has the Staff’s ability, however, and will become a creature if that ability is activated.) Clone enters the battlefield as a copy of a face-down Grinning Demon (a creature with morph {2}{B}{B}). The Clone is a colorless 2/2 creature with no name, no types, no abilities, and no mana cost. It will still be face up. Its controller can’t pay {2}{B}{B} to turn it face up.",
+      "601.2c": "To cast a spell is to take it from where it is (usually the hand), put it on the stack, and pay its costs, so that it will eventually resolve and have its effect. Casting a spell includes proposal of the spell (rules 601.2a–d) and determination and payment of costs (rules 601.2f–h). To cast a spell, a player follows the steps listed below, in order. A player must be legally allowed to cast the spell to begin this process (see rule 601.3). If a player is unable to comply with the requirements of a step listed below while performing that step, the casting of the spell is illegal; the game returns to the moment before the casting of that spell was proposed (see rule 733, “Handling Illegal Actions”). The player announces their choice of an appropriate object or player for each target the spell requires. A spell may require some targets only if an alternative or additional cost (such as a kicker cost) or a particular mode was chosen for it; otherwise, the spell is cast as though it did not require those targets. Similarly, a spell may require alternative targets only if an alternative or additional cost was chosen for it. If the spell has a variable number of targets, the player announces how many targets they will choose before they announce those targets. In some cases, the number of targets will be defined by the spell’s text. Once the number of targets the spell has is determined, that number doesn’t change, even if the information used to determine the number of targets does. The same target can’t be chosen multiple times for any one instance of the word “target” on the spell. However, if the spell uses the word “target” in multiple places, the same object or player can be chosen once for each instance of the word “target” (as long as it fits the targeting criteria). If any effects say that an object or player must be chosen as a target, the player chooses targets so that they obey the maximum possible number of such effects without violating any rules or effects that say that an object or player can’t be chosen as a target. The chosen objects and/or players each become a target of that spell. (Any abilities that trigger when those objects and/or players become the target of a spell trigger at this point; they’ll wait to be put on the stack until the spell has finished being cast.) If a spell says “Tap two target creatures,” then the same creature can’t be chosen twice; the spell requires two different legal targets. A spell that says “Destroy target artifact and target land,” however, can target the same artifact land twice because it uses the word “target” in multiple places."
+    },
+    "rewrite_queries": [],
+    "clarification": null
+  },
+  {
+    "id": "c019",
+    "question": "I activate my [Flooded Strand]'s ability, then activate [Gogo, Master of Mimicry] with X=2 to copy it twice. How many lands do I get from that one Flooded Strand?",
+    "match": "any",
+    "kind": "card-interaction",
+    "show_rewrite": false,
+    "rewrite_version": "v1",
+    "ruling_query_mode": "raw",
+    "condition": "B",
+    "run": 1,
+    "answered": true,
+    "answer": "You get 3 lands total: the original Flooded Strand activation plus the two copies Gogo, Master of Mimicry creates.\n\nHere's why. Flooded Strand's activated ability reads \"{T}, Pay 1 life, Sacrifice this land: Search your library for a Plains or Island card, put it onto the battlefield, then shuffle.\" You pay that cost (tap, pay 1 life, sacrifice Flooded Strand) once, and the ability goes on the stack once. Gogo, Master of Mimicry's ability then targets that activated ability on the stack and creates two additional instances of it — per [Gogo, Master of Mimicry ruling #6], Gogo's ability \"creates one or more additional instances of that ability on the stack. It doesn't cause any object to gain any abilities,\" and it can copy any activated ability on the stack, targeted or not [Gogo, Master of Mimicry ruling #8]. Copying an ability doesn't re-trigger or re-pay its activation cost — the sacrifice of Flooded Strand only happens once, when you originally activated it.\n\nSo after Gogo's ability resolves, the stack has three separate instances of Flooded Strand's search ability: the original plus two copies, each keeping the same source (the now-sacrificed Flooded Strand, per [Gogo, Master of Mimicry ruling #9]) and copying the decisions made for the original ability per rule [707.10b]. Each of those three instances resolves independently: each one searches your library for a Plains or Island card, puts that card onto the battlefield, and then shuffles your library. Since each instance is a full copy of the whole ability (search, put onto battlefield, then shuffle) rather than a repeated \"search\" instruction stacked before a single shuffle, they don't merge the way rule [701.23h] describes for multiple search instructions preceding one shuffle — that rule applies when several search instructions are given before a single shuffle instruction, which isn't the case here since each copy carries its own \"then shuffle.\"\n\nNet result: assuming your library still has enough Plains or Island cards available, you fetch 3 lands onto the battlefield from that one Flooded Strand activation. If your library only has, say, one qualifying land left, you'd only get as many as are actually available, since [701.23b] confirms you're never forced to find a card that isn't there (though here you're not even required to find ones that exist, if you prefer fewer).\n\nCard data from Scryfall (scryfall.com).",
+    "citations": [
+      "Gogo, Master of Mimicry ruling #6",
+      "Gogo, Master of Mimicry ruling #8",
+      "Gogo, Master of Mimicry ruling #9",
+      "707.10b",
+      "701.23h",
+      "701.23b"
+    ],
+    "gold": [],
+    "gold_text": {},
+    "cited_text": {
+      "707.10b": "To copy a spell, activated ability, or triggered ability means to put a copy of it onto the stack; a copy of a spell isn’t cast and a copy of an activated ability isn’t activated. A copy of a spell or ability copies both the characteristics of the spell or ability and all decisions made for it, including modes, targets, the value of X, and additional or alternative costs. (See rule 601, “Casting Spells.”) Choices that are normally made on resolution are not copied. If an effect of the copy refers to objects used to pay its costs, it uses the objects used to pay the costs of the original spell or ability. A copy of a spell is owned by the player under whose control it was put on the stack. A copy of a spell or ability is controlled by the player under whose control it was put on the stack. A copy of a spell is itself a spell, even though it has no spell card associated with it. A copy of an ability is itself an ability. A copy of an ability has the same source as the original ability. If the ability refers to its source by name, the copy refers to that same object and not to any other object with the same name. The copy is considered to be the same ability by effects that count how many times that ability has resolved during the turn.",
+      "701.23h": "Search An effect may instruct a player to search a library for one or more cards more than once before instructing a player to shuffle that library. This is the same as a single instruction for that player to search that library for all those cards. The player searches that library only once.",
+      "701.23b": "Search If a player is searching a hidden zone for cards with a stated quality, such as a card with a certain card type or color, that player isn’t required to find some or all of those cards even if they’re present in that zone. Splinter says “Exile target artifact. Search its controller’s graveyard, hand, and library for all cards with the same name as that artifact and exile them. Then that player shuffles their library.” A player casts Splinter targeting Howling Mine (an artifact). Howling Mine’s controller has another Howling Mine in her graveyard and two more in her library. Splinter’s controller must find the Howling Mine in the graveyard, but may choose to find zero, one, or two of the Howling Mines in the library."
+    },
+    "rewrite_queries": [],
+    "clarification": null
+  }
+]
