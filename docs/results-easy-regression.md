@@ -88,9 +88,14 @@ everything else it misses appears in one rep only, which is noise. Sonnet misses
 that same core plus a consistently wider spread.
 
 **The three missed by every arm of both models are gold-error candidates, not
-model failures.** They are the same shape as the 11 unreachable questions in
+model failures.** They are the same shape as the 10 still-failing rows in
 `docs/results-derivability.md`, and they belong in the audit pool
 (`docs/spec-gold-audit-ui.md`, batch 2) rather than in a model comparison.
+
+Batch 1 of that audit has since been graded — `docs/results-gold-audit-batch1.md`
+— and it found that **a third of the rows it examined were judge false negatives,
+not failures at all.** Treat these three the same way: candidates for grading, not
+established errors.
 
 ## Cost: opus-low is CHEAPER on hard questions and DEARER on easy ones today
 

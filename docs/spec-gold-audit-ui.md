@@ -5,6 +5,13 @@ first, using the gold-audit vocabulary.
 
 ## What this is for
 
+> **Outcome, added 2026-07-26 — the framing below has since been overturned by
+> the very audit it specifies.** Batch 1 found that 5 of the 15 rows were **judge
+> false negatives**, including all 4 of the "incomplete gold" rows. The
+> unreachable/incomplete split in this section is what we believed when the
+> screen was built, kept as-is because it is the input the build used. For what
+> the rows turned out to be, read `docs/results-gold-audit-batch1.md`.
+
 `docs/results-derivability.md` established that 11 of 150 questions are
 **unreachable by any retrieval work** — hand the model the complete gold rules
 and it still fails — and that 4 more had **incomplete gold** (they passed once
