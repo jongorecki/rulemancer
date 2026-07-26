@@ -49,15 +49,32 @@ complete at `evals/answers/opus5_low_norewrite_costbase.json` (68 rows,
 opus-5 @ effort low, no rewriter, $5.04 total, **$0.0741/question**, zero
 truncations, zero declines, zero uncited answers).
 
-The auto-judge was **still running** when this handoff was written —
-`evals/verdicts_opus5_low_bucketA.json`, via `evals/judge_rulesguru.py` (frozen
-judge, gpt-5-mini). Check whether it finished; if not, re-run it. Then bring Jon
-the disagreements to read, not a grade.
+**The auto-judge finished: 51/68 = 75.0%**
+(`evals/verdicts_opus5_low_bucketA.json`, frozen judge, digest
+`b54fbdb95565abf8` **unchanged** — the instrument did not move, so this is
+comparable to every prior number). Monotonic by difficulty, which validates the
+labels and the judge together:
 
-What's at stake: on the first 10 rows Jon graded **9/10 correct**, against
-sonnet's 63.0%/66.7% on the same bucket-A population, at **31% lower cost**. If
-that holds at 68 rows it is outside the noise floor and opus-low replaces sonnet
-on both axes. n=10 had a 95% CI of roughly 60-98%, so it was suggestive only.
+```
+Level 1      9/9   100%      Level 3        9/15   60%
+Level 2     30/39   77%      Corner Case    3/5    60%
+```
+
+**Against sonnet's 63.0%/66.7% BASE reps on the same bucket, judged by the same
+frozen instrument, at 31% lower cost.** Opus-low is above both reps — but the
++8-12pt gap sits inside the measured 11% within-arm noise band, so it is
+"clearly not worse, probably better", not proven better. Note also that several
+variables differ from BASE (model, effort, rewriter off), so the delta cannot be
+attributed to one.
+
+**17 disagreements are waiting for Jon to read** — that is the remaining work on
+this question, and it is not delegable. A grader is built at
+`data/parsed/grading_opus5_disagreements.html`. Expect some to be judge errors:
+Jon's earlier regrade of 42 sonnet misses recovered 8 (~19%), which would put
+true accuracy nearer 78-80%. `rg104` is among the 17 and Jon has already
+confirmed it genuinely wrong (a reasoning miss — the model cited `702.16d`,
+which states both that the equip is illegal and that the Equipment unattaches as
+an SBA, and still answered "stays attached").
 
 ---
 

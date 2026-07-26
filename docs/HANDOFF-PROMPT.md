@@ -27,13 +27,19 @@ rate needs 5-8x the depth. Don't report the drop as a regression.
 
 **Grade the 68-row bucket-A arm and settle the model question.** The run is done
 (`evals/answers/opus5_low_norewrite_costbase.json`, opus-5 @ effort low, no
-rewriter, $0.0741/question, 0 truncations). An auto-judge run was still in
-flight at handoff time → `evals/verdicts_opus5_low_bucketA.json` via
-`evals/judge_rulesguru.py`. Check it finished; re-run if not. **Bring Jon the
-disagreements to read, not a grade.**
+rewriter, $0.0741/question, 0 truncations). The auto-judge finished: **51/68 = 75.0%**
+(`evals/verdicts_opus5_low_bucketA.json`, frozen judge, digest
+`b54fbdb95565abf8` unchanged). Monotonic by difficulty: L1 100%, L2 77%, L3 60%,
+Corner Case 60%.
 
-Jon graded the first 10 at **9/10**, against sonnet's 63.0%/66.7% on the same
-population at 31% higher cost. If that holds at 68 it's outside the noise floor.
+**Against sonnet's 63.0%/66.7% BASE reps on the same bucket and the same frozen
+judge, at 31% lower cost.** Above both, but the gap is inside the measured 11%
+noise band — "clearly not worse, probably better", not proven.
+
+**The remaining work is Jon reading the 17 disagreements**, which is not
+delegable. Grader built at `data/parsed/grading_opus5_disagreements.html`.
+Expect ~19% of flags to be judge errors, per his earlier regrade of 42 sonnet
+misses, which would put true accuracy nearer 78-80%.
 
 Also check on a subagent that was sharpening over-broad "header" gold →
 `evals/gold_proposals_headers.jsonl`. Neither job mutates existing eval files.
