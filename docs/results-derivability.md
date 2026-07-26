@@ -130,6 +130,31 @@ CR rules in Jon's derivation are already in the index**, and multi-query moved
 the key rule from rank 33 to rank 10. The gap there is multi-hop reach, not
 missing content (see the handoff's retrieval section).
 
+## Footnote — this arm's ruling citations are unusable
+
+**The accuracy stands; the citations do not.** These prompts were built by
+`evals/build_gold_prompts.py`, which called `build_prompt()` directly at a time
+when card-ruling labels were applied inside `RulesAgent.answer()`. So the rulings
+rendered as an unlabelled bullet list while the system prompt still instructed
+the model to cite `[Card Name ruling #N]`. With no labels to copy the model
+counted bullets **1-based**, and **every ruling citation in this arm is off by
+one** — 83 of the 120 rows that cite a ruling carry at least one index past the
+end of the card's list. Full investigation:
+`docs/report-ruling-citation-offbyone.md`.
+
+**This does not touch the 93.3%.** The judge compares answer text to the
+reference answer; it never resolves a citation label. Spot-checked by hand, the
+1-based reading lands on the *correct* ruling — the reasoning was right, the
+index was wrong. CR rule citations (`[614.12]` and friends) are unaffected; those
+labels were always real.
+
+The labelling now happens inside `build_prompt()`, the boundary every prompt
+builder shares, so a future builder cannot reintroduce this by not knowing it had
+to (`label_rulings()`, guarded by `tests/test_ruling_labels.py`). **Jon's call,
+2026-07-26: do not re-run arm B for the fix** — the accuracy is unchanged and the
+re-run would cost about what arm B cost. Treat this arm's `citations` field as
+unusable for analysis; use a post-fix arm instead.
+
 ## Limits of this number, stated plainly
 
 - **A ceiling-ish figure, not a forecast.** Arm B ran opus-5 at effort high with

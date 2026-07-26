@@ -128,7 +128,28 @@ them.
 indices against the card panel, which renders real 0-based Scryfall rulings. The
 mismatch he spotted is real; its cause was upstream of the UI.
 
-## Recommended fix — needs a ruling before any code moves
+## RULED AND SHIPPED (Jon, 2026-07-26)
+
+**(a) Move the labelling to the boundary — done.** `label_rulings()` now lives in
+`src/rulesagent/generate/answer.py` and is applied inside `build_prompt()`, which
+every prompt builder routes through. It is **idempotent**: `answer()` still labels
+its filtered subset with the original Scryfall indices (which a renderer cannot
+recover from a filtered list), and the second pass leaves those untouched — so
+production prompts stay byte-identical, guarded by
+`tests/test_prompt_identity.py`. Ten new tests in `tests/test_ruling_labels.py`
+hold the invariant, including the subset case where positional relabelling would
+silently renumber `#2, #5` to `#0, #1`.
+
+Verified end-to-end on the exact cards from `rg1095` (Primal Vigor 4 rulings,
+Rescuer Sphinx 3): 7 labels emitted, **zero out of range, 0-based**. Suite 645.
+
+**(b) Arm B is NOT re-run — footnoted instead.** The accuracy is unaffected
+(the judge never resolves a citation), so the re-run would buy usable citations
+and nothing else, at roughly arm B's original cost. `docs/results-derivability.md`
+now carries a footnote marking that arm's `citations` field unusable for
+analysis. Use a post-fix arm if citation data is ever needed.
+
+## Recommended fix — the analysis that led to the ruling above
 
 **Move labelling to the shared boundary rather than patching the one caller.**
 Labelling inside `build_prompt()` (or a `label_rulings()` helper it calls) means

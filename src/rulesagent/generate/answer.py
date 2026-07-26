@@ -1306,6 +1306,44 @@ def _format_context(retrieved: list[Retrieved]) -> str:
     return "\n\n".join(f"[{r.chunk.source_id}] {r.chunk.text}" for r in retrieved)
 
 
+_RULING_LABEL_RE = re.compile(r"^\[.+? ruling #\d+\] ")
+
+
+def label_rulings(card: Card, indices: list[int] | None = None) -> Card:
+    """Return a copy of `card` whose rulings carry their citation labels.
+
+    THE INVARIANT THIS EXISTS TO HOLD. The system prompt promises the model that
+    "Card rulings in the context are labeled like [Card Name ruling #4]" and tells
+    it to cite that exact label. Anything that renders cards without applying
+    these labels ships a prompt that breaks its own promise, and the model has no
+    option but to invent a numbering -- it counts the bullets 1-based, so the last
+    ruling of an N-ruling card is cited as #N, one past the end of the 0-based
+    scheme. That is exactly what happened to the derivability arms (69% of citing
+    rows affected; docs/report-ruling-citation-offbyone.md), because the labelling
+    lived in RulesAgent.answer() while the rendering lived in build_prompt().
+    Labelling now happens at the boundary, so a future prompt builder cannot
+    reintroduce the defect by not knowing it had to.
+
+    `indices` selects a SUBSET of `card.rulings` by original Scryfall index -- the
+    selection path, where the model sees a few rulings but must cite them by the
+    index that maps back to `ruling_id()` and the gold `oracle_id#index`. None
+    labels every ruling with its own position, which is correct when the whole
+    list is present (union / dump-all).
+
+    **Idempotent by design.** `answer()` labels a filtered subset before calling
+    build_prompt(), which labels again; an already-labelled ruling is returned
+    untouched, so production prompts stay byte-identical (guarded by
+    tests/test_prompt_identity.py) and double labels are impossible.
+    """
+    src = card.rulings
+    picks = range(len(src)) if indices is None else indices
+    out = [
+        src[i] if _RULING_LABEL_RE.match(src[i]) else f"[{card.name} ruling #{i}] {src[i]}"
+        for i in picks
+    ]
+    return card.model_copy(update={"rulings": out})
+
+
 def build_prompt(question: str, retrieved: list[Retrieved], cards: list[Card],
                  convo_ctx: str | None = None,
                  rewrite_queries: list[str] | None = None,
@@ -1331,7 +1369,13 @@ def build_prompt(question: str, retrieved: list[Retrieved], cards: list[Card],
         # Card data goes in AFTER the rules context, per Jon's call in
         # the plan -- it enriches generation, it never touches
         # retrieval or the (unchanged) rewrite step.
-        user += f"\n\nCard data:\n{_format_cards(cards)}"
+        #
+        # Label at the boundary, not in the caller: every prompt builder routes
+        # through here, so the citation labels the system prompt promises cannot
+        # go missing for a caller that didn't know to add them. Idempotent, so
+        # answer()'s subset labelling (with original indices) passes through
+        # untouched. See label_rulings().
+        user += f"\n\nCard data:\n{_format_cards([label_rulings(c) for c in cards])}"
     # Slice 2, selective symbol injection (docs/plan-v5-symbol-injection.md
     # Sec 5a). Scan ONLY the cards (mana_cost + oracle_text, every face)
     # and the question text -- NEVER `context`/`retrieved`, the assembled
@@ -1938,15 +1982,15 @@ class RulesAgent:
                 # Label each ruling with its ORIGINAL Scryfall index so the
                 # model can cite it precisely ("[Name ruling #4]") and the
                 # cited label maps back to the gold oracle_id#index (L8).
-                picked.append(card.model_copy(update={"rulings": [
-                    f"[{card.name} ruling #{i}] {card.rulings[i]}" for i, _ in sel]}))
+                # build_prompt() also labels, idempotently -- this call is what
+                # supplies the original indices, which it cannot recover from a
+                # filtered list.
+                picked.append(label_rulings(card, [i for i, _ in sel]))
             cards, self.last_ruling_selection = picked, selection
         else:
             # Dump-all A/B path gets the same labels, so the cite-by-label
             # convention holds in both configs.
-            cards = [c.model_copy(update={"rulings": [
-                f"[{c.name} ruling #{i}] {r}" for i, r in enumerate(c.rulings)]})
-                for c in cards]
+            cards = [label_rulings(c) for c in cards]
         self.last_cards = cards
 
         if self.rewrite:
