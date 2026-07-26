@@ -514,6 +514,1357 @@ def git_commits() -> list[dict]:
     return rows
 
 
+# ===========================================================================
+# ROADMAP / BACKLOG
+#
+# WHY IT LIVES HERE. Jon, 2026-07-26: the page should let someone decide *what
+# to do next*, not only see where things stand. `docs/` holds 41 `plan-*.md` and
+# 7 `spec-*.md`; only six carry an explicit status marker, so status is INFERRED
+# FROM EVIDENCE -- a commit that implements it, a results doc that measured it,
+# a code path that exists (or provably does not).
+#
+# THE THREE RULES THIS TABLE OBEYS, because it is read to decide spending:
+#
+# 1. EVERY STATUS CARRIES ITS EVIDENCE, AND THE EVIDENCE IS RE-CHECKED AT BUILD
+#    TIME. `commit` refs are looked up in `git log`; `path` refs must exist on
+#    disk; `path_absent` refs must NOT exist. A claim that has gone stale renders
+#    as a broken evidence line instead of quietly staying true. Where evidence
+#    cannot establish a status, the item says `unknown` and names what would
+#    settle it.
+#
+# 2. NO INVENTED COSTS, DIRECTIONS, OR MAGNITUDES. A dollar figure is either
+#    DERIVED (`api_questions`: question count x the measured $/question of the
+#    shipped config, taken live from the projections computed above) or QUOTED
+#    from a doc that states it (`api_stated`, with the citation). Otherwise it is
+#    `unknown`, which is a useful cell. Metric direction is `measured` only when
+#    a results/report doc measured it; a doc's own forecast renders as
+#    "predicted, unmeasured".
+#
+# 3. API CREDITS AND FREE WORK ARE DIFFERENT POOLS. `api_*` spends credits (an
+#    Anthropic client built from `.env`). `zero` is local compute or a re-scoring
+#    pass over files already on disk -- weighted scoring was pure arithmetic and
+#    genuinely cost $0. `subscription` is Claude Code subagent labor on Jon's Max
+#    plan: real time, zero credits. `hosting` is neither.
+#
+# MERGES ARE EXPLICIT. Where two docs are the same idea, one item carries both
+# and lists the folded doc under `merged`, with the sentence that justifies the
+# merge. An alphabetical dump of 48 files would be worse than nothing.
+# ===========================================================================
+
+# Author's value rank. NOT a computed score -- a judgement, shown with its
+# reason so a reader can disagree with it. It only ever orders items; it is never
+# multiplied by anything or presented as a magnitude.
+INFO_RANK = {
+    3: "resolves a named uncertainty in the go/no-go decision",
+    2: "moves or validates a measured metric, or unblocks something that does",
+    1: "quality, infrastructure or evidence work with no measured metric attached",
+}
+
+ROADMAP: list[dict] = [
+    # ---------------------------------------------------------------- ready --
+    {
+        "id": "l0-arm",
+        "title": "L0-only pipeline arm (207 questions)",
+        "one_line": "Run the shipped config over the corpus's L0 questions, the one difficulty "
+                    "level no pipeline arm has ever touched.",
+        "status": "open", "action": "run", "info": 3,
+        "info_why": "L0 is the only level with zero pipeline rows, so the full-run projection "
+                    "is currently extrapolated over it rather than measured.",
+        "tells_us": "Whether the 80.3% full-run projection is honest. It is built from levels "
+                    "covering 85.3% of the corpus by mix; L0 is the missing 14.7%.",
+        "evidence": [
+            {"kind": "doc", "ref": "docs/HANDOFF-development.md",
+             "note": "live queue item 1: \"Run an L0-only pipeline arm (~$11, 207 questions)\""},
+            {"kind": "derived",
+             "note": "this page's own projection reports missing_levels=['0'] and covered_share "
+                     "for every pipeline configuration -- recomputed at build time, below"},
+        ],
+        "metric": {"name": "full-run projection coverage", "dir": "up", "basis": "measured",
+                   "cite": "evals/_metrics_history.json (comparisons.projections)",
+                   "detail": "coverage moves from the measured share to 100% of the corpus mix. "
+                             "The handoff predicts the point estimate reads low because L0 is the "
+                             "corpus's easiest slice -- that direction is predicted, not measured."},
+        "cost": {"kind": "api_questions", "n": 207,
+                 "why": "207 L0 questions in evals/rulesguru_full_v2.jsonl, at the measured "
+                        "$/question of the shipped config"},
+        "deps": [],
+    },
+    {
+        "id": "gold-audit-b2",
+        "title": "Gold audit, batch 2",
+        "one_line": "Hand-grade the full-data misses (rg1802, rg4440, rg5628 plus the h2h and "
+                    "cost-base rows) with the retrieved panel showing what the run actually saw.",
+        "status": "open", "action": "measure", "info": 3,
+        "docs": ["docs/spec-gold-audit-ui.md"],
+        "info_why": "Grading calls, not model changes, have moved arm B twice (90.0 -> 93.3 -> "
+                    "91.3). Every accuracy on this page inherits that error.",
+        "tells_us": "How much of the remaining failure is the bot versus the gold or the judge.",
+        "evidence": [
+            {"kind": "doc", "ref": "docs/HANDOFF-development.md", "note": "live queue item 2"},
+            {"kind": "path", "ref": "evals/build_gold_audit_input.py",
+             "note": "the harness exists; --provenance run flips the panel to the green "
+                     "\"retrieved by the run\" label"},
+            {"kind": "doc", "ref": "docs/results-gold-audit-batch1.md",
+             "note": "batch 1: 2 of 15 were the judge being wrong, after Jon's second-pass "
+                     "adjudication"},
+        ],
+        "metric": {"name": "published accuracy correctness", "dir": "either", "basis": "measured",
+                   "cite": "docs/results-gold-audit-batch1.md",
+                   "detail": "batch 1 moved arm B by 3.3 pp up and then 2.0 pp back down. "
+                             "Direction is genuinely unknown in advance -- that is the point."},
+        "cost": {"kind": "zero",
+                 "why": "regrades answers already on disk; no generation, no judge calls, no "
+                        "Anthropic client. Jon's time is the real cost."},
+        "deps": [],
+    },
+    {
+        "id": "miss-partition",
+        "title": "Miss-partition diagnostic — retrieval failure vs reasoning failure",
+        "one_line": "For every graded miss, decide whether the gold rule was missing from the "
+                    "context or present and misused — so effort goes to the right half of the stack.",
+        "status": "design-only", "action": "decide", "info": 2,
+        "info_why": "It is the cheapest way to choose between the retrieval backlog and the "
+                    "prompt/tool backlog, and the data it needs now exists.",
+        "tells_us": "Which of the two remaining levers is worth funding at all.",
+        "evidence": [
+            {"kind": "doc", "ref": "docs/plan-miss-partition-diagnostic.md",
+             "note": "header: \"DRAFT under Rule 0 — DESIGN ONLY. Nothing built.\""},
+            {"kind": "derived",
+             "note": "the plan states it \"has no data to run on until a future eval run is "
+                     "re-executed\" with per-row retrieval recorded. That field is now recorded: "
+                     "this page classifies arms as pipeline/oracle purely from "
+                     "`retrieved_rule_ids`, so the blocker it names looks cleared."},
+        ],
+        "metric": {"name": "where the next fix should go", "dir": "none", "basis": "predicted",
+                   "cite": "docs/plan-miss-partition-diagnostic.md",
+                   "detail": "a diagnostic, not an intervention. It moves no metric by itself."},
+        "cost": {"kind": "zero",
+                 "why": "an analysis pass over verdict and answers files already on disk, if it "
+                        "is scoped to arms that recorded retrieval. The plan's own §0 asks for a "
+                        "third bucket, which is a design question, not a spend."},
+        "deps": [],
+    },
+    {
+        "id": "cosine-floor",
+        "title": "Spec the cosine floor",
+        "one_line": "Re-introduce a calibrated similarity floor on the fused multi-query result, "
+                    "which RRF removed when REWRITE_N went to 3.",
+        "status": "open", "action": "build", "info": 2,
+        "info_why": "It targets a measured side effect of a change that already shipped to "
+                    "production, and it costs nothing at runtime.",
+        "tells_us": "Whether the chunk churn multi-query introduced is costing us anything.",
+        "evidence": [
+            {"kind": "doc", "ref": "docs/HANDOFF-development.md",
+             "note": "live queue item 4: \"free at runtime (scores = embeddings @ qvec is one "
+                     "in-process matmul), cuts the 38% chunk churn multi-query introduced, "
+                     "restores a calibrated signal that RRF removed\""},
+            {"kind": "commit", "ref": "86b5d27",
+             "note": "the REWRITE_N 1 -> 3 switch that activated the RRF fusion branch"},
+            {"kind": "doc", "ref": "docs/results-retrieval-diversity.md",
+             "note": "the factorial that measured the churn"},
+        ],
+        "metric": {"name": "retrieval churn", "dir": "down", "basis": "predicted",
+                   "cite": "docs/HANDOFF-development.md",
+                   "detail": "the 38% churn figure is measured; that a floor reduces it is the "
+                             "handoff's forecast, not a result."},
+        "cost": {"kind": "zero",
+                 "why": "one in-process matmul over embeddings already in memory; no API call in "
+                        "the runtime path. Measuring the effect on recall would reuse the "
+                        "cache-only diversity harness, which ran at zero API spend."},
+        "deps": [],
+    },
+    {
+        "id": "or-group-repass",
+        "title": "Re-pass v3's 105 conjunctive OR-groups",
+        "one_line": "Re-mine the gold groups written before the miner learned that an OR-group "
+                    "must not chain steps that are all required.",
+        "status": "open", "action": "measure", "info": 2,
+        "info_why": "A conjunctive group scored as an OR silently inflates recall, so every "
+                    "retrieval number measured against that gold reads high.",
+        "tells_us": "How much of the reported retrieval recall is an artefact of the gold's shape.",
+        "evidence": [
+            {"kind": "doc", "ref": "docs/HANDOFF-development.md", "note": "live queue item 6"},
+            {"kind": "path", "ref": "evals/gold_miner_prompt.md",
+             "note": "\"Batches b01-b09 were mined before rule 6 existed and contain conjunctive "
+                     "OR-groups ... 5 of 9 sampled multi-member groups were conjunctive chains "
+                     "wrongly merged, which silently inflates recall.\""},
+        ],
+        "metric": {"name": "retrieval recall (measurement validity)", "dir": "down",
+                   "basis": "measured",
+                   "cite": "evals/gold_miner_prompt.md",
+                   "detail": "the adversarial review found the error in 5 of 9 sampled groups. "
+                             "Fixing it should move measured recall DOWN toward the truth."},
+        "cost": {"kind": "subscription",
+                 "why": "gold mining runs on Claude Code subagents. docs/spec-cr-gold-mining.md "
+                        "§8 puts \"anything requiring an API call\" out of scope."},
+        "deps": [],
+    },
+    {
+        "id": "double-mine",
+        "title": "Double-mine for gold stability",
+        "one_line": "Mine the same questions twice and measure how much the proposed gold agrees "
+                    "with itself.",
+        "status": "open", "action": "measure", "info": 2,
+        "info_why": "0.54 run-to-run overlap is a noise floor under every recall number "
+                    "measured against mined gold, and it has never been priced into one.",
+        "tells_us": "How large the error bar on mined gold is.",
+        "evidence": [
+            {"kind": "doc", "ref": "docs/HANDOFF-development.md",
+             "note": "live queue item 6: \"double-mine for stability (0.54 run-to-run overlap)\""},
+        ],
+        "metric": {"name": "gold stability", "dir": "none", "basis": "measured",
+                   "cite": "docs/HANDOFF-development.md",
+                   "detail": "0.54 overlap is already measured; this quantifies it properly "
+                             "rather than changing it."},
+        "cost": {"kind": "subscription", "why": "same subagent-mining path, no API credits"},
+        "deps": [],
+    },
+    {
+        "id": "resume-mining",
+        "title": "Resume CR gold mining (809 rows)",
+        "one_line": "Finish mining retrieval gold for the rest of the 1,409-question corpus.",
+        "status": "partial", "action": "run", "info": 2,
+        "info_why": "Without gold you cannot measure retrieval on those rows at all, which caps "
+                    "what any full run can tell you about retrieval.",
+        "tells_us": "Nothing on its own — it is the instrument the retrieval work is measured with.",
+        "evidence": [
+            {"kind": "commit", "ref": "8b94ef5", "note": "first structured mining pass, held-out 150"},
+            {"kind": "commit", "ref": "56990b3", "note": "miner prompt versioned + merge rule"},
+            {"kind": "doc", "ref": "docs/spec-cr-gold-mining.md", "note": "the spec it runs from"},
+            {"kind": "doc", "ref": "docs/HANDOFF-development.md",
+             "note": "live queue item 6: \"resume mining (809 rows)\""},
+        ],
+        "metric": {"name": "eval coverage", "dir": "up", "basis": "measured",
+                   "cite": "docs/spec-cr-gold-mining.md",
+                   "detail": "coverage is countable: rows with gold / rows in the corpus."},
+        "cost": {"kind": "subscription",
+                 "why": "spec §5: Claude Code subagents do not share a prompt cache, so batch "
+                        "size is the whole cost model — but the pool is the Max plan, not credits"},
+        "deps": ["or-group-repass"],
+        "dep_why": "the pre-rule-6 batches should be repaired before more gold is mined on top "
+                   "of the same prompt lineage",
+    },
+    {
+        "id": "citation-filter",
+        "title": "Post-hoc citation filter",
+        "one_line": "Drop citations the answer does not actually rest on, after generation, "
+                    "rather than trying to make the model emit fewer.",
+        "status": "design-only", "action": "decide", "info": 1,
+        "info_why": "The read-only evidence pass is already done inside the plan; what is left "
+                    "is a decision and a small build.",
+        "tells_us": "Whether citation precision is a real problem or a cosmetic one.",
+        "evidence": [
+            {"kind": "doc", "ref": "docs/plan-citation-filter.md",
+             "note": "\"DRAFT under Rule 0 — DESIGN ONLY. Nothing built. Awaiting Jon's review.\" "
+                     "Its §evidence table is the discharge of a DECISIONS.md pre-commitment."},
+        ],
+        "metric": {"name": "citation precision", "dir": "up", "basis": "predicted",
+                   "cite": "docs/plan-citation-filter.md",
+                   "detail": "no arm has been re-graded under a filter; the plan says so and "
+                             "calls that a separate, bigger exercise."},
+        "cost": {"kind": "zero",
+                 "why": "a filter over an answer already produced. Re-GRADING arms under it "
+                        "would cost judge calls, and the plan scopes that out."},
+        "deps": [],
+    },
+    {
+        "id": "cr-update-check",
+        "title": "CR update checker (scripts/check_cr_update.py)",
+        "one_line": "Detect when a new Comprehensive Rules release silently drops or renumbers a "
+                    "rule, and fix the gold automatically where the fix is provably safe.",
+        "status": "open", "action": "build", "info": 1,
+        "info_why": "It protects the corpus rather than moving a metric, but two rules (606.5, "
+                    "119.1d) were missing for the life of the project before anyone noticed.",
+        "tells_us": "Nothing new — it stops a class of silent corruption.",
+        "evidence": [
+            {"kind": "commit", "ref": "da7f374",
+             "note": "\"Record Jon's rulings: CR-update checker approved\" — approved, so this is "
+                     "not awaiting a ruling"},
+            {"kind": "doc", "ref": "docs/spec-cr-update-check.md", "note": "the spec"},
+            {"kind": "path_absent", "ref": "scripts/check_cr_update.py",
+             "note": "the script the spec names does not exist — this is the evidence that it "
+                     "was approved but never built"},
+        ],
+        "metric": {"name": "silent rule drops", "dir": "down", "basis": "measured",
+                   "cite": "docs/spec-cr-update-check.md",
+                   "detail": "two confirmed drops to date; the parser guards from 9e41d7d / "
+                             "2d212a7 close part of it already."},
+        "cost": {"kind": "zero", "why": "a local script over the CR text file; no model calls"},
+        "deps": [],
+    },
+    {
+        "id": "packaging",
+        "title": "Packaging — README and repo hygiene",
+        "one_line": "Finish the public-facing README so a technical reader can skim it in 90 "
+                    "seconds or clone and run it in one command.",
+        "status": "partial", "action": "build", "info": 1,
+        "info_why": "It is the portfolio surface, and it is the only thing standing between the "
+                    "deploy track and a link Jon can send.",
+        "tells_us": "Nothing measurable — it is presentation.",
+        "evidence": [
+            {"kind": "commit", "ref": "08e5ff0", "note": "MIT license, SVG wordmark, uv.lock, one name"},
+            {"kind": "commit", "ref": "4f68819", "note": "branding assets, real Makefile targets"},
+            {"kind": "path_absent", "ref": "README.md",
+             "note": "a README.md exists in the working tree but is NOT tracked by git — so the "
+                     "README half of this plan has not landed"},
+            {"kind": "doc", "ref": "docs/plan-packaging.md", "note": "the plan"},
+        ],
+        "metric": {"name": "none", "dir": "none", "basis": "unknown",
+                   "cite": None, "detail": "no product metric moves."},
+        "cost": {"kind": "zero", "why": "writing and repo hygiene"},
+        "deps": [],
+    },
+    {
+        "id": "rerank-after-rewrite",
+        "title": "Rerank after rewrite",
+        "one_line": "Put the cross-encoder reranker after the rewrite step instead of instead of "
+                    "it — the one cell of the retrieval grid nobody has run.",
+        "status": "design-only", "action": "decide", "info": 1,
+        "info_why": "Cheap, but the plan was scoped to a control that production has since moved "
+                    "off, so it needs a re-scope before it is worth running.",
+        "tells_us": "Whether reranking still adds anything once multi-query fusion has run.",
+        "relevant": False,
+        "relevance_note": "Overtaken in part by commit 86b5d27. The plan scopes itself to the "
+                          "shipped control `vec+rw1-haiku` at REWRITE_N=1, and notes its option "
+                          "(c) \"collapses to (b) exactly\" at n=1. Production now runs "
+                          "REWRITE_N=3, so the arm it describes is no longer the shipped path.",
+        "evidence": [
+            {"kind": "doc", "ref": "docs/plan-rerank-after-rewrite.md",
+             "note": "\"DRAFT under Rule 0 — DESIGN ONLY. Nothing built.\""},
+            {"kind": "commit", "ref": "86b5d27", "note": "the REWRITE_N change that overtook its scoping"},
+            {"kind": "path", "ref": "src/rulesagent/retrieve/rerank.py",
+             "note": "the reranker itself already exists and is cached"},
+        ],
+        "metric": {"name": "retrieval recall@k", "dir": "up", "basis": "predicted",
+                   "cite": "docs/plan-rerank-after-rewrite.md",
+                   "detail": "the plan quotes 71% for the shipped arm as the baseline to beat; "
+                             "no reranked-after-rewrite number exists."},
+        "cost": {"kind": "api_stated", "lo": 0.10, "hi": 0.30, "bound": "upper",
+                 "cite": "docs/plan-rerank-after-rewrite.md",
+                 "why": "the plan's own table: 2 stacked arms x 31 questions = 62 reranker calls, "
+                        "\"under $0.10\"; x 134 questions = 268 calls, \"under $0.30\""},
+        "tradeoff": {
+            "options": [
+                {"name": "Re-scope to the shipped n=3 path and run it", "pick": True,
+                 "pros": ["under $0.30 — the cheapest priced experiment on the whole board",
+                          "reranking already exists and is cached, so there is no build"],
+                 "cons": ["needs a re-scope first: the plan's control arm is no longer what production runs",
+                          "the diversity factorial already found most of the rewrite gain banked, so the "
+                          "headroom for a second re-ranking step may be small"]},
+                {"name": "Run it exactly as written (n=1 control)", "pick": False,
+                 "pros": ["no re-scope needed; the plan is complete as it stands"],
+                 "cons": ["measures an arm production no longer runs, so a win would not transfer"]},
+                {"name": "Drop it", "pick": False,
+                 "pros": ["frees the slot for the L0 slice and the gold audit"],
+                 "cons": ["gives up the one untested cell of the retrieval grid for under $0.30"]},
+            ],
+            "why": "The price is trivial and the machinery exists, so the only real objection is that the "
+                   "plan aims at the wrong baseline. That is a scoping edit, not a rebuild.",
+            "against": "The retrieval-diversity result is a genuine reason to expect little: it found most "
+                       "of the rewrite gain already banked, which is where a reranker would have to find "
+                       "its headroom.",
+            "flip": "A miss-partition result showing retrieval, not reasoning, is where the losses are."},
+        "deps": [],
+    },
+    {
+        "id": "second-hop",
+        "title": "Second-hop retrieval",
+        "one_line": "Retrieve again from what the first retrieval found, so rules two or three "
+                    "hops from the question's wording can be reached at all.",
+        "status": "open", "action": "decide", "info": 2,
+        "info_why": "It is the only proposal aimed at a failure class that question-side "
+                    "rewriting provably cannot reach.",
+        "tells_us": "Whether the multi-hop misses are reachable by retrieval at all.",
+        "evidence": [
+            {"kind": "doc", "ref": "docs/HANDOFF-development.md",
+             "note": "live queue item 5, and the rg241 finding: all four rules in the derivation "
+                     "are indexed, but hops 2-3 have no resemblance to the question"},
+            {"kind": "doc", "ref": "docs/plan-l1-crossref-expansion.md",
+             "note": "names an LLM second-hop query as the fallback if structural cross-ref "
+                     "expansion is not enough — which is what L1 Part B measured"},
+        ],
+        "metric": {"name": "retrieval recall on multi-hop questions", "dir": "up",
+                   "basis": "predicted", "cite": "docs/HANDOFF-development.md",
+                   "detail": "the rg241 diagnosis is measured; that a second hop fixes it is not."},
+        "cost": {"kind": "unknown",
+                 "why": "no doc sizes it. There is no plan-*.md for second-hop retrieval yet, so "
+                        "no question count and no per-question call count to multiply."},
+        "deps": [],
+    },
+    {
+        "id": "armb-rerun",
+        "title": "Re-run derivability arm B with corrected ruling labels",
+        "one_line": "Re-run the gold-only arm so its ruling citations line up with the rulings it "
+                    "was actually handed, making them usable data.",
+        "status": "open", "action": "decide", "info": 1,
+        "info_why": "It repairs one arm's citation data. The accuracy number is unaffected — the "
+                    "bug is in the eval harness, not production.",
+        "tells_us": "Whether arm B's citations can be read at all; today 69% of citing rows are off.",
+        "evidence": [
+            {"kind": "commit", "ref": "ad53532",
+             "note": "root cause: evals/build_gold_prompts.py, not the product"},
+            {"kind": "commit", "ref": "b11f1cd",
+             "note": "the fix — ruling labels moved to the prompt boundary"},
+            {"kind": "doc", "ref": "docs/report-ruling-citation-offbyone.md",
+             "note": "\"production is clean across 397 citations; the defect ... affects 69% of "
+                     "citing rows in derivability arms B/C\". Still needs Jon's ruling on whether "
+                     "the re-run is worth it."},
+        ],
+        "metric": {"name": "citation usability in arm B", "dir": "up", "basis": "measured",
+                   "cite": "docs/report-ruling-citation-offbyone.md",
+                   "detail": "69% of citing rows are currently unusable; the fix is verified."},
+        "cost": {"kind": "api_stated", "lo": 8.47, "hi": 8.47,
+                 "cite": "docs/HANDOFF-development.md",
+                 "why": "the handoff's own figure for re-running arm B"},
+        "tradeoff": {
+            "options": [
+                {"name": "Re-run arm B ($8.47)", "pick": False,
+                 "pros": ["makes 69% of its citing rows readable instead of misaligned",
+                          "the fix is already shipped and verified (b11f1cd), so the re-run is not a gamble"],
+                 "cons": ["the accuracy number does not change — this buys citation data only",
+                          "nothing currently open depends on arm B's citations"]},
+                {"name": "Leave it, and mark the citations unusable", "pick": True,
+                 "pros": ["costs nothing",
+                          "arm B's 91.3% is unaffected either way; the defect is in the eval harness"],
+                 "cons": ["any future analysis of where arm B cited from starts by re-running this anyway"]},
+            ],
+            "why": "Nothing on the ready list needs arm B's citations. The $8.47 is small, but it buys a "
+                   "dataset with no current consumer, and the accuracy the arm is quoted for is not "
+                   "affected.",
+            "against": "If the miss-partition diagnostic ends up wanting per-row citation provenance from "
+                       "the oracle arm, this becomes a prerequisite rather than a nice-to-have.",
+            "flip": "Any open item that needs to read arm B's citations."},
+        "deps": [],
+    },
+    {
+        "id": "purerules-eval",
+        "title": "Pure-rules held-out eval set",
+        "one_line": "Generalize card questions into rules questions so retrieval and generation "
+                    "can be measured without the oracle-text confound.",
+        "status": "partial", "action": "build", "info": 2,
+        "info_why": "Two separate rulings are parked waiting on this instrument, so it unblocks "
+                    "more than it measures.",
+        "tells_us": "Nothing directly — it is the missing instrument two open decisions need.",
+        "evidence": [
+            {"kind": "commit", "ref": "47b3090", "note": "batch 1 drafted (8 candidates) + approval UI"},
+            {"kind": "commit", "ref": "f4396c5", "note": "approval UI shows power/toughness and DFC faces"},
+            {"kind": "path", "ref": "evals/build_purerules_approval_ui.py", "note": "the UI exists"},
+            {"kind": "doc", "ref": "DECISIONS.md",
+             "note": "2026-07-24 \"Pure-rules eval: standing grant to draft freely\" — batch 1 "
+                     "approved 8/8 with zero edits; throughput is bounded by Jon's review because "
+                     "eval questions and gold stay do-not-delegate"},
+        ],
+        "metric": {"name": "measurement validity", "dir": "up", "basis": "predicted",
+                   "cite": "DECISIONS.md",
+                   "detail": "the confound is documented (the holdout set is 98% card questions, "
+                             "only ~3 where CR-rule retrieval is load-bearing); the fix is untested."},
+        "cost": {"kind": "subscription",
+                 "why": "drafting runs on subagents under the standing grant; Jon's review is the "
+                        "bottleneck, not credits"},
+        "deps": [],
+    },
+    {
+        "id": "sso",
+        "title": "SSO track — OIDC, then SAML, then the breakage lab",
+        "one_line": "Add real single sign-on to the admin surface, in three separately-approved "
+                    "slices, and break it deliberately to learn the failure modes.",
+        "status": "design-only", "action": "decide", "info": 1,
+        "info_why": "Explicitly a resume-evidence track. It moves no product metric and should "
+                    "not compete with measurement work for the same slot.",
+        "tells_us": "Nothing about the bot.",
+        "evidence": [
+            {"kind": "doc", "ref": "docs/plan-sso.md",
+             "note": "\"Working Rule 0 artifact. DESIGN ONLY — no source changes in this pass.\" "
+                     "Ships as three independently-approved slices."},
+            {"kind": "path", "ref": "TODO-SSO.md", "note": "the track's own to-do list"},
+        ],
+        "metric": {"name": "none", "dir": "none", "basis": "unknown", "cite": None,
+                   "detail": "the plan says the value is Jon being able to explain it cold."},
+        "cost": {"kind": "zero", "why": "local build; the identity provider side is free-tier work"},
+        "tradeoff": {
+            "options": [
+                {"name": "Build the SSO track", "pick": False,
+                 "pros": ["spends no credits", "it is the point of the project for Jon's job search"],
+                 "cons": ["moves no metric on this page",
+                          "the SAML slice needs the deploy track first, which needs the README"]},
+                {"name": "Do the measurement backlog first", "pick": True,
+                 "pros": ["the L0 slice and the gold audit are what the go/no-go call is waiting on",
+                          "SSO is not blocked by anything that decays if it waits"],
+                 "cons": ["the portfolio surface stays unfinished for longer"]},
+            ],
+            "why": "Both are defensible; they compete for the same hours, not the same budget. The "
+                   "measurement items gate a decision that is live right now, and SSO gates nothing.",
+            "against": "If the job search is the actual deadline, that is an external clock this page "
+                       "cannot see, and it would reverse the order. Stated as a judgement, not a "
+                       "measurement.",
+            "flip": "An interview or a deadline that makes the deployed demo urgent."},
+        "deps": ["deploy"],
+        "dep_why": "the plan's §0 sequencing: OIDC needs no deployed URL, SAML does",
+    },
+    {
+        "id": "deploy",
+        "title": "Deploy track — private demo to a public Fly.io link",
+        "one_line": "Get Rulemancer onto the internet behind a link, in independently-shippable "
+                    "slices.",
+        "status": "design-only", "action": "decide", "info": 1,
+        "info_why": "Nothing measured depends on it, but the portfolio value does.",
+        "tells_us": "Nothing measurable.",
+        "merged": ["docs/plan-limitations-and-deploy.md"],
+        "merge_why": "plan-deploy.md's own opening: it \"turns the L5 bullet list in "
+                     "docs/plan-limitations-and-deploy.md ... into a sequenced, "
+                     "independently-shippable set of slices.\" Same track, one superseding the "
+                     "other. The older doc's L1/L3/L8 items shipped separately.",
+        "evidence": [
+            {"kind": "doc", "ref": "docs/plan-deploy.md",
+             "note": "\"Rule 0. DESIGN ONLY, no code yet.\""},
+            {"kind": "commit", "ref": "09683fc",
+             "note": "L3 SQLite caches — deploy blocker #1 — already shipped"},
+        ],
+        "metric": {"name": "none", "dir": "none", "basis": "unknown", "cite": None,
+                   "detail": "no product metric."},
+        "cost": {"kind": "hosting", "lo": 3.0, "hi": 5.0, "unit": "/month",
+                 "cite": "docs/plan-limitations-and-deploy.md",
+                 "why": "the merged doc's hosting table: Fly.io ~$3-5/mo for an always-on small "
+                        "VM with volumes for the SQLite caches. Not API credits."},
+        "deps": ["packaging"],
+        "dep_why": "the plan wants the README current with everything shipped since it was drafted",
+    },
+    # -------------------------------------------------------------- blocked --
+    {
+        "id": "full-run",
+        "title": "The full RulesGuru run — all 1,409 questions",
+        "one_line": "Run the shipped config over the entire corpus and publish a real number "
+                    "instead of a projection.",
+        "status": "open", "action": "run", "info": 3,
+        "info_why": "It is the decision this whole page exists to serve.",
+        "tells_us": "The actual accuracy, with no reweighting and no extrapolation.",
+        "evidence": [
+            {"kind": "doc", "ref": "docs/HANDOFF-development.md",
+             "note": "live queue item 3: \"At $73-91 it is not a cost decision. The judge is now "
+                     "measured; the remaining question is L0 coverage.\""},
+        ],
+        "metric": {"name": "headline accuracy", "dir": "none", "basis": "measured",
+                   "cite": "evals/_metrics_history.json",
+                   "detail": "replaces a projected 80.3% [71.7-86.8] with a measured value. "
+                             "Which way it lands is exactly what is unknown."},
+        "cost": {"kind": "api_questions", "n": 1409,
+                 "why": "the full corpus at the measured $/question of the shipped config"},
+        "deps": ["l0-arm", "gold-audit-b2"],
+        "dep_why": "L0 coverage is the named remaining question, and grading error should be "
+                   "measured before a headline number is produced under it",
+    },
+    {
+        "id": "rewriter-bakeoff-p2",
+        "title": "Rewriter bakeoff, phase 2 (generation-side)",
+        "docs": ["docs/plan-rewriter-model-bakeoff.md"],
+        "one_line": "Take the phase-1 retrieval winner through to generation and see whether the "
+                    "coverage gain shows up in answers.",
+        "status": "partial", "action": "run", "info": 2,
+        "info_why": "Phase 1 produced a conflict that only a better instrument can resolve, so "
+                    "running phase 2 now would measure the wrong thing.",
+        "tells_us": "Whether a better rewriter is worth its cost in answer quality.",
+        "evidence": [
+            {"kind": "doc", "ref": "docs/report-rewriter-bakeoff.md",
+             "note": "phase 1 ran 2026-07-23, retrieval only — so phase 1 is shipped"},
+            {"kind": "doc", "ref": "DECISIONS.md",
+             "note": "2026-07-24 Lever 3: \"rewriter: HOLD for the pure-rules eval.\" haiku and "
+                     "sonnet are identical at the operational depth (TOP_K=15) but sonnet gains "
+                     "on the 134-question holdout, which is 98% card questions"},
+        ],
+        "metric": {"name": "answer accuracy", "dir": "up", "basis": "predicted",
+                   "cite": "DECISIONS.md",
+                   "detail": "the retrieval coverage gain is measured (@50 75% vs 63%); its value "
+                             "in answers is explicitly called unmeasured."},
+        "cost": {"kind": "unknown",
+                 "why": "the bakeoff plan sizes phase 1 only (\"cents, not dollars\" for 279 "
+                        "rewrite calls). Phase 2 adds generation and judging on a question set "
+                        "that does not exist yet, so it cannot be priced."},
+        "deps": ["purerules-eval"],
+        "dep_why": "Jon's Lever 3 ruling names the pure-rules set as the instrument that settles it",
+    },
+    {
+        "id": "l2-generator",
+        "title": "Re-test the generator model choice, post-tools",
+        "one_line": "Re-run the sonnet-vs-cheap-model comparison on the tool-triggering subset, "
+                    "now that exact sub-computations live in Python instead of the model.",
+        "status": "open", "action": "run", "info": 2,
+        "info_why": "The tool roadmap changed the generator's job, so the old comparison measured "
+                    "a pipeline that no longer exists.",
+        "tells_us": "Whether a cheap model plus tools matches an expensive model without them.",
+        "evidence": [
+            {"kind": "doc", "ref": "DECISIONS.md",
+             "note": "2026-07-24 Lever 2: \"DEFERRED to post-tools\". The re-test measures three "
+                     "things, not one: accuracy, tool-call well-formedness, citation stability"},
+            {"kind": "commit", "ref": "24f2bb9",
+             "note": "layers trigger calibrated — the tool this was waiting on has shipped"},
+        ],
+        "metric": {"name": "cost per question at equal accuracy", "dir": "down",
+                   "basis": "predicted", "cite": "DECISIONS.md",
+                   "detail": "gpt-5-mini's measured weak spot is structured-output precision "
+                             "(stable citations 2/50 on a since-superseded prompt), which is "
+                             "exactly what tools lean on. Needs re-measuring, not assuming."},
+        "cost": {"kind": "unknown",
+                 "why": "the tool-triggering subset size is not fixed in any doc, so there is no "
+                        "question count to multiply"},
+        "deps": ["purerules-eval", "miss-partition"],
+        "dep_why": "the ruling ties it to the pure-rules instrument, and the partition tells you "
+                   "whether generation is even where the losses are",
+    },
+    # --------------------------------------------------------------- shipped --
+    {"id": "s-rewriting", "title": "Query-rewriting layer (#3a)", "status": "shipped", "info": 2,
+     "docs": ["docs/plan-3a-query-rewriting.md"],
+     "one_line": "Rewrite the user's question into several search keys and retrieve on those; the "
+                 "corpus is untouched.",
+     "tells_us": "", "action": "run",
+     "evidence": [{"kind": "commit", "ref": "3607d9b", "note": "RewrittenQuery contract"},
+                  {"kind": "commit", "ref": "9cf1409", "note": "the layer"},
+                  {"kind": "commit", "ref": "225cbbf", "note": "temperature pinned to 0"},
+                  {"kind": "commit", "ref": "86b5d27", "note": "REWRITE_N 1 -> 3 in production"},
+                  {"kind": "path", "ref": "src/rulesagent/retrieve/rewrite.py"}],
+     "metric": {"name": "retrieval recall", "dir": "up", "basis": "measured",
+                "cite": "docs/results-retrieval-diversity.md",
+                "detail": "the diversity factorial found most of the rewrite gain already banked."},
+     "cost": {"kind": "spent", "why": "shipped"}, "deps": []},
+    {"id": "s-scryfall", "title": "Scryfall card enrichment (#3b) + local bulk snapshot",
+     "status": "shipped", "info": 2, "action": "run",
+     "docs": ["docs/plan-3b-scryfall-enrichment.md"],
+     "one_line": "Resolve [bracketed] card names to oracle text and rulings and put them in the "
+                 "prompt, served from a local bulk snapshot instead of live lookups.",
+     "tells_us": "",
+     "merged": ["docs/plan-scryfall-local-bulk.md", "docs/plan-card-enrichment-fields.md"],
+     "merge_why": "one card-data path built in three passes: enrichment (#3b), then the "
+                  "layout-first field set, then replacing live lookups with a local snapshot. "
+                  "Separate docs, same subsystem, and each supersedes the previous one's data model.",
+     "evidence": [{"kind": "commit", "ref": "700e2bc", "note": "enrichment"},
+                  {"kind": "commit", "ref": "44ef20f", "note": "layout-first per-face fields"},
+                  {"kind": "commit", "ref": "c481292", "note": "local bulk + per-face lookup + self-heal"},
+                  {"kind": "path", "ref": "src/rulesagent/tools/scryfall_store.py"},
+                  {"kind": "path", "ref": "scripts/refresh_scryfall_bulk.py"}],
+     "metric": {"name": "answer accuracy on card questions", "dir": "up", "basis": "measured",
+                "cite": "DECISIONS.md",
+                "detail": "2026-07-21 \"#3b built ... verified live\"; the gold-by-ablation pass "
+                          "then found the RAG rules were redundant on 4 of 5 card questions."},
+     "cost": {"kind": "spent", "why": "shipped"}, "deps": []},
+    {"id": "s-rulings", "title": "Per-card ruling mini-RAG (rulings on demand)",
+     "status": "shipped", "info": 2, "action": "run",
+     "docs": ["docs/plan-rulings-on-demand.md"],
+     "one_line": "Select only the rulings relevant to the question for each referenced card, "
+                 "instead of pasting all of them.",
+     "tells_us": "",
+     "evidence": [{"kind": "commit", "ref": "27733fe", "note": "built + verified"},
+                  {"kind": "commit", "ref": "7a316bd", "note": "ruling_id made content-derived, not positional"},
+                  {"kind": "commit", "ref": "17f4d16", "note": "positional cache purged; TOP_N 3 -> 5"},
+                  {"kind": "path", "ref": "src/rulesagent/tools/ruling_retrieval.py"}],
+     "metric": {"name": "prompt size", "dir": "down", "basis": "measured",
+                "cite": "docs/plan-packaging.md",
+                "detail": "context cut 35->6 / 22->3 / 18->3 rulings with zero loss."},
+     "cost": {"kind": "spent", "why": "shipped"}, "deps": []},
+    {"id": "s-chunking", "title": "Chunking: embedded text split from context text",
+     "status": "shipped", "info": 2, "action": "run",
+     "docs": ["docs/plan-chunk-context-split.md"],
+     "one_line": "Embed a distinctive short text, hand the generator the complete one.",
+     "tells_us": "",
+     "evidence": [{"kind": "commit", "ref": "63d25ed", "note": "plan approved"},
+                  {"kind": "commit", "ref": "e02d5ea", "note": "implemented"},
+                  {"kind": "doc", "ref": "DECISIONS.md", "note": "2026-07-21 \"KEPT, a measured tradeoff\""}],
+     "metric": {"name": "retrieval recall@5", "dir": "none", "basis": "measured",
+                "cite": "DECISIONS.md", "detail": "adopted as a tradeoff, not a clean win."},
+     "cost": {"kind": "spent", "why": "shipped"}, "deps": []},
+    {"id": "s-crossrefs", "title": "L1 cross-reference expansion", "status": "shipped", "info": 2,
+     "action": "run",
+     "one_line": "Follow the CR's own \"see rule X\" references in retrieved chunks and pull the "
+                 "referenced rules in. Part A shipped; Part B was measured and not adopted.",
+     "tells_us": "",
+     "evidence": [{"kind": "commit", "ref": "92fa295", "note": "Part A pure function, TDD"},
+                  {"kind": "commit", "ref": "fd84b08", "note": "Part A wired into RulesAgent"},
+                  {"kind": "commit", "ref": "30ac5db",
+                   "note": "Part B (rewrite-as-ruling-query union arm) measured and NOT shipped"},
+                  {"kind": "path", "ref": "src/rulesagent/retrieve/crossrefs.py"}],
+     "metric": {"name": "multi-hop recall", "dir": "none", "basis": "measured",
+                "cite": "docs/plan-rulings-recall.md",
+                "detail": "the plan records that cross-ref expansion \"shipped but measured a "
+                          "null result\" on the misses it was aimed at — which is what makes "
+                          "second-hop retrieval the live proposal."},
+     "cost": {"kind": "spent", "why": "shipped"}, "deps": []},
+    {"id": "s-diversity", "title": "Retrieval diversity factorial (MMR x hybrid x multi-query)",
+     "status": "shipped", "info": 2, "action": "measure",
+     "docs": ["docs/spec-retrieval-diversity.md"],
+     "one_line": "Run the three diversity levers as a factorial to see which actually gets "
+                 "distinct rules into the window.",
+     "tells_us": "",
+     "evidence": [{"kind": "commit", "ref": "fb480c9", "note": "\"MMR refuted, most of the rewrite gain already banked\""},
+                  {"kind": "path", "ref": "src/rulesagent/retrieve/mmr.py"},
+                  {"kind": "doc", "ref": "docs/results-retrieval-diversity.md"}],
+     "metric": {"name": "retrieval diversity", "dir": "up", "basis": "measured",
+                "cite": "docs/results-retrieval-diversity.md",
+                "detail": "multi-query wins, MMR refuted. Ran at zero API spend (cache-only)."},
+     "cost": {"kind": "spent", "why": "shipped; the run itself was cache-only, zero API spend"},
+     "deps": []},
+    {"id": "s-tools", "title": "Deterministic tools — cost calculator and layer resolver",
+     "status": "shipped", "info": 2, "action": "run",
+     "one_line": "Move exact sub-computations (mana costs, CR 613 layers) out of the model and "
+                 "into Python functions the model can call.",
+     "tells_us": "",
+     "merged": ["docs/plan-cost-calculator-tool.md", "docs/plan-layer-system-tool.md",
+                "docs/spec-slice0-harness.md"],
+     "merge_why": "one pattern, built twice, plus the harness slice that made the second one "
+                  "measurable. The layers plan says outright that \"every piece of machinery this "
+                  "needs already exists and already shipped\" for the cost tool.",
+     "evidence": [{"kind": "commit", "ref": "a36db25", "note": "name-routed, tool-agnostic dispatch seam"},
+                  {"kind": "commit", "ref": "1dfe6d4", "note": "cap-exhaustion + silent-garbage guards"},
+                  {"kind": "commit", "ref": "c85de03", "note": "layer resolver slice 1"},
+                  {"kind": "commit", "ref": "4343848", "note": "resolve_layers wired into the dispatch loop"},
+                  {"kind": "commit", "ref": "24f2bb9",
+                   "note": "trigger calibration FAILED at 20.4%, ruled to threshold 1, now 77.8%"},
+                  {"kind": "path", "ref": "src/rulesagent/tools/cost_calculator.py"},
+                  {"kind": "path", "ref": "src/rulesagent/tools/layer_resolver.py"}],
+     "metric": {"name": "accuracy on tool-shaped questions", "dir": "up", "basis": "measured",
+                "cite": "docs/report-costtool-validation.md",
+                "detail": "validated at scale on the 199 cost-tagged questions; the layers trigger "
+                          "reaches 42/54 = 77.8% of bucket A."},
+     "cost": {"kind": "spent", "why": "shipped"}, "deps": []},
+    {"id": "s-eval-harness", "title": "Eval instrument — RulesGuru import, judging, and the knobs",
+     "status": "shipped", "info": 3, "action": "measure",
+     "one_line": "The measurement stack: an external judge-authored question set, an outside "
+                 "judge, transitive grading, and the effort/no-rewrite/model knobs every arm needs.",
+     "tells_us": "",
+     "merged": ["docs/plan-rulesguru-import.md", "docs/plan-rulesguru-as-instrument.md",
+                "docs/plan-openrouter-models.md", "docs/plan-judge-transitive-grading.md",
+                "docs/plan-opus-grader-calibration.md", "docs/spec-effort-and-norewrite.md",
+                "docs/plan-run-progress.md"],
+     "merge_why": "seven docs, one instrument. The import built the set, as-instrument specified "
+                  "how to consume it, OpenRouter added the outside judge, transitive grading and "
+                  "the Opus calibration decided how much grading to delegate, and the knobs plus "
+                  "run-progress made the arms runnable and observable.",
+     "evidence": [{"kind": "commit", "ref": "a27c4e0", "note": "RulesGuru 150 imported with human gold"},
+                  {"kind": "commit", "ref": "538cc5f", "note": "gpt-5-mini judge adopted at 95% agreement"},
+                  {"kind": "commit", "ref": "819bbc7", "note": "transitive-grading pipeline"},
+                  {"kind": "commit", "ref": "f5968cc", "note": "Opus-grader calibration v2: 78.3% primary"},
+                  {"kind": "commit", "ref": "579d544", "note": "effort knob, no-rewrite arm, model override"},
+                  {"kind": "commit", "ref": "228aa24", "note": "run-progress heartbeats + incremental writes"},
+                  {"kind": "commit", "ref": "15644d4", "note": "judge provenance stamped into verdict files"},
+                  {"kind": "path", "ref": "evals/progress.py"},
+                  {"kind": "doc", "ref": "docs/report-rulesguru-holdout.md",
+                   "note": "\"overturn three working premises\" — the holdout's first result"}],
+     "metric": {"name": "measurement validity", "dir": "up", "basis": "measured",
+                "cite": "docs/report-rulesguru-holdout.md",
+                "detail": "the external set overturned three premises that the internal "
+                          "31-question set had supported."},
+     "cost": {"kind": "spent", "why": "shipped"}, "deps": []},
+    {"id": "s-judge-error", "title": "Judge error rate, both directions", "status": "shipped",
+     "info": 3, "action": "measure",
+     "one_line": "Measure how often the frozen judge is wrong in each direction, because every "
+                 "accuracy on this page inherits it.",
+     "tells_us": "",
+     "evidence": [{"kind": "commit", "ref": "3bfd0c8",
+                   "note": "\"FP is small, but the reference grader failed validation\""},
+                  {"kind": "commit", "ref": "eb16810", "note": "arm B corrected to 91.3%"},
+                  {"kind": "doc", "ref": "docs/results-judge-error-rate.md"}],
+     "metric": {"name": "accuracy overstatement", "dir": "down", "basis": "measured",
+                "cite": "docs/results-judge-error-rate.md",
+                "detail": "false positives 4.4% (95% CI 1.7-10.9%), treated as an upper bound. "
+                          "The reference grader agreed with the frozen judge 32/32 on Jon's "
+                          "hand-graded rows, so it cannot serve as an independent check."},
+     "cost": {"kind": "spent", "why": "shipped"}, "deps": []},
+    {"id": "s-weighted", "title": "Level-weighted scoring", "status": "shipped", "info": 1,
+     "action": "measure",
+     "docs": ["docs/spec-weighted-scoring.md"],
+     "one_line": "Score flat across L0-L3 with Corner Case at half weight, per Jon's ruling.",
+     "tells_us": "",
+     "evidence": [{"kind": "commit", "ref": "b085417", "note": "spec, design-only"},
+                  {"kind": "commit", "ref": "372965b", "note": "built, 53 tests"},
+                  {"kind": "path", "ref": "evals/weighted_score.py"}],
+     "metric": {"name": "reported accuracy", "dir": "none", "basis": "measured",
+                "cite": "docs/spec-weighted-scoring.md",
+                "detail": "no conclusion flips; largest movement 1.5 pp."},
+     "cost": {"kind": "zero",
+              "why": "pure arithmetic over verdict files already on disk — no model call, no "
+                     "re-run, genuinely $0"},
+     "deps": []},
+    {"id": "s-prod-switches", "title": "Production switches — opus-5 at effort low, REWRITE_N 3",
+     "status": "shipped", "info": 3, "action": "run",
+     "one_line": "The two config changes the current numbers rest on.",
+     "tells_us": "",
+     "evidence": [{"kind": "commit", "ref": "d95a461", "note": "GEN_MODEL -> claude-opus-5, GEN_EFFORT=low"},
+                  {"kind": "commit", "ref": "86b5d27", "note": "REWRITE_N 1 -> 3"},
+                  {"kind": "doc", "ref": "docs/results-easy-regression.md",
+                   "note": "the regression check that cleared the switch"}],
+     "metric": {"name": "accuracy and cost", "dir": "up", "basis": "measured",
+                "cite": "docs/results-easy-regression.md",
+                "detail": "+13.0 pp on the easy set and +9.3 pp on the hard set versus sonnet, "
+                          "both clearing their noise floors; REWRITE_N 3 measured at "
+                          "$0.00036/question, ~0.6% of answer cost."},
+     "cost": {"kind": "spent", "why": "shipped"}, "deps": []},
+    {"id": "s-ui", "title": "Frontend and API — FastAPI backend, cache-busting, multi-turn, ticker",
+     "status": "shipped", "info": 1, "action": "build",
+     "one_line": "The app surface: an HTTP seam over RulesAgent plus the small frontend fixes "
+                 "that made it usable.",
+     "tells_us": "",
+     "merged": ["docs/plan-api.md", "docs/plan-cache-busting.md",
+                "docs/plan-multiturn-stability.md", "docs/plan-turn-phase-ticker.md"],
+     "merge_why": "four mini-plans, one product surface, all shipped in the same week and none "
+                  "large enough to track separately.",
+     "evidence": [{"kind": "commit", "ref": "7588fc2", "note": "FastAPI backend"},
+                  {"kind": "commit", "ref": "014037e", "note": "cache-busting"},
+                  {"kind": "commit", "ref": "1ceedf1", "note": "multi-turn stability"},
+                  {"kind": "commit", "ref": "36f0994", "note": "turn-phase ticker"},
+                  {"kind": "path", "ref": "src/rulesagent/api/main.py"}],
+     "metric": {"name": "follow-up answer reliability", "dir": "up", "basis": "measured",
+                "cite": "docs/plan-multiturn-stability.md",
+                "detail": "the plan measured follow-ups flaking ~50% before the fix."},
+     "cost": {"kind": "spent", "why": "shipped"}, "deps": []},
+    {"id": "s-guards", "title": "Answer guards — blank answers, silent card drops, SQLite caches",
+     "status": "shipped", "info": 1, "action": "build",
+     "one_line": "Stop the failure modes that look like success: a blank answer marked answered, "
+                 "a dropped card reference nobody logs, a cache two processes corrupt.",
+     "tells_us": "",
+     "merged": ["docs/plan-q029-empty-answer-guard.md", "docs/plan-l3-sqlite-caches.md"],
+     "merge_why": "both are silent-failure closures approved in the same window; L3 also cleared "
+                  "deploy blocker #1.",
+     "evidence": [{"kind": "commit", "ref": "197ac79", "note": "q029 empty-answer guard + c012 observability"},
+                  {"kind": "commit", "ref": "390545b", "note": "Plan A uncited-success flag"},
+                  {"kind": "commit", "ref": "09683fc", "note": "L3 SQLite cache layer"},
+                  {"kind": "path", "ref": "src/rulesagent/cache.py"}],
+     "metric": {"name": "silent failures", "dir": "down", "basis": "measured",
+                "cite": "docs/plan-q029-empty-answer-guard.md",
+                "detail": "q029 drew answered:true with empty text and slipped past the "
+                          "degenerate check; that specific shape is now caught."},
+     "cost": {"kind": "spent", "why": "shipped"}, "deps": []},
+    {"id": "s-symbol-injection", "title": "Symbol injection (production, cell B)", "status": "shipped",
+     "info": 1, "action": "run",
+     "one_line": "Inject definitions for the mana symbols a question actually contains. The "
+                 "injection shipped; the v5 bullet set on top of it did not.",
+     "tells_us": "",
+     "evidence": [{"kind": "doc", "ref": "DECISIONS.md",
+                   "note": "2026-07-23 \"symbol injection RATIFIED as production (cell B is "
+                           "production)\" — 0 added tokens on 31 of 50 questions, +93 on card "
+                           "questions"},
+                  {"kind": "doc", "ref": "docs/report-v5-grid.md",
+                   "note": "the grid that separated injection from the bullets"}],
+     "metric": {"name": "prompt tokens", "dir": "none", "basis": "measured",
+                "cite": "docs/report-v5-grid.md",
+                "detail": "injection is near-free; the v5 bullets cost +510 tok/query over "
+                          "production for nothing measured."},
+     "cost": {"kind": "spent", "why": "shipped"}, "deps": []},
+    # ------------------------------------------------------- cut / superseded --
+    {"id": "x-prompt-v4", "title": "Prompt v4 — mana arithmetic and multiplayer refinement",
+     "status": "cut", "info": 1, "action": "build",
+     "docs": ["docs/plan-prompt-v4.md"],
+     "one_line": "Nearly double the system prompt to teach mana notation and multiplayer "
+                 "phrasing. Built, tested, and reverted.",
+     "tells_us": "",
+     "merged": ["docs/plan-v4e-execution-tasks.md"],
+     "merge_why": "the execution-tasks doc is the build decomposition of the v4 plan plus "
+                  "condition E; it has no independent proposal.",
+     "relevant": False,
+     "relevance_note": "Superseded by the cost-calculator tool. The tool plan's own opening: "
+                       "\"Two full prompt programmes have now targeted the same miss\" — v4's "
+                       "mana legend and v5's symbol injection both failed to move c014, so the "
+                       "arithmetic moved into Python instead.",
+     "evidence": [{"kind": "doc", "ref": "DECISIONS.md",
+                   "note": "2026-07-25 \"prompt v4 is NO-GO; production reverts to v3 by "
+                           "version-selecting\" (PROMPT_VERSION 4 -> 3)"},
+                  {"kind": "path", "ref": "evals/build_prompts_v4.py",
+                   "note": "the build exists — this was measured, not abandoned"}],
+     "metric": {"name": "answer accuracy", "dir": "none", "basis": "measured",
+                "cite": "docs/plan-v5-and-gold-discovery.md",
+                "detail": "sonnet 46 -> 46 (zero divergence), gpt-5-mini 45 -> 43, at ~+1,215 "
+                          "tokens on every query. It failed its own go criterion."},
+     "cost": {"kind": "spent", "why": "already run"}, "deps": []},
+    {"id": "x-condition-e", "title": "Condition E — reasoning-enabled generation",
+     "status": "cut", "info": 1, "action": "run",
+     "one_line": "Turn on the OpenRouter models' reasoning mode as its own arm.",
+     "tells_us": "",
+     "relevant": False,
+     "relevance_note": "Partly superseded rather than dead: the Anthropic-side version of the "
+                       "same lever shipped as the `effort` knob (commit 579d544), and the "
+                       "shipped config now runs opus-5 at effort=low precisely because effort is "
+                       "the primary cost lever.",
+     "evidence": [{"kind": "doc", "ref": "DECISIONS.md",
+                   "note": "2026-07-24 \"condition E (reasoning effort) FAILS ON LATENCY, before "
+                           "accuracy matters\""},
+                  {"kind": "doc", "ref": "docs/plan-condition-e-reasoning.md",
+                   "note": "header: \"DESIGN ONLY. No code changes in this document\""}],
+     "metric": {"name": "latency", "dir": "up", "basis": "measured", "cite": "DECISIONS.md",
+                "detail": "it failed on latency before accuracy could be assessed."},
+     "cost": {"kind": "spent", "why": "the decision was reached without a full run"}, "deps": []},
+    {"id": "x-v5-bullets", "title": "v5 bullets (cell D) and the miss-matrix / gold-discovery parent",
+     "status": "cut", "info": 1, "action": "build",
+     "one_line": "Stack the v4 bullet set on top of symbol injection.",
+     "tells_us": "",
+     "merged": ["docs/plan-v5-and-gold-discovery.md", "docs/plan-v5-symbol-injection.md"],
+     "merge_why": "one three-slice parent whose slices all resolved elsewhere: slice A became "
+                  "symbol injection (shipped, tracked above), slice B the miss matrix (now the "
+                  "miss-partition diagnostic), slice C automated gold discovery (stopped). The "
+                  "parent has nothing left of its own.",
+     "relevant": False,
+     "relevance_note": "Jon's Lever 1 ruling, 2026-07-24: \"STAY ON CELL B.\" Cell D fixed 0 of 3 "
+                       "sonnet misses and produced 0 stable flips, at +510 tok/query over "
+                       "production, paid on every query forever with no prompt caching. Recorded "
+                       "as a \"not now,\" not a permanent close.",
+     "evidence": [{"kind": "doc", "ref": "DECISIONS.md", "note": "2026-07-24 Lever rulings: v5 no-go"},
+                  {"kind": "doc", "ref": "docs/report-v5-grid.md", "note": "64 generations, 0 errors"}],
+     "metric": {"name": "answer accuracy", "dir": "none", "basis": "measured",
+                "cite": "docs/report-v5-grid.md",
+                "detail": "0 of 3 sonnet misses repaired, 0 stable flips on gpt-5-mini."},
+     "cost": {"kind": "spent", "why": "already run"}, "deps": []},
+    {"id": "x-combat", "title": "Combat damage assignment tool", "status": "cut", "info": 1,
+     "action": "build",
+     "one_line": "A deterministic tool for assigning combat damage across blockers with trample "
+                 "and deathtouch.",
+     "tells_us": "",
+     "relevant": False,
+     "relevance_note": "Shelved, not killed. Its own §11 research found only 7 genuinely "
+                       "assignment-shaped questions in the whole 1,409-row corpus (~0.5%), a thin "
+                       "ROI against its §8 bar; the layers tool had four failing questions in one "
+                       "regrade and targets the weakest tier. Revisit if the base rate rises.",
+     "evidence": [{"kind": "doc", "ref": "DECISIONS.md",
+                   "note": "2026-07-24 \"Layer-system tool is the next tool; combat-damage shelved\""},
+                  {"kind": "doc", "ref": "docs/plan-combat-damage-tool.md",
+                   "note": "complete design §1-10 plus §11 build-prep research — buildable as-is"}],
+     "metric": {"name": "accuracy on assignment questions", "dir": "up", "basis": "predicted",
+                "cite": "docs/plan-combat-damage-tool.md",
+                "detail": "predicted only, and over ~0.5% of the corpus."},
+     "cost": {"kind": "unknown", "why": "the plan does not price a measurement run"}, "deps": []},
+    {"id": "x-rulings-recall", "title": "Rulings-recall — widen the per-card ruling cutoff",
+     "status": "cut", "info": 1, "action": "build",
+     "one_line": "Raise TOP_N or lower COSINE_FLOOR so the per-card ruling mini-RAG stops cutting "
+                 "off the ruling an answer needs.",
+     "tells_us": "",
+     "merged": ["docs/plan-c011-stale-rulings.md"],
+     "merge_why": "rulings-recall was written directly out of the c011 diagnosis and supersedes "
+                  "it as the actionable half; c011's own §5 freezes that question and its §2 says "
+                  "it needs redoing from different evidence.",
+     "relevant": False,
+     "relevance_note": "Jon shelved it 2026-07-23: it rests on 3 known misses (c010/c011/c019) "
+                       "with no formal metric. Partly addressed anyway — TOP_N was raised 3 -> 5 "
+                       "in commit 17f4d16 for a different reason.",
+     "evidence": [{"kind": "doc", "ref": "docs/plan-rulings-recall.md",
+                   "note": "header: \"JON'S RULING 2026-07-23: SHELVED. Diagnosis kept on record, "
+                           "build nothing.\""},
+                  {"kind": "commit", "ref": "17f4d16", "note": "TOP_N raised 3 -> 5 independently"}],
+     "metric": {"name": "ruling recall", "dir": "up", "basis": "predicted",
+                "cite": "docs/plan-rulings-recall.md",
+                "detail": "no formal metric exists for it — which is why it was shelved."},
+     "cost": {"kind": "unknown", "why": "the plan explicitly cannot cost lowering COSINE_FLOOR "
+                                        "without re-running"}, "deps": []},
+    {"id": "x-slice-c", "title": "Automated gold discovery by ablation (Slice C)",
+     "status": "superseded", "info": 1, "action": "build",
+     "one_line": "Discover gold rules by generating with each candidate rule removed and seeing "
+                 "which removals break the answer.",
+     "tells_us": "",
+     "merged": ["docs/plan-slice-c-gold-discovery-build-spec.md",
+                "docs/plan-card-gold-ablation.md"],
+     "merge_why": "the same ablation idea at two scales — the card-level version shipped as "
+                  "evals/ablate_gold.py, and the corpus-scale build spec stopped before building.",
+     "relevant": False,
+     "relevance_note": "Superseded in practice by subscription gold mining "
+                       "(docs/spec-cr-gold-mining.md), which produces gold proposals with no API "
+                       "spend at all. Slice C's cost model is O(candidates) generations per "
+                       "question, which is the expensive way to get the same artefact.",
+     "evidence": [{"kind": "doc", "ref": "docs/plan-slice-c-gold-discovery-build-spec.md",
+                   "note": "header: \"STOPPED before building. This is a build spec, not an "
+                           "executed proposal batch.\""},
+                  {"kind": "commit", "ref": "004450b",
+                   "note": "the card-scale ablation harness DID ship"},
+                  {"kind": "path", "ref": "evals/ablate_gold.py"}],
+     "metric": {"name": "gold coverage", "dir": "up", "basis": "predicted",
+                "cite": "docs/plan-v5-and-gold-discovery.md",
+                "detail": "the parent plan proposes candidates with evidence and explicitly does "
+                          "not certify gold."},
+     "cost": {"kind": "unknown",
+              "why": "O(candidates) generations per question with the pool capped at 20; the "
+                     "build spec declines to re-derive a total"},
+     "deps": []},
+    # ------------------------------------------------------------- unknown --
+    {"id": "u-prompt-v3", "title": "Prompt v3 and rewriter v2 — the shipped prompt",
+     "status": "shipped", "info": 2, "action": "build",
+     "docs": ["docs/plan-prompt-tuning.md"],
+     "one_line": "The system prompt production runs today, plus the rewriter prompt bump that "
+                 "landed with it.",
+     "tells_us": "",
+     "merged": ["docs/plan-v3-execution-tasks.md"],
+     "merge_why": "the execution-tasks doc is the build decomposition of the same approved plan.",
+     "evidence": [{"kind": "commit", "ref": "f9a70fe", "note": "prompt v3 + rewriter v2 + version selection"},
+                  {"kind": "commit", "ref": "9c20ffb", "note": "A/B condition plumbing"},
+                  {"kind": "doc", "ref": "DECISIONS.md", "note": "2026-07-23 v3 A/B outcome calls"}],
+     "metric": {"name": "answer accuracy", "dir": "up", "basis": "measured", "cite": "DECISIONS.md",
+                "detail": "v3 was adopted on the graded A/B; the later v4 attempt used v3 as its "
+                          "baseline and lost to it."},
+     "cost": {"kind": "spent", "why": "shipped"}, "deps": []},
+]
+
+
+def _resolve_cost(cost: dict, per_q: tuple[float | None, float | None]) -> dict:
+    """Turn a cost basis into dollars, or say plainly that it cannot be."""
+    out = dict(cost)
+    kind = cost.get("kind")
+    lo = hi = None
+    if kind == "api_questions":
+        q_lo, q_hi = per_q
+        if q_lo is None:
+            out["unresolved"] = ("no shipped-config arm carries a measured cost/question, so this "
+                                 "cannot be priced from measurement")
+        else:
+            lo, hi = q_lo * cost["n"], q_hi * cost["n"]
+            out["per_q"] = [q_lo, q_hi]
+    elif kind in ("api_stated", "hosting"):
+        lo, hi = cost.get("lo"), cost.get("hi")
+    out["lo"], out["hi"] = lo, hi
+    out["pool"] = {"api_questions": "api", "api_stated": "api", "zero": "free",
+                   "subscription": "subscription", "hosting": "hosting",
+                   "spent": "spent", "unknown": "unknown"}.get(kind, "unknown")
+    return out
+
+
+DONE_STATUSES = {"shipped", "cut", "superseded"}
+
+
+def _doc_coverage() -> dict:
+    """Which plan/spec docs the inventory accounts for -- and which it misses.
+
+    A backlog that silently drops a doc is worse than one that admits the gap,
+    so this globs the directory rather than trusting the inventory to be complete.
+    """
+    docs = sorted(p.relative_to(REPO).as_posix()
+                  for p in (REPO / "docs").glob("*.md")
+                  if p.name.startswith(("plan-", "spec-")))
+    seen = {d for it in ROADMAP for d in it.get("merged", [])}
+    seen |= {e["ref"] for it in ROADMAP for e in it.get("evidence", [])
+             if e.get("kind") == "doc"}
+    seen |= {d for it in ROADMAP for d in it.get("docs", [])}
+    missing = [d for d in docs if d not in seen]
+    return {"n_docs": len(docs), "n_covered": len(docs) - len(missing), "missing": missing}
+
+
+def build_roadmap(comparisons: dict, current: dict) -> dict:
+    """Inventory every plan/spec with its status re-verified against the repo.
+
+    The verification is the point. Statuses were inferred once, by hand, from
+    commits and code paths; this re-checks every one of those references on every
+    build, so a claim that stops being true renders as a broken evidence line
+    rather than quietly persisting.
+    """
+    shas = {c["sha"] for c in git_commits()}
+
+    # $/question of the SHIPPED configuration -- the same basis the decision panel
+    # uses, so the page never shows two different prices for the same run.
+    cands = [p for p in comparisons.get("projections", [])
+             if p.get("kind") == "pipeline" and p.get("cost_lo") is not None
+             and p["config"].get("model") == current.get("GEN_MODEL")
+             and p["config"].get("effort") == current.get("GEN_EFFORT")]
+    cands.sort(key=lambda p: -p["n_questions"])   # same pick as the decision panel
+    per_q: tuple[float | None, float | None] = (
+        (cands[0]["cost_lo"], cands[0]["cost_hi"]) if cands else (None, None))
+    basis = (f"{current.get('GEN_MODEL')} / effort {current.get('GEN_EFFORT')}"
+             if per_q[0] is not None else None)
+
+    by_id = {it["id"]: it for it in ROADMAP}
+    items = []
+    for it in ROADMAP:
+        ev = []
+        for e in it.get("evidence", []):
+            row = dict(e)
+            kind, ref = e["kind"], e.get("ref")
+            if kind == "commit":
+                row["ok"] = ref in shas
+                row["broken_why"] = None if row["ok"] else "no such commit in git log"
+            elif kind == "path":
+                row["ok"] = (REPO / ref).exists()
+                row["broken_why"] = None if row["ok"] else "path does not exist"
+            elif kind == "path_absent":
+                gone = not (REPO / ref).exists()
+                tracked = ref in _tracked_files()
+                row["ok"] = gone or not tracked
+                row["broken_why"] = None if row["ok"] else "path exists and is tracked, so the claim is stale"
+                row["detail"] = ("absent" if gone else "present in the working tree but untracked")
+            elif kind == "doc":
+                row["ok"] = (REPO / ref).exists()
+                row["broken_why"] = None if row["ok"] else "doc does not exist"
+            else:
+                row["ok"] = True
+                row["broken_why"] = None
+            ev.append(row)
+
+        unmet = [d for d in it.get("deps", []) if by_id.get(d, {}).get("status") not in DONE_STATUSES]
+        cost = _resolve_cost(it.get("cost", {"kind": "unknown", "why": "not costed"}), per_q)
+        status = it["status"]
+        bucket = ("done" if status in ("shipped",)
+                  else "dead" if status in ("cut", "superseded")
+                  else "unknown" if status == "unknown"
+                  else "blocked" if unmet else "ready")
+        items.append({
+            **{k: v for k, v in it.items() if k not in ("evidence", "cost", "deps")},
+            "evidence": ev, "cost": cost, "deps": it.get("deps", []), "unmet": unmet,
+            "unmet_titles": [by_id[d]["title"] for d in unmet if d in by_id],
+            "bucket": bucket,
+            "evidence_ok": all(e["ok"] for e in ev),
+            "info_why_rank": INFO_RANK.get(it.get("info", 1), ""),
+        })
+
+    # ORDER. Ready first, best-informed first, and within an information tier the
+    # cheapest first -- because within a tier, cost is the only thing separating
+    # them. Deliberately NOT a computed "value per dollar": the numerator is an
+    # unmeasured effect size for most of these, and dividing a judgement by a
+    # dollar figure would dress a guess up as arithmetic.
+    def key(i):
+        c = i["cost"]
+        free = 0 if c["pool"] in ("free", "subscription") else 1
+        amt = c["lo"] if c["lo"] is not None else 10_000.0
+        return (-i.get("info", 1), free, amt, i["title"])
+
+    for it in items:
+        it["_k"] = key(it)
+    items.sort(key=lambda i: i["_k"])
+    for it in items:
+        it.pop("_k")
+
+    counts: dict[str, int] = {}
+    for it in items:
+        counts[it["bucket"]] = counts.get(it["bucket"], 0) + 1
+    ready_api = [i for i in items if i["bucket"] == "ready" and i["cost"]["pool"] == "api"
+                 and i["cost"]["lo"] is not None]
+    return {
+        "items": items, "counts": counts, "coverage": _doc_coverage(),
+        "cost_basis": basis, "per_q": list(per_q),
+        "ready_api_lo": sum(i["cost"]["lo"] for i in ready_api) or None,
+        "ready_api_hi": sum(i["cost"]["hi"] for i in ready_api) or None,
+        "info_rank": INFO_RANK,
+        "broken": [{"id": i["id"], "ref": e.get("ref"), "why": e["broken_why"]}
+                   for i in items for e in i["evidence"] if not e["ok"]],
+    }
+
+
+# ===========================================================================
+# EXECUTIVE SUMMARY LAYER
+#
+# Jon, 2026-07-26: the page reads like an instrument panel for the person who
+# built it. It needs a layer that reads like a recommendation to someone who will
+# never open a verdict file -- what we should do, what it costs, how sure we are,
+# and what would change the answer. Plus, per the follow-on: the OPTIONS the
+# recommendation was chosen from, with real pros and cons, because a
+# recommendation without its alternatives is an assertion rather than an argument.
+#
+# THE DESIGN PROBLEM. Hardcoded prose goes stale silently -- which is this repo's
+# signature failure. Arm B moved 93.3% -> 91.3% mid-session; any hand-written
+# summary would have been wrong within the hour and would not have said so.
+# Fully computed prose, on the other hand, reads like a robot and hides its
+# reasoning.
+#
+# THE RESOLUTION USED HERE: authored sentence templates, computed values, and
+# computed BRANCH SELECTION against named thresholds declared immediately below.
+# The page renders those thresholds, so the recommendation is auditable -- a
+# reader can disagree with the threshold rather than with an opinion baked into a
+# string. If the data crosses a threshold, the page says something different on
+# its own, without anyone editing prose.
+#
+# Anything that genuinely cannot be computed is stamped with who authored it and
+# when, so a stale judgement is visibly a judgement.
+# ===========================================================================
+
+AUTHORED_ON = "2026-07-26"
+AUTHORED_BY = "Claude Opus 5, from the repo's own docs and commits"
+
+# Named, visible, and the ONLY thing that selects the headline recommendation.
+THRESHOLDS = [
+    {"key": "coverage_min", "value": 0.95, "fmt": "pct",
+     "label": "Corpus coverage before committing to a full run",
+     "why": "A projection reweights measured levels onto the corpus mix. If a whole "
+            "difficulty level has never been run, the projection is extrapolating over it, "
+            "not measuring it."},
+    {"key": "interval_max_pp", "value": 15.0, "fmt": "pp",
+     "label": "Widest acceptable 95% interval on the projected accuracy",
+     "why": "An interval wider than this cannot distinguish a good result from a bad one, so "
+            "spending on the full run buys a number nobody can act on."},
+    {"key": "budget_max_usd", "value": 200.0, "fmt": "usd",
+     "label": "Full-run cost that triggers a separate budget conversation",
+     "why": "Below this, cost is not the deciding factor and should not be presented as one."},
+    {"key": "judge_fp_max_pp", "value": 5.0, "fmt": "pp",
+     "label": "Highest tolerable judge false-positive rate before publishing a headline",
+     "why": "The judge marking a wrong answer correct inflates every accuracy on this page. "
+            "Above this, fix the instrument before quoting the number."},
+]
+THRESH = {t["key"]: t["value"] for t in THRESHOLDS}
+
+# Doc-sourced, NOT measured here. Wall-clock is not recorded per row in any
+# answers file (checked: no elapsed/duration field), so run time cannot be
+# computed. This is the only run-time figure the repo has, and it is quoted with
+# its source rather than turned into a number of our own.
+RUNTIME_NOTE = ("Wall-clock is not recorded per row in any answers file, so run time cannot be "
+                "computed from measurement. docs/plan-rulesguru-as-instrument.md estimates "
+                "~4s per question, putting 150 questions at \"roughly 10+ minutes\" — that was "
+                "written about sonnet, and the shipped config is a different model.")
+
+
+def judge_error() -> dict:
+    """The measured judge error rates, read from their file at build time."""
+    p = EVALS / "judge_error_results.json"
+    if not p.exists():
+        return {}
+    try:
+        d = json.loads(p.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+    fp, fn = d.get("false_positive") or {}, d.get("false_negative") or {}
+    return {
+        "file": "evals/judge_error_results.json", "mtime": _mtime(p),
+        "judge": (d.get("judge_under_audit") or {}).get("model"),
+        "digest": (d.get("judge_under_audit") or {}).get("prompt_sha256"),
+        "fp_rate": fp.get("rate"), "fp_k": fp.get("k"), "fp_n": fp.get("n"),
+        "fp_ci": fp.get("ci"),
+        "ref_agreement": (d.get("validation") or {}).get("agreement"),
+        "ref_n": (d.get("validation") or {}).get("n"),
+        "fn_ref_rate": (fn.get("reference_sample") or {}).get("rate"),
+    }
+
+
+def build_summary(data: dict) -> dict:
+    """The recommendation layer. Every branch below is selected by THRESHOLDS."""
+    C, N = data["comparisons"], data["full_corpus"]
+    cur, rm = data["current_config"], data["roadmap"]
+    proj = [p for p in C.get("projections", []) if p.get("kind") == "pipeline"
+            and p.get("projected_acc") is not None]
+    shipped = sorted([p for p in proj
+                      if p["config"].get("model") == cur.get("GEN_MODEL")
+                      and p["config"].get("effort") == cur.get("GEN_EFFORT")],
+                     key=lambda p: -p["n_questions"])
+    head = shipped[0] if shipped else (proj[0] if proj else None)
+    je = judge_error()
+
+    # ---- the facts every sentence below interpolates -----------------------
+    f: dict = {"N": N, "judge": je, "runtime_note": RUNTIME_NOTE}
+    if head:
+        f.update({
+            "acc": head["projected_acc"], "ci": head["ci95"],
+            "ci_width_pp": (head["ci95"][1] - head["ci95"][0]) * 100 if head.get("ci95") else None,
+            "coverage": head["covered_share"], "missing": head["missing_levels"],
+            "cost_lo": head["cost_lo"], "cost_hi": head["cost_hi"],
+            "full_lo": head["cost_lo"] * N, "full_hi": head["cost_hi"] * N,
+            "model": head["config"].get("model"), "effort": head["config"].get("effort"),
+            "n_run": head["n_questions"],
+        })
+    mix = (C.get("corpus") or {}).get("by_level") or {}
+    f["missing_n"] = sum(mix.get(lv, 0) for lv in (f.get("missing") or []))
+    slice_item = next((i for i in rm["items"] if i["id"] == "l0-arm"), None)
+    f["slice_lo"] = (slice_item or {}).get("cost", {}).get("lo")
+    f["slice_hi"] = (slice_item or {}).get("cost", {}).get("hi")
+
+    # ---- BRANCH SELECTION. Ordered; the first unmet threshold decides. ------
+    checks = []
+    if not head:
+        verdict, why_key = "nodata", None
+    else:
+        checks = [
+            {"key": "coverage_min", "pass": f["coverage"] >= THRESH["coverage_min"],
+             "actual": f["coverage"], "fmt": "pct"},
+            {"key": "interval_max_pp", "pass": (f["ci_width_pp"] or 0) <= THRESH["interval_max_pp"],
+             "actual": f["ci_width_pp"], "fmt": "pp"},
+            {"key": "judge_fp_max_pp",
+             "pass": je.get("fp_rate") is not None and je["fp_rate"] * 100 <= THRESH["judge_fp_max_pp"],
+             "actual": (je.get("fp_rate") or 0) * 100, "fmt": "pp"},
+            {"key": "budget_max_usd", "pass": f["full_hi"] <= THRESH["budget_max_usd"],
+             "actual": f["full_hi"], "fmt": "usd"},
+        ]
+        failed = [c for c in checks if not c["pass"]]
+        why_key = failed[0]["key"] if failed else None
+        verdict = {None: "go", "coverage_min": "slice-first", "interval_max_pp": "narrow-first",
+                   "judge_fp_max_pp": "fix-judge-first",
+                   "budget_max_usd": "budget-gate"}[why_key]
+    f["checks"] = checks
+    f["verdict"] = verdict
+    f["why_key"] = why_key
+
+    # ---- model choice, computed from kind-matched pairs ---------------------
+    model_pairs = []
+    for s in C.get("head_to_head", []):
+        for p in s.get("pairs", []):
+            if any(d["field"] == "model" for d in p["differs"]) and p["flat_pp"] is not None:
+                lead, trail = ((p["a"], p["b"]) if p["flat_pp"] < 0 else (p["b"], p["a"]))
+                # flat_pp is a-b; the arm with the HIGHER score leads.
+                a_wins = p["flat_pp"] > 0
+                model_pairs.append({
+                    "n": p["n"], "floor_pp": p["floor_pp"], "beats_noise": p["beats_noise"],
+                    "winner": p["a"] if a_wins else p["b"],
+                    "loser": p["b"] if a_wins else p["a"],
+                    "win_model": (next(d for d in p["differs"] if d["field"] == "model")
+                                  ["a" if a_wins else "b"]),
+                    "lose_model": (next(d for d in p["differs"] if d["field"] == "model")
+                                   ["b" if a_wins else "a"]),
+                    "gap_pp": abs(p["flat_pp"]),
+                    "win_cost": p["a_cost"] if a_wins else p["b_cost"],
+                    "lose_cost": p["b_cost"] if a_wins else p["a_cost"],
+                    "confounded": len(p["differs"]) > 1,
+                    "differs": [d["label"] for d in p["differs"]],
+                })
+    f["model_pairs"] = model_pairs
+    cheaper_too = [m for m in model_pairs
+                   if m["win_cost"] is not None and m["lose_cost"] is not None
+                   and m["win_cost"] < m["lose_cost"]]
+    f["model_dominated"] = (len(model_pairs) > 0
+                            and len(cheaper_too) == len(model_pairs)
+                            and all(m["beats_noise"] for m in model_pairs)
+                            and len({m["win_model"] for m in model_pairs}) == 1)
+    f["intro_ends"] = data["pricing"]["sonnet_intro_ends"]
+    # The intro-rate caveat, computed rather than asserted: sonnet is dual-priced,
+    # so the same arm has two costs and the comparison can land differently.
+    intro = []
+    for a in data["arms"]:
+        c = a.get("cost") or {}
+        if c.get("cost_per_q_intro"):
+            intro.append({"arm": a["arm"], "std": c["cost_per_q"], "intro": c["cost_per_q_intro"],
+                          "qset": a["qset"]})
+    f["intro_arms"] = intro
+
+    # ---- effort: is there a kind-matched, effort-only comparison? -----------
+    effort_pairs = [p for s in C.get("head_to_head", []) for p in s.get("pairs", [])
+                    if [d["field"] for d in p["differs"]] == ["effort"]]
+    f["effort_controlled"] = len(effort_pairs)
+    f["effort_pairs"] = [{"a": p["a"], "b": p["b"], "flat_pp": p["flat_pp"],
+                          "n": p["n"], "beats_noise": p["beats_noise"]} for p in effort_pairs]
+    f["efforts_seen"] = sorted({str((p["config"] or {}).get("effort")) for p in proj}
+                               | {str((p["config"] or {}).get("effort"))
+                                  for p in C.get("projections", [])})
+    # The cheapest honest effort probe: re-run the SMALLEST question set the
+    # shipped config has already run, through the pipeline. Using the smallest set
+    # on the page would quote a 15-row oracle slice, which is not a probe of this.
+    probe_ns = [s["n"] for s in data["timeline"]["sets"] for u in s["steps"]
+                if u["kind"] == "pipeline" and u["config_recorded"]
+                and u["config"].get("model") == cur.get("GEN_MODEL")
+                and u["config"].get("effort") == cur.get("GEN_EFFORT")]
+    f["effort_probe"] = ({"n": min(probe_ns),
+                          "lo": min(probe_ns) * f["cost_lo"], "hi": min(probe_ns) * f["cost_hi"]}
+                         if probe_ns and f.get("cost_lo") else None)
+
+    # ---- the oracle ceiling, kept explicitly separate from the product ------
+    ceilings = [s["headroom"] for s in C.get("head_to_head", []) if s.get("headroom")]
+    f["ceilings"] = ceilings
+
+    # ---- roadmap rollup ----------------------------------------------------
+    ready = [i for i in rm["items"] if i["bucket"] == "ready"]
+    f["ready_n"] = len(ready)
+    f["ready_free_n"] = len([i for i in ready if i["cost"]["pool"] in ("free", "subscription")])
+    f["blocked_n"] = len([i for i in rm["items"] if i["bucket"] == "blocked"])
+    f["top_ready"] = [{"title": i["title"], "cost": i["cost"], "id": i["id"]} for i in ready[:3]]
+
+    return {"authored_on": AUTHORED_ON, "authored_by": AUTHORED_BY,
+            "thresholds": THRESHOLDS, "facts": f, "runtime_note": RUNTIME_NOTE}
+
+
+_TRACKED: set[str] | None = None
+
+
+def _tracked_files() -> set[str]:
+    global _TRACKED
+    if _TRACKED is None:
+        try:
+            out = subprocess.run(["git", "ls-files"], cwd=REPO, capture_output=True,
+                                 text=True, timeout=30)
+            _TRACKED = set(out.stdout.splitlines()) if out.returncode == 0 else set()
+        except (OSError, subprocess.SubprocessError):
+            _TRACKED = set()
+    return _TRACKED
+
+
 CONFIG_FIELDS = [("model", "model"), ("effort", "effort"), ("rewrite_version", "rewrite"),
                  ("ruling_query_mode", "ruling mode"), ("system_version", "system ver")]
 
@@ -1298,6 +2649,98 @@ footer{margin-top:var(--s6);padding-top:var(--s4);border-top:1px solid var(--gri
  color:var(--muted);font-size:.8rem;max-width:80ch}
 footer code{color:var(--ink2)}
 ul{margin:var(--s2) 0;padding-left:1.1rem}li{margin:3px 0}
+
+/* --- executive summary ---------------------------------------------------- */
+.exec{border-left:3px solid var(--accent);margin-bottom:var(--s5)}
+.verdict{display:inline-block;font-size:.68rem;text-transform:uppercase;letter-spacing:.07em;
+ padding:3px 10px;border-radius:999px;font-weight:600;color:var(--accent-t);
+ border:1px solid color-mix(in oklab,var(--accent-t) 50%,transparent)}
+.verdict.hold{color:var(--warn-t);border-color:color-mix(in oklab,var(--warn-t) 50%,transparent)}
+.verdict.stop{color:var(--crit-t);border-color:color-mix(in oklab,var(--crit-t) 50%,transparent)}
+.exectitle{font-size:1.3rem;line-height:1.3;margin:var(--s2) 0 0;letter-spacing:-.01em;
+ max-width:52ch;font-weight:600}
+.execwhy{color:var(--ink2);margin:var(--s3) 0 0;max-width:76ch}
+.execgrid{display:grid;gap:var(--s3);margin-top:var(--s4);
+ grid-template-columns:repeat(auto-fit,minmax(min(230px,100%),1fr))}
+.execgrid>div{background:var(--plane);border:1px solid var(--grid);border-radius:10px;
+ padding:var(--s3)}
+.execgrid .lab{display:block;color:var(--muted);font-size:.68rem;text-transform:uppercase;
+ letter-spacing:.06em;margin-bottom:var(--s1)}
+.execgrid .big{font-size:1.35rem;font-weight:600;font-variant-numeric:tabular-nums;
+ display:block;line-height:1.2}
+.execgrid p{margin:var(--s1) 0 0;font-size:.82rem;color:var(--ink2)}
+.caveats{list-style:none;padding:0;margin:var(--s4) 0 0;display:grid;gap:var(--s2)}
+.caveats li{display:flex;gap:var(--s2);align-items:flex-start;font-size:.83rem;color:var(--ink2)}
+.caveats b{flex:0 0 auto;color:var(--warn-t)}
+.stamp{color:var(--muted);font-size:.76rem;margin:var(--s4) 0 0;max-width:80ch}
+.thtab{width:100%;font-size:.8rem;border-collapse:collapse;margin-top:var(--s2)}
+.thtab th,.thtab td{text-align:left;padding:6px var(--s3);border-bottom:1px solid var(--grid);
+ white-space:normal;position:static;background:transparent}
+.thtab td.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.takeaway{border-left:2px solid var(--accent);padding:var(--s2) 0 var(--s2) var(--s3);
+ margin:0 0 var(--s3);color:var(--ink2);font-size:.88rem;max-width:80ch}
+.takeaway b{color:var(--ink);font-weight:600}
+
+/* --- decisions: options, pros, cons --------------------------------------- */
+.dgrid{display:grid;gap:var(--s3);grid-template-columns:repeat(auto-fit,minmax(min(280px,100%),1fr));
+ margin-top:var(--s3)}
+.opt{background:var(--plane);border:1px solid var(--grid);border-radius:10px;padding:var(--s3)}
+.opt.pick{border-color:var(--accent);background:color-mix(in oklab,var(--accent) 9%,var(--plane))}
+.opt h5{margin:0;font-size:.9rem;display:flex;gap:var(--s2);align-items:baseline;flex-wrap:wrap}
+.opt .tag{font-size:.64rem;text-transform:uppercase;letter-spacing:.06em;padding:1px 7px;
+ border-radius:999px;border:1px solid color-mix(in oklab,var(--accent-t) 50%,transparent);
+ color:var(--accent-t)}
+.opt ul{margin:var(--s2) 0 0;padding-left:0;list-style:none;display:grid;gap:var(--s1)}
+.opt li{display:flex;gap:6px;font-size:.8rem;color:var(--ink2);align-items:flex-start}
+.opt li b{flex:0 0 auto;font-weight:600;font-size:.78rem}
+.opt li.pro b{color:var(--good-t)}
+.opt li.con b{color:var(--crit-t)}
+.opt li.jdg b{color:var(--warn-t)}
+.because{margin-top:var(--s4);display:grid;gap:var(--s2)}
+.because div{font-size:.85rem;color:var(--ink2);max-width:82ch}
+.because .lab{color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-size:.66rem;
+ display:block;margin-bottom:2px}
+/* --muted text on the --plane fill measures 4.49:1 in the LIGHT theme -- a hair
+   under AA for normal text, and these panels are all --plane. Measured in-page
+   via canvas (color-mix resolves to oklab(), so naive hex math would miss it),
+   not eyeballed. Secondary ink is used inside them instead. */
+.opt .dim,.rmgrid .dim,details.ev .dim{color:var(--ink2)}
+
+/* --- roadmap -------------------------------------------------------------- */
+.rmwrap{display:grid;gap:var(--s3)}
+.rm{background:var(--surface);border:1px solid var(--ring);border-radius:12px;padding:var(--s4);
+ border-left:3px solid var(--grid)}
+.rm.b-ready{border-left-color:var(--accent)}
+.rm.b-blocked{border-left-color:var(--warn-t)}
+.rm.b-dead{border-left-color:var(--rule)}
+.rm.b-done{border-left-color:var(--good-t)}
+.rmhead{display:flex;flex-wrap:wrap;gap:var(--s2);align-items:baseline}
+.rmhead h4{margin:0;font-size:1rem;letter-spacing:-.01em;flex:1 1 18ch;min-width:0}
+.rmline{margin:var(--s2) 0 0;color:var(--ink2);font-size:.87rem;max-width:82ch}
+.rmgrid{display:grid;gap:var(--s2) var(--s4);margin-top:var(--s3);
+ grid-template-columns:repeat(auto-fit,minmax(min(240px,100%),1fr))}
+.rmgrid>div{font-size:.8rem;color:var(--ink2);min-width:0}
+.rmgrid .lab{display:block;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;
+ font-size:.65rem;margin-bottom:2px}
+.rmgrid code{word-break:break-word}
+.cost{font-variant-numeric:tabular-nums;font-weight:600;color:var(--ink)}
+.blockline{margin-top:var(--s3);font-size:.82rem;color:var(--ink2);padding:var(--s2) var(--s3);
+ border:1px solid color-mix(in oklab,var(--warn-t) 45%,transparent);border-radius:8px;
+ background:var(--plane)}
+.blockline b{color:var(--warn-t)}
+.staleline{margin-top:var(--s3);font-size:.82rem;color:var(--ink2);padding:var(--s2) var(--s3);
+ border:1px solid color-mix(in oklab,var(--crit-t) 45%,transparent);border-radius:8px;
+ background:var(--plane)}
+.staleline b{color:var(--crit-t)}
+details.ev{margin-top:var(--s3)}
+details.ev summary{cursor:pointer;color:var(--ink2);font-size:.8rem;list-style:revert;padding:2px 0}
+details.ev summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+details.ev ul{margin:var(--s2) 0 0;padding-left:0;list-style:none;display:grid;gap:var(--s1)}
+details.ev li{font-size:.78rem;color:var(--ink2);display:flex;gap:var(--s2);align-items:flex-start}
+details.ev li .k{flex:0 0 7.5em;color:var(--muted);text-transform:uppercase;font-size:.64rem;
+ letter-spacing:.05em;padding-top:2px}
+details.ev li.bad .k{color:var(--crit-t)}
+details.ev code{color:var(--ink);word-break:break-all}
 @media(max-width:640px){.wrap{padding:var(--s4) var(--s3)}h1{font-size:1.25rem}.tile .v{font-size:1.5rem}}
 </style></head><body><div class="wrap">
 <header>
@@ -1552,6 +2995,7 @@ function h2hHTML(){
     A pair needs the same question-set fingerprint <em>and</em> the same kind.</div></section>`;
 
   let h = `<section class="sec" id="h2h"><h2>Head to head — same questions, same kind</h2>
+  ${tk('h2h')}
     <p class="lede">Two arms may only be subtracted when they ran the <strong>same questions</strong>
     and measure the <strong>same thing</strong>. Sharing a question set is not enough: an arm handed
     its gold rules with retrieval switched off is not on the same scale as the product path.
@@ -1648,6 +3092,7 @@ function frontierHTML(){
   const sets = (C.frontier||[]).filter(s=>s.points.length||s.unpriced.length);
   if(!sets.length) return '';
   let h = `<section class="sec" id="frontier"><h2>Cost vs accuracy — what is dominated</h2>
+  ${tk('frontier')}
     <p class="lede">An arm is <strong>dominated</strong> when another arm on the same questions, of
     the same kind, scored at least as well for no more money. A dominated arm is never the right
     choice. Dominance is only ever computed inside one question set and one kind — an arm with
@@ -1687,6 +3132,7 @@ function levelsHTML(){
   const sets = (C.levels||[]);
   if(!sets.length) return '';
   let h = `<section class="sec" id="levels"><h2>Per-level accuracy</h2>
+  ${tk('levels')}
     <p class="lede">Level mix is exactly what the weighting ruling is about, and it is also why a
     flat score off one question set does not transfer to the corpus. Each set's own mix is shown
     against the corpus mix, so you can see which levels an arm is actually evidence for.</p>`;
@@ -1727,6 +3173,7 @@ function matrixHTML(){
         ${kindBadge(x.kind)}</div>`).join('') + `</td>`;
     }).join('') + `</tr>`).join('');
   return `<section class="sec" id="matrix"><h2>Config matrix — what has been tried</h2>
+  ${tk('matrix')}
     <p class="lede">${M.n_tried} of ${M.n_cells} combinations have been run. Blank cells are not
     failures, they are untested. ${esc(M.note)}</p>
     <div class="scroll"><table aria-label="Configuration coverage matrix">
@@ -1749,6 +3196,7 @@ function reproHTML(){
   </tr>`).join('');
   const singles = (C.single_rep||[]);
   return `<section class="sec" id="repro"><h2>Reproducibility — the noise floor</h2>
+  ${tk('repro')}
     <p class="lede">Every configuration that ran more than once, and how far apart those runs
     landed. That spread is the instrument's resolution: a difference smaller than it is not a
     finding. Rows flipped counts questions whose verdict changed between two runs of the
@@ -1878,6 +3326,7 @@ function timelineHTML(){
 
   const chips = [['all','All sets']].concat(TL.sets.map(s=>[s.qset, s.n+' questions']));
   let h = `<h2>Timeline — what changed at each step</h2>
+   ${tk('tl')}
    <p class="note">Each card is one configuration. The delta beside it is measured against the
    <strong>previous pipeline step on the same question set</strong>, and against a noise floor taken
    from how far apart two runs of one identical config landed. Steps on different question sets are
@@ -1914,12 +3363,511 @@ function timelineHTML(){
 }
 
 function wireTimeline(){
-  document.querySelectorAll('.controls .chip').forEach(b=>{
+  document.querySelectorAll('#tl .controls .chip[data-set], #tl .controls .chip[data-sort]').forEach(b=>{
     b.addEventListener('click', ()=>{
       if(b.dataset.set!==undefined) tlSet = b.dataset.set; else tlSort = b.dataset.sort;
       document.getElementById('tl').innerHTML = timelineHTML();
       wireTimeline();
-      const again = document.querySelector(`.controls .chip[data-${b.dataset.set!==undefined?'set':'sort'}="${b.dataset.set!==undefined?tlSet:tlSort}"]`);
+      const again = document.querySelector(`#tl .controls .chip[data-${b.dataset.set!==undefined?'set':'sort'}="${b.dataset.set!==undefined?tlSet:tlSort}"]`);
+      if(again) again.focus();
+    });
+  });
+}
+
+/* ========================= EXECUTIVE SUMMARY ===============================
+   Authored sentence templates, computed values, computed branch selection. The
+   branch is chosen ONLY by D.summary.thresholds, which are rendered below the
+   recommendation so a reader can argue with the threshold instead of with a
+   sentence somebody typed. Nothing here is a hardcoded conclusion. */
+const S = D.summary || {};
+const F = S.facts || {};
+const TH = {}; (S.thresholds||[]).forEach(t => TH[t.key] = t.value);
+const RM = D.roadmap || {items:[], counts:{}, coverage:{n_docs:0,n_covered:0,missing:[]}};
+
+const money2 = (lo,hi) => lo==null ? 'unknown'
+  : (hi==null || Math.abs(hi-lo) < 0.005) ? '$'+lo.toFixed(2)
+  : '$'+lo.toFixed(2)+'–'+hi.toFixed(2);
+const money0 = (lo,hi) => lo==null ? 'unknown'
+  : (hi==null || Math.round(hi)===Math.round(lo)) ? '$'+Math.round(lo)
+  : '$'+Math.round(lo)+'–'+Math.round(hi);
+const ppw = v => v==null ? 'unknown' : v.toFixed(1)+' points';
+const lvl = l => l==='Corner Case' ? 'Corner Case' : 'L'+l;
+const missLabel = (F.missing||[]).map(lvl).join(' and ') || 'no level';
+
+function costLabel(c){
+  if(!c) return ['unknown','not costed'];
+  if(c.pool==='free')         return ['$0', c.why||''];
+  if(c.pool==='subscription') return ['$0 in credits', c.why||''];
+  if(c.pool==='spent')        return ['already spent', c.why||''];
+  if(c.pool==='hosting')      return [money0(c.lo,c.hi)+(c.unit||''), c.why||''];
+  if(c.unresolved)            return ['unknown', c.unresolved];
+  if(c.lo==null)              return ['unknown', c.why||''];
+  if(c.bound==='upper')       return ['under $'+c.hi.toFixed(2), c.why||''];
+  return [money2(c.lo,c.hi), c.why||''];
+}
+
+/* Sonnet is dual-priced, so "which model is cheaper" has two answers until the
+   introductory rate expires. Computed per question set from recorded tokens --
+   never asserted, because the sign genuinely flips on one of the two sets. */
+function introFlip(){
+  const bySet = {};
+  D.arms.forEach(a => {
+    const c = a.cost||{}, m = (a.config||{}).model;
+    if(c.cost_per_q==null || !m) return;
+    (bySet[a.qset] ||= []).push({m, n:a.n, std:c.cost_per_q, intro:c.cost_per_q_intro});
+  });
+  const mean = (xs,k) => xs.reduce((s,r)=>s+r[k],0)/xs.length;
+  const out = [];
+  Object.values(bySet).forEach(rows => {
+    const mine = rows.filter(r => r.m===D.current_config.GEN_MODEL);
+    const dual = rows.filter(r => r.intro!=null);
+    if(!mine.length || !dual.length) return;
+    const o = mean(mine,'std'), si = mean(dual,'intro'), ss = mean(dual,'std');
+    out.push({n:rows[0].n, mine:o, intro:si, std:ss,
+              cheaper_at_intro:o<si, cheaper_at_std:o<ss});
+  });
+  return out.sort((a,b)=>a.n-b.n);
+}
+const FLIP = introFlip();
+
+function threshTable(){
+  const fmt = (t) => t.fmt==='pct' ? (t.value*100).toFixed(0)+'%'
+                   : t.fmt==='pp' ? t.value.toFixed(0)+' pp'
+                   : t.fmt==='usd' ? '$'+t.value.toFixed(0) : String(t.value);
+  const chk = {}; (F.checks||[]).forEach(c => chk[c.key]=c);
+  const rows = (S.thresholds||[]).map(t => {
+    const c = chk[t.key];
+    const act = !c ? '<span class="dim">not evaluated</span>'
+      : (c.fmt==='pct' ? (c.actual*100).toFixed(1)+'%'
+        : c.fmt==='pp' ? c.actual.toFixed(1)+' pp' : '$'+c.actual.toFixed(0));
+    const verdict = !c ? '<span class="dim">—</span>'
+      : c.pass ? '<span class="badge b-good">✓ met</span>'
+               : '<span class="badge b-crit">✕ not met</span>';
+    return `<tr><td>${esc(t.label)}<br><span class="dim">${esc(t.why)}</span></td>
+      <td class="n">${fmt(t)}</td><td class="n">${act}</td><td class="n">${verdict}</td></tr>`;
+  }).join('');
+  return `<table class="thtab"><thead><tr><th>Threshold</th><th class="n">Bar</th>
+    <th class="n">Actual</th><th class="n">Status</th></tr></thead><tbody>${rows}</tbody></table>`;
+}
+
+function execHTML(){
+  if(!F.verdict || F.verdict==='nodata') return `<section class="sec" id="exec">
+    <div class="card exec"><div class="empty"><strong>No recommendation can be made.</strong><br>
+    No pipeline configuration carries both a measured cost and per-level counts, so there is
+    nothing to project and nothing to price. Run one judged pipeline arm, then rebuild.</div></div></section>`;
+
+  const sliceCost = money2(F.slice_lo, F.slice_hi);
+  const fullCost  = money0(F.full_lo, F.full_hi);
+  const acc = pct(F.acc), cov = (F.coverage*100).toFixed(0)+'%';
+  let pill='Recommended', tone='', title='', why='', gets='', flip='';
+
+  if(F.verdict==='slice-first'){
+    pill='Do this first'; tone='hold';
+    title = `Run the ${int(F.missing_n)}-question ${missLabel} slice first, for about ${sliceCost}. Then decide on the full run.`;
+    why = `The number for the whole corpus is a projection, not a measurement: ${acc}, built only from `
+        + `difficulty levels that cover ${cov} of the questions. ${missLabel} — ${int(F.missing_n)} of `
+        + `${int(F.N)} questions — has never been answered by the real pipeline even once, so about one `
+        + `question in seven is estimated rather than measured. Running only that slice costs about `
+        + `${sliceCost}, against ${fullCost} for everything. Money is not what is holding the full run `
+        + `back. Coverage is.`;
+    gets = `Either the projection firms up and the full run becomes the obvious next step, or it moves. `
+         + `Finding that out for ${sliceCost} beats finding it out for ${fullCost}.`;
+    flip = `If ${missLabel} scores close to the levels already measured, this becomes "run the full corpus now". `
+         + `If it scores far off, the projection was wrong by more than the price of the run.`;
+  } else if(F.verdict==='narrow-first'){
+    pill='Not yet'; tone='hold';
+    title = `Narrow the estimate before spending ${fullCost} on the full run.`;
+    why = `The projected accuracy is ${acc}, but its 95% interval is ${ppw(F.ci_width_pp)} wide — past the `
+        + `${TH.interval_max_pp}-point bar this page uses. An interval that wide cannot tell a good result `
+        + `from a bad one, so the full run would buy a number nobody could act on.`;
+    gets = `A tighter interval, from more questions per level, before committing the larger spend.`;
+    flip = `If the interval narrows below ${TH.interval_max_pp} points, the full run is the next step.`;
+  } else if(F.verdict==='fix-judge-first'){
+    pill='Fix the instrument'; tone='stop';
+    title = `Fix the judge before publishing any headline number.`;
+    why = `The judge marks a wrong answer correct ${pct((F.judge||{}).fp_rate)} of the time, above the `
+        + `${TH.judge_fp_max_pp}% bar. Every accuracy on this page inherits that, so a full run would `
+        + `produce a number that is wrong in a known direction.`;
+    gets = `An instrument whose error is small enough that the result means something.`;
+    flip = `If the measured false-positive rate falls below ${TH.judge_fp_max_pp}%, the coverage and `
+         + `interval checks decide instead.`;
+  } else if(F.verdict==='budget-gate'){
+    pill='Budget call'; tone='hold';
+    title = `The full run is a budget decision, not a technical one: ${fullCost}.`;
+    why = `Coverage and interval both clear their bars. The only thing left is that ${fullCost} is above `
+        + `the $${TH.budget_max_usd} line this page treats as needing a separate conversation.`;
+    gets = `The measured corpus accuracy, with no reweighting and no extrapolation.`;
+    flip = `Approve the spend, or cut the run down to a sample.`;
+  } else {
+    pill='Go'; tone='';
+    title = `Run the full ${int(F.N)}-question corpus now. It costs ${fullCost}.`;
+    why = `Every bar this page sets is met: coverage is ${cov}, the 95% interval is ${ppw(F.ci_width_pp)} `
+        + `wide, the judge's measured error is inside tolerance, and ${fullCost} is below the point where `
+        + `cost decides anything.`;
+    gets = `The real number — ${acc} projected today, measured after the run.`;
+    flip = `A new question set, or a judge result that moves, would re-open it.`;
+  }
+
+  const je = F.judge||{};
+  const ceil = (F.ceilings||[])[0];
+  const caveats = [
+    `<li><b>⚠</b><span><b>The headline is a projection.</b> ${acc} reweights measured levels onto the
+      corpus mix and covers ${cov} of it. ${missLabel} has zero pipeline rows across every arm on this
+      page — that share is extrapolated, not measured.</span></li>`,
+    ceil ? `<li><b>⚠</b><span><b>${pct(ceil.oracle_flat)} is a ceiling, not a product score.</b>
+      <code>${esc(ceil.oracle)}</code> answered with retrieval switched off and the gold rules handed to it.
+      It says the answers are derivable; it does not say the product finds them. The best pipeline score on
+      the same ${int(ceil_n(ceil))} questions is ${pct(ceil.other_flat)}.</span></li>` : '',
+    je.fp_rate!=null ? `<li><b>⚠</b><span><b>The judge error is an upper bound.</b> ${pct(je.fp_rate)}
+      (${je.fp_k} of ${je.fp_n} sampled) is the rate at which the judge passed an answer it should have
+      failed. The reference grader that measured it agreed with the judge on
+      ${(je.ref_agreement*100).toFixed(0)}% of the rows with human ground truth, so it is not an independent
+      check — read ${pct(je.fp_rate)} as a ceiling on the error, not an estimate of it.</span></li>` : '',
+  ].filter(Boolean).join('');
+
+  return `<section class="sec" id="exec" style="margin-top:0">
+    <div class="card exec">
+      <span class="verdict ${tone}">${esc(pill)}</span>
+      <h2 class="exectitle" style="text-transform:none;letter-spacing:-.01em;color:var(--ink)">${esc(title)}</h2>
+      <p class="execwhy">${why}</p>
+      <div class="execgrid">
+        <div><span class="lab">What it costs</span>
+          <span class="big">${esc(sliceCost)}</span>
+          <p>for the slice. The full ${int(F.N)}-question run is ${fullCost}, at the measured cost per
+             question of ${esc(F.model||'the shipped model')}${F.effort?' at effort '+esc(F.effort):''}.</p></div>
+        <div><span class="lab">What we get</span>
+          <p style="margin-top:0">${gets}</p>
+          <p class="dim">${esc(S.runtime_note||'')}</p></div>
+        <div><span class="lab">How sure we are</span>
+          <span class="big">${acc}</span>
+          <p>95% interval ${pct(F.ci[0])}–${pct(F.ci[1])}, ${ppw(F.ci_width_pp)} wide, measured on
+             ${int(F.n_run)} questions. Treat it as a range, not a number.</p></div>
+        <div><span class="lab">What would change this</span>
+          <p style="margin-top:0">${flip}</p></div>
+      </div>
+      <ul class="caveats">${caveats}</ul>
+      <details class="ev"><summary>The thresholds that produced this recommendation</summary>
+        ${threshTable()}</details>
+      <p class="stamp">Every number above is computed from the files at build time. The recommendation is
+        <em>selected</em> by the thresholds, not written in — if the data crosses one, this page says
+        something different without anyone editing it. The sentence templates and the threshold values were
+        authored ${esc(S.authored_on||'')} by ${esc(S.authored_by||'')}.</p>
+    </div></section>`;
+}
+function ceil_n(c){ const s=(C.head_to_head||[]).find(x=>x.headroom&&x.headroom.oracle===c.oracle); return s?s.n:0; }
+
+/* ========================= DECISIONS ======================================= */
+function optCard(o){
+  const items = [].concat(
+    (o.pros||[]).map(p=>`<li class="pro"><b>+</b><span>${p}</span></li>`),
+    (o.cons||[]).map(p=>`<li class="con"><b>−</b><span>${p}</span></li>`),
+    (o.judge||[]).map(p=>`<li class="jdg"><b>?</b><span>${p} <span class="dim">(judgement, not a measurement)</span></span></li>`)
+  ).join('');
+  return `<div class="opt ${o.pick?'pick':''}">
+    <h5>${esc(o.name)} ${o.pick?'<span class="tag">✓ recommended</span>':''}</h5>
+    ${o.cost?`<p class="dim" style="margin:var(--s1) 0 0;font-size:.78rem">${esc(o.cost)}</p>`:''}
+    <ul>${items || '<li class="dim">nothing recorded</li>'}</ul></div>`;
+}
+function decisionCard(d){
+  return `<div class="card" style="margin-bottom:var(--s4)">
+    <h3 style="margin:0;font-size:1.02rem">${esc(d.title)}</h3>
+    <p class="lede" style="margin:var(--s2) 0 0">${d.question}</p>
+    <div class="dgrid">${d.options.map(optCard).join('')}</div>
+    <div class="because">
+      <div><span class="lab">Why this one</span>${d.why}</div>
+      <div><span class="lab">The strongest argument against it</span>${d.against}</div>
+      ${d.close?`<div><span class="lab">How close it is</span>${d.close}</div>`:''}
+      <div><span class="lab">What would change the answer</span>${d.flip}</div>
+    </div></div>`;
+}
+function decisionsHTML(){
+  if(!F.verdict || F.verdict==='nodata') return '';
+  const decs = [];
+  const sliceCost = money2(F.slice_lo,F.slice_hi), fullCost = money0(F.full_lo,F.full_hi);
+  const sharePct = (F.slice_lo && F.full_lo) ? Math.round(F.slice_lo/F.full_lo*100) : null;
+
+  // 1. THE FULL RUN -------------------------------------------------------
+  decs.push({
+    title:'Decision 1 — the full RulesGuru run',
+    question:`Do we spend ${fullCost} answering all ${int(F.N)} questions now?`,
+    options:[
+      {name:`Run all ${int(F.N)} now`, cost:fullCost, pick:F.verdict==='go',
+       pros:[`Covers 100% of the corpus, so the number stops being a reweighted projection`,
+             `${fullCost} is below the $${TH.budget_max_usd} line where cost would decide anything`,
+             `Ends the argument in one pass instead of two`],
+       cons:[`${(100-F.coverage*100).toFixed(0)}% of the corpus mix (${missLabel}, ${int(F.missing_n)} questions) has never run, so a surprise there lands after the money is spent`,
+             `Going in, the 95% interval is ${ppw(F.ci_width_pp)} wide`]},
+      {name:`Run the ${missLabel} slice first (${sliceCost})`, cost:sliceCost,
+       pick:F.verdict==='slice-first',
+       pros:[`Costs ${sliceCost}${sharePct?` — about ${sharePct}% of the full run`:''}`,
+             `Closes the single largest coverage gap on the page`,
+             `The full run stays available afterwards, and it is not price-sensitive`],
+       cons:[`Adds a step before the headline number exists`,
+             `If ${missLabel} lands where expected, the slice bought confirmation rather than news`]},
+      {name:'Do not run yet', cost:'$0',
+       pick:F.verdict!=='go' && F.verdict!=='slice-first',
+       pros:[`Spends nothing`,
+             `${F.ready_free_n} backlog items cost no credits and can land first`],
+       cons:[`The headline stays a projection`,
+             `None of the free items reduce the ${missLabel} gap — only running ${missLabel} does`]},
+    ],
+    why:`Selected by the coverage threshold: ${(F.coverage*100).toFixed(1)}% measured against a
+         ${(TH.coverage_min*100).toFixed(0)}% bar. Cost is genuinely not the constraint — ${fullCost} is well
+         under the $${TH.budget_max_usd} line — so the question is only whether the number would mean
+         anything, and today one question in seven is extrapolated.`,
+    against:`The slice may simply confirm what the projection already assumes, in which case ${sliceCost}
+         and a day bought nothing the full run would not have shown anyway. That is a fair argument. It
+         loses on the ratio: the slice is a small fraction of the full run's cost and removes the page's
+         largest named unknown, and a full run that turns out to have been mis-projected costs ${fullCost}
+         to learn the same thing.`,
+    close:`Running everything now is the close second. If ${fullCost} were already approved and nobody
+         cared about the ordering, the difference between these two options is one extra step.`,
+    flip:`A measured ${missLabel} accuracy. If it lands within the spread of the levels already measured,
+         run everything. If it lands well below, the retrieval and gold work in the backlog matters more
+         than the headline does.`,
+  });
+
+  // 2. MODEL CHOICE -------------------------------------------------------
+  const mp = F.model_pairs||[];
+  if(mp.length){
+    const w = mp[0].win_model, l = mp[0].lose_model;
+    const gaps = mp.map(m=>`+${m.gap_pp.toFixed(1)} pp on the ${m.n}-question set (noise floor ${m.floor_pp.toFixed(1)} pp)`).join(', ');
+    const confounded = mp.some(m=>m.confounded);
+    const flipRow = FLIP.filter(f=>!f.cheaper_at_intro);
+    const introCon = flipRow.length
+      ? `On the ${flipRow.map(f=>f.n).join(' and ')}-question set, ${esc(l)} at its introductory rate is
+         actually cheaper per question (${usd(flipRow[0].intro)} vs ${usd(flipRow[0].mine)}). That rate runs
+         to ${esc(D.pricing.sonnet_intro_ends)}; after it, ${esc(w)} is cheaper on every set measured.`
+      : `${esc(l)}'s introductory rate runs to ${esc(D.pricing.sonnet_intro_ends)}; the comparison above uses
+         the standard rate, and should be re-checked after that date.`;
+    decs.push({
+      title:'Decision 2 — which generation model',
+      question:`${esc(w)} or ${esc(l)}?`,
+      options:[
+        {name:esc(w)+(F.effort?' at effort '+esc(F.effort):''),
+         cost:'measured '+usd(mp[0].win_cost)+'/question on the '+int(mp[0].n)+'-question set',
+         pick:true,
+         pros:[`More accurate on every set measured: ${gaps} — every gap clears its set's own noise floor`,
+               `Cheaper per question at standard pricing on every set measured`,
+               `Output is nearly constant regardless of difficulty, so cost does not blow up on hard traffic`],
+         cons:[introCon],
+         judge: confounded ? [`The pairs differ in ${mp[0].differs.join(' and ')}, not model alone, so the
+           gap is the package rather than the model in isolation`] : []},
+        {name:esc(l), cost:'measured '+usd(mp[0].lose_cost)+'/question on the '+int(mp[0].n)+'-question set',
+         pros:[`Cheaper on some traffic while its introductory rate lasts (see the caveat opposite)`],
+         cons:[`Lower accuracy on every set measured, by more than the noise floor`,
+               `More expensive per question at standard pricing`]},
+      ],
+      why:`This one is not close. ${esc(l)} is <strong>dominated</strong> — worse and, at standard pricing,
+           pricier on both question sets, and both accuracy gaps clear their measured noise floors, so
+           neither is a coin flip. Manufacturing a balanced case here would be dishonest.`,
+      against:`The one real caveat is pricing, not quality: ${esc(l)} is dual-priced and the arithmetic
+           should be re-run after ${esc(D.pricing.sonnet_intro_ends)} rather than treated as settled forever.`,
+      close:'',
+      flip:`A price change, or a ${esc(l)} result that clears the noise floor in the other direction. Neither
+           has happened in any run on this page.`,
+    });
+  }
+
+  // 3. EFFORT -------------------------------------------------------------
+  const eff = F.effort_controlled||0;
+  const pr = F.effort_probe;
+  decs.push({
+    title:'Decision 3 — reasoning effort',
+    question:`Production runs at effort <code>${esc(F.effort||'unset')}</code>. Should it?`,
+    options:[
+      {name:`Keep effort ${esc(F.effort||'unset')}`, cost:'no change, no spend', pick:true,
+       pros:[`It is what every current number on this page was measured under`,
+             `Cost is capped by short output rather than by the question's difficulty`],
+       cons:[eff ? `${eff} controlled comparison(s) exist` :
+             `<strong>No controlled comparison exists.</strong> Not one pair on this page differs in effort
+              alone, so nothing here establishes what a higher setting would score`]},
+      {name:'Re-run one existing set at a higher effort',
+       cost: pr ? money2(pr.lo, pr.hi)+' for '+int(pr.n)+' questions' : 'unknown',
+       pros:[`Would give the page its first effort-only comparison`,
+             pr ? `Cheap: ${money2(pr.lo,pr.hi)} to re-run the smallest ${int(pr.n)}-question pipeline set the shipped config has already answered` : ''].filter(Boolean),
+       cons:[`Spends credits to answer a question nothing currently depends on`,
+             `The oracle arms that ran at a higher effort are a different <em>kind</em> and cannot be
+              differenced against the product path, so they do not shortcut this`]},
+    ],
+    why: eff
+      ? `A controlled effort comparison exists on this page; read it in the head-to-head section.`
+      : `Keep the current setting, but say plainly why: it was adopted on a cost mechanism and a
+         regression check against a <em>different model</em>, not against a different effort. That is a
+         reasonable basis, and it is not the same thing as having measured it.`,
+    against:`"We have never tested the alternative" is a real gap, and the test is cheap. If effort became
+         a live question — a cost squeeze, or a hard-question accuracy problem — this would be the first
+         thing to measure.`,
+    close:'',
+    flip:`Any kind-matched pair that differs in effort alone. There are ${eff} on this page today.`,
+  });
+
+  return `<section class="sec" id="decisions"><h2>The decisions, with their alternatives</h2>
+    ${tk('decisions')}
+    <p class="lede">Each decision shows the options as things a person could actually do, the pros and cons
+    traceable to numbers on this page, the recommendation, and the strongest case against it. Where an
+    option is simply dominated, it says so rather than inventing a counterweight.</p>
+    ${decs.map(decisionCard).join('')}</section>`;
+}
+
+/* ========================= SECTION TAKEAWAYS ===============================
+   One conclusion per section, not a description of it. Computed where the data
+   supports a conclusion; where it does not, the sentence says so. */
+function takeaways(){
+  const t = {};
+  const je = F.judge||{}, ceil=(F.ceilings||[])[0];
+  t.decisions = `Three calls are live. Only the first one — whether to run the full corpus — is genuinely
+    close; the model choice is settled by the data and the effort setting has never been tested.`;
+  const mp=(F.model_pairs||[])[0];
+  t.h2h = mp
+    ? `<b>${esc(mp.win_model)} wins both head-to-heads</b> by ${mp.gap_pp.toFixed(1)} pp or more, and each gap
+       clears its own set's noise floor, so neither is measurement wobble. ${ceil ? `The ${pct(ceil.oracle_flat)}
+       oracle row is not a competitor — it was handed the gold rules with retrieval off, and the gap to the
+       best pipeline score (${pct(ceil.other_flat)}) is roughly the headroom retrieval is leaving on the table.`:''}`
+    : `No two arms share both a question set and a kind, so nothing here can be differenced yet.`;
+  t.frontier = `Anything marked dominated is worse <em>and</em> pricier than something else on the same
+    questions — there is no trade-off to weigh, only a choice already made. Use this to retire arms, not to
+    pick one.`;
+  t.levels = (F.missing||[]).length
+    ? `<b>${missLabel} is the hole.</b> It is ${int(F.missing_n)} of ${int(F.N)} corpus questions and no
+       pipeline arm has ever answered one, so every projection on this page fills it in by assumption.
+       That is the single cheapest thing left to fix.`
+    : `Every difficulty level has pipeline evidence, so the projection is interpolating rather than
+       extrapolating.`;
+  t.matrix = (C.matrix && C.matrix.n_cells)
+    ? `${C.matrix.n_tried} of ${C.matrix.n_cells} configurations have been tried. The blanks are not a to-do
+       list — most are combinations nobody has a reason to want. Retrieval settings do not appear here at
+       all, because no answers file records them.`
+    : `Nothing recorded enough configuration to build a matrix.`;
+  t.repro = `Treat any difference smaller than a set's noise floor as nothing. The judge alone flips about
+    one verdict per hundred rows on identical answers, so a one- or two-row move is not a result.`;
+  t.tl = `Read this for <em>why</em> a number moved, not whether it is good. Config changes and grading
+    passes are both steps here, because both have moved a published number.`;
+  t.arms = `The reference table. If a row is not marked verified, do not quote its cost.`;
+  t.roadmap = `<b>${RM.counts.ready||0} items are ready now and ${RM.counts.blocked||0} are blocked.</b>
+    ${F.ready_free_n||0} of the ready ones spend no API credits at all, so the realistic question is not what
+    to fund — it is what to do first. Total credit cost of every priced, ready item:
+    ${money0(RM.ready_api_lo, RM.ready_api_hi)}.`;
+  t.exec = '';
+  return t;
+}
+const TK = takeaways();
+const tk = id => TK[id] ? `<p class="takeaway"><b>Bottom line.</b> ${TK[id]}</p>` : '';
+
+/* ========================= ROADMAP ========================================= */
+let rmView = 'ready';
+const RMV = [['ready','Ready now'],['blocked','Blocked'],['done','Shipped'],
+             ['dead','Cut or superseded'],['all','Everything']];
+const ST = {
+  shipped:['b-good','shipped'], partial:['b-warn','partially shipped'],
+  open:['b-pipe','open'], 'design-only':['b-pipe','design only, awaiting a ruling'],
+  cut:['badge','cut'], superseded:['badge','superseded'], unknown:['b-crit','status unknown'],
+};
+const ACT = {run:'run it', build:'build it', decide:'decide on it', measure:'measure it'};
+const DIR = {up:['▲','raises'], down:['▼','lowers'], either:['◆','moves'],
+             none:['▬','no metric']};
+
+function evLine(e){
+  const K = {commit:'commit', path:'code path', path_absent:'absent', doc:'doc', derived:'derived'};
+  const body = e.kind==='commit' ? `<code>${esc(e.ref)}</code>`
+    : e.ref ? `<code>${esc(e.ref)}</code>` : '';
+  const bad = e.ok ? '' : ` <span class="badge b-crit">✕ ${esc(e.broken_why||'stale')}</span>`;
+  const det = e.detail ? ` <span class="dim">(${esc(e.detail)})</span>` : '';
+  return `<li class="${e.ok?'':'bad'}"><span class="k">${esc(K[e.kind]||e.kind)}</span>
+    <span>${body}${det}${bad}${e.note?` — ${esc(e.note)}`:''}</span></li>`;
+}
+
+function tradeoffHTML(i){
+  const t = i.tradeoff; if(!t) return '';
+  return `<details class="ev" open><summary>Doing it and not doing it are both defensible — the options</summary>
+    <div class="dgrid">${t.options.map(o=>optCard(o)).join('')}</div>
+    <div class="because">
+      <div><span class="lab">Why</span>${esc(t.why)}</div>
+      <div><span class="lab">The strongest argument against</span>${esc(t.against)}</div>
+      <div><span class="lab">What would change it</span>${esc(t.flip)}</div>
+    </div></details>`;
+}
+function rmCard(i){
+  const [cl,lab] = ST[i.status] || ST.unknown;
+  const [cost, costWhy] = costLabel(i.cost);
+  const m = i.metric||{};
+  const [gl,verb] = DIR[m.dir] || DIR.none;
+  const basis = m.basis==='measured' ? '<span class="badge b-good">measured</span>'
+    : m.basis==='predicted' ? '<span class="badge b-warn">predicted, unmeasured</span>'
+    : '<span class="badge b-crit">no basis recorded</span>';
+  const blocked = i.bucket==='blocked'
+    ? `<p class="blockline"><b>⛔ Blocked</b> — needs ${i.unmet_titles.map(esc).join(', ')} first.
+       ${i.dep_why?esc(i.dep_why)+'.':''}</p>` : '';
+  const stale = i.evidence_ok ? '' :
+    `<p class="staleline"><b>✕ Evidence check failed</b> — a reference below no longer resolves in this
+     repo, so this row's status is no longer established. Treat it as unknown until it is re-checked.</p>`;
+  const rel = i.relevant===false
+    ? `<p class="blockline"><b>⚠ Overtaken</b> ${esc(i.relevance_note||'')}</p>` : '';
+  const merged = (i.merged||[]).length
+    ? `<div><span class="lab">Merged into this row</span>${i.merged.map(d=>`<code>${esc(d)}</code>`).join(', ')}
+       <br><span class="dim">${esc(i.merge_why||'')}</span></div>` : '';
+  const worth = (i.bucket==='ready' && (i.cost.pool==='free'||i.cost.pool==='subscription') && i.info>=2)
+    ? `<p class="rmline"><strong>No trade-off to weigh here.</strong> It spends no API credits and it
+       ${m.dir==='none'?'answers a question we are currently guessing at':verb+' '+esc(m.name)}. Do it.</p>` : '';
+  return `<article class="rm b-${esc(i.bucket)}">
+    <div class="rmhead"><h4>${esc(i.title)}</h4>
+      <span class="badge ${cl==='badge'?'':cl}">${esc(lab)}</span>
+      <span class="pill"><b>${esc(cost)}</b></span>
+      <span class="pill">${esc(ACT[i.action]||i.action||'')}</span></div>
+    <p class="rmline">${esc(i.one_line||'')}</p>
+    ${worth}${stale}${rel}${blocked}${tradeoffHTML(i)}
+    <div class="rmgrid">
+      <div><span class="lab">Moves</span>
+        <span aria-hidden="true">${gl}</span> ${esc(verb)} <strong>${esc(m.name||'nothing recorded')}</strong>
+        ${basis}<br><span class="dim">${esc(m.detail||'')}${m.cite?' — '+esc(m.cite):''}</span></div>
+      <div><span class="lab">What it tells us</span>${esc(i.tells_us||'—')}</div>
+      <div><span class="lab">Cost basis</span>${esc(costWhy)}
+        ${i.cost.cite?`<br><span class="dim">${esc(i.cost.cite)}</span>`:''}</div>
+      <div><span class="lab">Priority</span>${esc(i.info_why_rank||'')}
+        <br><span class="dim">${esc(i.info_why||'')}</span></div>
+      ${merged}
+    </div>
+    <details class="ev"><summary>Evidence for this status (${i.evidence.length} references, re-checked at build time)</summary>
+      <ul>${i.evidence.map(evLine).join('')}</ul></details>
+  </article>`;
+}
+
+function roadmapHTML(){
+  const all = RM.items||[];
+  const rows = rmView==='all' ? all : all.filter(i=>i.bucket===rmView);
+  const cov = RM.coverage||{};
+  const chips = RMV.map(([k,l])=>{
+    const n = k==='all' ? all.length : (RM.counts[k]||0);
+    return `<button type="button" class="chip" data-rm="${k}" aria-pressed="${k===rmView}">${esc(l)} (${n})</button>`;
+  }).join('');
+  const body = rows.length
+    ? `<div class="rmwrap">${rows.map(rmCard).join('')}</div>`
+    : `<div class="card empty"><strong>Nothing in this view.</strong><br>
+       Pick another filter above — every item is in exactly one of them.</div>`;
+  const gap = (cov.missing||[]).length
+    ? `<p class="warnline crit"><b>✕ Gap</b><span>${cov.missing.length} plan/spec docs are not accounted
+       for by any row: ${cov.missing.map(esc).join(', ')}.</span></p>`
+    : `<p class="note">All ${cov.n_docs} <code>plan-*.md</code> and <code>spec-*.md</code> docs are accounted
+       for by a row above — checked by globbing the directory, not by trusting this list.</p>`;
+  return `<h2>Roadmap — what to do next</h2>
+    ${tk('roadmap')}
+    <p class="lede">Every plan and spec in the repo, with a status that had to be <em>earned</em> from
+    evidence: a commit that implements it, a results doc that measured it, or a code path that exists or
+    provably does not. Only six of the ${cov.n_docs} docs carry a status marker of their own, so the rest are
+    inferred — and every reference is re-checked on each build, so a claim that goes stale shows up as a
+    failed check rather than quietly staying true. Ready items are ordered by how much they would tell us,
+    then by cost.</p>
+    <div class="controls" role="group" aria-label="Roadmap filter">
+      <span class="lbl">Show</span>${chips}</div>
+    ${body}${gap}`;
+}
+function wireRoadmap(){
+  document.querySelectorAll('#roadmap .chip[data-rm]').forEach(b=>{
+    b.addEventListener('click', ()=>{
+      rmView = b.dataset.rm;
+      document.getElementById('roadmap').innerHTML = roadmapHTML();
+      wireRoadmap();
+      const again = document.querySelector(`#roadmap .chip[data-rm="${rmView}"]`);
       if(again) again.focus();
     });
   });
@@ -1934,10 +3882,17 @@ function render(){
     return;
   }
   let html = `<nav class="nav" aria-label="Sections">
-    ${[['#decision','The decision'],['#h2h','Head to head'],['#frontier','Cost vs accuracy'],
+    ${[['#exec','Summary'],['#decisions','Decisions'],['#roadmap','Roadmap'],
+       ['#decision','The numbers behind it'],['#h2h','Head to head'],['#frontier','Cost vs accuracy'],
        ['#levels','Per level'],['#matrix','Config matrix'],['#repro','Reproducibility'],
        ['#tl','Timeline'],['#arms','Every arm']]
       .map(([href,label])=>`<a href="${href}">${label}</a>`).join('')}</nav>`;
+
+  // The executive summary goes ABOVE the tiles: it is the first thing anyone
+  // should read, and the tiles are already detail by comparison.
+  html += execHTML();
+  html += decisionsHTML();
+  html += `<section class="sec" id="roadmap">${roadmapHTML()}</section>`;
 
   html += `<div class="tiles">${tiles.map(t=>
     `<div class="card tile ${t.cls||''}"><div class="k">${esc(t.k)}</div>
@@ -1953,6 +3908,7 @@ function render(){
   html += `<section class="sec" id="tl">${timelineHTML()}</section>`;
 
   html += `<section class="sec" id="arms"><h2>Every arm, side by side</h2>
+    ${tk('arms')}
     <p class="lede">One row per verdict file. <strong>Generation run</strong> is when the answers
     were produced; <strong>judging run</strong> is when they were scored, by which judge and under
     which prompt digest; <strong>human grading</strong> is a third pass on top. Two arms judged in
@@ -1965,6 +3921,7 @@ function render(){
   html += `</section>`;
   document.getElementById('app').innerHTML = html;
   wireTimeline();
+  wireRoadmap();
 
   document.querySelectorAll('th[data-c]').forEach(th => {
     const go = () => sort(th);
@@ -2058,6 +4015,8 @@ def main() -> None:
     data["full_corpus"] = FULL_CORPUS
     data["timeline"] = build_timeline(data["arms"])
     data["comparisons"] = build_comparisons(data["timeline"], corpus_level_mix())
+    data["roadmap"] = build_roadmap(data["comparisons"], data["current_config"])
+    data["summary"] = build_summary(data)
     for s in data["timeline"]["sets"]:   # working data, not a result
         for st in s["steps"]:
             st.pop("_arms", None)

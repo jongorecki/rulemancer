@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-26T13:41-05:00",
+  "generated_at": "2026-07-26T14:12-05:00",
   "arms": [
     {
       "arm": "derivability_B_human",
@@ -2517,7 +2517,7 @@
         ]
       }
     ],
-    "commits_indexed": 289,
+    "commits_indexed": 290,
     "notes": {
       "baseline": "Each delta compares a step to the previous PIPELINE step on the same question-set fingerprint, ordered by run time. Nothing is compared across fingerprints.",
       "ordering": "Run time is the answers file's mtime where one is joined, else the verdict file's. Neither is a recorded run timestamp — the answers files do not carry one.",
@@ -4014,5 +4014,2635 @@
       }
     },
     "kind_rule": "Derived per arm from the answers file, never from its name. `retrieved_rule_ids` non-empty on every row → pipeline (the product path). Recorded but empty on every row → oracle (the model answered without retrieved rules; the derivability runs are handed gold instead). Field absent, mixed, or no answers file joined → unknown."
+  },
+  "roadmap": {
+    "items": [
+      {
+        "id": "gold-audit-b2",
+        "title": "Gold audit, batch 2",
+        "one_line": "Hand-grade the full-data misses (rg1802, rg4440, rg5628 plus the h2h and cost-base rows) with the retrieved panel showing what the run actually saw.",
+        "status": "open",
+        "action": "measure",
+        "info": 3,
+        "docs": [
+          "docs/spec-gold-audit-ui.md"
+        ],
+        "info_why": "Grading calls, not model changes, have moved arm B twice (90.0 -> 93.3 -> 91.3). Every accuracy on this page inherits that error.",
+        "tells_us": "How much of the remaining failure is the bot versus the gold or the judge.",
+        "metric": {
+          "name": "published accuracy correctness",
+          "dir": "either",
+          "basis": "measured",
+          "cite": "docs/results-gold-audit-batch1.md",
+          "detail": "batch 1 moved arm B by 3.3 pp up and then 2.0 pp back down. Direction is genuinely unknown in advance -- that is the point."
+        },
+        "evidence": [
+          {
+            "kind": "doc",
+            "ref": "docs/HANDOFF-development.md",
+            "note": "live queue item 2",
+            "ok": true,
+            "broken_why": null
+          },
+          {
+            "kind": "path",
+            "ref": "evals/build_gold_audit_input.py",
+            "note": "the harness exists; --provenance run flips the panel to the green \"retrieved by the run\" label",
+            "ok": true,
+            "broken_why": null
+          },
+          {
+            "kind": "doc",
+            "ref": "docs/results-gold-audit-batch1.md",
+            "note": "batch 1: 2 of 15 were the judge being wrong, after Jon's second-pass adjudication",
+            "ok": true,
+            "broken_why": null
+          }
+        ],
+        "cost": {
+          "kind": "zero",
+          "why": "regrades answers already on disk; no generation, no judge calls, no Anthropic client. Jon's time is the real cost.",
+          "lo": null,
+          "hi": null,
+          "pool": "free"
+        },
+        "deps": [],
+        "unmet": [],
+        "unmet_titles": [],
+        "bucket": "ready",
+        "evidence_ok": true,
+        "info_why_rank": "resolves a named uncertainty in the go/no-go decision"
+      },
+      {
+        "id": "l0-arm",
+        "title": "L0-only pipeline arm (207 questions)",
+        "one_line": "Run the shipped config over the corpus's L0 questions, the one difficulty level no pipeline arm has ever touched.",
+        "status": "open",
+        "action": "run",
+        "info": 3,
+        "info_why": "L0 is the only level with zero pipeline rows, so the full-run projection is currently extrapolated over it rather than measured.",
+        "tells_us": "Whether the 80.3% full-run projection is honest. It is built from levels covering 85.3% of the corpus by mix; L0 is the missing 14.7%.",
+        "metric": {
+          "name": "full-run projection coverage",
+          "dir": "up",
+          "basis": "measured",
+          "cite": "evals/_metrics_history.json (comparisons.projections)",
+          "detail": "coverage moves from the measured share to 100% of the corpus mix. The handoff predicts the point estimate reads low because L0 is the corpus's easiest slice -- that direction is predicted, not measured."
+        },
+        "evidence": [
+          {
+            "kind": "doc",
+            "ref": "docs/HANDOFF-development.md",
+            "note": "live queue item 1: \"Run an L0-only pipeline arm (~$11, 207 questions)\"",
+            "ok": true,
+            "broken_why": null
+          },
+          {
+            "kind": "derived",
+            "note": "this page's own projection reports missing_levels=['0'] and covered_share for every pipeline configuration -- recomputed at build time, below",
+            "ok": true,
+            "broken_why": null
+          }
+        ],
+        "cost": {
+          "kind": "api_questions",
+          "n": 207,
+          "why": "207 L0 questions in evals/rulesguru_full_v2.jsonl, at the measured $/question of the shipped config",
+          "per_q": [
+            0.051531709999999994,
+            0.06445404629629631
+          ],
+          "lo": 10.66706397,
+          "hi": 13.341987583333335,
+          "pool": "api"
+        },
+        "deps": [],
+        "unmet": [],
+        "unmet_titles": [],
+        "bucket": "ready",
+        "evidence_ok": true,
+        "info_why_rank": "resolves a named uncertainty in the go/no-go decision"
+      },
+      {
+        "id": "full-run",
+        "title": "The full RulesGuru run — all 1,409 questions",
+        "one_line": "Run the shipped config over the entire corpus and publish a real number instead of a projection.",
+        "status": "open",
+        "action": "run",
+        "info": 3,
+        "info_why": "It is the decision this whole page exists to serve.",
+        "tells_us": "The actual accuracy, with no reweighting and no extrapolation.",
+        "metric": {
+          "name": "headline accuracy",
+          "dir": "none",
+          "basis": "measured",
+          "cite": "evals/_metrics_history.json",
+          "detail": "replaces a projected 80.3% [71.7-86.8] with a measured value. Which way it lands is exactly what is unknown."
+        },
+        "dep_why": "L0 coverage is the named remaining question, and grading error should be measured before a headline number is produced under it",
+        "evidence": [
+          {
+            "kind": "doc",
+            "ref": "docs/HANDOFF-development.md",
+            "note": "live queue item 3: \"At $73-91 it is not a cost decision. The judge is now measured; the remaining question is L0 coverage.\"",
+            "ok": true,
+            "broken_why": null
+          }
+        ],
+        "cost": {
+          "kind": "api_questions",
+          "n": 1409,
+          "why": "the full corpus at the measured $/question of the shipped config",
+          "per_q": [
+            0.051531709999999994,
+            0.06445404629629631
+          ],
+          "lo": 72.60817938999999,
+          "hi": 90.8157512314815,
+          "pool": "api"
+        },
+        "deps": [
+          "l0-arm",
+          "gold-audit-b2"
+        ],
+        "unmet": [
+          "l0-arm",
+          "gold-audit-b2"
+        ],
+        "unmet_titles": [
+          "L0-only pipeline arm (207 questions)",
+          "Gold audit, batch 2"
+        ],
+        "bucket": "blocked",
+        "evidence_ok": true,
+        "info_why_rank": "resolves a named uncertainty in the go/no-go decision"
+      },
+      {
+        "id": "s-eval-harness",
+        "title": "Eval instrument — RulesGuru import, judging, and the knobs",
+        "status": "shipped",
+        "info": 3,
+        "action": "measure",
+        "one_line": "The measurement stack: an external judge-authored question set, an outside judge, transitive grading, and the effort/no-rewrite/model knobs every arm needs.",
+        "tells_us": "",
+        "merged": [
+          "docs/plan-rulesguru-import.md",
+          "docs/plan-rulesguru-as-instrument.md",
+          "docs/plan-openrouter-models.md",
+          "docs/plan-judge-transitive-grading.md",
+          "docs/plan-opus-grader-calibration.md",
+          "docs/spec-effort-and-norewrite.md",
+          "docs/plan-run-progress.md"
+        ],
+        "merge_why": "seven docs, one instrument. The import built the set, as-instrument specified how to consume it, OpenRouter added the outside judge, transitive grading and the Opus calibration decided how much grading to delegate, and the knobs plus run-progress made the arms runnable and observable.",
+        "metric": {
+          "name": "measurement validity",
+          "dir": "up",
+          "basis": "measured",
+          "cite": "docs/report-rulesguru-holdout.md",
+          "detail": "the external set overturned three premises that the internal 31-question set had supported."
+        },
+        "evidence": [
+          {
+            "kind": "commit",
+            "ref": "a27c4e0",
+            "note": "RulesGuru 150 imported with human gold",
+            "ok": true,
+            "broken_why": null
+          },
+          {
+            "kind": "commit",
+            "ref": "538cc5f",
+            "note": "gpt-5-mini judge adopted at 95% agreement",
+            "ok": true,
+            "broken_why": null
+          },
+          {
+            "kind": "commit",
+            "ref": "819bbc7",
+            "note": "transitive-grading pipeline",
+            "ok": true,
+            "broken_why": null
+          },
+          {
+            "kind": "commit",
+            "ref": "f5968cc",
+            "note": "Opus-grader calibration v2: 78.3% primary",
+            "ok": true,
+            "broken_why": null
+          },
+          {
+            "kind": "commit",
+            "ref": "579d544",
+            "note": "effort knob, no-rewrite arm, model override",
+            "ok": true,
+            "broken_why": null
+          },
+          {
+            "kind": "commit",
+            "ref": "228aa24",
+            "note": "run-progress heartbeats + incremental writes",
+            "ok": true,
+            "broken_why": null
+          },
+          {
+            "kind": "commit",
+            "ref": "15644d4",
+            "note": "judge provenance stamped into verdict files",
+            "ok": true,
+            "broken_why": null
+          },
+          {
+            "kind": "path",
+            "ref": "evals/progress.py",
+            "ok": true,
+            "broken_why": null
+          },
+          {
+            "kind": "doc",
+            "ref": "docs/report-rulesguru-holdout.md",
+            "note": "\"overturn three working premises\" — the holdout's first result",
+            "ok": true,
+            "broken_why": null
+          }
+        ],
+        "cost": {
+          "kind": "spent",
+          "why": "shipped",
+          "lo": null,
+          "hi": null,
+          "pool": "spent"
+        },
+        "deps": [],
+        "unmet": [],
+        "unmet_titles": [],
+        "bucket": "done",
+        "evidence_ok": true,
+        "info_why_rank": "resolves a named uncertainty in the go/no-go decision"
+      },
+      {
+        "id": "s-judge-error",
+        "title": "Judge error rate, both directions",
+        "status": "shipped",
+        "info": 3,
+        "action": "measure",
+        "one_line": "Measure how often the frozen judge is wrong in each direction, because every accuracy on this page inherits it.",
+        "tells_us": "",
+        "metric": {
+          "name": "accuracy overstatement",
+          "dir": "down",
+          "basis": "measured",
+          "cite": "docs/results-judge-error-rate.md",
+          "detail": "false positives 4.4% (95% CI 1.7-10.9%), treated as an upper bound. The reference grader agreed with the frozen judge 32/32 on Jon's hand-graded rows, so it cannot serve as an independent check."
+        },
+        "evidence": [
+          {
+            "kind": "commit",
+            "ref": "3bfd0c8",
+            "note": "\"FP is small, but the reference grader failed validation\"",
+            "ok": true,
+            "broken_why": null
+          },
+          {
+            "kind": "commit",
+            "ref": "eb16810",
+            "note": "arm B corrected to 91.3%",
+            "ok": true,
+            "broken_why": null
+          },
+          {
+            "kind": "doc",
+            "ref": "docs/results-judge-error-rate.md",
+            "ok": true,
+            "broken_why": null
+          }
+        ],
+        "cost": {
+          "kind": "spent",
+          "why": "shipped",
+          "lo": null,
+          "hi": null,
+          "pool": "spent"
+        },
+        "deps": [],
+        "unmet": [],
+        "unmet_titles": [],
+        "bucket": "done",
+        "evidence_ok": true,
+        "info_why_rank": "resolves a named uncertainty in the go/no-go decision"
+      },
+      {
+        "id": "s-prod-switches",
+        "title": "Production switches — opus-5 at effort low, REWRITE_N 3",
+        "status": "shipped",
+        "info": 3,
+        "action": "run",
+        "one_line": "The two config changes the current numbers rest on.",
+        "tells_us": "",
+        "metric": {
+          "name": "accuracy and cost",
+          "dir": "up",
+          "basis": "measured",
+          "cite": "docs/results-easy-regression.md",
+          "detail": "+13.0 pp on the easy set and +9.3 pp on the hard set versus sonnet, both clearing their noise floors; REWRITE_N 3 measured at $0.00036/question, ~0.6% of answer cost."
+        },
+        "evidence": [
+          {
+            "kind": "commit",
+            "ref": "d95a461",
+            "note": "GEN_MODEL -> claude-opus-5, GEN_EFFORT=low",
+            "ok": true,
+            "broken_why": null
+          },
+          {
+            "kind": "commit",
+            "ref": "86b5d27",
+            "note": "REWRITE_N 1 -> 3",
+            "ok": true,
+            "broken_why": null
+          },
+          {
+            "kind": "doc",
+            "ref": "docs/results-easy-regression.md",
+            "note": "the regression check that cleared the switch",
+            "ok": true,
+            "broken_why": null
+          }
+        ],
+        "cost": {
+          "kind": "spent",
+          "why": "shipped",
+          "lo": null,
+          "hi": null,
+          "pool": "spent"
+        },
+        "deps": [],
+        "unmet": [],
+        "unmet_titles": [],
+        "bucket": "done",
+        "evidence_ok": true,
+        "info_why_rank": "resolves a named uncertainty in the go/no-go decision"
+      },
+      {
+        "id": "double-mine",
+        "title": "Double-mine for gold stability",
+        "one_line": "Mine the same questions twice and measure how much the proposed gold agrees with itself.",
+        "status": "open",
+        "action": "measure",
+        "info": 2,
+        "info_why": "0.54 run-to-run overlap is a noise floor under every recall number measured against mined gold, and it has never been priced into one.",
+        "tells_us": "How large the error bar on mined gold is.",
+        "metric": {
+          "name": "gold stability",
+          "dir": "none",
+          "basis": "measured",
+          "cite": "docs/HANDOFF-development.md",
+          "detail": "0.54 overlap is already measured; this quantifies it properly rather than changing it."
+        },
+        "evidence": [
+          {
+            "kind": "doc",
+            "ref": "docs/HANDOFF-development.md",
+            "note": "live queue item 6: \"double-mine for stability (0.54 run-to-run overlap)\"",
+            "ok": true,
+            "broken_why": null
+          }
+        ],
+        "cost": {
+          "kind": "subscription",
+          "why": "same subagent-mining path, no API credits",
+          "lo": null,
+          "hi": null,
+          "pool": "subscription"
+        },
+        "deps": [],
+        "unmet": [],
+        "unmet_titles": [],
+        "bucket": "ready",
+        "evidence_ok": true,
+        "info_why_rank": "moves or validates a measured metric, or unblocks something that does"
+      },
+      {
+        "id": "miss-partition",
+        "title": "Miss-partition diagnostic — retrieval failure vs reasoning failure",
+        "one_line": "For every graded miss, decide whether the gold rule was missing from the context or present and misused — so effort goes to the right half of the stack.",
+        "status": "design-only",
+        "action": "decide",
+        "info": 2,
+        "info_why": "It is the cheapest way to choose between the retrieval backlog and the prompt/tool backlog, and the data it needs now exists.",
+        "tells_us": "Which of the two remaining levers is worth funding at all.",
+        "metric": {
+          "name": "where the next fix should go",
+          "dir": "none",
+          "basis": "predicted",
+          "cite": "docs/plan-miss-partition-diagnostic.md",
+          "detail": "a diagnostic, not an intervention. It moves no metric by itself."
+        },
+        "evidence": [
+          {
+            "kind": "doc",
+            "ref": "docs/plan-miss-partition-diagnostic.md",
+            "note": "header: \"DRAFT under Rule 0 — DESIGN ONLY. Nothing built.\"",
+            "ok": true,
+            "broken_why": null
+          },
+          {
+            "kind": "derived",
+            "note": "the plan states it \"has no data to run on until a future eval run is re-executed\" with per-row retrieval recorded. That field is now recorded: this page classifies arms as pipeline/oracle purely from `retrieved_rule_ids`, so the blocker it names looks cleared.",
+            "ok": true,
+            "broken_why": null
+          }
+        ],
+        "cost": {
+          "kind": "zero",
+          "why": "an analysis pass over verdict and answers files already on disk, if it is scoped to arms that recorded retrieval. The plan's own §0 asks for a third bucket, which is a design question, not a spend.",
+          "lo": null,
+          "hi": null,
+          "pool": "free"
+        },
+        "deps": [],
+        "unmet": [],
+        "unmet_titles": [],
+        "bucket": "ready",
+        "evidence_ok": true,
+        "info_why_rank": "moves or validates a measured metric, or unblocks something that does"
+      },
+      {
+        "id": "purerules-eval",
+        "title": "Pure-rules held-out eval set",
+        "one_line": "Generalize card questions into rules questions so retrieval and generation can be measured without the oracle-text confound.",
+        "status": "partial",
+        "action": "build",
+        "info": 2,
+        "info_why": "Two separate rulings are parked waiting on this instrument, so it unblocks more than it measures.",
+        "tells_us": "Nothing directly — it is the missing instrument two open decisions need.",
+        "metric": {
+          "name": "measurement validity",
+          "dir": "up",
+          "basis": "predicted",
+          "cite": "DECISIONS.md",
+          "detail": "the confound is documented (the holdout set is 98% card questions, only ~3 where CR-rule retrieval is load-bearing); the fix is untested."
+        },
+        "evidence": [
+          {
+            "kind": "commit",
+            "ref": "47b3090",
+            "note": "batch 1 drafted (8 candidates) + approval UI",
+            "ok": true,
+            "broken_why": null
+          },
+          {
+            "kind": "commit",
+            "ref": "f4396c5",
+            "note": "approval UI shows power/toughness and DFC faces",
+            "ok": true,
+            "broken_why": null
+          },
+          {
+            "kind": "path",
+            "ref": "evals/build_purerules_approval_ui.py",
+            "note": "the UI exists",
+            "ok": true,
+            "broken_why": null
+          },
+          {
+            "kind": "doc",
+            "ref": "DECISIONS.md",
+            "note": "2026-07-24 \"Pure-rules eval: standing grant to draft freely\" — batch 1 approved 8/8 with zero edits; throughput is bounded by Jon's review because eval questions and gold stay do-not-delegate",
+            "ok": true,
+            "broken_why": null
+          }
+        ],
+        "cost": {
+          "kind": "subscription",
+          "why": "drafting runs on subagents under the standing grant; Jon's review is the bottleneck, not credits",
+          "lo": null,
+          "hi": null,
+          "pool": "subscription"
+        },
+        "deps": [],
+        "unmet": [],
+        "unmet_titles": [],
+        "bucket": "ready",
+        "evidence_ok": true,
+        "info_why_rank": "moves or validates a measured metric, or unblocks something that does"
+      },
+      {
+        "id": "or-group-repass",
+        "title": "Re-pass v3's 105 conjunctive OR-groups",
+        "one_line": "Re-mine the gold groups written before the miner learned that an OR-group must not chain steps that are all required.",
+        "status": "open",
+        "action": "measure",
+        "info": 2,
+        "info_why": "A conjunctive group scored as an OR silently inflates recall, so every retrieval number measured against that gold reads high.",
+        "tells_us": "How much of the reported retrieval recall is an artefact of the gold's shape.",
+        "metric": {
+          "name": "retrieval recall (measurement validity)",
+          "dir": "down",
+          "basis": "measured",
+          "cite": "evals/gold_miner_prompt.md",
+          "detail": "the adversarial review found the error in 5 of 9 sampled groups. Fixing it should move measured recall DOWN toward the truth."
+        },
+        "evidence": [
+          {
+            "kind": "doc",
+            "ref": "docs/HANDOFF-development.md",
+            "note": "live queue item 6",
+            "ok": true,
+            "broken_why": null
+          },
+          {
+            "kind": "path",
+            "ref": "evals/gold_miner_prompt.md",
+            "note": "\"Batches b01-b09 were mined before rule 6 existed and contain conjunctive OR-groups ... 5 of 9 sampled multi-member groups were conjunctive chains wrongly merged, which silently inflates recall.\"",
+            "ok": true,
+            "broken_why": null
+          }
+        ],
+        "cost": {
+          "kind": "subscription",
+          "why": "gold mining runs on Claude Code subagents. docs/spec-cr-gold-mining.md §8 puts \"anything requiring an API call\" out of scope.",
+          "lo": null,
+          "hi": null,
+          "pool": "subscription"
+        },
+        "deps": [],
+        "unmet": [],
+        "unmet_titles": [],
+        "bucket": "ready",
+        "evidence_ok": true,
+        "info_why_rank": "moves or validates a measured metric, or unblocks something that does"
+      },
+      {
+        "id": "resume-mining",
+        "title": "Resume CR gold mining (809 rows)",
+        "one_line": "Finish mining retrieval gold for the rest of the 1,409-question corpus.",
+        "status": "partial",
+        "action": "run",
+        "info": 2,
+        "info_why": "Without gold you cannot measure retrieval on those rows at all, which caps what any full run can tell you about retrieval.",
+        "tells_us": "Nothing on its own — it is the instrument the retrieval work is measured with.",
+        "metric": {
+          "name": "eval coverage",
+          "dir": "up",
+          "basis": "measured",
+          "cite": "docs/spec-cr-gold-mining.md",
+          "detail": "coverage is countable: rows with gold / rows in the corpus."
+        },
+        "dep_why": "the pre-rule-6 batches should be repaired before more gold is mined on top of the same prompt lineage",
+        "evidence": [
+          {
+            "kind": "commit",
+            "ref": "8b94ef5",
+            "note": "first structured mining pass, held-out 150",
+            "ok": true,
+            "broken_why": null
+          },
+          {
+            "kind": "commit",
+            "ref": "56990b3",
+            "note": "miner prompt versioned + merge rule",
+            "ok": true,
+            "broken_why": null
+          },
+          {
+            "kind": "doc",
+            "ref": "docs/spec-cr-gold-mining.md",
+            "note": "the spec it runs from",
+            "ok": true,
+            "broken_why": null
+          },
+          {
+            "kind": "doc",
+            "ref": "docs/HANDOFF-development.md",
+            "note": "live queue item 6: \"resume mining (809 rows)\"",
+            "ok": true,
+            "broken_why": null
+          }
+        ],
+        "cost": {
+          "kind": "subscription",
+          "why": "spec §5: Claude Code subagents do not share a prompt cache, so batch size is the whole cost model — but the pool is the Max plan, not credits",
+          "lo": null,
+          "hi": null,
+          "pool": "subscription"
+        },
+        "deps": [
+          "or-group-repass"
+        ],
+        "unmet": [
+          "or-group-repass"
+        ],
+        "unmet_titles": [
+          "Re-pass v3's 105 conjunctive OR-groups"
+        ],
+        "bucket": "blocked",
+        "evidence_ok": true,
+        "info_why_rank": "moves or validates a measured metric, or unblocks something that does"
+      },
+      {
+        "id": "cosine-floor",
+        "title": "Spec the cosine floor",
+        "one_line": "Re-introduce a calibrated similarity floor on the fused multi-query result, which RRF removed when REWRITE_N went to 3.",
+        "status": "open",
+        "action": "build",
+        "info": 2,
+        "info_why": "It targets a measured side effect of a change that already shipped to production, and it costs nothing at runtime.",
+        "tells_us": "Whether the chunk churn multi-query introduced is costing us anything.",
+        "metric": {
+          "name": "retrieval churn",
+          "dir": "down",
+          "basis": "predicted",
+          "cite": "docs/HANDOFF-development.md",
+          "detail": "the 38% churn figure is measured; that a floor reduces it is the handoff's forecast, not a result."
+        },
+        "evidence": [
+          {
+            "kind": "doc",
+            "ref": "docs/HANDOFF-development.md",
+            "note": "live queue item 4: \"free at runtime (scores = embeddings @ qvec is one in-process matmul), cuts the 38% chunk churn multi-query introduced, restores a calibrated signal that RRF removed\"",
+            "ok": true,
+            "broken_why": null
+          },
+          {
+            "kind": "commit",
+            "ref": "86b5d27",
+            "note": "the REWRITE_N 1 -> 3 switch that activated the RRF fusion branch",
+            "ok": true,
+            "broken_why": null
+          },
+          {
+            "kind": "doc",
+            "ref": "docs/results-retrieval-diversity.md",
+            "note": "the factorial that measured the churn",
+            "ok": true,
+            "broken_why": null
+          }
+        ],
+        "cost": {
+          "kind": "zero",
+          "why": "one in-process matmul over embeddings already in memory; no API call in the runtime path. Measuring the effect on recall would reuse the cache-only diversity harness, which ran at zero API spend.",
+          "lo": null,
+          "hi": null,
+          "pool": "free"
+        },
+        "deps": [],
+        "unmet": [],
+        "unmet_titles": [],
+        "bucket": "ready",
+        "evidence_ok": true,
+        "info_why_rank": "moves or validates a measured metric, or unblocks something that does"
+      },
+      {
+        "id": "s-chunking",
+        "title": "Chunking: embedded text split from context text",
+        "status": "shipped",
+        "info": 2,
+        "action": "run",
+        "docs": [
+          "docs/plan-chunk-context-split.md"
+        ],
+        "one_line": "Embed a distinctive short text, hand the generator the complete one.",
+        "tells_us": "",
+        "metric": {
+          "name": "retrieval recall@5",
+          "dir": "none",
+          "basis": "measured",
+          "cite": "DECISIONS.md",
+          "detail": "adopted as a tradeoff, not a clean win."
+        },
+        "evidence": [
+          {
+            "kind": "commit",
+            "ref": "63d25ed",
+            "note": "plan approved",
+            "ok": true,
+            "broken_why": null
+          },
+          {
+            "kind": "commit",
+            "ref": "e02d5ea",
+            "note": "implemented",
+            "ok": true,
+            "broken_why": null
+          },
+          {
+            "kind": "doc",
+            "ref": "DECISIONS.md",
+            "note": "2026-07-21 \"KEPT, a measured tradeoff\"",
+            "ok": true,
+            "broken_why": null
+          }
+        ],
+        "cost": {
+          "kind": "spent",
+          "why": "shipped",
+          "lo": null,
+          "hi": null,
+          "pool": "spent"
+        },
+        "deps": [],
+        "unmet": [],
+        "unmet_titles": [],
+        "bucket": "done",
+        "evidence_ok": true,
+        "info_why_rank": "moves or validates a measured metric, or unblocks something that does"
+      },
+      {
+        "id": "s-tools",
+        "title": "Deterministic tools — cost calculator and layer resolver",
+        "status": "shipped",
+        "info": 2,
+        "action": "run",
+        "one_line": "Move exact sub-computations (mana costs, CR 613 layers) out of the model and into Python functions the model can call.",
+        "tells_us": "",
+        "merged": [
+          "docs/plan-cost-calculator-tool.md",
+          "docs/plan-layer-system-tool.md",
+          "docs/spec-slice0-harness.md"
+        ],
+        "merge_why": "one pattern, built twice, plus the harness slice that made the second one measurable. The layers plan says outright that \"every piece of machinery this needs already exists and already shipped\" for the cost tool.",
+        "metric": {
+          "name": "accuracy on tool-shaped questions",
+          "dir": "up",
+          "basis": "measured",
+          "cite": "docs/report-costtool-validation.md",
+          "detail": "validated at scale on the 199 cost-tagged questions; the layers trigger reaches 42/54 = 77.8% of bucket A."
+        },
+        "evidence": [
+          {
+            "kind": "commit",
+            "ref": "a36db25",
+            "note": "name-routed, tool-agnostic dispatch seam",
+            "ok": true,
+            "broken_why": null
+          },
+          {
+            "kind": "commit",
+            "ref": "1dfe6d4",
+            "note": "cap-exhaustion + silent-garbage guards",
+            "ok": true,
+            "broken_why": null
+          },
+          {
+            "kind": "commit",
+            "ref": "c85de03",
+            "note": "layer resolver slice 1",
+            "ok": true,
+            "broken_why": null
+          },
+          {
+            "kind": "commit",
+            "ref": "4343848",
+            "note": "resolve_layers wired into the dispatch loop",
+            "ok": true,
+            "broken_why": null
+          },
+          {
+            "kind": "commit",
+            "ref": "24f2bb9",
+            "note": "trigger calibration FAILED at 20.4%, ruled to threshold 1, now 77.8%",
+            "ok": true,
+            "broken_why": null
+          },
+          {
+            "kind": "path",
+            "ref": "src/rulesagent/tools/cost_calculator.py",
+            "ok": true,
+            "broken_why": null
+          },
+          {
+            "kind": "path",
+            "ref": "src/rulesagent/tools/layer_resolver.py",
+            "ok": true,
+            "broken_why": null
+          }
+        ],
+        "cost": {
+          "kind": "spent",
+          "why": "shipped",
+          "lo": null,
+          "hi": null,
+          "pool": "spent"
+        },
+        "deps": [],
+        "unmet": [],
+        "unmet_titles": [],
+        "bucket": "done",
+        "evidence_ok": true,
+        "info_why_rank": "moves or validates a measured metric, or unblocks something that does"
+      },
+      {
+        "id": "s-crossrefs",
+        "title": "L1 cross-reference expansion",
+        "status": "shipped",
+        "info": 2,
+        "action": "run",
+        "one_line": "Follow the CR's own \"see rule X\" references in retrieved chunks and pull the referenced rules in. Part A shipped; Part B was measured and not adopted.",
+        "tells_us": "",
+        "metric": {
+          "name": "multi-hop recall",
+          "dir": "none",
+          "basis": "measured",
+          "cite": "docs/plan-rulings-recall.md",
+          "detail": "the plan records that cross-ref expansion \"shipped but measured a null result\" on the misses it was aimed at — which is what makes second-hop retrieval the live proposal."
+        },
+        "evidence": [
+          {
+            "kind": "commit",
+            "ref": "92fa295",
+            "note": "Part A pure function, TDD",
+            "ok": true,
+            "broken_why": null
+          },
+          {
+            "kind": "commit",
+            "ref": "fd84b08",
+            "note": "Part A wired into RulesAgent",
+            "ok": true,
+            "broken_why": null
+          },
+          {
+            "kind": "commit",
+            "ref": "30ac5db",
+            "note": "Part B (rewrite-as-ruling-query union arm) measured and NOT shipped",
+            "ok": true,
+            "broken_why": null
+          },
+          {
+            "kind": "path",
+            "ref": "src/rulesagent/retrieve/crossrefs.py",
+            "ok": true,
+            "broken_why": null
+          }
+        ],
+        "cost": {
+          "kind": "spent",
+          "why": "shipped",
+          "lo": null,
+          "hi": null,
+          "pool": "spent"
+        },
+        "deps": [],
+        "unmet": [],
+        "unmet_titles": [],
+        "bucket": "done",
+        "evidence_ok": true,
+        "info_why_rank": "moves or validates a measured metric, or unblocks something that does"
+      },
+      {
+        "id": "s-rulings",
+        "title": "Per-card ruling mini-RAG (rulings on demand)",
+        "status": "shipped",
+        "info": 2,
+        "action": "run",
+        "docs": [
+          "docs/plan-rulings-on-demand.md"
+        ],
+        "one_line": "Select only the rulings relevant to the question for each referenced card, instead of pasting all of them.",
+        "tells_us": "",
+        "metric": {
+          "name": "prompt size",
+          "dir": "down",
+          "basis": "measured",
+          "cite": "docs/plan-packaging.md",
+          "detail": "context cut 35->6 / 22->3 / 18->3 rulings with zero loss."
+        },
+        "evidence": [
+          {
+            "kind": "commit",
+            "ref": "27733fe",
+            "note": "built + verified",
+            "ok": true,
+            "broken_why": null
+          },
+          {
+            "kind": "commit",
+            "ref": "7a316bd",
+            "note": "ruling_id made content-derived, not positional",
+            "ok": true,
+            "broken_why": null
+          },
+          {
+            "kind": "commit",
+            "ref": "17f4d16",
+            "note": "positional cache purged; TOP_N 3 -> 5",
+            "ok": true,
+            "broken_why": null
+          },
+          {
+            "kind": "path",
+            "ref": "src/rulesagent/tools/ruling_retrieval.py",
+            "ok": true,
+            "broken_why": null
+          }
+        ],
+        "cost": {
+          "kind": "spent",
+          "why": "shipped",
+          "lo": null,
+          "hi": null,
+          "pool": "spent"
+        },
+        "deps": [],
+        "unmet": [],
+        "unmet_titles": [],
+        "bucket": "done",
+        "evidence_ok": true,
+        "info_why_rank": "moves or validates a measured metric, or unblocks something that does"
+      },
+      {
+        "id": "u-prompt-v3",
+        "title": "Prompt v3 and rewriter v2 — the shipped prompt",
+        "status": "shipped",
+        "info": 2,
+        "action": "build",
+        "docs": [
+          "docs/plan-prompt-tuning.md"
+        ],
+        "one_line": "The system prompt production runs today, plus the rewriter prompt bump that landed with it.",
+        "tells_us": "",
+        "merged": [
+          "docs/plan-v3-execution-tasks.md"
+        ],
+        "merge_why": "the execution-tasks doc is the build decomposition of the same approved plan.",
+        "metric": {
+          "name": "answer accuracy",
+          "dir": "up",
+          "basis": "measured",
+          "cite": "DECISIONS.md",
+          "detail": "v3 was adopted on the graded A/B; the later v4 attempt used v3 as its baseline and lost to it."
+        },
+        "evidence": [
+          {
+            "kind": "commit",
+            "ref": "f9a70fe",
+            "note": "prompt v3 + rewriter v2 + version selection",
+            "ok": true,
+            "broken_why": null
+          },
+          {
+            "kind": "commit",
+            "ref": "9c20ffb",
+            "note": "A/B condition plumbing",
+            "ok": true,
+            "broken_why": null
+          },
+          {
+            "kind": "doc",
+            "ref": "DECISIONS.md",
+            "note": "2026-07-23 v3 A/B outcome calls",
+            "ok": true,
+            "broken_why": null
+          }
+        ],
+        "cost": {
+          "kind": "spent",
+          "why": "shipped",
+          "lo": null,
+          "hi": null,
+          "pool": "spent"
+        },
+        "deps": [],
+        "unmet": [],
+        "unmet_titles": [],
+        "bucket": "done",
+        "evidence_ok": true,
+        "info_why_rank": "moves or validates a measured metric, or unblocks something that does"
+      },
+      {
+        "id": "s-rewriting",
+        "title": "Query-rewriting layer (#3a)",
+        "status": "shipped",
+        "info": 2,
+        "docs": [
+          "docs/plan-3a-query-rewriting.md"
+        ],
+        "one_line": "Rewrite the user's question into several search keys and retrieve on those; the corpus is untouched.",
+        "tells_us": "",
+        "action": "run",
+        "metric": {
+          "name": "retrieval recall",
+          "dir": "up",
+          "basis": "measured",
+          "cite": "docs/results-retrieval-diversity.md",
+          "detail": "the diversity factorial found most of the rewrite gain already banked."
+        },
+        "evidence": [
+          {
+            "kind": "commit",
+            "ref": "3607d9b",
+            "note": "RewrittenQuery contract",
+            "ok": true,
+            "broken_why": null
+          },
+          {
+            "kind": "commit",
+            "ref": "9cf1409",
+            "note": "the layer",
+            "ok": true,
+            "broken_why": null
+          },
+          {
+            "kind": "commit",
+            "ref": "225cbbf",
+            "note": "temperature pinned to 0",
+            "ok": true,
+            "broken_why": null
+          },
+          {
+            "kind": "commit",
+            "ref": "86b5d27",
+            "note": "REWRITE_N 1 -> 3 in production",
+            "ok": true,
+            "broken_why": null
+          },
+          {
+            "kind": "path",
+            "ref": "src/rulesagent/retrieve/rewrite.py",
+            "ok": true,
+            "broken_why": null
+          }
+        ],
+        "cost": {
+          "kind": "spent",
+          "why": "shipped",
+          "lo": null,
+          "hi": null,
+          "pool": "spent"
+        },
+        "deps": [],
+        "unmet": [],
+        "unmet_titles": [],
+        "bucket": "done",
+        "evidence_ok": true,
+        "info_why_rank": "moves or validates a measured metric, or unblocks something that does"
+      },
+      {
+        "id": "l2-generator",
+        "title": "Re-test the generator model choice, post-tools",
+        "one_line": "Re-run the sonnet-vs-cheap-model comparison on the tool-triggering subset, now that exact sub-computations live in Python instead of the model.",
+        "status": "open",
+        "action": "run",
+        "info": 2,
+        "info_why": "The tool roadmap changed the generator's job, so the old comparison measured a pipeline that no longer exists.",
+        "tells_us": "Whether a cheap model plus tools matches an expensive model without them.",
+        "metric": {
+          "name": "cost per question at equal accuracy",
+          "dir": "down",
+          "basis": "predicted",
+          "cite": "DECISIONS.md",
+          "detail": "gpt-5-mini's measured weak spot is structured-output precision (stable citations 2/50 on a since-superseded prompt), which is exactly what tools lean on. Needs re-measuring, not assuming."
+        },
+        "dep_why": "the ruling ties it to the pure-rules instrument, and the partition tells you whether generation is even where the losses are",
+        "evidence": [
+          {
+            "kind": "doc",
+            "ref": "DECISIONS.md",
+            "note": "2026-07-24 Lever 2: \"DEFERRED to post-tools\". The re-test measures three things, not one: accuracy, tool-call well-formedness, citation stability",
+            "ok": true,
+            "broken_why": null
+          },
+          {
+            "kind": "commit",
+            "ref": "24f2bb9",
+            "note": "layers trigger calibrated — the tool this was waiting on has shipped",
+            "ok": true,
+            "broken_why": null
+          }
+        ],
+        "cost": {
+          "kind": "unknown",
+          "why": "the tool-triggering subset size is not fixed in any doc, so there is no question count to multiply",
+          "lo": null,
+          "hi": null,
+          "pool": "unknown"
+        },
+        "deps": [
+          "purerules-eval",
+          "miss-partition"
+        ],
+        "unmet": [
+          "purerules-eval",
+          "miss-partition"
+        ],
+        "unmet_titles": [
+          "Pure-rules held-out eval set",
+          "Miss-partition diagnostic — retrieval failure vs reasoning failure"
+        ],
+        "bucket": "blocked",
+        "evidence_ok": true,
+        "info_why_rank": "moves or validates a measured metric, or unblocks something that does"
+      },
+      {
+        "id": "s-diversity",
+        "title": "Retrieval diversity factorial (MMR x hybrid x multi-query)",
+        "status": "shipped",
+        "info": 2,
+        "action": "measure",
+        "docs": [
+          "docs/spec-retrieval-diversity.md"
+        ],
+        "one_line": "Run the three diversity levers as a factorial to see which actually gets distinct rules into the window.",
+        "tells_us": "",
+        "metric": {
+          "name": "retrieval diversity",
+          "dir": "up",
+          "basis": "measured",
+          "cite": "docs/results-retrieval-diversity.md",
+          "detail": "multi-query wins, MMR refuted. Ran at zero API spend (cache-only)."
+        },
+        "evidence": [
+          {
+            "kind": "commit",
+            "ref": "fb480c9",
+            "note": "\"MMR refuted, most of the rewrite gain already banked\"",
+            "ok": true,
+            "broken_why": null
+          },
+          {
+            "kind": "path",
+            "ref": "src/rulesagent/retrieve/mmr.py",
+            "ok": true,
+            "broken_why": null
+          },
+          {
+            "kind": "doc",
+            "ref": "docs/results-retrieval-diversity.md",
+            "ok": true,
+            "broken_why": null
+          }
+        ],
+        "cost": {
+          "kind": "spent",
+          "why": "shipped; the run itself was cache-only, zero API spend",
+          "lo": null,
+          "hi": null,
+          "pool": "spent"
+        },
+        "deps": [],
+        "unmet": [],
+        "unmet_titles": [],
+        "bucket": "done",
+        "evidence_ok": true,
+        "info_why_rank": "moves or validates a measured metric, or unblocks something that does"
+      },
+      {
+        "id": "rewriter-bakeoff-p2",
+        "title": "Rewriter bakeoff, phase 2 (generation-side)",
+        "docs": [
+          "docs/plan-rewriter-model-bakeoff.md"
+        ],
+        "one_line": "Take the phase-1 retrieval winner through to generation and see whether the coverage gain shows up in answers.",
+        "status": "partial",
+        "action": "run",
+        "info": 2,
+        "info_why": "Phase 1 produced a conflict that only a better instrument can resolve, so running phase 2 now would measure the wrong thing.",
+        "tells_us": "Whether a better rewriter is worth its cost in answer quality.",
+        "metric": {
+          "name": "answer accuracy",
+          "dir": "up",
+          "basis": "predicted",
+          "cite": "DECISIONS.md",
+          "detail": "the retrieval coverage gain is measured (@50 75% vs 63%); its value in answers is explicitly called unmeasured."
+        },
+        "dep_why": "Jon's Lever 3 ruling names the pure-rules set as the instrument that settles it",
+        "evidence": [
+          {
+            "kind": "doc",
+            "ref": "docs/report-rewriter-bakeoff.md",
+            "note": "phase 1 ran 2026-07-23, retrieval only — so phase 1 is shipped",
+            "ok": true,
+            "broken_why": null
+          },
+          {
+            "kind": "doc",
+            "ref": "DECISIONS.md",
+            "note": "2026-07-24 Lever 3: \"rewriter: HOLD for the pure-rules eval.\" haiku and sonnet are identical at the operational depth (TOP_K=15) but sonnet gains on the 134-question holdout, which is 98% card questions",
+            "ok": true,
+            "broken_why": null
+          }
+        ],
+        "cost": {
+          "kind": "unknown",
+          "why": "the bakeoff plan sizes phase 1 only (\"cents, not dollars\" for 279 rewrite calls). Phase 2 adds generation and judging on a question set that does not exist yet, so it cannot be priced.",
+          "lo": null,
+          "hi": null,
+          "pool": "unknown"
+        },
+        "deps": [
+          "purerules-eval"
+        ],
+        "unmet": [
+          "purerules-eval"
+        ],
+        "unmet_titles": [
+          "Pure-rules held-out eval set"
+        ],
+        "bucket": "blocked",
+        "evidence_ok": true,
+        "info_why_rank": "moves or validates a measured metric, or unblocks something that does"
+      },
+      {
+        "id": "s-scryfall",
+        "title": "Scryfall card enrichment (#3b) + local bulk snapshot",
+        "status": "shipped",
+        "info": 2,
+        "action": "run",
+        "docs": [
+          "docs/plan-3b-scryfall-enrichment.md"
+        ],
+        "one_line": "Resolve [bracketed] card names to oracle text and rulings and put them in the prompt, served from a local bulk snapshot instead of live lookups.",
+        "tells_us": "",
+        "merged": [
+          "docs/plan-scryfall-local-bulk.md",
+          "docs/plan-card-enrichment-fields.md"
+        ],
+        "merge_why": "one card-data path built in three passes: enrichment (#3b), then the layout-first field set, then replacing live lookups with a local snapshot. Separate docs, same subsystem, and each supersedes the previous one's data model.",
+        "metric": {
+          "name": "answer accuracy on card questions",
+          "dir": "up",
+          "basis": "measured",
+          "cite": "DECISIONS.md",
+          "detail": "2026-07-21 \"#3b built ... verified live\"; the gold-by-ablation pass then found the RAG rules were redundant on 4 of 5 card questions."
+        },
+        "evidence": [
+          {
+            "kind": "commit",
+            "ref": "700e2bc",
+            "note": "enrichment",
+            "ok": true,
+            "broken_why": null
+          },
+          {
+            "kind": "commit",
+            "ref": "44ef20f",
+            "note": "layout-first per-face fields",
+            "ok": true,
+            "broken_why": null
+          },
+          {
+            "kind": "commit",
+            "ref": "c481292",
+            "note": "local bulk + per-face lookup + self-heal",
+            "ok": true,
+            "broken_why": null
+          },
+          {
+            "kind": "path",
+            "ref": "src/rulesagent/tools/scryfall_store.py",
+            "ok": true,
+            "broken_why": null
+          },
+          {
+            "kind": "path",
+            "ref": "scripts/refresh_scryfall_bulk.py",
+            "ok": true,
+            "broken_why": null
+          }
+        ],
+        "cost": {
+          "kind": "spent",
+          "why": "shipped",
+          "lo": null,
+          "hi": null,
+          "pool": "spent"
+        },
+        "deps": [],
+        "unmet": [],
+        "unmet_titles": [],
+        "bucket": "done",
+        "evidence_ok": true,
+        "info_why_rank": "moves or validates a measured metric, or unblocks something that does"
+      },
+      {
+        "id": "second-hop",
+        "title": "Second-hop retrieval",
+        "one_line": "Retrieve again from what the first retrieval found, so rules two or three hops from the question's wording can be reached at all.",
+        "status": "open",
+        "action": "decide",
+        "info": 2,
+        "info_why": "It is the only proposal aimed at a failure class that question-side rewriting provably cannot reach.",
+        "tells_us": "Whether the multi-hop misses are reachable by retrieval at all.",
+        "metric": {
+          "name": "retrieval recall on multi-hop questions",
+          "dir": "up",
+          "basis": "predicted",
+          "cite": "docs/HANDOFF-development.md",
+          "detail": "the rg241 diagnosis is measured; that a second hop fixes it is not."
+        },
+        "evidence": [
+          {
+            "kind": "doc",
+            "ref": "docs/HANDOFF-development.md",
+            "note": "live queue item 5, and the rg241 finding: all four rules in the derivation are indexed, but hops 2-3 have no resemblance to the question",
+            "ok": true,
+            "broken_why": null
+          },
+          {
+            "kind": "doc",
+            "ref": "docs/plan-l1-crossref-expansion.md",
+            "note": "names an LLM second-hop query as the fallback if structural cross-ref expansion is not enough — which is what L1 Part B measured",
+            "ok": true,
+            "broken_why": null
+          }
+        ],
+        "cost": {
+          "kind": "unknown",
+          "why": "no doc sizes it. There is no plan-*.md for second-hop retrieval yet, so no question count and no per-question call count to multiply.",
+          "lo": null,
+          "hi": null,
+          "pool": "unknown"
+        },
+        "deps": [],
+        "unmet": [],
+        "unmet_titles": [],
+        "bucket": "ready",
+        "evidence_ok": true,
+        "info_why_rank": "moves or validates a measured metric, or unblocks something that does"
+      },
+      {
+        "id": "cr-update-check",
+        "title": "CR update checker (scripts/check_cr_update.py)",
+        "one_line": "Detect when a new Comprehensive Rules release silently drops or renumbers a rule, and fix the gold automatically where the fix is provably safe.",
+        "status": "open",
+        "action": "build",
+        "info": 1,
+        "info_why": "It protects the corpus rather than moving a metric, but two rules (606.5, 119.1d) were missing for the life of the project before anyone noticed.",
+        "tells_us": "Nothing new — it stops a class of silent corruption.",
+        "metric": {
+          "name": "silent rule drops",
+          "dir": "down",
+          "basis": "measured",
+          "cite": "docs/spec-cr-update-check.md",
+          "detail": "two confirmed drops to date; the parser guards from 9e41d7d / 2d212a7 close part of it already."
+        },
+        "evidence": [
+          {
+            "kind": "commit",
+            "ref": "da7f374",
+            "note": "\"Record Jon's rulings: CR-update checker approved\" — approved, so this is not awaiting a ruling",
+            "ok": true,
+            "broken_why": null
+          },
+          {
+            "kind": "doc",
+            "ref": "docs/spec-cr-update-check.md",
+            "note": "the spec",
+            "ok": true,
+            "broken_why": null
+          },
+          {
+            "kind": "path_absent",
+            "ref": "scripts/check_cr_update.py",
+            "note": "the script the spec names does not exist — this is the evidence that it was approved but never built",
+            "ok": true,
+            "broken_why": null,
+            "detail": "absent"
+          }
+        ],
+        "cost": {
+          "kind": "zero",
+          "why": "a local script over the CR text file; no model calls",
+          "lo": null,
+          "hi": null,
+          "pool": "free"
+        },
+        "deps": [],
+        "unmet": [],
+        "unmet_titles": [],
+        "bucket": "ready",
+        "evidence_ok": true,
+        "info_why_rank": "quality, infrastructure or evidence work with no measured metric attached"
+      },
+      {
+        "id": "s-weighted",
+        "title": "Level-weighted scoring",
+        "status": "shipped",
+        "info": 1,
+        "action": "measure",
+        "docs": [
+          "docs/spec-weighted-scoring.md"
+        ],
+        "one_line": "Score flat across L0-L3 with Corner Case at half weight, per Jon's ruling.",
+        "tells_us": "",
+        "metric": {
+          "name": "reported accuracy",
+          "dir": "none",
+          "basis": "measured",
+          "cite": "docs/spec-weighted-scoring.md",
+          "detail": "no conclusion flips; largest movement 1.5 pp."
+        },
+        "evidence": [
+          {
+            "kind": "commit",
+            "ref": "b085417",
+            "note": "spec, design-only",
+            "ok": true,
+            "broken_why": null
+          },
+          {
+            "kind": "commit",
+            "ref": "372965b",
+            "note": "built, 53 tests",
+            "ok": true,
+            "broken_why": null
+          },
+          {
+            "kind": "path",
+            "ref": "evals/weighted_score.py",
+            "ok": true,
+            "broken_why": null
+          }
+        ],
+        "cost": {
+          "kind": "zero",
+          "why": "pure arithmetic over verdict files already on disk — no model call, no re-run, genuinely $0",
+          "lo": null,
+          "hi": null,
+          "pool": "free"
+        },
+        "deps": [],
+        "unmet": [],
+        "unmet_titles": [],
+        "bucket": "done",
+        "evidence_ok": true,
+        "info_why_rank": "quality, infrastructure or evidence work with no measured metric attached"
+      },
+      {
+        "id": "packaging",
+        "title": "Packaging — README and repo hygiene",
+        "one_line": "Finish the public-facing README so a technical reader can skim it in 90 seconds or clone and run it in one command.",
+        "status": "partial",
+        "action": "build",
+        "info": 1,
+        "info_why": "It is the portfolio surface, and it is the only thing standing between the deploy track and a link Jon can send.",
+        "tells_us": "Nothing measurable — it is presentation.",
+        "metric": {
+          "name": "none",
+          "dir": "none",
+          "basis": "unknown",
+          "cite": null,
+          "detail": "no product metric moves."
+        },
+        "evidence": [
+          {
+            "kind": "commit",
+            "ref": "08e5ff0",
+            "note": "MIT license, SVG wordmark, uv.lock, one name",
+            "ok": true,
+            "broken_why": null
+          },
+          {
+            "kind": "commit",
+            "ref": "4f68819",
+            "note": "branding assets, real Makefile targets",
+            "ok": true,
+            "broken_why": null
+          },
+          {
+            "kind": "path_absent",
+            "ref": "README.md",
+            "note": "a README.md exists in the working tree but is NOT tracked by git — so the README half of this plan has not landed",
+            "ok": true,
+            "broken_why": null,
+            "detail": "present in the working tree but untracked"
+          },
+          {
+            "kind": "doc",
+            "ref": "docs/plan-packaging.md",
+            "note": "the plan",
+            "ok": true,
+            "broken_why": null
+          }
+        ],
+        "cost": {
+          "kind": "zero",
+          "why": "writing and repo hygiene",
+          "lo": null,
+          "hi": null,
+          "pool": "free"
+        },
+        "deps": [],
+        "unmet": [],
+        "unmet_titles": [],
+        "bucket": "ready",
+        "evidence_ok": true,
+        "info_why_rank": "quality, infrastructure or evidence work with no measured metric attached"
+      },
+      {
+        "id": "citation-filter",
+        "title": "Post-hoc citation filter",
+        "one_line": "Drop citations the answer does not actually rest on, after generation, rather than trying to make the model emit fewer.",
+        "status": "design-only",
+        "action": "decide",
+        "info": 1,
+        "info_why": "The read-only evidence pass is already done inside the plan; what is left is a decision and a small build.",
+        "tells_us": "Whether citation precision is a real problem or a cosmetic one.",
+        "metric": {
+          "name": "citation precision",
+          "dir": "up",
+          "basis": "predicted",
+          "cite": "docs/plan-citation-filter.md",
+          "detail": "no arm has been re-graded under a filter; the plan says so and calls that a separate, bigger exercise."
+        },
+        "evidence": [
+          {
+            "kind": "doc",
+            "ref": "docs/plan-citation-filter.md",
+            "note": "\"DRAFT under Rule 0 — DESIGN ONLY. Nothing built. Awaiting Jon's review.\" Its §evidence table is the discharge of a DECISIONS.md pre-commitment.",
+            "ok": true,
+            "broken_why": null
+          }
+        ],
+        "cost": {
+          "kind": "zero",
+          "why": "a filter over an answer already produced. Re-GRADING arms under it would cost judge calls, and the plan scopes that out.",
+          "lo": null,
+          "hi": null,
+          "pool": "free"
+        },
+        "deps": [],
+        "unmet": [],
+        "unmet_titles": [],
+        "bucket": "ready",
+        "evidence_ok": true,
+        "info_why_rank": "quality, infrastructure or evidence work with no measured metric attached"
+      },
+      {
+        "id": "sso",
+        "title": "SSO track — OIDC, then SAML, then the breakage lab",
+        "one_line": "Add real single sign-on to the admin surface, in three separately-approved slices, and break it deliberately to learn the failure modes.",
+        "status": "design-only",
+        "action": "decide",
+        "info": 1,
+        "info_why": "Explicitly a resume-evidence track. It moves no product metric and should not compete with measurement work for the same slot.",
+        "tells_us": "Nothing about the bot.",
+        "metric": {
+          "name": "none",
+          "dir": "none",
+          "basis": "unknown",
+          "cite": null,
+          "detail": "the plan says the value is Jon being able to explain it cold."
+        },
+        "tradeoff": {
+          "options": [
+            {
+              "name": "Build the SSO track",
+              "pick": false,
+              "pros": [
+                "spends no credits",
+                "it is the point of the project for Jon's job search"
+              ],
+              "cons": [
+                "moves no metric on this page",
+                "the SAML slice needs the deploy track first, which needs the README"
+              ]
+            },
+            {
+              "name": "Do the measurement backlog first",
+              "pick": true,
+              "pros": [
+                "the L0 slice and the gold audit are what the go/no-go call is waiting on",
+                "SSO is not blocked by anything that decays if it waits"
+              ],
+              "cons": [
+                "the portfolio surface stays unfinished for longer"
+              ]
+            }
+          ],
+          "why": "Both are defensible; they compete for the same hours, not the same budget. The measurement items gate a decision that is live right now, and SSO gates nothing.",
+          "against": "If the job search is the actual deadline, that is an external clock this page cannot see, and it would reverse the order. Stated as a judgement, not a measurement.",
+          "flip": "An interview or a deadline that makes the deployed demo urgent."
+        },
+        "dep_why": "the plan's §0 sequencing: OIDC needs no deployed URL, SAML does",
+        "evidence": [
+          {
+            "kind": "doc",
+            "ref": "docs/plan-sso.md",
+            "note": "\"Working Rule 0 artifact. DESIGN ONLY — no source changes in this pass.\" Ships as three independently-approved slices.",
+            "ok": true,
+            "broken_why": null
+          },
+          {
+            "kind": "path",
+            "ref": "TODO-SSO.md",
+            "note": "the track's own to-do list",
+            "ok": true,
+            "broken_why": null
+          }
+        ],
+        "cost": {
+          "kind": "zero",
+          "why": "local build; the identity provider side is free-tier work",
+          "lo": null,
+          "hi": null,
+          "pool": "free"
+        },
+        "deps": [
+          "deploy"
+        ],
+        "unmet": [
+          "deploy"
+        ],
+        "unmet_titles": [
+          "Deploy track — private demo to a public Fly.io link"
+        ],
+        "bucket": "blocked",
+        "evidence_ok": true,
+        "info_why_rank": "quality, infrastructure or evidence work with no measured metric attached"
+      },
+      {
+        "id": "rerank-after-rewrite",
+        "title": "Rerank after rewrite",
+        "one_line": "Put the cross-encoder reranker after the rewrite step instead of instead of it — the one cell of the retrieval grid nobody has run.",
+        "status": "design-only",
+        "action": "decide",
+        "info": 1,
+        "info_why": "Cheap, but the plan was scoped to a control that production has since moved off, so it needs a re-scope before it is worth running.",
+        "tells_us": "Whether reranking still adds anything once multi-query fusion has run.",
+        "relevant": false,
+        "relevance_note": "Overtaken in part by commit 86b5d27. The plan scopes itself to the shipped control `vec+rw1-haiku` at REWRITE_N=1, and notes its option (c) \"collapses to (b) exactly\" at n=1. Production now runs REWRITE_N=3, so the arm it describes is no longer the shipped path.",
+        "metric": {
+          "name": "retrieval recall@k",
+          "dir": "up",
+          "basis": "predicted",
+          "cite": "docs/plan-rerank-after-rewrite.md",
+          "detail": "the plan quotes 71% for the shipped arm as the baseline to beat; no reranked-after-rewrite number exists."
+        },
+        "tradeoff": {
+          "options": [
+            {
+              "name": "Re-scope to the shipped n=3 path and run it",
+              "pick": true,
+              "pros": [
+                "under $0.30 — the cheapest priced experiment on the whole board",
+                "reranking already exists and is cached, so there is no build"
+              ],
+              "cons": [
+                "needs a re-scope first: the plan's control arm is no longer what production runs",
+                "the diversity factorial already found most of the rewrite gain banked, so the headroom for a second re-ranking step may be small"
+              ]
+            },
+            {
+              "name": "Run it exactly as written (n=1 control)",
+              "pick": false,
+              "pros": [
+                "no re-scope needed; the plan is complete as it stands"
+              ],
+              "cons": [
+                "measures an arm production no longer runs, so a win would not transfer"
+              ]
+            },
+            {
+              "name": "Drop it",
+              "pick": false,
+              "pros": [
+                "frees the slot for the L0 slice and the gold audit"
+              ],
+              "cons": [
+                "gives up the one untested cell of the retrieval grid for under $0.30"
+              ]
+            }
+          ],
+          "why": "The price is trivial and the machinery exists, so the only real objection is that the plan aims at the wrong baseline. That is a scoping edit, not a rebuild.",
+          "against": "The retrieval-diversity result is a genuine reason to expect little: it found most of the rewrite gain already banked, which is where a reranker would have to find its headroom.",
+          "flip": "A miss-partition result showing retrieval, not reasoning, is where the losses are."
+        },
+        "evidence": [
+          {
+            "kind": "doc",
+            "ref": "docs/plan-rerank-after-rewrite.md",
+            "note": "\"DRAFT under Rule 0 — DESIGN ONLY. Nothing built.\"",
+            "ok": true,
+            "broken_why": null
+          },
+          {
+            "kind": "commit",
+            "ref": "86b5d27",
+            "note": "the REWRITE_N change that overtook its scoping",
+            "ok": true,
+            "broken_why": null
+          },
+          {
+            "kind": "path",
+            "ref": "src/rulesagent/retrieve/rerank.py",
+            "note": "the reranker itself already exists and is cached",
+            "ok": true,
+            "broken_why": null
+          }
+        ],
+        "cost": {
+          "kind": "api_stated",
+          "lo": 0.1,
+          "hi": 0.3,
+          "bound": "upper",
+          "cite": "docs/plan-rerank-after-rewrite.md",
+          "why": "the plan's own table: 2 stacked arms x 31 questions = 62 reranker calls, \"under $0.10\"; x 134 questions = 268 calls, \"under $0.30\"",
+          "pool": "api"
+        },
+        "deps": [],
+        "unmet": [],
+        "unmet_titles": [],
+        "bucket": "ready",
+        "evidence_ok": true,
+        "info_why_rank": "quality, infrastructure or evidence work with no measured metric attached"
+      },
+      {
+        "id": "deploy",
+        "title": "Deploy track — private demo to a public Fly.io link",
+        "one_line": "Get Rulemancer onto the internet behind a link, in independently-shippable slices.",
+        "status": "design-only",
+        "action": "decide",
+        "info": 1,
+        "info_why": "Nothing measured depends on it, but the portfolio value does.",
+        "tells_us": "Nothing measurable.",
+        "merged": [
+          "docs/plan-limitations-and-deploy.md"
+        ],
+        "merge_why": "plan-deploy.md's own opening: it \"turns the L5 bullet list in docs/plan-limitations-and-deploy.md ... into a sequenced, independently-shippable set of slices.\" Same track, one superseding the other. The older doc's L1/L3/L8 items shipped separately.",
+        "metric": {
+          "name": "none",
+          "dir": "none",
+          "basis": "unknown",
+          "cite": null,
+          "detail": "no product metric."
+        },
+        "dep_why": "the plan wants the README current with everything shipped since it was drafted",
+        "evidence": [
+          {
+            "kind": "doc",
+            "ref": "docs/plan-deploy.md",
+            "note": "\"Rule 0. DESIGN ONLY, no code yet.\"",
+            "ok": true,
+            "broken_why": null
+          },
+          {
+            "kind": "commit",
+            "ref": "09683fc",
+            "note": "L3 SQLite caches — deploy blocker #1 — already shipped",
+            "ok": true,
+            "broken_why": null
+          }
+        ],
+        "cost": {
+          "kind": "hosting",
+          "lo": 3.0,
+          "hi": 5.0,
+          "unit": "/month",
+          "cite": "docs/plan-limitations-and-deploy.md",
+          "why": "the merged doc's hosting table: Fly.io ~$3-5/mo for an always-on small VM with volumes for the SQLite caches. Not API credits.",
+          "pool": "hosting"
+        },
+        "deps": [
+          "packaging"
+        ],
+        "unmet": [
+          "packaging"
+        ],
+        "unmet_titles": [
+          "Packaging — README and repo hygiene"
+        ],
+        "bucket": "blocked",
+        "evidence_ok": true,
+        "info_why_rank": "quality, infrastructure or evidence work with no measured metric attached"
+      },
+      {
+        "id": "armb-rerun",
+        "title": "Re-run derivability arm B with corrected ruling labels",
+        "one_line": "Re-run the gold-only arm so its ruling citations line up with the rulings it was actually handed, making them usable data.",
+        "status": "open",
+        "action": "decide",
+        "info": 1,
+        "info_why": "It repairs one arm's citation data. The accuracy number is unaffected — the bug is in the eval harness, not production.",
+        "tells_us": "Whether arm B's citations can be read at all; today 69% of citing rows are off.",
+        "metric": {
+          "name": "citation usability in arm B",
+          "dir": "up",
+          "basis": "measured",
+          "cite": "docs/report-ruling-citation-offbyone.md",
+          "detail": "69% of citing rows are currently unusable; the fix is verified."
+        },
+        "tradeoff": {
+          "options": [
+            {
+              "name": "Re-run arm B ($8.47)",
+              "pick": false,
+              "pros": [
+                "makes 69% of its citing rows readable instead of misaligned",
+                "the fix is already shipped and verified (b11f1cd), so the re-run is not a gamble"
+              ],
+              "cons": [
+                "the accuracy number does not change — this buys citation data only",
+                "nothing currently open depends on arm B's citations"
+              ]
+            },
+            {
+              "name": "Leave it, and mark the citations unusable",
+              "pick": true,
+              "pros": [
+                "costs nothing",
+                "arm B's 91.3% is unaffected either way; the defect is in the eval harness"
+              ],
+              "cons": [
+                "any future analysis of where arm B cited from starts by re-running this anyway"
+              ]
+            }
+          ],
+          "why": "Nothing on the ready list needs arm B's citations. The $8.47 is small, but it buys a dataset with no current consumer, and the accuracy the arm is quoted for is not affected.",
+          "against": "If the miss-partition diagnostic ends up wanting per-row citation provenance from the oracle arm, this becomes a prerequisite rather than a nice-to-have.",
+          "flip": "Any open item that needs to read arm B's citations."
+        },
+        "evidence": [
+          {
+            "kind": "commit",
+            "ref": "ad53532",
+            "note": "root cause: evals/build_gold_prompts.py, not the product",
+            "ok": true,
+            "broken_why": null
+          },
+          {
+            "kind": "commit",
+            "ref": "b11f1cd",
+            "note": "the fix — ruling labels moved to the prompt boundary",
+            "ok": true,
+            "broken_why": null
+          },
+          {
+            "kind": "doc",
+            "ref": "docs/report-ruling-citation-offbyone.md",
+            "note": "\"production is clean across 397 citations; the defect ... affects 69% of citing rows in derivability arms B/C\". Still needs Jon's ruling on whether the re-run is worth it.",
+            "ok": true,
+            "broken_why": null
+          }
+        ],
+        "cost": {
+          "kind": "api_stated",
+          "lo": 8.47,
+          "hi": 8.47,
+          "cite": "docs/HANDOFF-development.md",
+          "why": "the handoff's own figure for re-running arm B",
+          "pool": "api"
+        },
+        "deps": [],
+        "unmet": [],
+        "unmet_titles": [],
+        "bucket": "ready",
+        "evidence_ok": true,
+        "info_why_rank": "quality, infrastructure or evidence work with no measured metric attached"
+      },
+      {
+        "id": "s-guards",
+        "title": "Answer guards — blank answers, silent card drops, SQLite caches",
+        "status": "shipped",
+        "info": 1,
+        "action": "build",
+        "one_line": "Stop the failure modes that look like success: a blank answer marked answered, a dropped card reference nobody logs, a cache two processes corrupt.",
+        "tells_us": "",
+        "merged": [
+          "docs/plan-q029-empty-answer-guard.md",
+          "docs/plan-l3-sqlite-caches.md"
+        ],
+        "merge_why": "both are silent-failure closures approved in the same window; L3 also cleared deploy blocker #1.",
+        "metric": {
+          "name": "silent failures",
+          "dir": "down",
+          "basis": "measured",
+          "cite": "docs/plan-q029-empty-answer-guard.md",
+          "detail": "q029 drew answered:true with empty text and slipped past the degenerate check; that specific shape is now caught."
+        },
+        "evidence": [
+          {
+            "kind": "commit",
+            "ref": "197ac79",
+            "note": "q029 empty-answer guard + c012 observability",
+            "ok": true,
+            "broken_why": null
+          },
+          {
+            "kind": "commit",
+            "ref": "390545b",
+            "note": "Plan A uncited-success flag",
+            "ok": true,
+            "broken_why": null
+          },
+          {
+            "kind": "commit",
+            "ref": "09683fc",
+            "note": "L3 SQLite cache layer",
+            "ok": true,
+            "broken_why": null
+          },
+          {
+            "kind": "path",
+            "ref": "src/rulesagent/cache.py",
+            "ok": true,
+            "broken_why": null
+          }
+        ],
+        "cost": {
+          "kind": "spent",
+          "why": "shipped",
+          "lo": null,
+          "hi": null,
+          "pool": "spent"
+        },
+        "deps": [],
+        "unmet": [],
+        "unmet_titles": [],
+        "bucket": "done",
+        "evidence_ok": true,
+        "info_why_rank": "quality, infrastructure or evidence work with no measured metric attached"
+      },
+      {
+        "id": "x-slice-c",
+        "title": "Automated gold discovery by ablation (Slice C)",
+        "status": "superseded",
+        "info": 1,
+        "action": "build",
+        "one_line": "Discover gold rules by generating with each candidate rule removed and seeing which removals break the answer.",
+        "tells_us": "",
+        "merged": [
+          "docs/plan-slice-c-gold-discovery-build-spec.md",
+          "docs/plan-card-gold-ablation.md"
+        ],
+        "merge_why": "the same ablation idea at two scales — the card-level version shipped as evals/ablate_gold.py, and the corpus-scale build spec stopped before building.",
+        "relevant": false,
+        "relevance_note": "Superseded in practice by subscription gold mining (docs/spec-cr-gold-mining.md), which produces gold proposals with no API spend at all. Slice C's cost model is O(candidates) generations per question, which is the expensive way to get the same artefact.",
+        "metric": {
+          "name": "gold coverage",
+          "dir": "up",
+          "basis": "predicted",
+          "cite": "docs/plan-v5-and-gold-discovery.md",
+          "detail": "the parent plan proposes candidates with evidence and explicitly does not certify gold."
+        },
+        "evidence": [
+          {
+            "kind": "doc",
+            "ref": "docs/plan-slice-c-gold-discovery-build-spec.md",
+            "note": "header: \"STOPPED before building. This is a build spec, not an executed proposal batch.\"",
+            "ok": true,
+            "broken_why": null
+          },
+          {
+            "kind": "commit",
+            "ref": "004450b",
+            "note": "the card-scale ablation harness DID ship",
+            "ok": true,
+            "broken_why": null
+          },
+          {
+            "kind": "path",
+            "ref": "evals/ablate_gold.py",
+            "ok": true,
+            "broken_why": null
+          }
+        ],
+        "cost": {
+          "kind": "unknown",
+          "why": "O(candidates) generations per question with the pool capped at 20; the build spec declines to re-derive a total",
+          "lo": null,
+          "hi": null,
+          "pool": "unknown"
+        },
+        "deps": [],
+        "unmet": [],
+        "unmet_titles": [],
+        "bucket": "dead",
+        "evidence_ok": true,
+        "info_why_rank": "quality, infrastructure or evidence work with no measured metric attached"
+      },
+      {
+        "id": "x-combat",
+        "title": "Combat damage assignment tool",
+        "status": "cut",
+        "info": 1,
+        "action": "build",
+        "one_line": "A deterministic tool for assigning combat damage across blockers with trample and deathtouch.",
+        "tells_us": "",
+        "relevant": false,
+        "relevance_note": "Shelved, not killed. Its own §11 research found only 7 genuinely assignment-shaped questions in the whole 1,409-row corpus (~0.5%), a thin ROI against its §8 bar; the layers tool had four failing questions in one regrade and targets the weakest tier. Revisit if the base rate rises.",
+        "metric": {
+          "name": "accuracy on assignment questions",
+          "dir": "up",
+          "basis": "predicted",
+          "cite": "docs/plan-combat-damage-tool.md",
+          "detail": "predicted only, and over ~0.5% of the corpus."
+        },
+        "evidence": [
+          {
+            "kind": "doc",
+            "ref": "DECISIONS.md",
+            "note": "2026-07-24 \"Layer-system tool is the next tool; combat-damage shelved\"",
+            "ok": true,
+            "broken_why": null
+          },
+          {
+            "kind": "doc",
+            "ref": "docs/plan-combat-damage-tool.md",
+            "note": "complete design §1-10 plus §11 build-prep research — buildable as-is",
+            "ok": true,
+            "broken_why": null
+          }
+        ],
+        "cost": {
+          "kind": "unknown",
+          "why": "the plan does not price a measurement run",
+          "lo": null,
+          "hi": null,
+          "pool": "unknown"
+        },
+        "deps": [],
+        "unmet": [],
+        "unmet_titles": [],
+        "bucket": "dead",
+        "evidence_ok": true,
+        "info_why_rank": "quality, infrastructure or evidence work with no measured metric attached"
+      },
+      {
+        "id": "x-condition-e",
+        "title": "Condition E — reasoning-enabled generation",
+        "status": "cut",
+        "info": 1,
+        "action": "run",
+        "one_line": "Turn on the OpenRouter models' reasoning mode as its own arm.",
+        "tells_us": "",
+        "relevant": false,
+        "relevance_note": "Partly superseded rather than dead: the Anthropic-side version of the same lever shipped as the `effort` knob (commit 579d544), and the shipped config now runs opus-5 at effort=low precisely because effort is the primary cost lever.",
+        "metric": {
+          "name": "latency",
+          "dir": "up",
+          "basis": "measured",
+          "cite": "DECISIONS.md",
+          "detail": "it failed on latency before accuracy could be assessed."
+        },
+        "evidence": [
+          {
+            "kind": "doc",
+            "ref": "DECISIONS.md",
+            "note": "2026-07-24 \"condition E (reasoning effort) FAILS ON LATENCY, before accuracy matters\"",
+            "ok": true,
+            "broken_why": null
+          },
+          {
+            "kind": "doc",
+            "ref": "docs/plan-condition-e-reasoning.md",
+            "note": "header: \"DESIGN ONLY. No code changes in this document\"",
+            "ok": true,
+            "broken_why": null
+          }
+        ],
+        "cost": {
+          "kind": "spent",
+          "why": "the decision was reached without a full run",
+          "lo": null,
+          "hi": null,
+          "pool": "spent"
+        },
+        "deps": [],
+        "unmet": [],
+        "unmet_titles": [],
+        "bucket": "dead",
+        "evidence_ok": true,
+        "info_why_rank": "quality, infrastructure or evidence work with no measured metric attached"
+      },
+      {
+        "id": "s-ui",
+        "title": "Frontend and API — FastAPI backend, cache-busting, multi-turn, ticker",
+        "status": "shipped",
+        "info": 1,
+        "action": "build",
+        "one_line": "The app surface: an HTTP seam over RulesAgent plus the small frontend fixes that made it usable.",
+        "tells_us": "",
+        "merged": [
+          "docs/plan-api.md",
+          "docs/plan-cache-busting.md",
+          "docs/plan-multiturn-stability.md",
+          "docs/plan-turn-phase-ticker.md"
+        ],
+        "merge_why": "four mini-plans, one product surface, all shipped in the same week and none large enough to track separately.",
+        "metric": {
+          "name": "follow-up answer reliability",
+          "dir": "up",
+          "basis": "measured",
+          "cite": "docs/plan-multiturn-stability.md",
+          "detail": "the plan measured follow-ups flaking ~50% before the fix."
+        },
+        "evidence": [
+          {
+            "kind": "commit",
+            "ref": "7588fc2",
+            "note": "FastAPI backend",
+            "ok": true,
+            "broken_why": null
+          },
+          {
+            "kind": "commit",
+            "ref": "014037e",
+            "note": "cache-busting",
+            "ok": true,
+            "broken_why": null
+          },
+          {
+            "kind": "commit",
+            "ref": "1ceedf1",
+            "note": "multi-turn stability",
+            "ok": true,
+            "broken_why": null
+          },
+          {
+            "kind": "commit",
+            "ref": "36f0994",
+            "note": "turn-phase ticker",
+            "ok": true,
+            "broken_why": null
+          },
+          {
+            "kind": "path",
+            "ref": "src/rulesagent/api/main.py",
+            "ok": true,
+            "broken_why": null
+          }
+        ],
+        "cost": {
+          "kind": "spent",
+          "why": "shipped",
+          "lo": null,
+          "hi": null,
+          "pool": "spent"
+        },
+        "deps": [],
+        "unmet": [],
+        "unmet_titles": [],
+        "bucket": "done",
+        "evidence_ok": true,
+        "info_why_rank": "quality, infrastructure or evidence work with no measured metric attached"
+      },
+      {
+        "id": "x-prompt-v4",
+        "title": "Prompt v4 — mana arithmetic and multiplayer refinement",
+        "status": "cut",
+        "info": 1,
+        "action": "build",
+        "docs": [
+          "docs/plan-prompt-v4.md"
+        ],
+        "one_line": "Nearly double the system prompt to teach mana notation and multiplayer phrasing. Built, tested, and reverted.",
+        "tells_us": "",
+        "merged": [
+          "docs/plan-v4e-execution-tasks.md"
+        ],
+        "merge_why": "the execution-tasks doc is the build decomposition of the v4 plan plus condition E; it has no independent proposal.",
+        "relevant": false,
+        "relevance_note": "Superseded by the cost-calculator tool. The tool plan's own opening: \"Two full prompt programmes have now targeted the same miss\" — v4's mana legend and v5's symbol injection both failed to move c014, so the arithmetic moved into Python instead.",
+        "metric": {
+          "name": "answer accuracy",
+          "dir": "none",
+          "basis": "measured",
+          "cite": "docs/plan-v5-and-gold-discovery.md",
+          "detail": "sonnet 46 -> 46 (zero divergence), gpt-5-mini 45 -> 43, at ~+1,215 tokens on every query. It failed its own go criterion."
+        },
+        "evidence": [
+          {
+            "kind": "doc",
+            "ref": "DECISIONS.md",
+            "note": "2026-07-25 \"prompt v4 is NO-GO; production reverts to v3 by version-selecting\" (PROMPT_VERSION 4 -> 3)",
+            "ok": true,
+            "broken_why": null
+          },
+          {
+            "kind": "path",
+            "ref": "evals/build_prompts_v4.py",
+            "note": "the build exists — this was measured, not abandoned",
+            "ok": true,
+            "broken_why": null
+          }
+        ],
+        "cost": {
+          "kind": "spent",
+          "why": "already run",
+          "lo": null,
+          "hi": null,
+          "pool": "spent"
+        },
+        "deps": [],
+        "unmet": [],
+        "unmet_titles": [],
+        "bucket": "dead",
+        "evidence_ok": true,
+        "info_why_rank": "quality, infrastructure or evidence work with no measured metric attached"
+      },
+      {
+        "id": "x-rulings-recall",
+        "title": "Rulings-recall — widen the per-card ruling cutoff",
+        "status": "cut",
+        "info": 1,
+        "action": "build",
+        "one_line": "Raise TOP_N or lower COSINE_FLOOR so the per-card ruling mini-RAG stops cutting off the ruling an answer needs.",
+        "tells_us": "",
+        "merged": [
+          "docs/plan-c011-stale-rulings.md"
+        ],
+        "merge_why": "rulings-recall was written directly out of the c011 diagnosis and supersedes it as the actionable half; c011's own §5 freezes that question and its §2 says it needs redoing from different evidence.",
+        "relevant": false,
+        "relevance_note": "Jon shelved it 2026-07-23: it rests on 3 known misses (c010/c011/c019) with no formal metric. Partly addressed anyway — TOP_N was raised 3 -> 5 in commit 17f4d16 for a different reason.",
+        "metric": {
+          "name": "ruling recall",
+          "dir": "up",
+          "basis": "predicted",
+          "cite": "docs/plan-rulings-recall.md",
+          "detail": "no formal metric exists for it — which is why it was shelved."
+        },
+        "evidence": [
+          {
+            "kind": "doc",
+            "ref": "docs/plan-rulings-recall.md",
+            "note": "header: \"JON'S RULING 2026-07-23: SHELVED. Diagnosis kept on record, build nothing.\"",
+            "ok": true,
+            "broken_why": null
+          },
+          {
+            "kind": "commit",
+            "ref": "17f4d16",
+            "note": "TOP_N raised 3 -> 5 independently",
+            "ok": true,
+            "broken_why": null
+          }
+        ],
+        "cost": {
+          "kind": "unknown",
+          "why": "the plan explicitly cannot cost lowering COSINE_FLOOR without re-running",
+          "lo": null,
+          "hi": null,
+          "pool": "unknown"
+        },
+        "deps": [],
+        "unmet": [],
+        "unmet_titles": [],
+        "bucket": "dead",
+        "evidence_ok": true,
+        "info_why_rank": "quality, infrastructure or evidence work with no measured metric attached"
+      },
+      {
+        "id": "s-symbol-injection",
+        "title": "Symbol injection (production, cell B)",
+        "status": "shipped",
+        "info": 1,
+        "action": "run",
+        "one_line": "Inject definitions for the mana symbols a question actually contains. The injection shipped; the v5 bullet set on top of it did not.",
+        "tells_us": "",
+        "metric": {
+          "name": "prompt tokens",
+          "dir": "none",
+          "basis": "measured",
+          "cite": "docs/report-v5-grid.md",
+          "detail": "injection is near-free; the v5 bullets cost +510 tok/query over production for nothing measured."
+        },
+        "evidence": [
+          {
+            "kind": "doc",
+            "ref": "DECISIONS.md",
+            "note": "2026-07-23 \"symbol injection RATIFIED as production (cell B is production)\" — 0 added tokens on 31 of 50 questions, +93 on card questions",
+            "ok": true,
+            "broken_why": null
+          },
+          {
+            "kind": "doc",
+            "ref": "docs/report-v5-grid.md",
+            "note": "the grid that separated injection from the bullets",
+            "ok": true,
+            "broken_why": null
+          }
+        ],
+        "cost": {
+          "kind": "spent",
+          "why": "shipped",
+          "lo": null,
+          "hi": null,
+          "pool": "spent"
+        },
+        "deps": [],
+        "unmet": [],
+        "unmet_titles": [],
+        "bucket": "done",
+        "evidence_ok": true,
+        "info_why_rank": "quality, infrastructure or evidence work with no measured metric attached"
+      },
+      {
+        "id": "x-v5-bullets",
+        "title": "v5 bullets (cell D) and the miss-matrix / gold-discovery parent",
+        "status": "cut",
+        "info": 1,
+        "action": "build",
+        "one_line": "Stack the v4 bullet set on top of symbol injection.",
+        "tells_us": "",
+        "merged": [
+          "docs/plan-v5-and-gold-discovery.md",
+          "docs/plan-v5-symbol-injection.md"
+        ],
+        "merge_why": "one three-slice parent whose slices all resolved elsewhere: slice A became symbol injection (shipped, tracked above), slice B the miss matrix (now the miss-partition diagnostic), slice C automated gold discovery (stopped). The parent has nothing left of its own.",
+        "relevant": false,
+        "relevance_note": "Jon's Lever 1 ruling, 2026-07-24: \"STAY ON CELL B.\" Cell D fixed 0 of 3 sonnet misses and produced 0 stable flips, at +510 tok/query over production, paid on every query forever with no prompt caching. Recorded as a \"not now,\" not a permanent close.",
+        "metric": {
+          "name": "answer accuracy",
+          "dir": "none",
+          "basis": "measured",
+          "cite": "docs/report-v5-grid.md",
+          "detail": "0 of 3 sonnet misses repaired, 0 stable flips on gpt-5-mini."
+        },
+        "evidence": [
+          {
+            "kind": "doc",
+            "ref": "DECISIONS.md",
+            "note": "2026-07-24 Lever rulings: v5 no-go",
+            "ok": true,
+            "broken_why": null
+          },
+          {
+            "kind": "doc",
+            "ref": "docs/report-v5-grid.md",
+            "note": "64 generations, 0 errors",
+            "ok": true,
+            "broken_why": null
+          }
+        ],
+        "cost": {
+          "kind": "spent",
+          "why": "already run",
+          "lo": null,
+          "hi": null,
+          "pool": "spent"
+        },
+        "deps": [],
+        "unmet": [],
+        "unmet_titles": [],
+        "bucket": "dead",
+        "evidence_ok": true,
+        "info_why_rank": "quality, infrastructure or evidence work with no measured metric attached"
+      }
+    ],
+    "counts": {
+      "ready": 13,
+      "blocked": 6,
+      "done": 15,
+      "dead": 6
+    },
+    "coverage": {
+      "n_docs": 48,
+      "n_covered": 48,
+      "missing": []
+    },
+    "cost_basis": "claude-opus-5 / effort low",
+    "per_q": [
+      0.051531709999999994,
+      0.06445404629629631
+    ],
+    "ready_api_lo": 19.23706397,
+    "ready_api_hi": 22.111987583333335,
+    "info_rank": {
+      "3": "resolves a named uncertainty in the go/no-go decision",
+      "2": "moves or validates a measured metric, or unblocks something that does",
+      "1": "quality, infrastructure or evidence work with no measured metric attached"
+    },
+    "broken": []
+  },
+  "summary": {
+    "authored_on": "2026-07-26",
+    "authored_by": "Claude Opus 5, from the repo's own docs and commits",
+    "thresholds": [
+      {
+        "key": "coverage_min",
+        "value": 0.95,
+        "fmt": "pct",
+        "label": "Corpus coverage before committing to a full run",
+        "why": "A projection reweights measured levels onto the corpus mix. If a whole difficulty level has never been run, the projection is extrapolating over it, not measuring it."
+      },
+      {
+        "key": "interval_max_pp",
+        "value": 15.0,
+        "fmt": "pp",
+        "label": "Widest acceptable 95% interval on the projected accuracy",
+        "why": "An interval wider than this cannot distinguish a good result from a bad one, so spending on the full run buys a number nobody can act on."
+      },
+      {
+        "key": "budget_max_usd",
+        "value": 200.0,
+        "fmt": "usd",
+        "label": "Full-run cost that triggers a separate budget conversation",
+        "why": "Below this, cost is not the deciding factor and should not be presented as one."
+      },
+      {
+        "key": "judge_fp_max_pp",
+        "value": 5.0,
+        "fmt": "pp",
+        "label": "Highest tolerable judge false-positive rate before publishing a headline",
+        "why": "The judge marking a wrong answer correct inflates every accuracy on this page. Above this, fix the instrument before quoting the number."
+      }
+    ],
+    "facts": {
+      "N": 1409,
+      "judge": {
+        "file": "evals/judge_error_results.json",
+        "mtime": "2026-07-26T12:39-05:00",
+        "judge": "openai/gpt-5-mini",
+        "digest": "b54fbdb95565abf8",
+        "fp_rate": 0.044444444444444446,
+        "fp_k": 4,
+        "fp_n": 90,
+        "fp_ci": [
+          0.01741696001324882,
+          0.1087701467709492
+        ],
+        "ref_agreement": 0.78125,
+        "ref_n": 32,
+        "fn_ref_rate": 0.06666666666666667
+      },
+      "runtime_note": "Wall-clock is not recorded per row in any answers file, so run time cannot be computed from measurement. docs/plan-rulesguru-as-instrument.md estimates ~4s per question, putting 150 questions at \"roughly 10+ minutes\" — that was written about sonnet, and the shipped config is a different model.",
+      "acc": 0.803435377128345,
+      "ci": [
+        0.7168462043747884,
+        0.8684062255103001
+      ],
+      "ci_width_pp": 15.156002113551171,
+      "coverage": 0.8530872959545778,
+      "missing": [
+        "0"
+      ],
+      "cost_lo": 0.051531709999999994,
+      "cost_hi": 0.06445404629629631,
+      "full_lo": 72.60817938999999,
+      "full_hi": 90.8157512314815,
+      "model": "claude-opus-5",
+      "effort": "low",
+      "n_run": 104,
+      "missing_n": 207,
+      "slice_lo": 10.66706397,
+      "slice_hi": 13.341987583333335,
+      "checks": [
+        {
+          "key": "coverage_min",
+          "pass": false,
+          "actual": 0.8530872959545778,
+          "fmt": "pct"
+        },
+        {
+          "key": "interval_max_pp",
+          "pass": false,
+          "actual": 15.156002113551171,
+          "fmt": "pp"
+        },
+        {
+          "key": "judge_fp_max_pp",
+          "pass": true,
+          "actual": 4.444444444444445,
+          "fmt": "pp"
+        },
+        {
+          "key": "budget_max_usd",
+          "pass": true,
+          "actual": 90.8157512314815,
+          "fmt": "usd"
+        }
+      ],
+      "verdict": "slice-first",
+      "why_key": "coverage_min",
+      "model_pairs": [
+        {
+          "n": 54,
+          "floor_pp": 3.703703703703709,
+          "beats_noise": true,
+          "winner": "h2h_opuslow_hard",
+          "loser": "layers_slice0_base_layers",
+          "win_model": "claude-opus-5",
+          "lose_model": "claude-sonnet-5",
+          "gap_pp": 9.259259259259256,
+          "win_cost": 0.06445404629629631,
+          "lose_cost": 0.12977392400419285,
+          "confounded": true,
+          "differs": [
+            "model",
+            "effort"
+          ]
+        },
+        {
+          "n": 50,
+          "floor_pp": 6.000000000000005,
+          "beats_noise": true,
+          "winner": "h2h_opuslow_easy",
+          "loser": "h2h_sonnet_easy",
+          "win_model": "claude-opus-5",
+          "lose_model": "claude-sonnet-5",
+          "gap_pp": 13.0,
+          "win_cost": 0.051531709999999994,
+          "lose_cost": 0.070862379,
+          "confounded": true,
+          "differs": [
+            "model",
+            "effort"
+          ]
+        }
+      ],
+      "model_dominated": true,
+      "intro_ends": "2026-08-31",
+      "intro_arms": [
+        {
+          "arm": "h2h_sonnet_easy_r1",
+          "std": 0.065066559,
+          "intro": 0.043377705999999995,
+          "qset": "23aa5200"
+        },
+        {
+          "arm": "h2h_sonnet_easy_r2",
+          "std": 0.07665819900000001,
+          "intro": 0.051105465999999995,
+          "qset": "23aa5200"
+        },
+        {
+          "arm": "layers_slice0_base_layers_r1",
+          "std": 0.12888205555555554,
+          "intro": 0.08592137037037037,
+          "qset": "5cedbcf3"
+        },
+        {
+          "arm": "layers_slice0_base_layers_r2",
+          "std": 0.1306657924528302,
+          "intro": 0.08711052830188679,
+          "qset": "5cedbcf3"
+        }
+      ],
+      "effort_controlled": 0,
+      "effort_pairs": [],
+      "efforts_seen": [
+        "None",
+        "high",
+        "low"
+      ],
+      "effort_probe": {
+        "n": 50,
+        "lo": 2.5765854999999998,
+        "hi": 3.2227023148148155
+      },
+      "ceilings": [
+        {
+          "oracle": "derivability_B",
+          "oracle_flat": 0.9133333333333333,
+          "oracle_kind_why": "retrieval recorded and EMPTY on all 150 rows — the model answered without retrieved rules, so this measures whether the answer is derivable at all, not what the pipeline scores",
+          "other": "rulesguru_sonnet",
+          "other_flat": 0.72,
+          "other_kind": "unknown",
+          "other_kind_why": "the 150 answer rows do not record `retrieved_rule_ids`, so whether retrieval ran is not established by any file we own",
+          "gap_pp": 19.333333333333336,
+          "judge": {
+            "level": "crit",
+            "text": "no judging run is recorded for rulesguru_sonnet — its verdict file names no judge model or prompt digest, so its accuracy is not reproducible and this gap cannot be attributed",
+            "same_judge": false
+          }
+        }
+      ],
+      "ready_n": 13,
+      "ready_free_n": 9,
+      "blocked_n": 6,
+      "top_ready": [
+        {
+          "title": "Gold audit, batch 2",
+          "cost": {
+            "kind": "zero",
+            "why": "regrades answers already on disk; no generation, no judge calls, no Anthropic client. Jon's time is the real cost.",
+            "lo": null,
+            "hi": null,
+            "pool": "free"
+          },
+          "id": "gold-audit-b2"
+        },
+        {
+          "title": "L0-only pipeline arm (207 questions)",
+          "cost": {
+            "kind": "api_questions",
+            "n": 207,
+            "why": "207 L0 questions in evals/rulesguru_full_v2.jsonl, at the measured $/question of the shipped config",
+            "per_q": [
+              0.051531709999999994,
+              0.06445404629629631
+            ],
+            "lo": 10.66706397,
+            "hi": 13.341987583333335,
+            "pool": "api"
+          },
+          "id": "l0-arm"
+        },
+        {
+          "title": "Double-mine for gold stability",
+          "cost": {
+            "kind": "subscription",
+            "why": "same subagent-mining path, no API credits",
+            "lo": null,
+            "hi": null,
+            "pool": "subscription"
+          },
+          "id": "double-mine"
+        }
+      ]
+    },
+    "runtime_note": "Wall-clock is not recorded per row in any answers file, so run time cannot be computed from measurement. docs/plan-rulesguru-as-instrument.md estimates ~4s per question, putting 150 questions at \"roughly 10+ minutes\" — that was written about sonnet, and the shipped config is a different model."
   }
 }
