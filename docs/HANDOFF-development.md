@@ -1,205 +1,277 @@
-# Handoff — the session that corrected itself twice
+# Handoff — the session that found the measuring stick was bent
 
 **Replaces the prior handoff (git has every version). Written at the end of the
-2026-07-26 session, which shipped both queued rulings, measured the judge in the
-direction nobody had checked, built a decision dashboard — and, in the middle of
-all that, published a correction that was itself wrong and had to be reversed.
-The reversal is the most useful thing in this document.**
+2026-07-26 evening session. The previous handoff's headline belief was "retrieval
+is the bottleneck." That is probably still true, but this session established
+that we could not have known it, because every instrument used to measure
+retrieval was broken — and roughly 60% of the eval corpus cannot detect a
+retrieval change at all.**
 
-Suite: **645 passed, exit 0.** Commits, in order: `373c4aa` `372965b` `ad53532`
-`44c7852` `ab8b8c5` `b11f1cd` `3bfd0c8` `6ab8b67` `eb16810` `4c6d489` `5e3a64b`
-`a0b423e` (+ the roadmap commit, below).
+Suite: **929 passed, exit 0**, verified with every eval arm stopped. **The "645
+passing" figure in the prior handoff and in `CLAUDE.md` was ~280 tests stale** —
+it had been carried forward unchecked across sessions.
+
+Nothing was committed during the session; everything below landed in one
+end-of-session commit.
 
 ---
 
 ## ⚠️ FIRST, UNLEARN THIS
 
-**1. Arm B is 91.3%, not 93.3%, and not 90.0%.** 137/150.
-`evals/verdicts_derivability_B_human.json`, two overturns applied (`rg1718`,
-`rg851`). If you see 93.3% quoted as an accuracy anywhere, it is stale — that
-number is now **the ceiling**, not the score.
+**1. Answer accuracy and retrieval accuracy are two different instruments with
+two different reliabilities.** Accuracy is judged by comparing our answer to the
+reference answer — `judge_rulesguru.py` never reads `q.gold` or `q.match`.
+Retrieval is judged by comparing retrieved ids to a mined gold rule set.
+Everything found this session hit the second one. **Every published accuracy
+number survives intact. Every published retrieval number does not.**
 
-**2. The judge's false-negative rate on the flagged side is 2 of 15, not 5.**
-The "a third of the failures were the judge" finding was wrong. Three of the five
-rows graded "they say the same thing" state the **opposite bottom line** from the
-reference answer. Jon adjudicated 2026-07-26: **the gold is correct on all
-three.** The judge is less broken than the intervening docs said.
+**2. ~60% of the corpus cannot measure retrieval.** A no-rules control arm (90
+of a planned 150 rows, all five levels) answered questions with zero rules in
+context. Corpus-weighted, **59.5%** of rows were answered correctly anyway —
+those rows cannot detect whether retrieval helped. It is concentrated at the easy
+end: L0 86.7%, L1 70.0%, L2 40.0%, L3 50.0%, Corner Case 30.0%. Retrieval work
+must be evaluated on the hard subset; measuring it corpus-wide halves the signal.
 
-**3. The "gold was incomplete" category is REAL, and so are the ceiling and the
-single-id heuristic.** All three were withdrawn mid-session and have been
-reinstated. Arm C's passes on `rg7215`, `rg549`, `rg811` were **retrieval
-genuinely closing a gap** — its answers match gold's bottom line where arm B's
-contradict it. This is the most direct causal evidence the project has that
-retrieval is the bottleneck: three questions we got *wrong* with gold alone and
-*right* once retrieval supplied the missing rule.
+**3. `hit_at()` has been over-crediting retrieval by roughly 3x.** The full
+1,409-question corpus is `match: "any"` on **every single row**, and 745 rows
+(52.9%) list 2+ gold rules (max 10). Finding 1 of 10 scored as complete success.
+Real coverage on the hard arms is **17.4%** against a reported hit rate of 48.1%.
 
-**4. The out-of-range ruling citations were NOT a product bug.** Production emits
-**0 out-of-range citations across 397 checked**. The defect was confined to
-`evals/build_gold_prompts.py` and hit 69% of citing rows in the derivability
-arms. Fixed at the boundary; see below.
+**4. 10.9% of the corpus has no gold rules at all** — 153 of 1,409, and **33% of
+L0** (69 of 207). Reference answers are present on all of them, so accuracy still
+scores; retrieval simply has nothing to match against.
 
-**5. Sharing a question set does NOT make two arms comparable.** They must also
-be the same **kind** of experiment. An oracle arm (retrieval off, gold handed in)
-is not on the same scale as a pipeline arm, even on identical questions.
+**5. L0 is 97.1%, and that is not good news.** 201/207. But 86.7% of L0 is
+answerable with no rules whatsoever, so the score reflects the model's own Magic
+knowledge more than the pipeline's.
+
+**6. An arm's cost model does not transfer to a different kind of arm.** Arm B's
+$0.056/question did not predict the no-rules control's $0.104. Removing rules
+shrinks input slightly but **doubles to triples output** (2.05x at L0, 2.37x at
+L1, 2.59x at L2), and output is 5x the price of input. Estimate the expensive
+side, not the cheap one.
+
+**7. Sampling the front of a sorted file is not sampling.** A 10-question pilot
+drawn from the head of the level-ordered question set hit only L0 and projected
+$11.35 against an actual $15+. The same trap made the first 70 control rows
+30xL0 + 30xL1 + 10xL2 and zero L3/Corner.
 
 ---
 
 ## WHAT SHIPPED
 
-**Judge false-negative/positive measurement** (`3bfd0c8`) —
-`docs/results-judge-error-rate.md`, `evals/judge_error_prep.py`,
-`evals/judge_error_metrics.py`. **False positives — the direction never before
-checked — are ≤4.4%** (4/90, CI 1.7–10.9%), an upper bound rather than a point
-estimate because the reference grader failed validation: opus-5 handed the
-judge's own prompt returned `different` on 32/32 validation rows, so a stronger
-model on the same prompt reproduces the judge instead of checking it. Re-scored
-against corrected ground truth its agreement with Jon is 28/32 (87.5%), not the
-78.1% first reported — three of the rows it was penalised for are rows where it
-was right and the human label was wrong. **$0.00 API credits** (ran on
-subscription subagents, per Jon's standing billing preference).
+**Graded coverage metric** — `coverage_at()` / `coverage_from_ids()` in
+`evals/run_eval.py`, `evals/backfill_coverage.py`, `tests/test_coverage_metric.py`
+(24 tests). Flat fraction of gold ids retrieved, deliberately NOT routed through
+`gold_groups()` — that function returns `[q.gold]` for `match:"any"`, which is why
+the pre-existing `group_coverage()` in `run_retrieval_diversity.py:122` computes
+`hit/1` and is boolean on 100% of the corpus. `hit_at()` and `gold_groups()` are
+**byte-identical** to HEAD; coverage is reported alongside, never instead of.
+Backfilled across all 21 arms with zero model calls.
 
-**Level-weighted scoring** (`372965b`) — `evals/weighted_score.py`, 53 tests.
-Jon's ruling: flat L0–L3, **Corner Case ×0.5**. Zero API. No conclusion flips;
-largest move 1.5pp. Arm B: 91.3% flat / 92.6% weighted. Handles both
-`by_level_counts` shapes (`{same,different}` auto, `{correct,n}` human-merged
-with fractional `correct`) and raises on a third rather than guessing.
+**The inflation worklist** — the gap between `hit_at()` and coverage ranks rows
+by how much the boolean flatters them. 282 rows have a positive gap; **158 exceed
+0.5**, and those collapse to **38 distinct questions**. That is the curation
+worklist, produced with no human judgement. `evals/coverage_backfill.json`.
 
-**Ruling labels moved to the prompt boundary** (`b11f1cd`) — `label_rulings()`
-now applies inside `build_prompt()`, which every builder routes through, so a
-future prompt builder cannot reintroduce the defect by not knowing it had to.
-**Idempotent by necessity:** `answer()` must still label its filtered subset
-because it holds the original Scryfall indices a renderer cannot recover from a
-filtered list; the second pass leaves those alone. Without idempotence a subset
-labelled `#2,#5` would be positionally renumbered to `#0,#1` — a quieter, worse
-version of the same bug that the range check would no longer catch.
-`tests/test_ruling_labels.py` (10 tests) holds it. Production prompts are
-byte-identical (`tests/test_prompt_identity.py` unchanged).
+**No-rules control arm** — `evals/answers/norules_control.json` (70) +
+`_topup.json` (20), `docs/results-norules-control.md`. See point 2 above. Two
+limitations that must travel with the number: it is 90 of a planned 150 (halted
+deliberately, not failed), and its `system_version` differs from arm B's, so it
+changes the system prompt as well as removing the rules. Not a clean
+single-variable control.
 
-**Human-verdict merge** (`373c4aa`) — `evals/merge_human_verdicts.py`. Writes a
-derived file, never edits the judge's raw output in place, because measuring
-judge error needs the original verdict beside the human one row by row. Overturn
-ids are passed **explicitly**, never derived from the grading vocabulary — six
-rows were graded `ambiguous` but only some were approved.
+**L0-only pipeline arm** — 207 questions, 97.1%, judge recorded, $11.71.
+**The full-run projection moved from 80.3% [71.7-86.8%] at 85% coverage to
+82.8% [78.2-86.6%] at 100% coverage.** The interval nearly halved and the
+projection is no longer an extrapolation.
 
-**The metrics dashboard** — `evals/build_metrics_history.py` →
-`evals/metrics_history.html`. Built across `44c7852`, `6ab8b67`, `5e3a64b`,
-`a0b423e`. Sections: decision panel, head-to-head, cost-vs-accuracy dominance,
-per-level, config matrix, reproducibility/noise floor, timeline of steps, full
-arm table, and the roadmap (below). Everything regenerates from the verdict
-files — when arm B moved 93.3% → 91.3% the whole page followed with no code
-change.
+**OR-group re-pass** — `docs/results-orgroup-repass.md`,
+`evals/orgroup_repass_proposed_corrections.jsonl`. Of 105 multi-member groups in
+`questions_rulesguru150_v3.jsonl` (verified: 75 rows carry them): **26 legitimate
+OR, 54 mis-encoded conjunctions, 25 needing judgement.** Up to 60 of 150 rows
+would have gold restructured. Flat `gold` union unchanged, so derivability arms
+are unaffected — this moves retrieval scoring only.
+
+**OR-group resolution (only-one-in test)** —
+`docs/results-orgroup-resolution.md`. Tested 21 of the 25 undecided groups (4
+excluded because arm B fails those rows even with full gold). Raw verdict was 20
+OR / 1 conjunction, but cross-checked against the control: **5 valid legitimate
+ORs, 1 valid conjunction (`rg60`), 5 invalid because their row is confounded, 10
+unknown because their row has no control data.** Note the asymmetry — the
+confound manufactures false *passes*, never false failures, so the conjunction
+verdict is robust and the OR verdicts are not.
+
+**Match-semantics audit** — `docs/results-match-semantics.md`, plus a live
+`crit` open item on the dashboard computed from the question files at build time.
+
+**Miss-partition diagnostic** — `docs/results-miss-partition.md`. Its
+conditionals are NOT interpretable as retrieval-vs-reasoning: 100% of "context
+ok" rows on the hard arm were `match:"any"` with mean gold size 4.13, which is
+why it shows the paradox of accuracy being lower with "context ok" (61.5%) than
+without (89.3%). The 2x2 itself is sound; the label is not.
+
+**CR update checker** — `scripts/check_cr_update.py` + 40 tests. Classifies
+rules as unchanged/renumbered/edited/deleted/ambiguous by content fingerprint,
+auto-fixes only renumbered ids and only with `--apply`. Self-test on the current
+CR: `unchanged=3153, remaps=0, flags=0, exit 0`.
+
+**Gold mining stability, both framings** — `docs/results-gold-stability.md`
+(prompt drift: 0.5407 mean Jaccard, v1-trimmed vs v1 — NOT a stability figure)
+and `docs/results-gold-stability-sameprompt.md` (same prompt twice under v2:
+0.4867). **The miner is roughly half-reproducible with the prompt held fixed.**
+Caveat: v2 mines 35% smaller gold sets than v1 on identical questions (mean
+1.24-1.36 vs 1.98-2.00 ids, 68-76% singletons vs 24-28%), so the two Jaccards are
+not directly comparable and the direction of that shift is unresolved.
+
+**Pure-rules held-out set** — `evals/purerules.jsonl` (8 questions, loads
+unmodified through `run_eval.load_questions()`), `evals/build_purerules_holdout.py`,
+22 tests including two guards asserting neither harness's default `--questions`
+path is the holdout file. `docs/spec-pure-rules-holdout.md` carries the open
+decision on how big the set should get.
+
+**Specs written and ruled on by Jon:** `docs/spec-coverage-metric.md` (shipped),
+`docs/spec-gold-sufficiency.md` (approved, partially executed).
+**Specs written and awaiting a ruling:** `docs/spec-cosine-floor.md`,
+`docs/spec-stackexchange-rule-chains.md`.
+
+**Two gold-audit batches** — `data/parsed/gold_audit_batch2.html` (20 rows,
+selector rejected — built on `h2h_gpt5mini` disagreements, an arm scoring 52.8%
+with no recorded judge) and `data/parsed/gold_audit_batch2_opuslow.html` (15
+rows, **the one to grade**). The 15 are stable pipeline misses: judged wrong in
+BOTH reps of the shipped config. `build_grading_ui.py` gained
+`--audit-frame {oracle,pipeline-miss}` so the header describes the right
+experiment; default stays `oracle` so batch 1 renders unchanged.
+
+**README + hygiene** — the architecture diagram claimed `claude-sonnet-5`;
+production is `claude-opus-5` at `effort=low` (`answer.py:34,54`). Quickstart
+verified by actually running it. `evals/answers/` was briefly gitignored and that
+was **reverted** — those 121 files are the recorded generations behind every
+published accuracy (~$48 for the priced arms alone), `build_metrics_history.py`
+reads them at line 79, and ignoring them puts them in reach of `git clean -Xdf`.
 
 ---
 
 ## THE STATE OF THE NUMBERS
 
 ```
-arm B (oracle: gold handed in, retrieval OFF)   137/150 = 91.3%   auto 90.0%
-ceiling with perfect retrieval                  140/150 = 93.3%
-production, opus-5/low                          ~75-82% auto-judged
-full-run projection over 1,409 questions        80.3%  [71.7-86.8%]   $73-91
+full-run projection (shipped config)   82.8%  [78.2-86.6%]   $73-91   100% coverage
+arm B (oracle, gold handed in)         91.3%  (137/150, human-verified)
+ceiling with perfect retrieval         93.3%  (140/150)
+L0-only pipeline arm                   97.1%  (201/207)
 
-opus-5/low vs sonnet-5, easy 50    89.0% vs 76.0%   +13.0pp,  27% cheaper
-opus-5/low vs sonnet-5, hard 54    74.1% vs 64.8%   +9.3pp,   50% cheaper
+confounded fraction (corpus-weighted)  59.5%   <- rows that cannot measure retrieval
+  L0 86.7% | L1 70.0% | L2 40.0% | L3 50.0% | Corner 30.0%
+
+retrieval, hard arms:  hit_at() 48.1%   vs   coverage 17.4%
+retrieval, easy arms:  hit_at() 44.7%   vs   coverage 29.6%
+retrieval, L0:         hit_at() 39.9%   vs   coverage 30.8%  (138/207 scoreable)
 ```
 
-Sonnet is **strictly dominated** on both sets — worse *and* pricier, emitting
-~3× the output tokens. Both gaps clear their sets' noise floors (±6.0, ±3.7pp).
-
-**The largest open uncertainty: L0 has never been run through the pipeline.**
-Zero L0 rows across all 10 pipeline arms. It is 207 of 1,409 questions (~15%),
-and the corpus's *easiest* slice (not its largest — L1 is 565), so the 80.3%
-projection likely reads low. An L0-only arm costs ~$11 and is the cheapest
-uncertainty reduction available before committing to the full run.
+Session API spend: **~$25** — L0 $11.71, control $9.70, OR-group $3.27 plus an
+estimated $0.25-0.45 of judging.
 
 ---
 
-## NEXT SESSION, IN ORDER
+## NEXT SESSION, IN ORDER — GOLD IS PRIORITY ONE
 
-1. **Run an L0-only pipeline arm** (~$11, 207 questions). Largest single source
-   of uncertainty in the full-run projection; either firms up the interval or
-   exposes it.
-2. **Batch 2 of the gold audit** — the full-data rows (`rg1802`, `rg4440`,
-   `rg5628`, plus h2h/costbase). Build with `--provenance run`. **Grade the
-   bottom line before the reasoning** — see the lesson below; that is exactly
-   what went wrong in batch 1.
-3. **Then decide the full run.** At $73–91 it is not a cost decision. The judge
-   is now measured; the remaining question is L0 coverage.
-4. **Spec the cosine floor** — free at runtime (`scores = embeddings @ qvec` is
-   one in-process matmul), cuts the 38% chunk churn multi-query introduced,
-   restores a calibrated signal that RRF removed.
-5. **Second-hop retrieval** — Jon's own proposal from his q016 grading note. The
-   `rg241` finding stands: all four CR rules in his derivation are already
-   indexed, but hops 2–3 have no resemblance to the question, so question-side
-   rewriting cannot reach them however good the rewrites.
-6. Still open from before: double-mine for stability (0.54 run-to-run overlap),
-   re-pass v3's 105 conjunctive OR-groups, resume mining (809 rows).
+Jon's ruling: **figuring out the correct gold is the number one priority.** He
+has also ruled out hand-grading at scale, so every step below has to be
+machine-decidable or it does not qualify.
 
-The dashboard's roadmap section carries the full inventory with status, cost,
-dependencies, and what each moves.
+1. **Run the necessity (leave-one-out) test on the 38-question worklist.** Per
+   `docs/spec-gold-sufficiency.md`, ~3.25 calls/row at arm B's rate. These are
+   the rows where `hit_at()` most flatters retrieval, so they are where
+   over-specified gold does the most damage. **Restrict to rows the control
+   showed are NOT confounded** — on a confounded row the test cannot distinguish
+   anything, which is exactly how the OR-group run lost 5 of its 21 verdicts.
+2. **Extend the control to the remaining 60 rows** if the necessity work needs
+   more rows validated. It is the gate on every other gold experiment's
+   interpretability, which was not obvious until it retroactively decided which
+   OR-group verdicts to keep.
+3. **Fix the empty-gold rows** — 153 corpus-wide, 69 in L0. Nothing can measure
+   retrieval on a row with no gold, and they are currently silently excluded from
+   means rather than flagged.
+4. **Rule on the 54+1 mis-encoded conjunctions** and apply them. Then re-run the
+   coverage backfill; the retrieval numbers will move.
+5. **Pilot the Stack Exchange rule chains** — `docs/spec-stackexchange-rule-chains.md`.
+   10-15 usable chains from a 50-100 question pull at the sampled 50% yield. It is
+   the only automated external source of conjunctive structure, which is what
+   both the OR-group and match-mode defects are missing. Filter is Jon's: top
+   answer must ALSO be the accepted answer, and it must cite specific numbered
+   rules. Resolve citations four ways (by-number-content-agrees /
+   by-number-content-DISAGREES / by-content-after-number-fails / unresolved) —
+   17% of sampled citations were the dangerous middle case where the number still
+   resolves but now means something else. Academy Ruins (`academyruins.com`,
+   AGPL-3.0) is a real dated CR archive with diffs, which makes
+   `check_cr_update.py`'s classifier reusable instead of fuzzy-matching quotes.
+6. **Then decide the full run.** $73-91 at 82.8% [78.2-86.6%]. Cost was never the
+   blocker and coverage no longer is. The open question is whether a corpus that
+   is 60% confounded is the right thing to spend it on.
+
+Still open from before: cosine floor (spec written, awaiting ruling), second-hop
+retrieval, rerank-after-rewrite (needs re-scoping to the shipped n=3 path).
 
 ---
 
-## HOW JON WORKS (unchanged, load-bearing)
+## HOW JON WORKS (load-bearing)
 
 - **Explain things properly.** Define jargon at first use, lead with what a thing
   means, show a concrete example. He is a partner, not an observer.
 - **Rule 0: plan before code.** Every `plan-*.md` / `spec-*.md` is design-only
   until he rules.
-- **Subagents: he authorised them this session** ("these sound like they could
-  run in parallel") — **and he had to point it out, which is the wrong way
-  round.** Items 1-5 were independent from the start and ran serially through one
-  context window before anyone said so. The harness forbids the Agent tool unless
-  he asks; the correct response is to ask **at the moment the parallel structure
-  appears**, not to flag the restriction once and treat it as settled. Check for
-  independence at the *planning* step — `superpowers:dispatching-parallel-agents`
-  and `superpowers:subagent-driven-development` are built for exactly this and
-  were both skipped. See the Context economy section of `CLAUDE.md`.
-- **Verify agents' claims yourself, and verify the right thing.** Every agent
-  result this session was checked against the underlying data before being
-  relayed; two had real errors in framing that only showed up that way.
-- **Never assert an MTG or model fact from memory.** Ground in the repo CR
-  (`data/raw/MagicCompRules 20260619.txt`), Scryfall via
-  `rulesagent.tools.scryfall.get_card`, or a live check. **Model IDs and pricing
-  come from the claude-api skill.**
+- **Complete $0 work without asking.** His words: "we should always just complete
+  these, especially if they don't use any AI. local compute is even better than
+  free." But split the two kinds: local compute is genuinely free; "$0 in credits"
+  means the labor is Claude's and only stays free on a subscription subagent.
+- **Anything spending API credits gets an explicit ask**, however small, with a
+  hard ceiling and a pilot checkpoint. Both cost gates fired usefully this
+  session.
+- **Verify agents' claims against the underlying data before relaying them.**
+  This session that caught: a gold-audit row set selected from a 52.8%-accuracy
+  arm, a wrong cache-coverage figure, a mislabeled stability number, a
+  "pre-existing" test failure that was actually ours, and an OR-group result that
+  was an artifact. Every one of them had sound arithmetic and a wrong sentence
+  wrapped around it.
+- **Subagent deliverables MUST land in the repo, not the session scratchpad.**
+  $3.27 of completed OR-group work sat in a temp directory one session-end away
+  from evaporating, and nothing would have flagged it.
+- **Do not run the full pytest suite while an eval arm is running.** It races
+  with `evals/answers/_progress/` and produces false failures. Two were chased
+  this session.
+- **Never assert an MTG or model fact from memory.** Ground in
+  `data/raw/MagicCompRules 20260619.txt`, Scryfall via
+  `rulesagent.tools.scryfall.get_card`, or a live check. For pricing import
+  `rulesagent.pricing`; do not load the claude-api skill.
 - **Verify by rendering** for UI. **Jon runs the app on port 8000 — never bind or
-  kill it.** Use a scratch port and stop it after.
-- **Billing splits two ways.** Claude Code and its subagents run on his Max
-  subscription; any Python here that constructs an Anthropic client from `.env`
-  bills **API credits**. His standing preference: batch Claude-labor onto
-  subscription subagents, never the credits reserved for eval arms.
-- Commit per slice on master, heredoc messages,
-  `Co-Authored-By: Claude Opus 5`. `.venv/Scripts/python.exe`,
-  `PYTHONIOENCODING=utf-8`. Suite is `uv run pytest`.
-- Never pipe a long run through `| tail`; PowerShell `*>` buffers until exit, so
-  a running job's log looks dead — check the output artifact.
+  kill it.**
+- Python is `.venv/Scripts/python.exe`, `PYTHONIOENCODING=utf-8`. Open JSON with
+  `encoding="utf-8"` — the Windows cp1252 default fails on these files.
+- Never pipe a long run through `| tail`; PowerShell `*>` buffers until exit so a
+  running job's log looks dead. Check the output artifact.
 
 ---
 
 ## THE LESSON TO CARRY
 
-Previous sessions: *a value that looks like an identity but is really a position*
-(the ruling-index bug); *a claim inherited and repeated without being checked*;
-*a number is a snapshot of a file at a time, not a fact*.
+Previous sessions: *a value that looks like an identity but is really a
+position*; *a claim inherited without being checked*; *a number is a snapshot of
+a file at a time*; *anything used as ground truth is an experiment subject,
+including a person.*
 
-This session: **anything used as ground truth is an experiment subject,
-including a person.**
+This session: **an instrument that has never been tested is not a measurement, it
+is an assumption with a number attached.**
 
-The sequence is worth understanding, because every step was locally reasonable.
-An audit of the LLM judge produced human labels. Those labels were applied to a
-published result — withdrawing a category, a ceiling and a heuristic — **without
-anyone checking the labels against the answer text.** The audit was rigorous
-about the instrument it set out to audit and applied none of that rigour to the
-instrument that replaced it. Three of five labels were wrong, the withdrawal was
-wrong, and the original result had been right all along.
+Gold rule sets have been asserted by a miner and treated as truth from the moment
+they were written. Nothing ever checked whether the listed rules were the ones a
+question needs, whether they were all required or any one sufficed, whether the
+miner would produce the same set twice, or whether the question needed rules at
+all. Four separate defects, all downstream of that one omission, and all of them
+invisible because the numbers they produced looked reasonable.
 
-The check costs one minute: **read the reference answer's first sentence next to
-ours.** `rg7215` was "Tapped." against "Minas Tirith enters untapped."
-
-The corollary, and the reason this keeps recurring in different clothes: when the
-thing you are measuring *with* changes — LLM judge to human grader, one question
-set to another, one arm kind to another — the safeguards do not follow it
-automatically. You have to move them. The same failure showed up a third time in
-the dashboard, where sharing a question set was treated as sufficient for
-comparability until Jon pointed out we were differencing an oracle arm against a
-pipeline arm.
+The corollary that cost the most today: **the confound in one experiment can
+invalidate a different experiment that never mentioned it.** The OR-group test
+was designed, costed, run and reported without anyone connecting it to the
+control arm running in parallel — and the control turned out to decide which of
+its verdicts were meaningful. When two experiments share a subject, they share
+each other's confounds, whether or not the write-ups acknowledge it.

@@ -1,6 +1,6 @@
 # Handoff prompt (paste this into a fresh session)
 
-Updated 2026-07-26 (session 9). Update the "first ask" and the counts whenever
+Updated 2026-07-26 (session 10). Update the "first ask" and the counts whenever
 the state moves; the rest is stable.
 
 ---
@@ -10,63 +10,64 @@ D:\Job_hunt\mtg-rules-bot.
 
 First: read docs/HANDOFF-development.md in full. It *replaced* the prior handoff
 rather than prepending — don't dig through git for superseded blocks. It opens
-with five things to unlearn, because last session published a correction that was
-itself wrong and had to be reversed.
+with seven things to unlearn, because last session found that every instrument
+used to measure retrieval was broken.
 
 ## The headline findings, so you don't re-derive them
 
-**Arm B is 91.3%, not 93.3%.** 137/150, two overturns
-(`evals/verdicts_derivability_B_human.json`). **93.3% is now the ceiling, not the
-score.** Jon adjudicated three disputed rows on 2026-07-26 and the RulesGuru gold
-was correct on all three.
+**Answer accuracy and retrieval accuracy are different instruments.** The judge
+compares our answer to the reference answer and never reads `q.gold` or
+`q.match`. Everything found last session hit retrieval measurement only. **Every
+published accuracy number survives. Every published retrieval number does not.**
 
-**The judge is less broken than it looked.** Its false-negative rate on the
-flagged side is **2 of 15, not 5**. Its false-positive rate — the direction
-nobody had ever checked — is **≤4.4%** and that is an upper bound, not a point
-estimate (`docs/results-judge-error-rate.md`). It remains nondeterministic:
-~1 verdict flip per 100 rows, so a published accuracy must name its judging run.
+**~60% of the corpus cannot measure retrieval at all.** A no-rules control arm
+(90 rows, all five levels) answered with zero rules in context and got
+**59.5% corpus-weighted** correct anyway. Concentrated at the easy end: L0 86.7%,
+L1 70.0%, L2 40.0%, L3 50.0%, Corner 30.0%. Evaluate retrieval on the hard
+subset; corpus-wide measurement halves the signal.
 
-**Retrieval is the bottleneck, with direct causal evidence.** Three questions
-(`rg7215`, `rg549`, `rg811`) were answered *wrong* with the gold rules alone and
-*right* once retrieval supplied the missing rule. The "gold was incomplete"
-category, the 93.3% ceiling and the single-id heuristic were withdrawn
-mid-session and are all **reinstated**.
+**`hit_at()` over-credits retrieval ~3x.** The full 1,409-question corpus is
+`match: "any"` on every row, with 745 rows (52.9%) listing 2+ gold rules, max 10.
+Real coverage on the hard arms is 17.4% against a reported 48.1%.
 
-**opus-5/low dominates sonnet-5** on both benchmark sets — +13.0pp easy, +9.3pp
-hard, while costing 27% and 50% less per question. Both gaps clear their noise
-floors. Sonnet emits ~3× the output tokens.
+**10.9% of the corpus has no gold rules at all** (153 rows; 33% of L0).
 
-**A full RulesGuru run over all 1,409 questions costs $73–91** at a projected
-80.3% [71.7–86.8%]. Cost is not the blocker.
+**The full-run projection is now 82.8% [78.2-86.6%] at 100% coverage, $73-91.**
+The L0 arm (97.1%, 207 questions) closed the last untested level and nearly
+halved the interval. But L0's high score is mostly the model's own knowledge —
+86.7% of L0 is confounded.
+
+**The gold miner is ~half reproducible.** Same prompt, same 50 questions, twice:
+0.4867 mean Jaccard.
 
 ## The first ask
 
-**1. Run an L0-only pipeline arm** (~$11, 207 questions). **Zero L0 questions
-have ever gone through the pipeline** — 0 rows across all 10 pipeline arms. It is
-~15% of the corpus and its easiest slice, so the 80.3% projection likely reads
-low. This is the cheapest way to shrink the interval before committing to the
-full run.
+**Gold is priority one — Jon's explicit ruling. He has also ruled out
+hand-grading at scale, so every step must be machine-decidable.**
 
-**2. Batch 2 of the gold audit** (`rg1802`, `rg4440`, `rg5628`, plus
-h2h/costbase; build with `--provenance run`). **Grade the bottom line before the
-reasoning** — batch 1's three misgrades all had strong, well-cited reasoning
-attached to the wrong conclusion, and the grading followed the reasoning.
-
-**3. Then decide the full run.**
+1. **Necessity (leave-one-out) test on the 38-question inflation worklist**
+   (`evals/coverage_backfill.json`). **Restrict to rows the control showed are
+   NOT confounded** — that omission cost the OR-group run 5 of its 21 verdicts.
+2. **Fix the 153 empty-gold rows.**
+3. **Rule on the 54+1 mis-encoded conjunctions**, apply, re-run the coverage
+   backfill.
+4. **Then decide the full run.**
 
 Open the dashboard first — `evals/metrics_history.html`, rebuild with
-`python evals/build_metrics_history.py`. It carries the decision panel, what is
-unresolved and what would change it, and the roadmap with status, cost and
-dependencies for everything planned.
+`python evals/build_metrics_history.py`. It carries the decision panel, the new
+retrieval-coverage section, what is unresolved, and the roadmap with status, cost
+and dependencies.
 
 ## Before you believe anything about billing
 
 Claude Code and its subagents run on Jon's **Claude Max subscription**. But
 `mtg-rules-bot/.env` holds `ANTHROPIC_API_KEY`, so any Python in this repo that
-constructs an Anthropic client bills **API credits** — a separate pool. Jon's
-standing preference: batch Claude-labor onto subscription subagents and keep the
-credits for eval arms. Voyage embeddings are a third pool (query embedding is
-~8 microdollars per question — never the thing to optimise).
+constructs an Anthropic client bills **API credits** — a separate pool. Standing
+preference: batch Claude-labor onto subscription subagents, keep credits for eval
+arms. Anything spending credits gets an explicit ask with a hard ceiling and a
+pilot checkpoint, however small. **An arm's cost per question does not transfer
+to a different kind of arm** — removing rules doubled-to-tripled output tokens,
+and output is 5x the price of input.
 
 ## Read this before you do anything
 
@@ -75,37 +76,39 @@ better so I can understand and be a partner here instead of an observer."*
 Define jargon at first use, lead with what a thing means, show examples.
 
 - **Rule 0: plan before code.** A new tool needs a spec and a ruling.
-- **Subagents:** Jon authorised parallel agents last session. If your harness
-  forbids the Agent tool unless he asks, **say so immediately** rather than
-  quietly absorbing the work.
-- **Verify agents' claims yourself against the underlying data.** Every agent
-  result last session was checked before being relayed; two had real errors in
-  framing that only surfaced that way.
+- **Complete $0 work without asking** — but split local compute (genuinely free)
+  from "$0 in credits" (free only on a subscription subagent).
+- **Verify agents' claims against the underlying data before relaying them.**
+  Last session that caught five separate errors, every one of them sound
+  arithmetic with a wrong sentence wrapped around it.
+- **Subagent deliverables must land in the repo, never the session scratchpad.**
+- **Never run the full pytest suite while an eval arm is running** — it races
+  with `evals/answers/_progress/` and gives false failures.
 - **Never assert an MTG or model fact from memory.** Ground in the repo CR
   (`data/raw/MagicCompRules 20260619.txt`), Scryfall via
-  `rulesagent.tools.scryfall.get_card`, or a live check. **Model IDs and pricing
-  come from the claude-api skill.**
-- **Verify by rendering** for UI. Serve on a scratch port; **Jon runs the app on
-  port 8000 — never bind or kill it.**
-- Never pipe a long run through `| tail`. PowerShell `*>` buffers until exit, so
-  a running job's log is 0 bytes and looks dead — check the output artifact.
-- Python is `.venv/Scripts/python.exe`, `PYTHONIOENCODING=utf-8`. Suite is
-  `uv run pytest` (**645 passing**). Commit per slice on master with the
-  `Co-Authored-By: Claude Opus 5` trailer.
+  `rulesagent.tools.scryfall.get_card`, or a live check. For pricing import
+  `rulesagent.pricing` — do NOT load the claude-api skill.
+- **Verify by rendering** for UI. **Jon runs the app on port 8000 — never bind or
+  kill it.**
+- Python is `.venv/Scripts/python.exe`, `PYTHONIOENCODING=utf-8`. Open JSON with
+  `encoding="utf-8"`. Suite is `uv run pytest` (**929 passing**). Commit per
+  slice on master with the `Co-Authored-By: Claude Opus 5` trailer.
 
 ## The one lesson to carry forward
 
-**Anything used as ground truth is an experiment subject, including a person.**
+**An instrument that has never been tested is not a measurement, it is an
+assumption with a number attached.**
 
-Last session audited the LLM judge, got human labels back, and rewrote a
-published result on those labels *without checking them against the answer text*
-— applying none of its rigour to the instrument that had just replaced the one it
-was auditing. Three of five labels were wrong; the correction was wrong; the
-original result had been right.
+Gold rule sets were asserted by a miner and treated as truth from the moment they
+were written. Nothing checked whether the listed rules were the ones a question
+needs, whether they were all required or any one sufficed, whether the miner
+would produce the same set twice, or whether the question needed rules at all.
+Four defects, all downstream of that single omission, all invisible because the
+numbers looked reasonable.
 
-The corollary: when the thing you measure *with* changes — judge to human, one
-question set to another, one arm kind to another — the safeguards do not follow
-it automatically. You have to move them. That failure recurred three times last
-session in three different costumes.
+The corollary: **a confound in one experiment can invalidate a different
+experiment that never mentioned it.** The OR-group test was designed, costed, run
+and reported without anyone connecting it to the control arm running in parallel
+— and the control decided which of its verdicts meant anything.
 
 Start by confirming you've read the handoff, then open the dashboard.

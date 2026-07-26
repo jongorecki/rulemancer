@@ -28,3 +28,33 @@ tmp/
 
 # Agent worktrees and session scratch — never part of the repo
 .claude/
+
+# pytest cache, shell crash dumps, redirected test-run output -- never commit
+.pytest_cache/
+*.stackdump
+*.log
+test_results.txt
+tests_run.log
+_arch.txt
+
+# scratch dirs from eval runs -- regenerable, never part of the record
+evals/_tmp/
+evals/_slice0_logs/
+
+# evals/answers/ is deliberately NOT ignored. It is 29.7 MB across 121 files
+# and it looks like build output, but it is not: those files are the recorded
+# generations behind every published accuracy, and reproducing them costs API
+# credits (~$48 for just the priced arms currently on the dashboard). Ignoring
+# them would put them in reach of `git clean -Xdf`, which exists to delete
+# exactly the ignored category.
+#
+# "The baked dashboard is the committed artifact, not these" does not hold:
+# build_metrics_history.py reads evals/answers/ (ANSWERS at line 79) and
+# regenerates the dashboard from it, so with the answers gone the next rebuild
+# produces an empty page. The committed HTML is only stable until someone
+# re-runs the builder.
+#
+# Left untracked-but-visible on purpose, so `git status` keeps them in view.
+
+# sqlite migration backups -- 60MB+, regenerable, never commit
+data/*.bak-*

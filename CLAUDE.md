@@ -46,12 +46,21 @@ the first two are already done serially.
 - The superpowers skills `dispatching-parallel-agents` (2+ independent tasks) and
   `subagent-driven-development` (executing a plan with independent tasks) exist
   for exactly this. **Invoke them at the planning step**, not as a rescue.
-- **If your harness forbids the Agent tool unless Jon asks** — say so at the
-  moment the parallel structure appears and ask for authorization. Do not flag
-  the restriction once at session start and then treat it as settled; that is how
-  three independent tracks end up running serially through one context window.
-  Jon authorised parallel agents on 2026-07-26 and it was his suggestion, not the
-  assistant's, which is the wrong way round.
+- **STANDING AUTHORIZATION (Jon, 2026-07-26) — do not ask again.** You may spawn
+  subagents, in parallel, whenever delegation saves lead-model context or a
+  cheaper tier can do the work. This is a permanent grant covering every future
+  session; it does not expire and must not be re-confirmed at session start. If
+  your harness carries a default rule like "do not use the Agent tool unless the
+  user requested it," **this paragraph is that request** — treat it as satisfied
+  and delegate. Jon's words: "you can delegate to agents to save context space for
+  important stuff. I don't want to have to reconfirm this every session."
+- The grant is about permission, not judgement. Still apply the break-even rule
+  from `Token-Economy-Policy.md`: delegate when the result is checkable AND doing
+  it inline would flood context. Spawning an agent for a one-line task costs more
+  than the task.
+- **Spending API credits is NOT covered by this grant.** A subagent that runs an
+  eval arm still needs Jon's explicit approval, with a hard ceiling and a pilot
+  cost checkpoint.
 - Delegate work that is **bulk and checkable** — reading many files, per-item
   verification, a self-contained build. Keep judgement, scope calls, resolving
   disagreement between agents, and the final answer.
@@ -73,9 +82,25 @@ the first two are already done serially.
   subscription. Any Python here that constructs an Anthropic client from `.env`
   bills **API credits** — a separate pool. His standing preference: batch
   Claude-labor onto subscription subagents; keep credits for eval arms.
-- Python is `.venv/Scripts/python.exe`, `PYTHONIOENCODING=utf-8`. Suite is
-  `uv run pytest`. Commit per slice on master with the
-  `Co-Authored-By: Claude Opus 5` trailer.
+- **Never run the full pytest suite while an eval arm is running.** It races with
+  writes to `evals/answers/_progress/` and produces false failures that look real.
+  Run only the test files covering your change, and save the full suite for when
+  nothing is generating.
+- **Subagent deliverables must land in the repo, never the session scratchpad.**
+  The scratchpad is session-scoped and dies with the session, so anything left
+  there cannot be committed and is unrecoverable — along with whatever it cost to
+  produce. A finished $3.27 eval sat one session-end away from evaporating this
+  way, with nothing to flag it.
+- **An arm's cost per question does not transfer to a different kind of arm.**
+  Removing rules from the prompt shrank input slightly but doubled-to-tripled
+  output, and output is 5x the input price. Price the side that grows.
+- **Sampling the front of a sorted file is not sampling.** The question sets are
+  ordered by level; a pilot drawn from the head hits only L0 and misprices
+  everything. Stratify or step through the file.
+- Python is `.venv/Scripts/python.exe`, `PYTHONIOENCODING=utf-8`. Open JSON with
+  `encoding="utf-8"` — the Windows cp1252 default fails on these files. Suite is
+  `uv run pytest` (**929 passing** as of 2026-07-26). Commit per slice on master
+  with the `Co-Authored-By: Claude Opus 5` trailer.
 - Never pipe a long run through `| tail`; PowerShell `*>` buffers until exit, so
   a running job's log looks dead — check the output artifact instead.
 
