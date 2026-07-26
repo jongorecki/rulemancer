@@ -41,15 +41,17 @@ delegable. Grader built at `data/parsed/grading_opus5_disagreements.html`.
 Expect ~19% of flags to be judge errors, per his earlier regrade of 42 sonnet
 misses, which would put true accuracy nearer 78-80%.
 
-Also check on a subagent that was sharpening over-broad "header" gold →
-`evals/gold_proposals_headers.jsonl`. Neither job mutates existing eval files.
+The header-gold sharpening also finished and is merged into
+`evals/questions_rulesguru150_v3.jsonl` — **use v3, not v2.** It was mostly a
+negative result (of 82 cited parents: keep_parent 56, keep_both 14, narrow 12),
+so the gold was already better than assumed and retrieval was unmoved.
 
 ## Then, the highest-value work
 
 The **retrieval-diversity experiment**, which Jon asked for: MMR, hybrid
 BM25+vector, and multi-query — separately and in every combination (7 arms +
 baseline). All retrieval-only, so **zero generation spend**, measured against
-`evals/questions_rulesguru150_v2.jsonl`. MMR first: cosine similarity clusters
+`evals/questions_rulesguru150_v3.jsonl`. MMR first: cosine similarity clusters
 near-duplicates, which is exactly what starves a groups question.
 
 **Do not just raise TOP_K.** At effort low, input is ~55% of cost.

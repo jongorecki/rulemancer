@@ -191,11 +191,14 @@ parents are gapless with zero exceptions.
 
 ## RESIDUALS / OPEN ITEMS
 
-- **In flight when this was written:** the auto-judge on the 68 rows, and a
-  subagent sharpening over-broad "header" gold on the 150 (67 questions cite a
-  parent rule that has lettered children, e.g. `603.10`, `616.1`) writing to
-  `evals/gold_proposals_headers.jsonl`. Check both; neither mutates existing
-  eval files.
+- **Both in-flight jobs finished.** The auto-judge result is above. The header
+  sharpening is done and merged into `evals/questions_rulesguru150_v3.jsonl`
+  (NEW file; v2 and rulesguru.jsonl untouched). The result was mostly a
+  NEGATIVE one, which is useful: of 82 cited parents, **keep_parent 56,
+  keep_both 14, narrow 12** — the gold was already right far more often than
+  the lazy-labelling hypothesis predicted. Retrieval effect was nil (@15
+  identical, @50 36.7% -> 37.3%), because the 12 narrowings were mostly already
+  scoring via a sibling. **Use v3 going forward.**
 - **The header sweep covers only the 150.** 456 questions across the full 1,409
   cite a parent-with-children. Same job, bigger batch.
 - **`rg4420` is parked at `606.4`** with low confidence. Now that 606.5 exists
