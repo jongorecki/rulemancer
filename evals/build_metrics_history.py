@@ -1068,9 +1068,12 @@ def build_comparisons(timeline: dict, corpus: dict) -> dict:
             "level": "warn",
             "what": f"no pipeline evidence at all on level {', '.join(missing)}",
             "which": who + [f"{round((1 - cover) * 100)}% of the corpus by level"],
+            # Say "easiest", not "largest": L0 is 207 of 1,409 questions, while L1
+            # is 565. Untested does not mean biggest, and overstating the gap
+            # would argue for the run on a claim the corpus mix does not support.
             "changes": ("The projected accuracy covers only the levels tested. The untested levels "
-                        "are the corpus's largest and easiest slice, so the projection is more "
-                        "likely low than high — but it is an extrapolation until they are run."),
+                        "are the corpus's easiest, so the projection is more likely low than "
+                        "high — but it is an extrapolation until they are run."),
         })
     thin_note = [p for p in projections if p["kind"] == "pipeline" and p["thin_levels"]]
     for p in thin_note[:1]:
