@@ -266,6 +266,16 @@ def parse_args() -> argparse.Namespace:
         "Recorded verbatim, so a no-rewrite run can never be read back as a v2 run.",
     )
     p.add_argument(
+        "--cache-prompt", action="store_true",
+        help="put cache_control on the system prompt (RulesAgent(cache_prompt=True)). "
+        "Default OFF, which sends a byte-identical request to every pre-caching run. "
+        "SYSTEM is ~1,400 tokens and identical per question, so this pays back from the "
+        "second question with the same prefix onward; the big win is ablation, which "
+        "re-sends one prefix hundreds of times. Verify it worked by checking "
+        "cache_read_input_tokens > 0 in the output rows -- a silently-ignored "
+        "cache_control bills full price and raises nothing.",
+    )
+    p.add_argument(
         "--effort", choices=sorted(GEN_EFFORT_LEVELS), default=None,
         help="output_config.effort for the generation call, threaded into "
         "RulesAgent(effort=...). Default: NOT PASSED -- omitted from the request body "
@@ -395,7 +405,7 @@ def main() -> None:
         rewrite_version=args.rewrite_version, ruling_query_mode=args.ruling_query_mode,
         system_version=system_version, layers_tool=args.layers_tool,
         max_tokens=args.max_tokens, request_timeout=args.request_timeout,
-        effort=args.effort,
+        effort=args.effort, cache_prompt=args.cache_prompt,
         # card_no_refresh=True: eval-reproducibility freeze mode (plan #3b) --
         # use any cached Scryfall entry regardless of TTL age. Previously
         # unset (defaulted False) on this native-sonnet path while

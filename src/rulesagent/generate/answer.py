@@ -1485,6 +1485,28 @@ def _format_cards(cards: list[Card]) -> str:
     return "\n\n".join(parts)
 
 
+def _cacheable_system(system: str, cache: bool):
+    """The `system=` argument for the generation call.
+
+    `cache` False -> the plain string, exactly what every prior run sent. This
+    is the whole safety story: an agent constructed without cache_prompt= makes
+    a byte-identical request, so no fixture, schema test, or historical number
+    moves.
+
+    `cache` True -> a one-block list carrying `cache_control: ephemeral`, which
+    caches the tools+system prefix (render order is tools -> system ->
+    messages). Cache writes cost 1.25x and reads 0.1x, so it pays back from the
+    second question with the same prefix onward.
+
+    Returns the string itself rather than a one-element list in the off case on
+    purpose -- wrapping unconditionally would change the request body for every
+    existing caller to no benefit.
+    """
+    if not cache:
+        return system
+    return [{"type": "text", "text": system, "cache_control": {"type": "ephemeral"}}]
+
+
 class RulesAgent:
     def __init__(self, store: VectorStore, client: anthropic.Anthropic | None = None,
                  model: str = GEN_MODEL, k: int = TOP_K, rewrite: bool = True,
@@ -1494,7 +1516,7 @@ class RulesAgent:
                  system_version: int | str = PROMPT_VERSION,
                  max_tokens: int = GEN_MAX_TOKENS,
                  request_timeout: float | None = GEN_REQUEST_TIMEOUT,
-                 effort: str | None = None):
+                 effort: str | None = None, cache_prompt: bool = False):
         self.store = store
         self.client = client or anthropic.Anthropic()
         # Generation output cap, and the per-request timeout override that
@@ -1576,6 +1598,23 @@ class RulesAgent:
         self._effort_kwargs: dict = (
             {"output_config": {"effort": effort}} if effort is not None else {}
         )
+        # Prompt caching (Jon, 2026-07-25: "get prompt caching implemented
+        # first so we can cut down ablation costs"). Same posture as `effort`
+        # above: default False leaves `system=` a plain str, so the request is
+        # BYTE-IDENTICAL to before and every existing fixture still matches.
+        #
+        # What gets cached: the whole system string, which is the tail of the
+        # prefix (render order is tools -> system -> messages). Tools are
+        # attached per-question by the cost/layers gates, so a run produces up
+        # to four distinct prefixes (no tool / cost / layers / both) and each
+        # caches independently -- that is correct, not a bug: a shared
+        # breakpoint across differing tool sets would never hit.
+        #
+        # Worth it because SYSTEM alone is ~1,400 tokens, over Claude Opus 5's
+        # 512-token cacheable minimum, and it is identical on every question.
+        # The real payoff is ablation, which re-sends the same prefix hundreds
+        # of times against one question.
+        self.cache_prompt = cache_prompt
         self.k = k
         self.rewrite = rewrite
         self.show_rewrite = show_rewrite
@@ -2006,7 +2045,7 @@ class RulesAgent:
                     response = self._gen_client.messages.parse(
                         model=self.model,
                         max_tokens=self.max_tokens,
-                        system=call_system,
+                        system=_cacheable_system(call_system, self.cache_prompt),
                         messages=attempt_msgs,
                         output_format=Answer,
                         # Empty dict when self.effort is None -- expands to
