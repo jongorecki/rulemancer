@@ -205,9 +205,16 @@ parents are gapless with zero exceptions.
   in the index, its gold should become `606.5`.
 - **The 8-way retrieval experiment is NOT started** — see the next section. This
   is the highest-value open work.
-- **Full-corpus mining** (the remaining 1,259 rows) projects to ~4.6M subagent
-  tokens on measured rates (~3,600/question; caching does not help — the miners
-  grep rather than re-read, and subagents don't share a cache).
+- **Full-corpus mining of the remaining 1,259 rows — APPROVED by Jon, to run
+  opportunistically "when we have extra subscription headroom."** Not a
+  scheduled task: start it when the window is idle, in sequential batches of
+  ~50, and stop if it starts competing with interactive work. Projects to ~4.6M
+  subagent tokens at measured rates (~3,600/question). Caching does not help —
+  the miners grep rather than re-read, and subagents don't share a cache — so
+  the only lever is when you run it, not how. Reuse the batch-1/2/3 prompt
+  verbatim (it is in git), plus the header-pass lesson: do not add children that
+  weren't already in an OR-group, because that makes gold easier to hit rather
+  than sharper.
 - **Query-side apostrophe normalisation was measured and rejected**: no change
   at @1/@5/@10, +1.3pp @50. Not worth a corpus re-embed.
 - **Jon's legality-gate prompt idea** ("first decide whether this is a legal
@@ -215,7 +222,9 @@ parents are gapless with zero exceptions.
   the model bakeoff. Size it first by counting how many of the 34 confirmed-wrong
   sonnet misses in `rulesguru_disagreement_verdicts.json` are "assumed an
   illegal action succeeded", then run it as a `SYSTEM_VERSIONS` arm.
-- **`docs/spec-cr-update-check.md`** is written and unruled.
+- ~~`docs/spec-cr-update-check.md` is written and unruled.~~ **APPROVED by Jon,
+  2026-07-25.** Content fingerprinting is the agreed approach; cleared to build.
+  See "WHAT TO DO NEXT" below.
 
 ## WHAT TO DO NEXT (Jon's stated priorities)
 
@@ -230,7 +239,15 @@ parents are gapless with zero exceptions.
    starves a groups question.
    **Do not just raise TOP_K**: at effort low, input tokens are ~55% of cost, so
    15 → 100 could double cost/question and erase opus-low's advantage.
-3. **The model bakeoff** — deepseek-v4-flash ($0.09/$0.18, native effort,
+3. **`scripts/check_cr_update.py`** (`docs/spec-cr-update-check.md`, approved).
+   Rule numbers are positions, not identities, so a CR renumber silently
+   repoints gold at whatever moved into the slot and the eval keeps "working"
+   while measuring nothing. Fingerprint rules by normalised text: byte-identical
+   text auto-remaps, everything else is flagged, and each ruling Jon gives is
+   recorded as a reusable policy so the set of questions he must answer shrinks
+   each release. Make the self-test pass first (same CR in both slots → 100%
+   unchanged, 0 remaps, 0 flags).
+4. **The model bakeoff** — deepseek-v4-flash ($0.09/$0.18, native effort,
    accepts temperature), gpt-5-mini Flex ($0.125/$1.00), sonnet-5 @ low as the
    single anchor (Jon: sonnet only at low), opus-5 @ low. **Grok is excluded on
    Jon's moral grounds — do not reintroduce it.** Every prior gpt-5-mini number

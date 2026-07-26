@@ -113,13 +113,29 @@ Related: **check an invariant against reality before asserting it.** A naive
 consecutive-subrule-letter check flags 19 healthy rules, because the CR skips
 `l` and `o`.
 
-## Waiting on Jon, not you
+## Ruled by Jon, cleared to build
 
-`docs/spec-cr-update-check.md` (unruled), whether to mine the remaining 1,259
-corpus rows (~4.6M subagent tokens), and the legality-gate prompt idea — which
-should be **sized first** from the 34 confirmed-wrong misses in
-`rulesguru_disagreement_verdicts.json`, and must not land during the model
-bakeoff.
+- **`docs/spec-cr-update-check.md` — APPROVED.** Content-fingerprinted CR
+  updates. Rule numbers are positions, not identities, so a renumber silently
+  repoints gold at whatever moved into the slot and the eval keeps "working"
+  while measuring nothing. Byte-identical text auto-remaps; everything else is
+  flagged; each ruling Jon gives is recorded as reusable policy so the questions
+  he must answer shrink each release. Make the self-test pass first: same CR in
+  both slots must report 100% unchanged, 0 remaps, 0 flags.
+- **Mining the remaining 1,259 corpus rows — APPROVED, opportunistic.** Jon's
+  wording: "when we have extra subscription headroom." Not scheduled — run it
+  when the window is idle, sequential batches of ~50, stop if it competes with
+  interactive work. ~4.6M subagent tokens at measured rates; caching doesn't
+  help, so the only lever is when. Reuse the batch prompt from git plus the
+  header-pass lesson: don't add children that weren't already in an OR-group,
+  because that makes gold easier to hit rather than sharper.
+
+## Still waiting on Jon
+
+The 17 flagged disagreements (`data/parsed/grading_opus5_disagreements.html`),
+and the legality-gate prompt idea — which should be **sized first** from the 34
+confirmed-wrong misses in `rulesguru_disagreement_verdicts.json`, and must not
+land during the model bakeoff.
 
 ## Queued and unblocked
 

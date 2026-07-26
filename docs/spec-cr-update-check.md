@@ -4,7 +4,12 @@ Written 2026-07-25. Jon's ruling: **never renumber gold by hand.** Detect
 automatically, fix automatically where the fix is provably safe, and where it
 isn't, ask once and record the answer so the next occurrence is automatic too.
 
-Design-only until Jon rules (Rule 0).
+> **APPROVED by Jon, 2026-07-25** — content fingerprinting is the agreed
+> approach. Rule 0 is satisfied; this is cleared to build. Build it against
+> §6's verification list, and note the self-test (old and new pointing at the
+> same CR must report 100% `unchanged`, 0 remaps, 0 flags) is the first thing
+> to make pass — a differ that can't recognise identity can't be trusted about
+> change.
 
 ---
 
