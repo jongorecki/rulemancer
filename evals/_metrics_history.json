@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-26T14:30-05:00",
+  "generated_at": "2026-07-26T18:16-05:00",
   "arms": [
     {
       "arm": "derivability_B_human",
@@ -654,6 +654,68 @@
       }
     },
     {
+      "arm": "norules_control_topup",
+      "qset": "5b6055e9",
+      "kind": "oracle",
+      "kind_why": "retrieval recorded and EMPTY on all 20 rows — the model answered without retrieved rules, so this measures whether the answer is derivable at all, not what the pipeline scores",
+      "n": 20,
+      "accuracy_flat": 0.4,
+      "accuracy_weighted": 0.43333333333333335,
+      "accuracy_auto": null,
+      "human_corrected": false,
+      "grader": null,
+      "by_level": {
+        "3": {
+          "correct": 5.0,
+          "n": 10.0
+        },
+        "Corner Case": {
+          "correct": 3.0,
+          "n": 10.0
+        }
+      },
+      "judge_model": "openai/gpt-5-mini",
+      "judge_digest": "b54fbdb95565abf8",
+      "config": {
+        "model": "claude-opus-5",
+        "effort": "high",
+        "rewrite_version": "none",
+        "ruling_query_mode": "union",
+        "system_version": "norules_control",
+        "n_answers": 20
+      },
+      "cost": {
+        "n_costed": 20,
+        "in_per_q": 1746.9,
+        "out_per_q": 4455.9,
+        "cache_read_per_q": 0.0,
+        "cache_write_per_q": 0.0,
+        "cost_per_q": 0.12013199999999999,
+        "priced_as": "claude-opus-5"
+      },
+      "generation": {
+        "file": "evals/answers/norules_control_topup.json",
+        "mtime": "2026-07-26T18:12-05:00",
+        "join": "exact",
+        "recorded": true
+      },
+      "judging": {
+        "file": "evals/verdicts_norules_control_topup.json",
+        "mtime": "2026-07-26T18:14-05:00",
+        "judge_model": "openai/gpt-5-mini",
+        "judge_digest": "b54fbdb95565abf8",
+        "recorded": true
+      },
+      "human": null,
+      "provenance": {
+        "verdicts": "evals/verdicts_norules_control_topup.json",
+        "verdicts_mtime": "2026-07-26T18:14-05:00",
+        "answers": "evals/answers/norules_control_topup.json",
+        "answers_mtime": "2026-07-26T18:12-05:00",
+        "join": "exact"
+      }
+    },
+    {
       "arm": "h2h_opuslow_hard_r1",
       "qset": "5cedbcf3",
       "kind": "pipeline",
@@ -938,6 +1000,130 @@
       }
     },
     {
+      "arm": "l0_opuslow",
+      "qset": "600700e4",
+      "kind": "pipeline",
+      "kind_why": "retrieval recorded and non-empty on all 207 rows (19.2 rule ids per question on average) — the product path",
+      "n": 207,
+      "accuracy_flat": 0.9710144927536232,
+      "accuracy_weighted": 0.9710144927536232,
+      "accuracy_auto": null,
+      "human_corrected": false,
+      "grader": null,
+      "by_level": {
+        "0": {
+          "correct": 201.0,
+          "n": 207.0
+        }
+      },
+      "judge_model": "openai/gpt-5-mini",
+      "judge_digest": "b54fbdb95565abf8",
+      "config": {
+        "model": "claude-opus-5",
+        "effort": "low",
+        "rewrite_version": "v2",
+        "ruling_query_mode": "raw",
+        "system_version": 3,
+        "n_answers": 207
+      },
+      "cost": {
+        "n_costed": 207,
+        "in_per_q": 6302.420289855072,
+        "out_per_q": 1002.0869565217391,
+        "cache_read_per_q": 0.0,
+        "cache_write_per_q": 0.0,
+        "cost_per_q": 0.05656427536231884,
+        "priced_as": "claude-opus-5"
+      },
+      "generation": {
+        "file": "evals/answers/l0_opuslow.json",
+        "mtime": "2026-07-26T16:37-05:00",
+        "join": "exact",
+        "recorded": true
+      },
+      "judging": {
+        "file": "evals/verdicts_l0_opuslow.json",
+        "mtime": "2026-07-26T16:52-05:00",
+        "judge_model": "openai/gpt-5-mini",
+        "judge_digest": "b54fbdb95565abf8",
+        "recorded": true
+      },
+      "human": null,
+      "provenance": {
+        "verdicts": "evals/verdicts_l0_opuslow.json",
+        "verdicts_mtime": "2026-07-26T16:52-05:00",
+        "answers": "evals/answers/l0_opuslow.json",
+        "answers_mtime": "2026-07-26T16:37-05:00",
+        "join": "exact"
+      }
+    },
+    {
+      "arm": "norules_control",
+      "qset": "a5f3d192",
+      "kind": "oracle",
+      "kind_why": "retrieval recorded and EMPTY on all 70 rows — the model answered without retrieved rules, so this measures whether the answer is derivable at all, not what the pipeline scores",
+      "n": 70,
+      "accuracy_flat": 0.7285714285714285,
+      "accuracy_weighted": 0.7285714285714285,
+      "accuracy_auto": null,
+      "human_corrected": false,
+      "grader": null,
+      "by_level": {
+        "0": {
+          "correct": 26.0,
+          "n": 30.0
+        },
+        "1": {
+          "correct": 21.0,
+          "n": 30.0
+        },
+        "2": {
+          "correct": 4.0,
+          "n": 10.0
+        }
+      },
+      "judge_model": "openai/gpt-5-mini",
+      "judge_digest": "b54fbdb95565abf8",
+      "config": {
+        "model": "claude-opus-5",
+        "effort": "high",
+        "rewrite_version": "none",
+        "ruling_query_mode": "union",
+        "system_version": "norules_control",
+        "n_answers": 70
+      },
+      "cost": {
+        "n_costed": 70,
+        "in_per_q": 1733.0714285714287,
+        "out_per_q": 3823.157142857143,
+        "cache_read_per_q": 0.0,
+        "cache_write_per_q": 0.0,
+        "cost_per_q": 0.10424428571428572,
+        "priced_as": "claude-opus-5"
+      },
+      "generation": {
+        "file": "evals/answers/norules_control.json",
+        "mtime": "2026-07-26T17:42-05:00",
+        "join": "exact",
+        "recorded": true
+      },
+      "judging": {
+        "file": "evals/verdicts_norules_control.json",
+        "mtime": "2026-07-26T17:53-05:00",
+        "judge_model": "openai/gpt-5-mini",
+        "judge_digest": "b54fbdb95565abf8",
+        "recorded": true
+      },
+      "human": null,
+      "provenance": {
+        "verdicts": "evals/verdicts_norules_control.json",
+        "verdicts_mtime": "2026-07-26T17:53-05:00",
+        "answers": "evals/answers/norules_control.json",
+        "answers_mtime": "2026-07-26T17:42-05:00",
+        "join": "exact"
+      }
+    },
+    {
       "arm": "opus5_low_bucketA_human",
       "qset": "c78c738d",
       "kind": "pipeline",
@@ -1107,6 +1293,7 @@
     "verdicts_gpt-5-mini.auto.json: bare array, no summary",
     "verdicts_gpt-5-mini_final.json: bare array, no summary",
     "verdicts_gpt-5-mini_manual.json: bare array, no summary",
+    "verdicts_orgroup_onlyone_members.json: no summary.by_level_counts",
     "verdicts_sonnet-v2.auto.json: bare array, no summary",
     "verdicts_sonnet-v2_final.json: bare array, no summary",
     "verdicts_sonnet-v2_manual.json: bare array, no summary",
@@ -2200,6 +2387,190 @@
         ]
       },
       {
+        "qset": "600700e4",
+        "n": 207,
+        "n_steps": 1,
+        "floor_pp": 1.0,
+        "floor_source": "judge nondeterminism only (~1 verdict flip per 100 rows, and one row on this set is 0.5 pp) — no repeated arm here",
+        "judge_floor_pp": 1.0,
+        "steps": [
+          {
+            "qset": "600700e4",
+            "step": "l0_opuslow",
+            "kind": "pipeline",
+            "kind_why": "retrieval recorded and non-empty on all 207 rows (19.2 rule ids per question on average) — the product path",
+            "kind_note": null,
+            "n": 207,
+            "run_at": "2026-07-26T16:37-05:00",
+            "run_at_source": "answers file mtime",
+            "config": {
+              "model": "claude-opus-5",
+              "effort": "low",
+              "rewrite_version": "v2",
+              "ruling_query_mode": "raw",
+              "system_version": 3
+            },
+            "config_recorded": true,
+            "heterogeneous_fields": [],
+            "flat": 0.9710144927536232,
+            "weighted": 0.9710144927536232,
+            "auto": null,
+            "cost_per_q": 0.05656427536231884,
+            "in_per_q": 6302.420289855072,
+            "out_per_q": 1002.0869565217391,
+            "n_reps": 1,
+            "rep_spread_pp": null,
+            "rep_churn": null,
+            "reps": [
+              {
+                "arm": "l0_opuslow",
+                "answers": "evals/answers/l0_opuslow.json",
+                "flat": 0.9710144927536232,
+                "weighted": 0.9710144927536232,
+                "auto": null,
+                "run_at": "2026-07-26T16:37-05:00",
+                "run_at_source": "answers file mtime",
+                "human_corrected": false,
+                "regrade_of": null,
+                "regrade_pp": null,
+                "cost_per_q": 0.05656427536231884,
+                "in_per_q": 6302.420289855072,
+                "out_per_q": 1002.0869565217391,
+                "join": "exact"
+              }
+            ],
+            "judge_model": "openai/gpt-5-mini",
+            "judge_digest": "b54fbdb95565abf8",
+            "generation_runs": [
+              {
+                "file": "evals/answers/l0_opuslow.json",
+                "mtime": "2026-07-26T16:37-05:00",
+                "join": "exact",
+                "arm": "l0_opuslow"
+              }
+            ],
+            "judging_runs": [
+              {
+                "file": "evals/verdicts_l0_opuslow.json",
+                "mtime": "2026-07-26T16:52-05:00",
+                "judge_model": "openai/gpt-5-mini",
+                "judge_digest": "b54fbdb95565abf8",
+                "recorded": true,
+                "arm": "l0_opuslow"
+              }
+            ],
+            "human_passes": [],
+            "by_level": {
+              "0": {
+                "correct": 201.0,
+                "n": 207.0,
+                "n_questions": 207.0,
+                "acc": 0.9710144927536232
+              }
+            },
+            "delta": null
+          }
+        ]
+      },
+      {
+        "qset": "a5f3d192",
+        "n": 70,
+        "n_steps": 1,
+        "floor_pp": 1.4285714285714286,
+        "floor_source": "judge nondeterminism only (~1 verdict flip per 100 rows, and one row on this set is 1.4 pp) — no repeated arm here",
+        "judge_floor_pp": 1.4285714285714286,
+        "steps": [
+          {
+            "qset": "a5f3d192",
+            "step": "norules_control",
+            "kind": "oracle",
+            "kind_why": "retrieval recorded and EMPTY on all 70 rows — the model answered without retrieved rules, so this measures whether the answer is derivable at all, not what the pipeline scores",
+            "kind_note": null,
+            "n": 70,
+            "run_at": "2026-07-26T17:42-05:00",
+            "run_at_source": "answers file mtime",
+            "config": {
+              "model": "claude-opus-5",
+              "effort": "high",
+              "rewrite_version": "none",
+              "ruling_query_mode": "union",
+              "system_version": "norules_control"
+            },
+            "config_recorded": true,
+            "heterogeneous_fields": [],
+            "flat": 0.7285714285714285,
+            "weighted": 0.7285714285714285,
+            "auto": null,
+            "cost_per_q": 0.10424428571428572,
+            "in_per_q": 1733.0714285714287,
+            "out_per_q": 3823.157142857143,
+            "n_reps": 1,
+            "rep_spread_pp": null,
+            "rep_churn": null,
+            "reps": [
+              {
+                "arm": "norules_control",
+                "answers": "evals/answers/norules_control.json",
+                "flat": 0.7285714285714285,
+                "weighted": 0.7285714285714285,
+                "auto": null,
+                "run_at": "2026-07-26T17:42-05:00",
+                "run_at_source": "answers file mtime",
+                "human_corrected": false,
+                "regrade_of": null,
+                "regrade_pp": null,
+                "cost_per_q": 0.10424428571428572,
+                "in_per_q": 1733.0714285714287,
+                "out_per_q": 3823.157142857143,
+                "join": "exact"
+              }
+            ],
+            "judge_model": "openai/gpt-5-mini",
+            "judge_digest": "b54fbdb95565abf8",
+            "generation_runs": [
+              {
+                "file": "evals/answers/norules_control.json",
+                "mtime": "2026-07-26T17:42-05:00",
+                "join": "exact",
+                "arm": "norules_control"
+              }
+            ],
+            "judging_runs": [
+              {
+                "file": "evals/verdicts_norules_control.json",
+                "mtime": "2026-07-26T17:53-05:00",
+                "judge_model": "openai/gpt-5-mini",
+                "judge_digest": "b54fbdb95565abf8",
+                "recorded": true,
+                "arm": "norules_control"
+              }
+            ],
+            "human_passes": [],
+            "by_level": {
+              "0": {
+                "correct": 26.0,
+                "n": 30.0,
+                "n_questions": 30.0,
+                "acc": 0.8666666666666667
+              },
+              "1": {
+                "correct": 21.0,
+                "n": 30.0,
+                "n_questions": 30.0,
+                "acc": 0.7
+              },
+              "2": {
+                "correct": 4.0,
+                "n": 10.0,
+                "n_questions": 10.0,
+                "acc": 0.4
+              }
+            },
+            "delta": null
+          }
+        ]
+      },
+      {
         "qset": "c78c738d",
         "n": 68,
         "n_steps": 1,
@@ -2429,6 +2800,98 @@
         ]
       },
       {
+        "qset": "5b6055e9",
+        "n": 20,
+        "n_steps": 1,
+        "floor_pp": 5.0,
+        "floor_source": "judge nondeterminism only (~1 verdict flip per 100 rows, and one row on this set is 5.0 pp) — no repeated arm here",
+        "judge_floor_pp": 5.0,
+        "steps": [
+          {
+            "qset": "5b6055e9",
+            "step": "norules_control_topup",
+            "kind": "oracle",
+            "kind_why": "retrieval recorded and EMPTY on all 20 rows — the model answered without retrieved rules, so this measures whether the answer is derivable at all, not what the pipeline scores",
+            "kind_note": null,
+            "n": 20,
+            "run_at": "2026-07-26T18:12-05:00",
+            "run_at_source": "answers file mtime",
+            "config": {
+              "model": "claude-opus-5",
+              "effort": "high",
+              "rewrite_version": "none",
+              "ruling_query_mode": "union",
+              "system_version": "norules_control"
+            },
+            "config_recorded": true,
+            "heterogeneous_fields": [],
+            "flat": 0.4,
+            "weighted": 0.43333333333333335,
+            "auto": null,
+            "cost_per_q": 0.12013199999999999,
+            "in_per_q": 1746.9,
+            "out_per_q": 4455.9,
+            "n_reps": 1,
+            "rep_spread_pp": null,
+            "rep_churn": null,
+            "reps": [
+              {
+                "arm": "norules_control_topup",
+                "answers": "evals/answers/norules_control_topup.json",
+                "flat": 0.4,
+                "weighted": 0.43333333333333335,
+                "auto": null,
+                "run_at": "2026-07-26T18:12-05:00",
+                "run_at_source": "answers file mtime",
+                "human_corrected": false,
+                "regrade_of": null,
+                "regrade_pp": null,
+                "cost_per_q": 0.12013199999999999,
+                "in_per_q": 1746.9,
+                "out_per_q": 4455.9,
+                "join": "exact"
+              }
+            ],
+            "judge_model": "openai/gpt-5-mini",
+            "judge_digest": "b54fbdb95565abf8",
+            "generation_runs": [
+              {
+                "file": "evals/answers/norules_control_topup.json",
+                "mtime": "2026-07-26T18:12-05:00",
+                "join": "exact",
+                "arm": "norules_control_topup"
+              }
+            ],
+            "judging_runs": [
+              {
+                "file": "evals/verdicts_norules_control_topup.json",
+                "mtime": "2026-07-26T18:14-05:00",
+                "judge_model": "openai/gpt-5-mini",
+                "judge_digest": "b54fbdb95565abf8",
+                "recorded": true,
+                "arm": "norules_control_topup"
+              }
+            ],
+            "human_passes": [],
+            "by_level": {
+              "3": {
+                "correct": 5.0,
+                "n": 10.0,
+                "n_questions": 10.0,
+                "acc": 0.5
+              },
+              "Corner Case": {
+                "correct": 3.0,
+                "n": 10.0,
+                "n_questions": 10.0,
+                "acc": 0.3
+              }
+            },
+            "delta": null
+          }
+        ]
+      },
+      {
         "qset": "570140e9",
         "n": 15,
         "n_steps": 1,
@@ -2527,7 +2990,7 @@
         ]
       }
     ],
-    "commits_indexed": 291,
+    "commits_indexed": 292,
     "notes": {
       "baseline": "Each delta compares a step to the previous PIPELINE step on the same question-set fingerprint, ordered by run time. Nothing is compared across fingerprints.",
       "ordering": "Run time is the answers file's mtime where one is joined, else the verdict file's. Neither is a recorded run timestamp — the answers files do not carry one.",
@@ -2772,6 +3235,42 @@
         "unpriced": []
       },
       {
+        "qset": "600700e4",
+        "n": 207,
+        "points": [
+          {
+            "step": "l0_opuslow",
+            "kind": "pipeline",
+            "flat": 0.9710144927536232,
+            "weighted": 0.9710144927536232,
+            "cost": 0.05656427536231884,
+            "model": "claude-opus-5",
+            "effort": "low",
+            "full_run": 79.69906398550724,
+            "dominated_by": null
+          }
+        ],
+        "unpriced": []
+      },
+      {
+        "qset": "a5f3d192",
+        "n": 70,
+        "points": [
+          {
+            "step": "norules_control",
+            "kind": "oracle",
+            "flat": 0.7285714285714285,
+            "weighted": 0.7285714285714285,
+            "cost": 0.10424428571428572,
+            "model": "claude-opus-5",
+            "effort": "high",
+            "full_run": 146.8801985714286,
+            "dominated_by": null
+          }
+        ],
+        "unpriced": []
+      },
+      {
         "qset": "c78c738d",
         "n": 68,
         "points": [
@@ -2801,6 +3300,24 @@
             "why": "unmatched"
           }
         ]
+      },
+      {
+        "qset": "5b6055e9",
+        "n": 20,
+        "points": [
+          {
+            "step": "norules_control_topup",
+            "kind": "oracle",
+            "flat": 0.4,
+            "weighted": 0.43333333333333335,
+            "cost": 0.12013199999999999,
+            "model": "claude-opus-5",
+            "effort": "high",
+            "full_run": 169.265988,
+            "dominated_by": null
+          }
+        ],
+        "unpriced": []
       },
       {
         "qset": "570140e9",
@@ -3086,6 +3603,72 @@
         }
       },
       {
+        "qset": "600700e4",
+        "n": 207,
+        "order": [
+          "0"
+        ],
+        "rows": [
+          {
+            "step": "l0_opuslow",
+            "kind": "pipeline",
+            "flat": 0.9710144927536232,
+            "cells": {
+              "0": {
+                "correct": 201.0,
+                "n": 207.0,
+                "n_questions": 207.0,
+                "acc": 0.9710144927536232
+              }
+            }
+          }
+        ],
+        "corpus_share": {
+          "0": 0.14691270404542228
+        }
+      },
+      {
+        "qset": "a5f3d192",
+        "n": 70,
+        "order": [
+          "0",
+          "1",
+          "2"
+        ],
+        "rows": [
+          {
+            "step": "norules_control",
+            "kind": "oracle",
+            "flat": 0.7285714285714285,
+            "cells": {
+              "0": {
+                "correct": 26.0,
+                "n": 30.0,
+                "n_questions": 30.0,
+                "acc": 0.8666666666666667
+              },
+              "1": {
+                "correct": 21.0,
+                "n": 30.0,
+                "n_questions": 30.0,
+                "acc": 0.7
+              },
+              "2": {
+                "correct": 4.0,
+                "n": 10.0,
+                "n_questions": 10.0,
+                "acc": 0.4
+              }
+            }
+          }
+        ],
+        "corpus_share": {
+          "0": 0.14691270404542228,
+          "1": 0.40099361249112847,
+          "2": 0.2881476224272534
+        }
+      },
+      {
         "qset": "c78c738d",
         "n": 68,
         "order": [
@@ -3176,6 +3759,39 @@
         }
       },
       {
+        "qset": "5b6055e9",
+        "n": 20,
+        "order": [
+          "3",
+          "Corner Case"
+        ],
+        "rows": [
+          {
+            "step": "norules_control_topup",
+            "kind": "oracle",
+            "flat": 0.4,
+            "cells": {
+              "3": {
+                "correct": 5.0,
+                "n": 10.0,
+                "n_questions": 10.0,
+                "acc": 0.5
+              },
+              "Corner Case": {
+                "correct": 3.0,
+                "n": 10.0,
+                "n_questions": 10.0,
+                "acc": 0.3
+              }
+            }
+          }
+        ],
+        "corpus_share": {
+          "3": 0.11497515968772179,
+          "Corner Case": 0.048970901348474094
+        }
+      },
+      {
         "qset": "570140e9",
         "n": 15,
         "order": [
@@ -3244,6 +3860,11 @@
           "system_version": 3
         },
         {
+          "rewrite_version": "none",
+          "ruling_query_mode": "union",
+          "system_version": "norules_control"
+        },
+        {
           "rewrite_version": "v2",
           "ruling_query_mode": "raw",
           "system_version": 3
@@ -3272,6 +3893,26 @@
             "n_reps": 1
           }
         ],
+        "claude-opus-5|high||none|union|norules_control": [
+          {
+            "qset": "a5f3d192",
+            "n": 70,
+            "step": "norules_control",
+            "kind": "oracle",
+            "flat": 0.7285714285714285,
+            "cost": 0.10424428571428572,
+            "n_reps": 1
+          },
+          {
+            "qset": "5b6055e9",
+            "n": 20,
+            "step": "norules_control_topup",
+            "kind": "oracle",
+            "flat": 0.4,
+            "cost": 0.12013199999999999,
+            "n_reps": 1
+          }
+        ],
         "claude-opus-5|high||v2|raw|3": [],
         "claude-opus-5|high||v2|raw|None": [],
         "claude-opus-5|high||v2|union|3": [
@@ -3297,6 +3938,7 @@
           }
         ],
         "claude-opus-5|low||none|union|3": [],
+        "claude-opus-5|low||none|union|norules_control": [],
         "claude-opus-5|low||v2|raw|3": [
           {
             "qset": "5cedbcf3",
@@ -3315,12 +3957,22 @@
             "flat": 0.89,
             "cost": 0.051531709999999994,
             "n_reps": 2
+          },
+          {
+            "qset": "600700e4",
+            "n": 207,
+            "step": "l0_opuslow",
+            "kind": "pipeline",
+            "flat": 0.9710144927536232,
+            "cost": 0.05656427536231884,
+            "n_reps": 1
           }
         ],
         "claude-opus-5|low||v2|raw|None": [],
         "claude-opus-5|low||v2|union|3": [],
         "claude-sonnet-5|None||none|raw|3": [],
         "claude-sonnet-5|None||none|union|3": [],
+        "claude-sonnet-5|None||none|union|norules_control": [],
         "claude-sonnet-5|None||v2|raw|3": [
           {
             "qset": "5cedbcf3",
@@ -3354,8 +4006,8 @@
         ],
         "claude-sonnet-5|None||v2|union|3": []
       },
-      "n_tried": 6,
-      "n_cells": 15,
+      "n_tried": 7,
+      "n_cells": 18,
       "note": "Axes are the fields the answers files actually record. TOP_K / TOP_N / COSINE_FLOOR are NOT recorded per arm, so retrieval tuning cannot appear here as a tried or untried combination at all."
     },
     "repro": [
@@ -3585,6 +4237,18 @@
         "kind": "oracle"
       },
       {
+        "qset": "600700e4",
+        "n": 207,
+        "step": "l0_opuslow",
+        "kind": "pipeline"
+      },
+      {
+        "qset": "a5f3d192",
+        "n": 70,
+        "step": "norules_control",
+        "kind": "oracle"
+      },
+      {
         "qset": "c78c738d",
         "n": 68,
         "step": "opus5_low_bucketA",
@@ -3595,6 +4259,12 @@
         "n": 36,
         "step": "h2h_gpt5mini",
         "kind": "unknown"
+      },
+      {
+        "qset": "5b6055e9",
+        "n": 20,
+        "step": "norules_control_topup",
+        "kind": "oracle"
       },
       {
         "qset": "570140e9",
@@ -3695,10 +4365,24 @@
             "cost": 0.051531709999999994,
             "n_reps": 2,
             "spread_pp": 6.000000000000005
+          },
+          {
+            "qset": "600700e4",
+            "n": 207,
+            "step": "l0_opuslow",
+            "flat": 0.9710144927536232,
+            "cost": 0.05656427536231884,
+            "n_reps": 1,
+            "spread_pp": null
           }
         ],
-        "n_questions": 104,
+        "n_questions": 311,
         "levels": {
+          "0": {
+            "acc": 0.9710144927536232,
+            "n_questions": 207.0,
+            "share": 0.14691270404542228
+          },
           "1": {
             "acc": 0.868421052631579,
             "n_questions": 38.0,
@@ -3720,24 +4404,22 @@
             "share": 0.048970901348474094
           }
         },
-        "covered_share": 0.8530872959545778,
-        "missing_levels": [
-          "0"
-        ],
+        "covered_share": 1.0,
+        "missing_levels": [],
         "thin_levels": [
           "Corner Case"
         ],
-        "projected_acc": 0.803435377128345,
+        "projected_acc": 0.8280548781463951,
         "ci95": [
-          0.7168462043747884,
-          0.8684062255103001
+          0.7821796360679215,
+          0.8659244715438356
         ],
         "cost_lo": 0.051531709999999994,
         "cost_hi": 0.06445404629629631,
         "full_run_lo": 72.60817938999999,
         "full_run_hi": 90.8157512314815,
-        "in_per_q": 5290.639814814815,
-        "out_per_q": 1194.5709259259258,
+        "in_per_q": 5627.899973161567,
+        "out_per_q": 1130.409602791197,
         "max_spread_pp": 6.000000000000005
       },
       {
@@ -3880,6 +4562,79 @@
         "config": {
           "model": "claude-opus-5",
           "effort": "high",
+          "rewrite_version": "none",
+          "ruling_query_mode": "union",
+          "system_version": "norules_control"
+        },
+        "kind": "oracle",
+        "sets": [
+          {
+            "qset": "a5f3d192",
+            "n": 70,
+            "step": "norules_control",
+            "flat": 0.7285714285714285,
+            "cost": 0.10424428571428572,
+            "n_reps": 1,
+            "spread_pp": null
+          },
+          {
+            "qset": "5b6055e9",
+            "n": 20,
+            "step": "norules_control_topup",
+            "flat": 0.4,
+            "cost": 0.12013199999999999,
+            "n_reps": 1,
+            "spread_pp": null
+          }
+        ],
+        "n_questions": 90,
+        "levels": {
+          "0": {
+            "acc": 0.8666666666666667,
+            "n_questions": 30.0,
+            "share": 0.14691270404542228
+          },
+          "1": {
+            "acc": 0.7,
+            "n_questions": 30.0,
+            "share": 0.40099361249112847
+          },
+          "2": {
+            "acc": 0.4,
+            "n_questions": 10.0,
+            "share": 0.2881476224272534
+          },
+          "3": {
+            "acc": 0.5,
+            "n_questions": 10.0,
+            "share": 0.11497515968772179
+          },
+          "Corner Case": {
+            "acc": 0.3,
+            "n_questions": 10.0,
+            "share": 0.048970901348474094
+          }
+        },
+        "covered_share": 1.0,
+        "missing_levels": [],
+        "thin_levels": [],
+        "projected_acc": 0.595457771469127,
+        "ci95": [
+          0.4921693706002818,
+          0.6909306496939466
+        ],
+        "cost_lo": 0.10424428571428572,
+        "cost_hi": 0.12013199999999999,
+        "full_run_lo": 146.8801985714286,
+        "full_run_hi": 169.265988,
+        "in_per_q": 1739.9857142857145,
+        "out_per_q": 4139.528571428571,
+        "max_spread_pp": null
+      },
+      {
+        "config": {
+          "model": "claude-opus-5",
+          "effort": "high",
           "rewrite_version": "v2",
           "ruling_query_mode": "union",
           "system_version": 3
@@ -3972,13 +4727,16 @@
       },
       {
         "level": "warn",
-        "what": "6 configurations ran only once",
+        "what": "9 configurations ran only once",
         "which": [
           "rulesguru_sonnet (150q)",
           "rulesguru_gpt-5-mini (150q)",
           "derivability_B (150q)",
+          "l0_opuslow (207q)",
+          "norules_control (70q)",
           "opus5_low_bucketA (68q)",
           "h2h_gpt5mini (36q)",
+          "norules_control_topup (20q)",
           "derivability_C (15q)"
         ],
         "changes": "No within-config spread was measured for them, so their question set's noise floor falls back to judge nondeterminism alone. A second rep costs one run and turns an assumed floor into a measured one."
@@ -3988,7 +4746,6 @@
         "what": "no pipeline evidence at all on level 0",
         "which": [
           "claude-opus-5/low rewrite none",
-          "claude-opus-5/low rewrite v2",
           "claude-sonnet-5/None rewrite v2",
           "15% of the corpus by level"
         ],
@@ -4002,6 +4759,16 @@
           "level 1: 9 questions"
         ],
         "changes": "Each of those questions moves that level's accuracy by a large step, and the level is weighted by its corpus share in the projection above."
+      },
+      {
+        "level": "crit",
+        "what": "all 1409 rows in evals/rulesguru_full_v2.jsonl carry `match: \"any\"` -- one mode, no exceptions, on the file every retrieval number on this page not explicitly scoped to the 150-set is measured against",
+        "which": [
+          "745 of 1409 rows (52.9%) have 2+ gold rules (mean 2.75, max 10) and are scored a retrieval hit if just ONE of those rules is found",
+          "questions_rulesguru150_v3.jsonl carries a real mix: {'groups': 79, 'any': 55, 'all': 16}",
+          "docs/results-match-semantics.md"
+        ],
+        "changes": "Answer accuracy (LLM judge vs. reference text) does not read `match` or `gold`, so it is unaffected -- the 80.3% projection and the arm accuracies stand. But recall, hit@k and \"context ok\" are all computed through this field (evals/run_eval.py's gold_groups()/hit_at()), so every retrieval measurement on the full corpus and its L0 subset is inflated by an unknown amount on any multi-rule row -- the same defect docs/results-orgroup-repass.md found in 54/105 groups on the curated 150-set, here uncurated across 745 rows of the full 1,409. This is also why docs/results-miss-partition.md's context-ok-vs-retrieval-miss conditionals are not interpretable as retrieval-vs-reasoning on the hard arm."
       }
     ],
     "corpus": {
@@ -4401,6 +5168,68 @@
         "info_why_rank": "resolves a named uncertainty in the go/no-go decision"
       },
       {
+        "id": "match-semantics-curation",
+        "title": "Curate match modes on the full 1,409-question corpus",
+        "one_line": "Every row in rulesguru_full_v2.jsonl (and its 207-row L0 subset) defaults to match: \"any\" with no exceptions; 745 rows (52.9%) have 2+ gold rules, so a single incidental retrieval hit currently scores as a full pass on more than half the corpus.",
+        "status": "open",
+        "action": "measure",
+        "info": 2,
+        "info_why": "It is the same measurement-validity defect as or-group-repass, at 7x the row count and with no prior curation pass at all -- every retrieval number computed against the full corpus inherits it.",
+        "tells_us": "How much of the full-corpus recall/hit@k/\"context ok\" numbers are real versus an artefact of an uncurated default.",
+        "metric": {
+          "name": "retrieval recall (measurement validity), full corpus",
+          "dir": "down",
+          "basis": "measured",
+          "cite": "docs/results-match-semantics.md",
+          "detail": "745/1,409 rows (52.9%) carry 2+ gold rules under the uncurated default; the or-group-repass pilot found 54/105 (51%) of a comparable multi-rule population were mis-encoded once actually checked against CR text, so a comparable share of these 745 rows is a reasonable prior, not yet confirmed row-by-row."
+        },
+        "dep_why": "or-group-repass is the proven method (rule 6's test, applied and validated at n=105); running the same method across 7x the rows before it's been checked once on the pilot scope would be repeating unvalidated work at scale.",
+        "evidence": [
+          {
+            "kind": "doc",
+            "ref": "docs/results-match-semantics.md",
+            "note": "measured distributions across all three question files, confirms the judge path (evals/judge_rulesguru.py) never reads match/gold so accuracy is unaffected, and sizes the fix",
+            "ok": true,
+            "archived": false,
+            "broken_why": null
+          },
+          {
+            "kind": "doc",
+            "ref": "docs/results-orgroup-repass.md",
+            "note": "the same defect, already found and partly corrected on the 150-set's 105 curated groups (54 mis-encoded conjunctions)",
+            "ok": true,
+            "archived": false,
+            "broken_why": null
+          },
+          {
+            "kind": "path",
+            "ref": "evals/run_eval.py",
+            "note": "gold_groups()/hit_at() (lines 158-177): match:\"any\" collapses the whole gold list into one OR-group, so recall/hit@k/\"context ok\" all inherit whatever match says, correctly given what match IS -- the gap is upstream, in match never having been curated on this file",
+            "ok": true,
+            "broken_why": null
+          }
+        ],
+        "cost": {
+          "kind": "subscription",
+          "why": "same CR-grounded read as or-group-repass (grep the CR text, Scryfall's local cache where a card's wording decides it) -- no API call, no Anthropic credits. Scale is the real cost: 745 rows is roughly 7x the 105-group pilot, and that pilot still needed Jon's own ruling on 25 of 105 groups (24%) even with full CR grounding.",
+          "lo": null,
+          "hi": null,
+          "pool": "subscription"
+        },
+        "deps": [
+          "or-group-repass"
+        ],
+        "unmet": [
+          "or-group-repass"
+        ],
+        "unmet_titles": [
+          "Re-pass v3's 105 conjunctive OR-groups"
+        ],
+        "bucket": "blocked",
+        "evidence_ok": true,
+        "info_why_rank": "moves or validates a measured metric, or unblocks something that does"
+      },
+      {
         "id": "double-mine",
         "title": "Double-mine for gold stability",
         "one_line": "Mine the same questions twice and measure how much the proposed gold agrees with itself.",
@@ -4437,6 +5266,92 @@
         "unmet": [],
         "unmet_titles": [],
         "bucket": "ready",
+        "evidence_ok": true,
+        "info_why_rank": "moves or validates a measured metric, or unblocks something that does"
+      },
+      {
+        "id": "coverage-metric",
+        "title": "Graded retrieval coverage score",
+        "one_line": "Replaced hit_at()'s boolean hit/miss with the fraction of a question's gold ids actually retrieved, so match:\"any\"/\"all\"/\"groups\" stop deciding how strict the score is.",
+        "status": "shipped",
+        "action": "build",
+        "info": 2,
+        "info_why": "It targets a measured scoring defect (match-semantics-curation, results-miss-partition's context-ok paradox) with a metric that needed zero new model calls to validate.",
+        "tells_us": "What fraction of a question's cited evidence actually lands in the retrieved window, independent of whether that question's match mode was ever curated. The per-row gap against hit_at() also ranks which multi-rule rows are worth a human look, instead of leaving all 745 as an undifferentiated pile.",
+        "docs": [
+          "docs/spec-coverage-metric.md"
+        ],
+        "metric": {
+          "name": "retrieval measurement resolution",
+          "dir": "none",
+          "basis": "measured",
+          "cite": "evals/coverage_backfill.json",
+          "detail": "a scoring-instrument change, not an intervention -- it moves no accuracy or recall number by itself. Backfilled across 989 rows: 158 rows score a gap > 0.5 (hit_at() calls it a full pass while more than half the cited gold never showed up) -- the worklist, not a single mean, is the useful output."
+        },
+        "evidence": [
+          {
+            "kind": "doc",
+            "ref": "docs/results-match-semantics.md",
+            "note": "745/1,409 full-corpus rows (52.9%) are match:\"any\" with 2+ gold ids, so a single incidental hit currently scores full retrieval success",
+            "ok": true,
+            "archived": false,
+            "broken_why": null
+          },
+          {
+            "kind": "doc",
+            "ref": "docs/results-miss-partition.md",
+            "note": "rg4023: a 10-id gold list scored \"context ok\" on 3 unrelated-enough ids while the two deciding rules were never retrieved -- the boolean's failure mode this spec targets",
+            "ok": true,
+            "archived": false,
+            "broken_why": null
+          },
+          {
+            "kind": "path",
+            "ref": "evals/run_eval.py",
+            "note": "gold_groups()/hit_at() (lines 158-177) byte-identical, untouched; coverage_at()/coverage_from_ids() added alongside, printed as a second table",
+            "ok": true,
+            "broken_why": null
+          },
+          {
+            "kind": "path",
+            "ref": "evals/run_retrieval_diversity.py",
+            "note": "group_coverage() (line 122) already exists but collapses to boolean on match:\"any\" rows -- the spec's flat formula is the part that still works on a 100%-any corpus; untouched",
+            "ok": true,
+            "broken_why": null
+          },
+          {
+            "kind": "path",
+            "ref": "evals/backfill_coverage.py",
+            "note": "backfills coverage across all 21 evals/answers/*.json files that record retrieved_rule_ids (989 rows), zero model calls; also builds the hit_at-vs-coverage gap worklist",
+            "ok": true,
+            "broken_why": null
+          },
+          {
+            "kind": "path",
+            "ref": "evals/coverage_backfill.json",
+            "note": "the backfill's output: per-arm mean coverage + hit rate, and the ranked worklist, regenerate with evals/backfill_coverage.py",
+            "ok": true,
+            "broken_why": null
+          },
+          {
+            "kind": "path",
+            "ref": "tests/test_coverage_metric.py",
+            "note": "24 tests: empty gold excluded from means, single-rule gold, the any-mode multi-rule disagreement case, groups-mode strictness, and hit_bool_from_ids() checked for exact agreement with the untouched hit_at()",
+            "ok": true,
+            "broken_why": null
+          }
+        ],
+        "cost": {
+          "kind": "zero",
+          "why": "recomputable directly from retrieved_rule_ids and gold already recorded per row in evals/answers/*.json (confirmed on all 21 files that carry retrieved_rule_ids, 989 rows total) -- no new model calls, no re-run arms.",
+          "lo": null,
+          "hi": null,
+          "pool": "free"
+        },
+        "deps": [],
+        "unmet": [],
+        "unmet_titles": [],
+        "bucket": "done",
         "evidence_ok": true,
         "info_why_rank": "moves or validates a measured metric, or unblocks something that does"
       },
@@ -4495,6 +5410,9 @@
         "info": 2,
         "info_why": "Two separate rulings are parked waiting on this instrument, so it unblocks more than it measures.",
         "tells_us": "Nothing directly — it is the missing instrument two open decisions need.",
+        "docs": [
+          "docs/spec-pure-rules-holdout.md"
+        ],
         "metric": {
           "name": "measurement validity",
           "dir": "up",
@@ -4672,6 +5590,9 @@
         "info": 2,
         "info_why": "It targets a measured side effect of a change that already shipped to production, and it costs nothing at runtime.",
         "tells_us": "Whether the chunk churn multi-query introduced is costing us anything.",
+        "docs": [
+          "docs/spec-cosine-floor.md"
+        ],
         "metric": {
           "name": "retrieval churn",
           "dir": "down",
@@ -4710,6 +5631,130 @@
           "lo": null,
           "hi": null,
           "pool": "free"
+        },
+        "deps": [],
+        "unmet": [],
+        "unmet_titles": [],
+        "bucket": "ready",
+        "evidence_ok": true,
+        "info_why_rank": "moves or validates a measured metric, or unblocks something that does"
+      },
+      {
+        "id": "se-rule-chains",
+        "title": "Stack Exchange as a source of rule-chain structure (not gold)",
+        "one_line": "Mine Board & Card Games Stack Exchange's magic-the-gathering tag for the ordered CR-rule chains disciplined answers walk through, filtered to top-answer-equals-accepted-answer plus specific numbered citations -- never as answer gold, only as candidate structure for gold_groups composition.",
+        "status": "design-only",
+        "action": "decide",
+        "info": 2,
+        "info_why": "It's a candidate feed for two already-identified problems (the 54 mis-encoded OR-groups and rg241's second-hop retrieval gap) at zero API spend for the pull itself, but yield is thin (roughly half the sample fails the hard filter, and only 2 of 10 sampled questions produce a genuinely conjunctive multi-rule chain) and every retained row needs real per-item drift and licensing checks before it can touch anything.",
+        "tells_us": "Whether a free, self-refreshing, community-vetted stream can supply usable rule-composition evidence once RulesGuru itself is exhausted as a growth path.",
+        "docs": [
+          "docs/spec-stackexchange-rule-chains.md"
+        ],
+        "metric": {
+          "name": "OR-group adjudication and second-hop retrieval evidence",
+          "dir": "none",
+          "basis": "predicted",
+          "cite": "docs/spec-stackexchange-rule-chains.md",
+          "detail": "a candidate-structure feed, not an intervention -- it moves no project metric by itself. The 50% filter-survival rate and 3-of-12 citations needing content-level drift resolution are measured, on a 10-question design-phase sample; whether a real pilot's yield resolves any of the 25 flagged OR-groups is not established here."
+        },
+        "evidence": [
+          {
+            "kind": "doc",
+            "ref": "docs/results-orgroup-repass.md",
+            "note": "the 105-group re-pass this spec targets: 54 mis-encoded conjunctions, 25 needing Jon's judgment -- categories an SE answer's explicit rule-chain language can provide a second opinion on, never an override",
+            "ok": true,
+            "archived": false,
+            "broken_why": null
+          },
+          {
+            "kind": "doc",
+            "ref": "docs/HANDOFF-development.md",
+            "note": "live queue item 5, the rg241 second-hop finding this spec's Q64560 worked example (614.1c/614.12/702.161a/702.44a, none surface-resembling the question) is offered as a concrete instance of",
+            "ok": true,
+            "archived": false,
+            "broken_why": null
+          },
+          {
+            "kind": "path",
+            "ref": "scripts/check_cr_update.py",
+            "note": "its normalize()/rule_fingerprint() are reused as one-sided text functions for citation resolution; its classify_rules() needs a full old-release-vs-new diff an isolated SE quote can't supply on its own -- resolved in this spec by sourcing per-release CR text from the Academy Ruins archive instead",
+            "ok": true,
+            "broken_why": null
+          }
+        ],
+        "cost": {
+          "kind": "zero",
+          "why": "the Stack Exchange API pull is free and self-serve (confirmed live: quota_max 300/day unkeyed, 10,000/day with a free registered key); the real cost is per-candidate validation labor (CR drift checks, license/attribution bookkeeping), which is Haiku-batchable, not an API/Voyage spend.",
+          "lo": null,
+          "hi": null,
+          "pool": "free"
+        },
+        "deps": [
+          "or-group-repass"
+        ],
+        "unmet": [
+          "or-group-repass"
+        ],
+        "unmet_titles": [
+          "Re-pass v3's 105 conjunctive OR-groups"
+        ],
+        "bucket": "blocked",
+        "evidence_ok": true,
+        "info_why_rank": "moves or validates a measured metric, or unblocks something that does"
+      },
+      {
+        "id": "gold-sufficiency",
+        "title": "Spec gold sufficiency and necessity testing",
+        "one_line": "Use the oracle (gold-only) arm as a formal test: success proves a candidate gold set is sufficient, leave-one-out checks whether it's also minimal.",
+        "status": "open",
+        "action": "build",
+        "info": 2,
+        "info_why": "Gold quality has only ever been judged by reading CR text next to a question; this turns it into a measurement the oracle arm already produces evidence for.",
+        "tells_us": "Whether a candidate gold set is sufficient, whether it's over-specified, and how much of arm B's 91.3% is gold versus the model's own MTG training.",
+        "docs": [
+          "docs/spec-gold-sufficiency.md"
+        ],
+        "metric": {
+          "name": "gold sufficiency / necessity rate",
+          "dir": "none",
+          "basis": "predicted",
+          "cite": "docs/results-derivability.md",
+          "detail": "arm B's 91.3% and the 2% confirmed-incomplete rate are measured; the necessity (over-specification) rate and the parametric-knowledge confound rate are not measured yet -- that's what this spec proposes."
+        },
+        "evidence": [
+          {
+            "kind": "doc",
+            "ref": "docs/results-derivability.md",
+            "note": "arm B (137/150 = 91.3%) is this test already run; rg7215/rg549/rg811 are the confirmed positive case -- failed gold-only, passed once retrieval supplied a rule gold lacked",
+            "ok": true,
+            "archived": false,
+            "broken_why": null
+          },
+          {
+            "kind": "doc",
+            "ref": "docs/results-miss-partition.md",
+            "note": "90/202 rows answered correctly without the flagged gold rule ever in context -- the corroborating over-specification signal this spec's leave-one-out design targets directly",
+            "ok": true,
+            "archived": false,
+            "broken_why": null
+          },
+          {
+            "kind": "doc",
+            "ref": "docs/results-orgroup-repass.md",
+            "note": "the 25 needs-Jon OR-groups this spec's member-level necessity test can mechanically resolve, per rule 6's own criterion",
+            "ok": true,
+            "archived": false,
+            "broken_why": null
+          }
+        ],
+        "cost": {
+          "kind": "api_stated",
+          "lo": 2.88,
+          "hi": 16.49,
+          "cite": "docs/spec-gold-sufficiency.md",
+          "why": "$2.88 for the 25 needs-Jon OR-group member tests alone (51 calls at arm B's own $0.05647/question rate) up to ~$16.49 for the full recommended first pass (needs-Jon necessity + a 20-row general necessity sample + 13-row failure triage + a full-150 parametric-knowledge control).",
+          "pool": "api"
         },
         "deps": [],
         "unmet": [],
@@ -5432,7 +6477,7 @@
             "note": "the script the spec names does not exist — this is the evidence that it was approved but never built",
             "ok": true,
             "broken_why": null,
-            "detail": "absent"
+            "detail": "present in the working tree but untracked"
           }
         ],
         "cost": {
@@ -6433,14 +7478,14 @@
       }
     ],
     "counts": {
-      "ready": 13,
-      "blocked": 6,
-      "done": 15,
+      "ready": 14,
+      "blocked": 8,
+      "done": 16,
       "dead": 6
     },
     "coverage": {
-      "n_docs": 48,
-      "n_covered": 48,
+      "n_docs": 53,
+      "n_covered": 53,
       "missing": []
     },
     "cost_basis": "claude-opus-5 / effort low",
@@ -6448,8 +7493,8 @@
       0.051531709999999994,
       0.06445404629629631
     ],
-    "ready_api_lo": 19.23706397,
-    "ready_api_hi": 22.111987583333335,
+    "ready_api_lo": 22.11706397,
+    "ready_api_hi": 38.60198758333333,
     "info_rank": {
       "3": "resolves a named uncertainty in the go/no-go decision",
       "2": "moves or validates a measured metric, or unblocks something that does",
@@ -6509,37 +7554,35 @@
         "fn_ref_rate": 0.06666666666666667
       },
       "runtime_note": "Wall-clock is not recorded per row in any answers file, so run time cannot be computed from measurement. docs/plan-rulesguru-as-instrument.md estimates ~4s per question, putting 150 questions at \"roughly 10+ minutes\" — that was written about sonnet, and the shipped config is a different model.",
-      "acc": 0.803435377128345,
+      "acc": 0.8280548781463951,
       "ci": [
-        0.7168462043747884,
-        0.8684062255103001
+        0.7821796360679215,
+        0.8659244715438356
       ],
-      "ci_width_pp": 15.156002113551171,
-      "coverage": 0.8530872959545778,
-      "missing": [
-        "0"
-      ],
+      "ci_width_pp": 8.374483547591405,
+      "coverage": 1.0,
+      "missing": [],
       "cost_lo": 0.051531709999999994,
       "cost_hi": 0.06445404629629631,
       "full_lo": 72.60817938999999,
       "full_hi": 90.8157512314815,
       "model": "claude-opus-5",
       "effort": "low",
-      "n_run": 104,
-      "missing_n": 207,
+      "n_run": 311,
+      "missing_n": 0,
       "slice_lo": 10.66706397,
       "slice_hi": 13.341987583333335,
       "checks": [
         {
           "key": "coverage_min",
-          "pass": false,
-          "actual": 0.8530872959545778,
+          "pass": true,
+          "actual": 1.0,
           "fmt": "pct"
         },
         {
           "key": "interval_max_pp",
-          "pass": false,
-          "actual": 15.156002113551171,
+          "pass": true,
+          "actual": 8.374483547591405,
           "fmt": "pp"
         },
         {
@@ -6555,8 +7598,8 @@
           "fmt": "usd"
         }
       ],
-      "verdict": "slice-first",
-      "why_key": "coverage_min",
+      "verdict": "go",
+      "why_key": null,
       "model_pairs": [
         {
           "n": 54,
@@ -6650,9 +7693,9 @@
           }
         }
       ],
-      "ready_n": 13,
+      "ready_n": 14,
       "ready_free_n": 9,
-      "blocked_n": 6,
+      "blocked_n": 8,
       "top_ready": [
         {
           "title": "Gold audit, batch 2",
@@ -6695,5 +7738,2489 @@
       ]
     },
     "runtime_note": "Wall-clock is not recorded per row in any answers file, so run time cannot be computed from measurement. docs/plan-rulesguru-as-instrument.md estimates ~4s per question, putting 150 questions at \"roughly 10+ minutes\" — that was written about sonnet, and the shipped config is a different model."
+  },
+  "retrieval_coverage": {
+    "generated_at": "2026-07-26T16:49:53",
+    "gap_threshold": 0.5,
+    "arms": [
+      {
+        "arm": "_opus5_low_disagreements",
+        "n_rows": 17,
+        "n_empty_gold": 0,
+        "n_scored": 17,
+        "n_join_missing": 0,
+        "n_hit_unknown": 0,
+        "mean_coverage": 0.25480859010270773,
+        "hit_rate": 0.7058823529411765,
+        "n_hit_scored": 17,
+        "debug": true,
+        "retrieval_off": false
+      },
+      {
+        "arm": "_pilot_cache_check",
+        "n_rows": 3,
+        "n_empty_gold": 0,
+        "n_scored": 3,
+        "n_join_missing": 0,
+        "n_hit_unknown": 0,
+        "mean_coverage": 0.05555555555555555,
+        "hit_rate": 0.3333333333333333,
+        "n_hit_scored": 3,
+        "debug": true,
+        "retrieval_off": false
+      },
+      {
+        "arm": "_pilot_opus5_high",
+        "n_rows": 5,
+        "n_empty_gold": 0,
+        "n_scored": 5,
+        "n_join_missing": 0,
+        "n_hit_unknown": 0,
+        "mean_coverage": 0.08333333333333333,
+        "hit_rate": 0.4,
+        "n_hit_scored": 5,
+        "debug": true,
+        "retrieval_off": false
+      },
+      {
+        "arm": "_smoke_derivB",
+        "n_rows": 2,
+        "n_empty_gold": 0,
+        "n_scored": 2,
+        "n_join_missing": 0,
+        "n_hit_unknown": 0,
+        "mean_coverage": 0.0,
+        "hit_rate": 0.0,
+        "n_hit_scored": 2,
+        "debug": true,
+        "retrieval_off": true
+      },
+      {
+        "arm": "_ui_mode_demo",
+        "n_rows": 4,
+        "n_empty_gold": 0,
+        "n_scored": 4,
+        "n_join_missing": 0,
+        "n_hit_unknown": 1,
+        "mean_coverage": 0.041666666666666664,
+        "hit_rate": 0.3333333333333333,
+        "n_hit_scored": 3,
+        "debug": true,
+        "retrieval_off": false
+      },
+      {
+        "arm": "derivability_B_goldonly",
+        "n_rows": 150,
+        "n_empty_gold": 0,
+        "n_scored": 150,
+        "n_join_missing": 0,
+        "n_hit_unknown": 0,
+        "mean_coverage": 0.0,
+        "hit_rate": 0.0,
+        "n_hit_scored": 150,
+        "debug": false,
+        "retrieval_off": true
+      },
+      {
+        "arm": "derivability_C_failures",
+        "n_rows": 15,
+        "n_empty_gold": 0,
+        "n_scored": 15,
+        "n_join_missing": 0,
+        "n_hit_unknown": 0,
+        "mean_coverage": 0.0,
+        "hit_rate": 0.0,
+        "n_hit_scored": 15,
+        "debug": false,
+        "retrieval_off": true
+      },
+      {
+        "arm": "gold_audit_batch2_candidates",
+        "n_rows": 20,
+        "n_empty_gold": 0,
+        "n_scored": 20,
+        "n_join_missing": 0,
+        "n_hit_unknown": 0,
+        "mean_coverage": 0.12875,
+        "hit_rate": 0.45,
+        "n_hit_scored": 20,
+        "debug": false,
+        "retrieval_off": false
+      },
+      {
+        "arm": "gold_audit_batch2_opuslow_candidates",
+        "n_rows": 15,
+        "n_empty_gold": 0,
+        "n_scored": 15,
+        "n_join_missing": 0,
+        "n_hit_unknown": 0,
+        "mean_coverage": 0.16425925925925927,
+        "hit_rate": 0.6,
+        "n_hit_scored": 15,
+        "debug": false,
+        "retrieval_off": false
+      },
+      {
+        "arm": "h2h_gpt5mini",
+        "n_rows": 36,
+        "n_empty_gold": 0,
+        "n_scored": 36,
+        "n_join_missing": 0,
+        "n_hit_unknown": 0,
+        "mean_coverage": 0.18371913580246912,
+        "hit_rate": 0.5,
+        "n_hit_scored": 36,
+        "debug": false,
+        "retrieval_off": false
+      },
+      {
+        "arm": "h2h_opuslow_easy_r1",
+        "n_rows": 50,
+        "n_empty_gold": 3,
+        "n_scored": 47,
+        "n_join_missing": 0,
+        "n_hit_unknown": 0,
+        "mean_coverage": 0.29609929078014185,
+        "hit_rate": 0.44680851063829785,
+        "n_hit_scored": 47,
+        "debug": false,
+        "retrieval_off": false
+      },
+      {
+        "arm": "h2h_opuslow_easy_r2",
+        "n_rows": 50,
+        "n_empty_gold": 3,
+        "n_scored": 47,
+        "n_join_missing": 0,
+        "n_hit_unknown": 0,
+        "mean_coverage": 0.29609929078014185,
+        "hit_rate": 0.44680851063829785,
+        "n_hit_scored": 47,
+        "debug": false,
+        "retrieval_off": false
+      },
+      {
+        "arm": "h2h_opuslow_hard_r1",
+        "n_rows": 54,
+        "n_empty_gold": 0,
+        "n_scored": 54,
+        "n_join_missing": 0,
+        "n_hit_unknown": 0,
+        "mean_coverage": 0.1737139917695473,
+        "hit_rate": 0.48148148148148145,
+        "n_hit_scored": 54,
+        "debug": false,
+        "retrieval_off": false
+      },
+      {
+        "arm": "h2h_opuslow_hard_r2",
+        "n_rows": 54,
+        "n_empty_gold": 0,
+        "n_scored": 54,
+        "n_join_missing": 0,
+        "n_hit_unknown": 0,
+        "mean_coverage": 0.1737139917695473,
+        "hit_rate": 0.48148148148148145,
+        "n_hit_scored": 54,
+        "debug": false,
+        "retrieval_off": false
+      },
+      {
+        "arm": "h2h_sonnet_easy_r1",
+        "n_rows": 50,
+        "n_empty_gold": 3,
+        "n_scored": 47,
+        "n_join_missing": 0,
+        "n_hit_unknown": 0,
+        "mean_coverage": 0.29609929078014185,
+        "hit_rate": 0.44680851063829785,
+        "n_hit_scored": 47,
+        "debug": false,
+        "retrieval_off": false
+      },
+      {
+        "arm": "h2h_sonnet_easy_r2",
+        "n_rows": 50,
+        "n_empty_gold": 3,
+        "n_scored": 47,
+        "n_join_missing": 0,
+        "n_hit_unknown": 0,
+        "mean_coverage": 0.29609929078014185,
+        "hit_rate": 0.44680851063829785,
+        "n_hit_scored": 47,
+        "debug": false,
+        "retrieval_off": false
+      },
+      {
+        "arm": "l0_opuslow",
+        "n_rows": 207,
+        "n_empty_gold": 69,
+        "n_scored": 138,
+        "n_join_missing": 0,
+        "n_hit_unknown": 0,
+        "mean_coverage": 0.3076086956521739,
+        "hit_rate": 0.39855072463768115,
+        "n_hit_scored": 138,
+        "debug": false,
+        "retrieval_off": false
+      },
+      {
+        "arm": "layers_slice0_base_layers_r1",
+        "n_rows": 54,
+        "n_empty_gold": 0,
+        "n_scored": 54,
+        "n_join_missing": 0,
+        "n_hit_unknown": 0,
+        "mean_coverage": 0.1737139917695473,
+        "hit_rate": 0.48148148148148145,
+        "n_hit_scored": 54,
+        "debug": false,
+        "retrieval_off": false
+      },
+      {
+        "arm": "layers_slice0_base_layers_r2",
+        "n_rows": 54,
+        "n_empty_gold": 0,
+        "n_scored": 54,
+        "n_join_missing": 0,
+        "n_hit_unknown": 0,
+        "mean_coverage": 0.17165637860082303,
+        "hit_rate": 0.48148148148148145,
+        "n_hit_scored": 54,
+        "debug": false,
+        "retrieval_off": false
+      },
+      {
+        "arm": "layers_slice0_base_layers_r3",
+        "n_rows": 31,
+        "n_empty_gold": 0,
+        "n_scored": 31,
+        "n_join_missing": 0,
+        "n_hit_unknown": 0,
+        "mean_coverage": 0.14811827956989249,
+        "hit_rate": 0.45161290322580644,
+        "n_hit_scored": 31,
+        "debug": false,
+        "retrieval_off": false
+      },
+      {
+        "arm": "opus5_low_norewrite_costbase",
+        "n_rows": 68,
+        "n_empty_gold": 0,
+        "n_scored": 68,
+        "n_join_missing": 0,
+        "n_hit_unknown": 0,
+        "mean_coverage": 0.17742763772175538,
+        "hit_rate": 0.47058823529411764,
+        "n_hit_scored": 68,
+        "debug": false,
+        "retrieval_off": false
+      }
+    ],
+    "skipped": [],
+    "worklist_n_total": 282,
+    "worklist_n_above_threshold": 158,
+    "worklist": [
+      {
+        "arm": "h2h_opuslow_hard_r1",
+        "id": "rg3868",
+        "match": "any",
+        "gold_n": 10,
+        "question": "Averie controls [Muraganda Petroglyphs] and [Wayward Angel], and has more than 7 cards in their graveyard. Nathan casts and resolves [Humility]. What are Wayward Angel's characteristics?",
+        "coverage": 0.1,
+        "hit": true,
+        "gap": 0.9,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "h2h_opuslow_hard_r2",
+        "id": "rg3868",
+        "match": "any",
+        "gold_n": 10,
+        "question": "Averie controls [Muraganda Petroglyphs] and [Wayward Angel], and has more than 7 cards in their graveyard. Nathan casts and resolves [Humility]. What are Wayward Angel's characteristics?",
+        "coverage": 0.1,
+        "hit": true,
+        "gap": 0.9,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "layers_slice0_base_layers_r1",
+        "id": "rg3868",
+        "match": "any",
+        "gold_n": 10,
+        "question": "Averie controls [Muraganda Petroglyphs] and [Wayward Angel], and has more than 7 cards in their graveyard. Nathan casts and resolves [Humility]. What are Wayward Angel's characteristics?",
+        "coverage": 0.1,
+        "hit": true,
+        "gap": 0.9,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "layers_slice0_base_layers_r2",
+        "id": "rg3868",
+        "match": "any",
+        "gold_n": 10,
+        "question": "Averie controls [Muraganda Petroglyphs] and [Wayward Angel], and has more than 7 cards in their graveyard. Nathan casts and resolves [Humility]. What are Wayward Angel's characteristics?",
+        "coverage": 0.1,
+        "hit": true,
+        "gap": 0.9,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "layers_slice0_base_layers_r2",
+        "id": "rg6634",
+        "match": "any",
+        "gold_n": 9,
+        "question": "Niko controls [Urza's Saga] on chapter 2. Ainsley casts [Magus of the Moon]. What happens to Urza's Saga?",
+        "coverage": 0.1111111111111111,
+        "hit": true,
+        "gap": 0.8888888888888888,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "gold_audit_batch2_candidates",
+        "id": "rg1756",
+        "match": "any",
+        "gold_n": 8,
+        "question": "Allen controls [Thraben Purebloods] which is enchanted by [Kenrith's Transformation]. Thraben Purebloods then becomes enchanted by [One with the Stars]. What happens?",
+        "coverage": 0.125,
+        "hit": true,
+        "gap": 0.875,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "gold_audit_batch2_opuslow_candidates",
+        "id": "rg1756",
+        "match": "any",
+        "gold_n": 8,
+        "question": "Allen controls [Thraben Purebloods] which is enchanted by [Kenrith's Transformation]. Thraben Purebloods then becomes enchanted by [One with the Stars]. What happens?",
+        "coverage": 0.125,
+        "hit": true,
+        "gap": 0.875,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "h2h_gpt5mini",
+        "id": "rg1756",
+        "match": "any",
+        "gold_n": 8,
+        "question": "Allen controls [Thraben Purebloods] which is enchanted by [Kenrith's Transformation]. Thraben Purebloods then becomes enchanted by [One with the Stars]. What happens?",
+        "coverage": 0.125,
+        "hit": true,
+        "gap": 0.875,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "h2h_opuslow_hard_r1",
+        "id": "rg1756",
+        "match": "any",
+        "gold_n": 8,
+        "question": "Allen controls [Thraben Purebloods] which is enchanted by [Kenrith's Transformation]. Thraben Purebloods then becomes enchanted by [One with the Stars]. What happens?",
+        "coverage": 0.125,
+        "hit": true,
+        "gap": 0.875,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "h2h_opuslow_hard_r2",
+        "id": "rg1756",
+        "match": "any",
+        "gold_n": 8,
+        "question": "Allen controls [Thraben Purebloods] which is enchanted by [Kenrith's Transformation]. Thraben Purebloods then becomes enchanted by [One with the Stars]. What happens?",
+        "coverage": 0.125,
+        "hit": true,
+        "gap": 0.875,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "layers_slice0_base_layers_r1",
+        "id": "rg1756",
+        "match": "any",
+        "gold_n": 8,
+        "question": "Allen controls [Thraben Purebloods] which is enchanted by [Kenrith's Transformation]. Thraben Purebloods then becomes enchanted by [One with the Stars]. What happens?",
+        "coverage": 0.125,
+        "hit": true,
+        "gap": 0.875,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "layers_slice0_base_layers_r2",
+        "id": "rg1756",
+        "match": "any",
+        "gold_n": 8,
+        "question": "Allen controls [Thraben Purebloods] which is enchanted by [Kenrith's Transformation]. Thraben Purebloods then becomes enchanted by [One with the Stars]. What happens?",
+        "coverage": 0.125,
+        "hit": true,
+        "gap": 0.875,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "layers_slice0_base_layers_r3",
+        "id": "rg1756",
+        "match": "any",
+        "gold_n": 8,
+        "question": "Allen controls [Thraben Purebloods] which is enchanted by [Kenrith's Transformation]. Thraben Purebloods then becomes enchanted by [One with the Stars]. What happens?",
+        "coverage": 0.125,
+        "hit": true,
+        "gap": 0.875,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "_opus5_low_disagreements",
+        "id": "rg811",
+        "match": "any",
+        "gold_n": 7,
+        "question": "Ariella controls a manifested [Wayward Angel] and has 7 cards in their graveyard. Nathaniel casts [Turn to Frog], targeting Wayward Angel. After that resolves, Ariella turns Wayward Angel face up. What are Wayward Angel's characteristics afterwards?",
+        "coverage": 0.14285714285714285,
+        "hit": true,
+        "gap": 0.8571428571428572,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "opus5_low_norewrite_costbase",
+        "id": "rg811",
+        "match": "any",
+        "gold_n": 7,
+        "question": "Ariella controls a manifested [Wayward Angel] and has 7 cards in their graveyard. Nathaniel casts [Turn to Frog], targeting Wayward Angel. After that resolves, Ariella turns Wayward Angel face up. What are Wayward Angel's characteristics afterwards?",
+        "coverage": 0.14285714285714285,
+        "hit": true,
+        "gap": 0.8571428571428572,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "_pilot_cache_check",
+        "id": "rg7",
+        "match": "any",
+        "gold_n": 6,
+        "question": "Nico controls Analia's [Bane Alley Blackguard] enchanted with their [Corrupted Conscience]. Analia casts their own [Lay Claim], targeting Nico's Corrupted Conscience. After it resolves, who controls the Bane Alley Blackguard? Who controls the Corrupted Conscience?",
+        "coverage": 0.16666666666666666,
+        "hit": true,
+        "gap": 0.8333333333333334,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "_pilot_opus5_high",
+        "id": "rg7",
+        "match": "any",
+        "gold_n": 6,
+        "question": "Nico controls Analia's [Bane Alley Blackguard] enchanted with their [Corrupted Conscience]. Analia casts their own [Lay Claim], targeting Nico's Corrupted Conscience. After it resolves, who controls the Bane Alley Blackguard? Who controls the Corrupted Conscience?",
+        "coverage": 0.16666666666666666,
+        "hit": true,
+        "gap": 0.8333333333333334,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "_ui_mode_demo",
+        "id": "DEMO-any",
+        "match": "any",
+        "gold_n": 6,
+        "question": "Nico controls Analia's [Bane Alley Blackguard] enchanted with their [Corrupted Conscience]. Analia casts their own [Lay Claim], targeting Nico's Corrupted Conscience. After it resolves, who controls the Bane Alley Blackguard? Who controls the Corrupted Conscience?",
+        "coverage": 0.16666666666666666,
+        "hit": true,
+        "gap": 0.8333333333333334,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "opus5_low_norewrite_costbase",
+        "id": "rg7",
+        "match": "any",
+        "gold_n": 6,
+        "question": "Nico controls Analia's [Bane Alley Blackguard] enchanted with their [Corrupted Conscience]. Analia casts their own [Lay Claim], targeting Nico's Corrupted Conscience. After it resolves, who controls the Bane Alley Blackguard? Who controls the Corrupted Conscience?",
+        "coverage": 0.16666666666666666,
+        "hit": true,
+        "gap": 0.8333333333333334,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "opus5_low_norewrite_costbase",
+        "id": "rg807",
+        "match": "any",
+        "gold_n": 6,
+        "question": "Ariah controls [Wayward Angel] and has 7 cards in their graveyard. Nickolas casts [Turn to Frog], targeting Wayward Angel. What are Wayward Angel's characteristics after Turn to Frog resolves?",
+        "coverage": 0.16666666666666666,
+        "hit": true,
+        "gap": 0.8333333333333334,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "_opus5_low_disagreements",
+        "id": "rg813",
+        "match": "any",
+        "gold_n": 5,
+        "question": "Ahmad controls [Conspiracy] (naming \"Ferret\"), [Kormus Bell], [Urborg, Tomb of Yawgmoth], and a [Vastwood Zendikon] enchanting Urborg, Tomb of Yawgmoth that entered the battlefield in that order. Is Urborg, Tomb of Yawgmoth a creature? If so, what are its creature types?",
+        "coverage": 0.2,
+        "hit": true,
+        "gap": 0.8,
+        "retrieved_n": 18
+      },
+      {
+        "arm": "gold_audit_batch2_candidates",
+        "id": "rg131",
+        "match": "any",
+        "gold_n": 5,
+        "question": "Ainsley controls a [Blood Moon], a [Life and Limb], a [Cinder Glade], and a 1/1 Green Saproling Creature token, that entered the battlefield in that order. What do the Cinder Glade and Saproling look like?",
+        "coverage": 0.2,
+        "hit": true,
+        "gap": 0.8,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "gold_audit_batch2_candidates",
+        "id": "rg813",
+        "match": "any",
+        "gold_n": 5,
+        "question": "Ahmad controls [Conspiracy] (naming \"Ferret\"), [Kormus Bell], [Urborg, Tomb of Yawgmoth], and a [Vastwood Zendikon] enchanting Urborg, Tomb of Yawgmoth that entered the battlefield in that order. Is Urborg, Tomb of Yawgmoth a creature? If so, what are its creature types?",
+        "coverage": 0.2,
+        "hit": true,
+        "gap": 0.8,
+        "retrieved_n": 16
+      },
+      {
+        "arm": "gold_audit_batch2_opuslow_candidates",
+        "id": "rg131",
+        "match": "any",
+        "gold_n": 5,
+        "question": "Ainsley controls a [Blood Moon], a [Life and Limb], a [Cinder Glade], and a 1/1 Green Saproling Creature token, that entered the battlefield in that order. What do the Cinder Glade and Saproling look like?",
+        "coverage": 0.2,
+        "hit": true,
+        "gap": 0.8,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "gold_audit_batch2_opuslow_candidates",
+        "id": "rg813",
+        "match": "any",
+        "gold_n": 5,
+        "question": "Ahmad controls [Conspiracy] (naming \"Ferret\"), [Kormus Bell], [Urborg, Tomb of Yawgmoth], and a [Vastwood Zendikon] enchanting Urborg, Tomb of Yawgmoth that entered the battlefield in that order. Is Urborg, Tomb of Yawgmoth a creature? If so, what are its creature types?",
+        "coverage": 0.2,
+        "hit": true,
+        "gap": 0.8,
+        "retrieved_n": 16
+      },
+      {
+        "arm": "h2h_gpt5mini",
+        "id": "rg131",
+        "match": "any",
+        "gold_n": 5,
+        "question": "Ainsley controls a [Blood Moon], a [Life and Limb], a [Cinder Glade], and a 1/1 Green Saproling Creature token, that entered the battlefield in that order. What do the Cinder Glade and Saproling look like?",
+        "coverage": 0.2,
+        "hit": true,
+        "gap": 0.8,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "h2h_gpt5mini",
+        "id": "rg813",
+        "match": "any",
+        "gold_n": 5,
+        "question": "Ahmad controls [Conspiracy] (naming \"Ferret\"), [Kormus Bell], [Urborg, Tomb of Yawgmoth], and a [Vastwood Zendikon] enchanting Urborg, Tomb of Yawgmoth that entered the battlefield in that order. Is Urborg, Tomb of Yawgmoth a creature? If so, what are its creature types?",
+        "coverage": 0.2,
+        "hit": true,
+        "gap": 0.8,
+        "retrieved_n": 16
+      },
+      {
+        "arm": "h2h_opuslow_hard_r1",
+        "id": "rg131",
+        "match": "any",
+        "gold_n": 5,
+        "question": "Ainsley controls a [Blood Moon], a [Life and Limb], a [Cinder Glade], and a 1/1 Green Saproling Creature token, that entered the battlefield in that order. What do the Cinder Glade and Saproling look like?",
+        "coverage": 0.2,
+        "hit": true,
+        "gap": 0.8,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "h2h_opuslow_hard_r1",
+        "id": "rg813",
+        "match": "any",
+        "gold_n": 5,
+        "question": "Ahmad controls [Conspiracy] (naming \"Ferret\"), [Kormus Bell], [Urborg, Tomb of Yawgmoth], and a [Vastwood Zendikon] enchanting Urborg, Tomb of Yawgmoth that entered the battlefield in that order. Is Urborg, Tomb of Yawgmoth a creature? If so, what are its creature types?",
+        "coverage": 0.2,
+        "hit": true,
+        "gap": 0.8,
+        "retrieved_n": 16
+      },
+      {
+        "arm": "h2h_opuslow_hard_r2",
+        "id": "rg131",
+        "match": "any",
+        "gold_n": 5,
+        "question": "Ainsley controls a [Blood Moon], a [Life and Limb], a [Cinder Glade], and a 1/1 Green Saproling Creature token, that entered the battlefield in that order. What do the Cinder Glade and Saproling look like?",
+        "coverage": 0.2,
+        "hit": true,
+        "gap": 0.8,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "h2h_opuslow_hard_r2",
+        "id": "rg813",
+        "match": "any",
+        "gold_n": 5,
+        "question": "Ahmad controls [Conspiracy] (naming \"Ferret\"), [Kormus Bell], [Urborg, Tomb of Yawgmoth], and a [Vastwood Zendikon] enchanting Urborg, Tomb of Yawgmoth that entered the battlefield in that order. Is Urborg, Tomb of Yawgmoth a creature? If so, what are its creature types?",
+        "coverage": 0.2,
+        "hit": true,
+        "gap": 0.8,
+        "retrieved_n": 16
+      },
+      {
+        "arm": "l0_opuslow",
+        "id": "rg102",
+        "match": "any",
+        "gold_n": 5,
+        "question": "Alonzo and Nico each control a [Death's Shadow]. Alonzo has 6 life and Nico has 9. Alonzo attacks with their Death's Shadow, and Nico blocks it with theirs. Alonzo casts [Temur Battle Rage] targeting their Death's Shadow. If Nico is dealt as much damage as possible during combat, what is their resulting life total?",
+        "coverage": 0.2,
+        "hit": true,
+        "gap": 0.8,
+        "retrieved_n": 16
+      },
+      {
+        "arm": "layers_slice0_base_layers_r1",
+        "id": "rg131",
+        "match": "any",
+        "gold_n": 5,
+        "question": "Ainsley controls a [Blood Moon], a [Life and Limb], a [Cinder Glade], and a 1/1 Green Saproling Creature token, that entered the battlefield in that order. What do the Cinder Glade and Saproling look like?",
+        "coverage": 0.2,
+        "hit": true,
+        "gap": 0.8,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "layers_slice0_base_layers_r1",
+        "id": "rg813",
+        "match": "any",
+        "gold_n": 5,
+        "question": "Ahmad controls [Conspiracy] (naming \"Ferret\"), [Kormus Bell], [Urborg, Tomb of Yawgmoth], and a [Vastwood Zendikon] enchanting Urborg, Tomb of Yawgmoth that entered the battlefield in that order. Is Urborg, Tomb of Yawgmoth a creature? If so, what are its creature types?",
+        "coverage": 0.2,
+        "hit": true,
+        "gap": 0.8,
+        "retrieved_n": 16
+      },
+      {
+        "arm": "layers_slice0_base_layers_r2",
+        "id": "rg131",
+        "match": "any",
+        "gold_n": 5,
+        "question": "Ainsley controls a [Blood Moon], a [Life and Limb], a [Cinder Glade], and a 1/1 Green Saproling Creature token, that entered the battlefield in that order. What do the Cinder Glade and Saproling look like?",
+        "coverage": 0.2,
+        "hit": true,
+        "gap": 0.8,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "layers_slice0_base_layers_r2",
+        "id": "rg813",
+        "match": "any",
+        "gold_n": 5,
+        "question": "Ahmad controls [Conspiracy] (naming \"Ferret\"), [Kormus Bell], [Urborg, Tomb of Yawgmoth], and a [Vastwood Zendikon] enchanting Urborg, Tomb of Yawgmoth that entered the battlefield in that order. Is Urborg, Tomb of Yawgmoth a creature? If so, what are its creature types?",
+        "coverage": 0.2,
+        "hit": true,
+        "gap": 0.8,
+        "retrieved_n": 16
+      },
+      {
+        "arm": "layers_slice0_base_layers_r3",
+        "id": "rg131",
+        "match": "any",
+        "gold_n": 5,
+        "question": "Ainsley controls a [Blood Moon], a [Life and Limb], a [Cinder Glade], and a 1/1 Green Saproling Creature token, that entered the battlefield in that order. What do the Cinder Glade and Saproling look like?",
+        "coverage": 0.2,
+        "hit": true,
+        "gap": 0.8,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "layers_slice0_base_layers_r3",
+        "id": "rg813",
+        "match": "any",
+        "gold_n": 5,
+        "question": "Ahmad controls [Conspiracy] (naming \"Ferret\"), [Kormus Bell], [Urborg, Tomb of Yawgmoth], and a [Vastwood Zendikon] enchanting Urborg, Tomb of Yawgmoth that entered the battlefield in that order. Is Urborg, Tomb of Yawgmoth a creature? If so, what are its creature types?",
+        "coverage": 0.2,
+        "hit": true,
+        "gap": 0.8,
+        "retrieved_n": 16
+      },
+      {
+        "arm": "opus5_low_norewrite_costbase",
+        "id": "rg813",
+        "match": "any",
+        "gold_n": 5,
+        "question": "Ahmad controls [Conspiracy] (naming \"Ferret\"), [Kormus Bell], [Urborg, Tomb of Yawgmoth], and a [Vastwood Zendikon] enchanting Urborg, Tomb of Yawgmoth that entered the battlefield in that order. Is Urborg, Tomb of Yawgmoth a creature? If so, what are its creature types?",
+        "coverage": 0.2,
+        "hit": true,
+        "gap": 0.8,
+        "retrieved_n": 18
+      },
+      {
+        "arm": "gold_audit_batch2_opuslow_candidates",
+        "id": "rg6634",
+        "match": "any",
+        "gold_n": 9,
+        "question": "Niko controls [Urza's Saga] on chapter 2. Ainsley casts [Magus of the Moon]. What happens to Urza's Saga?",
+        "coverage": 0.2222222222222222,
+        "hit": true,
+        "gap": 0.7777777777777778,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "h2h_gpt5mini",
+        "id": "rg6634",
+        "match": "any",
+        "gold_n": 9,
+        "question": "Niko controls [Urza's Saga] on chapter 2. Ainsley casts [Magus of the Moon]. What happens to Urza's Saga?",
+        "coverage": 0.2222222222222222,
+        "hit": true,
+        "gap": 0.7777777777777778,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "h2h_opuslow_hard_r1",
+        "id": "rg6634",
+        "match": "any",
+        "gold_n": 9,
+        "question": "Niko controls [Urza's Saga] on chapter 2. Ainsley casts [Magus of the Moon]. What happens to Urza's Saga?",
+        "coverage": 0.2222222222222222,
+        "hit": true,
+        "gap": 0.7777777777777778,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "h2h_opuslow_hard_r2",
+        "id": "rg6634",
+        "match": "any",
+        "gold_n": 9,
+        "question": "Niko controls [Urza's Saga] on chapter 2. Ainsley casts [Magus of the Moon]. What happens to Urza's Saga?",
+        "coverage": 0.2222222222222222,
+        "hit": true,
+        "gap": 0.7777777777777778,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "layers_slice0_base_layers_r1",
+        "id": "rg6634",
+        "match": "any",
+        "gold_n": 9,
+        "question": "Niko controls [Urza's Saga] on chapter 2. Ainsley casts [Magus of the Moon]. What happens to Urza's Saga?",
+        "coverage": 0.2222222222222222,
+        "hit": true,
+        "gap": 0.7777777777777778,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "_opus5_low_disagreements",
+        "id": "rg104",
+        "match": "any",
+        "gold_n": 4,
+        "question": "Autumn controls [Painter's Servant] naming \"blue\" and [Sword of Body and Mind]. Nico casts [Gift of Tusks] targeting the Painter's Servant. After it resolves, what happens if Autumn tries to equip Painter's Servant with Sword of Body and Mind?",
+        "coverage": 0.25,
+        "hit": true,
+        "gap": 0.75,
+        "retrieved_n": 19
+      },
+      {
+        "arm": "_opus5_low_disagreements",
+        "id": "rg776",
+        "match": "any",
+        "gold_n": 4,
+        "question": "Adriel controls [Wandering Ones] equipped with [Fleetfeather Sandals]. On Nico's turn, they enchant it with [Tightening Coils]. On Adriel's next turn, they activate Fleetfeather Sandals's equip ability, targeting Wandering Ones. After that resolves, does it have flying?",
+        "coverage": 0.25,
+        "hit": true,
+        "gap": 0.75,
+        "retrieved_n": 18
+      },
+      {
+        "arm": "_opus5_low_disagreements",
+        "id": "rg1128",
+        "match": "any",
+        "gold_n": 4,
+        "question": "Apollo controls [Realmwright] naming \"Island\", [Arcane Adaptation] naming \"Saproling\", and [Life and Limb], which entered the battlefield in that order. What are the types and subtypes of Realmwright?",
+        "coverage": 0.25,
+        "hit": true,
+        "gap": 0.75,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "_opus5_low_disagreements",
+        "id": "rg6626",
+        "match": "any",
+        "gold_n": 4,
+        "question": "Aubree casts [Blood Moon]. Nikolas activates [Inkmoth Nexus]'s ability in response. What will Inkmoth Nexus look like after everything resolves? What will it look like next turn?",
+        "coverage": 0.25,
+        "hit": true,
+        "gap": 0.75,
+        "retrieved_n": 19
+      },
+      {
+        "arm": "_pilot_opus5_high",
+        "id": "rg104",
+        "match": "any",
+        "gold_n": 4,
+        "question": "Autumn controls [Painter's Servant] naming \"blue\" and [Sword of Body and Mind]. Nico casts [Gift of Tusks] targeting the Painter's Servant. After it resolves, what happens if Autumn tries to equip Painter's Servant with Sword of Body and Mind?",
+        "coverage": 0.25,
+        "hit": true,
+        "gap": 0.75,
+        "retrieved_n": 19
+      },
+      {
+        "arm": "gold_audit_batch2_candidates",
+        "id": "rg776",
+        "match": "any",
+        "gold_n": 4,
+        "question": "Adriel controls [Wandering Ones] equipped with [Fleetfeather Sandals]. On Nico's turn, they enchant it with [Tightening Coils]. On Adriel's next turn, they activate Fleetfeather Sandals's equip ability, targeting Wandering Ones. After that resolves, does it have flying?",
+        "coverage": 0.25,
+        "hit": true,
+        "gap": 0.75,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "gold_audit_batch2_opuslow_candidates",
+        "id": "rg776",
+        "match": "any",
+        "gold_n": 4,
+        "question": "Adriel controls [Wandering Ones] equipped with [Fleetfeather Sandals]. On Nico's turn, they enchant it with [Tightening Coils]. On Adriel's next turn, they activate Fleetfeather Sandals's equip ability, targeting Wandering Ones. After that resolves, does it have flying?",
+        "coverage": 0.25,
+        "hit": true,
+        "gap": 0.75,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "h2h_gpt5mini",
+        "id": "rg776",
+        "match": "any",
+        "gold_n": 4,
+        "question": "Adriel controls [Wandering Ones] equipped with [Fleetfeather Sandals]. On Nico's turn, they enchant it with [Tightening Coils]. On Adriel's next turn, they activate Fleetfeather Sandals's equip ability, targeting Wandering Ones. After that resolves, does it have flying?",
+        "coverage": 0.25,
+        "hit": true,
+        "gap": 0.75,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "h2h_opuslow_easy_r1",
+        "id": "rg1857",
+        "match": "any",
+        "gold_n": 4,
+        "question": "Ariyah controls [The Ozolith] and [Putrid Goblin] with a -1/-1 counter on it. What happens if Putrid Goblin dies?",
+        "coverage": 0.25,
+        "hit": true,
+        "gap": 0.75,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "h2h_opuslow_easy_r2",
+        "id": "rg1857",
+        "match": "any",
+        "gold_n": 4,
+        "question": "Ariyah controls [The Ozolith] and [Putrid Goblin] with a -1/-1 counter on it. What happens if Putrid Goblin dies?",
+        "coverage": 0.25,
+        "hit": true,
+        "gap": 0.75,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "h2h_opuslow_hard_r1",
+        "id": "rg361",
+        "match": "any",
+        "gold_n": 4,
+        "question": "Aspen controls [Watchwolf] enchanted by [Lignify], [Figure of Destiny] that's had its third ability activated, and [Swab Goblin]. They casts [Pack's Favor] targeting Swab Goblin. After that resolves, they casts [Mirrorweave] targeting Figure of Destiny. What are the characteristics of Swab Goblin and Watchwolf?",
+        "coverage": 0.25,
+        "hit": true,
+        "gap": 0.75,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "h2h_opuslow_hard_r1",
+        "id": "rg776",
+        "match": "any",
+        "gold_n": 4,
+        "question": "Adriel controls [Wandering Ones] equipped with [Fleetfeather Sandals]. On Nico's turn, they enchant it with [Tightening Coils]. On Adriel's next turn, they activate Fleetfeather Sandals's equip ability, targeting Wandering Ones. After that resolves, does it have flying?",
+        "coverage": 0.25,
+        "hit": true,
+        "gap": 0.75,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "h2h_opuslow_hard_r1",
+        "id": "rg2811",
+        "match": "any",
+        "gold_n": 4,
+        "question": "Nico controls [Humility]. Avalyn controls [Maritime Guard] and wants to cast [Glowstone Recluse] mutating onto the Maritime Guard and putting it on top. What will the resulting creature's P/T be?",
+        "coverage": 0.25,
+        "hit": true,
+        "gap": 0.75,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "h2h_opuslow_hard_r2",
+        "id": "rg361",
+        "match": "any",
+        "gold_n": 4,
+        "question": "Aspen controls [Watchwolf] enchanted by [Lignify], [Figure of Destiny] that's had its third ability activated, and [Swab Goblin]. They casts [Pack's Favor] targeting Swab Goblin. After that resolves, they casts [Mirrorweave] targeting Figure of Destiny. What are the characteristics of Swab Goblin and Watchwolf?",
+        "coverage": 0.25,
+        "hit": true,
+        "gap": 0.75,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "h2h_opuslow_hard_r2",
+        "id": "rg776",
+        "match": "any",
+        "gold_n": 4,
+        "question": "Adriel controls [Wandering Ones] equipped with [Fleetfeather Sandals]. On Nico's turn, they enchant it with [Tightening Coils]. On Adriel's next turn, they activate Fleetfeather Sandals's equip ability, targeting Wandering Ones. After that resolves, does it have flying?",
+        "coverage": 0.25,
+        "hit": true,
+        "gap": 0.75,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "h2h_opuslow_hard_r2",
+        "id": "rg2811",
+        "match": "any",
+        "gold_n": 4,
+        "question": "Nico controls [Humility]. Avalyn controls [Maritime Guard] and wants to cast [Glowstone Recluse] mutating onto the Maritime Guard and putting it on top. What will the resulting creature's P/T be?",
+        "coverage": 0.25,
+        "hit": true,
+        "gap": 0.75,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "h2h_sonnet_easy_r1",
+        "id": "rg1857",
+        "match": "any",
+        "gold_n": 4,
+        "question": "Ariyah controls [The Ozolith] and [Putrid Goblin] with a -1/-1 counter on it. What happens if Putrid Goblin dies?",
+        "coverage": 0.25,
+        "hit": true,
+        "gap": 0.75,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "h2h_sonnet_easy_r2",
+        "id": "rg1857",
+        "match": "any",
+        "gold_n": 4,
+        "question": "Ariyah controls [The Ozolith] and [Putrid Goblin] with a -1/-1 counter on it. What happens if Putrid Goblin dies?",
+        "coverage": 0.25,
+        "hit": true,
+        "gap": 0.75,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "l0_opuslow",
+        "id": "rg1228",
+        "match": "any",
+        "gold_n": 4,
+        "question": "Ariel casts [Scapeshift] sacrificing seven lands. Ariel finds six [Mountain]s and one [Valakut, the Molten Pinnacle]. Ariel would like to have the first trigger deal three damage to Neymar's [Unsettled Mariner], and the rest to deal damage to Neymar. After the first trigger resolves, will Ariel still have to pay for the Unsettled Mariner triggers?",
+        "coverage": 0.25,
+        "hit": true,
+        "gap": 0.75,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "layers_slice0_base_layers_r1",
+        "id": "rg361",
+        "match": "any",
+        "gold_n": 4,
+        "question": "Aspen controls [Watchwolf] enchanted by [Lignify], [Figure of Destiny] that's had its third ability activated, and [Swab Goblin]. They casts [Pack's Favor] targeting Swab Goblin. After that resolves, they casts [Mirrorweave] targeting Figure of Destiny. What are the characteristics of Swab Goblin and Watchwolf?",
+        "coverage": 0.25,
+        "hit": true,
+        "gap": 0.75,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "layers_slice0_base_layers_r1",
+        "id": "rg776",
+        "match": "any",
+        "gold_n": 4,
+        "question": "Adriel controls [Wandering Ones] equipped with [Fleetfeather Sandals]. On Nico's turn, they enchant it with [Tightening Coils]. On Adriel's next turn, they activate Fleetfeather Sandals's equip ability, targeting Wandering Ones. After that resolves, does it have flying?",
+        "coverage": 0.25,
+        "hit": true,
+        "gap": 0.75,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "layers_slice0_base_layers_r1",
+        "id": "rg2811",
+        "match": "any",
+        "gold_n": 4,
+        "question": "Nico controls [Humility]. Avalyn controls [Maritime Guard] and wants to cast [Glowstone Recluse] mutating onto the Maritime Guard and putting it on top. What will the resulting creature's P/T be?",
+        "coverage": 0.25,
+        "hit": true,
+        "gap": 0.75,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "layers_slice0_base_layers_r2",
+        "id": "rg361",
+        "match": "any",
+        "gold_n": 4,
+        "question": "Aspen controls [Watchwolf] enchanted by [Lignify], [Figure of Destiny] that's had its third ability activated, and [Swab Goblin]. They casts [Pack's Favor] targeting Swab Goblin. After that resolves, they casts [Mirrorweave] targeting Figure of Destiny. What are the characteristics of Swab Goblin and Watchwolf?",
+        "coverage": 0.25,
+        "hit": true,
+        "gap": 0.75,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "layers_slice0_base_layers_r2",
+        "id": "rg776",
+        "match": "any",
+        "gold_n": 4,
+        "question": "Adriel controls [Wandering Ones] equipped with [Fleetfeather Sandals]. On Nico's turn, they enchant it with [Tightening Coils]. On Adriel's next turn, they activate Fleetfeather Sandals's equip ability, targeting Wandering Ones. After that resolves, does it have flying?",
+        "coverage": 0.25,
+        "hit": true,
+        "gap": 0.75,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "layers_slice0_base_layers_r2",
+        "id": "rg2811",
+        "match": "any",
+        "gold_n": 4,
+        "question": "Nico controls [Humility]. Avalyn controls [Maritime Guard] and wants to cast [Glowstone Recluse] mutating onto the Maritime Guard and putting it on top. What will the resulting creature's P/T be?",
+        "coverage": 0.25,
+        "hit": true,
+        "gap": 0.75,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "layers_slice0_base_layers_r3",
+        "id": "rg361",
+        "match": "any",
+        "gold_n": 4,
+        "question": "Aspen controls [Watchwolf] enchanted by [Lignify], [Figure of Destiny] that's had its third ability activated, and [Swab Goblin]. They casts [Pack's Favor] targeting Swab Goblin. After that resolves, they casts [Mirrorweave] targeting Figure of Destiny. What are the characteristics of Swab Goblin and Watchwolf?",
+        "coverage": 0.25,
+        "hit": true,
+        "gap": 0.75,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "layers_slice0_base_layers_r3",
+        "id": "rg776",
+        "match": "any",
+        "gold_n": 4,
+        "question": "Adriel controls [Wandering Ones] equipped with [Fleetfeather Sandals]. On Nico's turn, they enchant it with [Tightening Coils]. On Adriel's next turn, they activate Fleetfeather Sandals's equip ability, targeting Wandering Ones. After that resolves, does it have flying?",
+        "coverage": 0.25,
+        "hit": true,
+        "gap": 0.75,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "opus5_low_norewrite_costbase",
+        "id": "rg104",
+        "match": "any",
+        "gold_n": 4,
+        "question": "Autumn controls [Painter's Servant] naming \"blue\" and [Sword of Body and Mind]. Nico casts [Gift of Tusks] targeting the Painter's Servant. After it resolves, what happens if Autumn tries to equip Painter's Servant with Sword of Body and Mind?",
+        "coverage": 0.25,
+        "hit": true,
+        "gap": 0.75,
+        "retrieved_n": 19
+      },
+      {
+        "arm": "opus5_low_norewrite_costbase",
+        "id": "rg115",
+        "match": "any",
+        "gold_n": 4,
+        "question": "Nathanael controls [Grizzly Bears] and [Muraganda Petroglyphs]. They cast and resolve [Crowd's Favor], targeting Grizzly Bears. Amia then casts [Archetype of Courage]. After it resolves, what are the power and toughness of Grizzly Bears?",
+        "coverage": 0.25,
+        "hit": true,
+        "gap": 0.75,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "opus5_low_norewrite_costbase",
+        "id": "rg361",
+        "match": "any",
+        "gold_n": 4,
+        "question": "Aspen controls [Watchwolf] enchanted by [Lignify], [Figure of Destiny] that's had its third ability activated, and [Swab Goblin]. They casts [Pack's Favor] targeting Swab Goblin. After that resolves, they casts [Mirrorweave] targeting Figure of Destiny. What are the characteristics of Swab Goblin and Watchwolf?",
+        "coverage": 0.25,
+        "hit": true,
+        "gap": 0.75,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "opus5_low_norewrite_costbase",
+        "id": "rg776",
+        "match": "any",
+        "gold_n": 4,
+        "question": "Adriel controls [Wandering Ones] equipped with [Fleetfeather Sandals]. On Nico's turn, they enchant it with [Tightening Coils]. On Adriel's next turn, they activate Fleetfeather Sandals's equip ability, targeting Wandering Ones. After that resolves, does it have flying?",
+        "coverage": 0.25,
+        "hit": true,
+        "gap": 0.75,
+        "retrieved_n": 18
+      },
+      {
+        "arm": "opus5_low_norewrite_costbase",
+        "id": "rg1128",
+        "match": "any",
+        "gold_n": 4,
+        "question": "Apollo controls [Realmwright] naming \"Island\", [Arcane Adaptation] naming \"Saproling\", and [Life and Limb], which entered the battlefield in that order. What are the types and subtypes of Realmwright?",
+        "coverage": 0.25,
+        "hit": true,
+        "gap": 0.75,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "opus5_low_norewrite_costbase",
+        "id": "rg1469",
+        "match": "any",
+        "gold_n": 4,
+        "question": "Addison controls [Dryad of the Ilysian Grove] and casts [Blood Moon]. What are the characteristics of [Snow-Covered Island], [Study Hall], [Dryad Arbor], and [Mountain] after Blood Moon resolves?",
+        "coverage": 0.25,
+        "hit": true,
+        "gap": 0.75,
+        "retrieved_n": 18
+      },
+      {
+        "arm": "opus5_low_norewrite_costbase",
+        "id": "rg2811",
+        "match": "any",
+        "gold_n": 4,
+        "question": "Nico controls [Humility]. Avalyn controls [Maritime Guard] and wants to cast [Glowstone Recluse] mutating onto the Maritime Guard and putting it on top. What will the resulting creature's P/T be?",
+        "coverage": 0.25,
+        "hit": true,
+        "gap": 0.75,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "opus5_low_norewrite_costbase",
+        "id": "rg5085",
+        "match": "any",
+        "gold_n": 4,
+        "question": "Avery's [Unlicensed Hearse] has exiled five cards, and they activate its crew ability. After that resolves, Avery casts [Dress Down]. What does Unlicensed Hearse look like?",
+        "coverage": 0.25,
+        "hit": true,
+        "gap": 0.75,
+        "retrieved_n": 18
+      },
+      {
+        "arm": "opus5_low_norewrite_costbase",
+        "id": "rg6626",
+        "match": "any",
+        "gold_n": 4,
+        "question": "Aubree casts [Blood Moon]. Nikolas activates [Inkmoth Nexus]'s ability in response. What will Inkmoth Nexus look like after everything resolves? What will it look like next turn?",
+        "coverage": 0.25,
+        "hit": true,
+        "gap": 0.75,
+        "retrieved_n": 19
+      },
+      {
+        "arm": "gold_audit_batch2_candidates",
+        "id": "rg4023",
+        "match": "any",
+        "gold_n": 10,
+        "question": "Nico controls [Urza's Saga] with two lore counters on it. Alexzander uses [Jinx] to change its land type. What happens?",
+        "coverage": 0.3,
+        "hit": true,
+        "gap": 0.7,
+        "retrieved_n": 18
+      },
+      {
+        "arm": "gold_audit_batch2_opuslow_candidates",
+        "id": "rg4023",
+        "match": "any",
+        "gold_n": 10,
+        "question": "Nico controls [Urza's Saga] with two lore counters on it. Alexzander uses [Jinx] to change its land type. What happens?",
+        "coverage": 0.3,
+        "hit": true,
+        "gap": 0.7,
+        "retrieved_n": 18
+      },
+      {
+        "arm": "h2h_gpt5mini",
+        "id": "rg4023",
+        "match": "any",
+        "gold_n": 10,
+        "question": "Nico controls [Urza's Saga] with two lore counters on it. Alexzander uses [Jinx] to change its land type. What happens?",
+        "coverage": 0.3,
+        "hit": true,
+        "gap": 0.7,
+        "retrieved_n": 18
+      },
+      {
+        "arm": "h2h_opuslow_hard_r1",
+        "id": "rg4023",
+        "match": "any",
+        "gold_n": 10,
+        "question": "Nico controls [Urza's Saga] with two lore counters on it. Alexzander uses [Jinx] to change its land type. What happens?",
+        "coverage": 0.3,
+        "hit": true,
+        "gap": 0.7,
+        "retrieved_n": 18
+      },
+      {
+        "arm": "h2h_opuslow_hard_r2",
+        "id": "rg4023",
+        "match": "any",
+        "gold_n": 10,
+        "question": "Nico controls [Urza's Saga] with two lore counters on it. Alexzander uses [Jinx] to change its land type. What happens?",
+        "coverage": 0.3,
+        "hit": true,
+        "gap": 0.7,
+        "retrieved_n": 18
+      },
+      {
+        "arm": "layers_slice0_base_layers_r1",
+        "id": "rg4023",
+        "match": "any",
+        "gold_n": 10,
+        "question": "Nico controls [Urza's Saga] with two lore counters on it. Alexzander uses [Jinx] to change its land type. What happens?",
+        "coverage": 0.3,
+        "hit": true,
+        "gap": 0.7,
+        "retrieved_n": 18
+      },
+      {
+        "arm": "layers_slice0_base_layers_r2",
+        "id": "rg4023",
+        "match": "any",
+        "gold_n": 10,
+        "question": "Nico controls [Urza's Saga] with two lore counters on it. Alexzander uses [Jinx] to change its land type. What happens?",
+        "coverage": 0.3,
+        "hit": true,
+        "gap": 0.7,
+        "retrieved_n": 18
+      },
+      {
+        "arm": "_opus5_low_disagreements",
+        "id": "rg1900",
+        "match": "any",
+        "gold_n": 3,
+        "question": "Avery manifests the top card of their library with [Soul Summons]. Then, they mutate [Trumpeting Gnarr] targeting the manifested creature. What are the characteristics of the resulting creature if Avery chooses to put the manifested creature on top?",
+        "coverage": 0.3333333333333333,
+        "hit": true,
+        "gap": 0.6666666666666667,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "_opus5_low_disagreements",
+        "id": "rg4854",
+        "match": "any",
+        "gold_n": 3,
+        "question": "Natalie controls [High Fae Trickster]. Allen activates the crew ability of [Capenna Express]. Before it resolves Natalie casts [One with the Stars] targeting Capenna Express. What happens when the crew ability resolves?",
+        "coverage": 0.3333333333333333,
+        "hit": true,
+        "gap": 0.6666666666666667,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "gold_audit_batch2_candidates",
+        "id": "rg614",
+        "match": "any",
+        "gold_n": 3,
+        "question": "Aya controls a [Skullbriar, the Walking Grave] with 3 +1/+1 counters on it. Nico casts [Duplicant] and has it exile Skullbriar, the Walking Grave. What are Duplicant's power and toughness after the imprint ability resolves?",
+        "coverage": 0.3333333333333333,
+        "hit": true,
+        "gap": 0.6666666666666667,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "gold_audit_batch2_candidates",
+        "id": "rg1900",
+        "match": "any",
+        "gold_n": 3,
+        "question": "Avery manifests the top card of their library with [Soul Summons]. Then, they mutate [Trumpeting Gnarr] targeting the manifested creature. What are the characteristics of the resulting creature if Avery chooses to put the manifested creature on top?",
+        "coverage": 0.3333333333333333,
+        "hit": true,
+        "gap": 0.6666666666666667,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "gold_audit_batch2_candidates",
+        "id": "rg4854",
+        "match": "any",
+        "gold_n": 3,
+        "question": "Natalie controls [High Fae Trickster]. Allen activates the crew ability of [Capenna Express]. Before it resolves Natalie casts [One with the Stars] targeting Capenna Express. What happens when the crew ability resolves?",
+        "coverage": 0.3333333333333333,
+        "hit": true,
+        "gap": 0.6666666666666667,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "gold_audit_batch2_opuslow_candidates",
+        "id": "rg1900",
+        "match": "any",
+        "gold_n": 3,
+        "question": "Avery manifests the top card of their library with [Soul Summons]. Then, they mutate [Trumpeting Gnarr] targeting the manifested creature. What are the characteristics of the resulting creature if Avery chooses to put the manifested creature on top?",
+        "coverage": 0.3333333333333333,
+        "hit": true,
+        "gap": 0.6666666666666667,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "gold_audit_batch2_opuslow_candidates",
+        "id": "rg614",
+        "match": "any",
+        "gold_n": 3,
+        "question": "Aya controls a [Skullbriar, the Walking Grave] with 3 +1/+1 counters on it. Nico casts [Duplicant] and has it exile Skullbriar, the Walking Grave. What are Duplicant's power and toughness after the imprint ability resolves?",
+        "coverage": 0.3333333333333333,
+        "hit": true,
+        "gap": 0.6666666666666667,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "h2h_gpt5mini",
+        "id": "rg129",
+        "match": "any",
+        "gold_n": 3,
+        "question": "Alex controls a [Life and Limb], a [Blood Moon], and a 1/1 Green Saproling Creature token, that entered the battlefield in that order. What is the Saproling?",
+        "coverage": 0.3333333333333333,
+        "hit": true,
+        "gap": 0.6666666666666667,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "h2h_gpt5mini",
+        "id": "rg614",
+        "match": "any",
+        "gold_n": 3,
+        "question": "Aya controls a [Skullbriar, the Walking Grave] with 3 +1/+1 counters on it. Nico casts [Duplicant] and has it exile Skullbriar, the Walking Grave. What are Duplicant's power and toughness after the imprint ability resolves?",
+        "coverage": 0.3333333333333333,
+        "hit": true,
+        "gap": 0.6666666666666667,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "h2h_gpt5mini",
+        "id": "rg807",
+        "match": "any",
+        "gold_n": 6,
+        "question": "Ariah controls [Wayward Angel] and has 7 cards in their graveyard. Nickolas casts [Turn to Frog], targeting Wayward Angel. What are Wayward Angel's characteristics after Turn to Frog resolves?",
+        "coverage": 0.3333333333333333,
+        "hit": true,
+        "gap": 0.6666666666666667,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "h2h_gpt5mini",
+        "id": "rg1900",
+        "match": "any",
+        "gold_n": 3,
+        "question": "Avery manifests the top card of their library with [Soul Summons]. Then, they mutate [Trumpeting Gnarr] targeting the manifested creature. What are the characteristics of the resulting creature if Avery chooses to put the manifested creature on top?",
+        "coverage": 0.3333333333333333,
+        "hit": true,
+        "gap": 0.6666666666666667,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "h2h_gpt5mini",
+        "id": "rg2855",
+        "match": "any",
+        "gold_n": 3,
+        "question": "Alex controls [Magus of the Moon] and [Forgotten Monument]. Neil casts [Lizard, Connors's Curse] targeting Magus of the Moon. After Lizard, Connors's Curse has resolved, what are the characteristics of Forgotten Monument?",
+        "coverage": 0.3333333333333333,
+        "hit": true,
+        "gap": 0.6666666666666667,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "h2h_gpt5mini",
+        "id": "rg4854",
+        "match": "any",
+        "gold_n": 3,
+        "question": "Natalie controls [High Fae Trickster]. Allen activates the crew ability of [Capenna Express]. Before it resolves Natalie casts [One with the Stars] targeting Capenna Express. What happens when the crew ability resolves?",
+        "coverage": 0.3333333333333333,
+        "hit": true,
+        "gap": 0.6666666666666667,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "h2h_opuslow_easy_r1",
+        "id": "rg1663",
+        "match": "any",
+        "gold_n": 3,
+        "question": "Autumn controls [Bolas's Citadel] and has [Sidisi's Pet] on top of their library, can they cast it for its morph cost? If so, how much life will they pay?",
+        "coverage": 0.3333333333333333,
+        "hit": true,
+        "gap": 0.6666666666666667,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "h2h_opuslow_easy_r2",
+        "id": "rg1663",
+        "match": "any",
+        "gold_n": 3,
+        "question": "Autumn controls [Bolas's Citadel] and has [Sidisi's Pet] on top of their library, can they cast it for its morph cost? If so, how much life will they pay?",
+        "coverage": 0.3333333333333333,
+        "hit": true,
+        "gap": 0.6666666666666667,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "h2h_opuslow_hard_r1",
+        "id": "rg87",
+        "match": "any",
+        "gold_n": 3,
+        "question": "Alan controls [Iroas, God of Victory] and 3 other enchantments. Their devotion to white is 2. They cast [Starfield of Nyx]. After it resolves, is Iroas, God of Victory a creature? If so, what are its power and toughness?",
+        "coverage": 0.3333333333333333,
+        "hit": true,
+        "gap": 0.6666666666666667,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "h2h_opuslow_hard_r1",
+        "id": "rg129",
+        "match": "any",
+        "gold_n": 3,
+        "question": "Alex controls a [Life and Limb], a [Blood Moon], and a 1/1 Green Saproling Creature token, that entered the battlefield in that order. What is the Saproling?",
+        "coverage": 0.3333333333333333,
+        "hit": true,
+        "gap": 0.6666666666666667,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "h2h_opuslow_hard_r1",
+        "id": "rg614",
+        "match": "any",
+        "gold_n": 3,
+        "question": "Aya controls a [Skullbriar, the Walking Grave] with 3 +1/+1 counters on it. Nico casts [Duplicant] and has it exile Skullbriar, the Walking Grave. What are Duplicant's power and toughness after the imprint ability resolves?",
+        "coverage": 0.3333333333333333,
+        "hit": true,
+        "gap": 0.6666666666666667,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "h2h_opuslow_hard_r1",
+        "id": "rg807",
+        "match": "any",
+        "gold_n": 6,
+        "question": "Ariah controls [Wayward Angel] and has 7 cards in their graveyard. Nickolas casts [Turn to Frog], targeting Wayward Angel. What are Wayward Angel's characteristics after Turn to Frog resolves?",
+        "coverage": 0.3333333333333333,
+        "hit": true,
+        "gap": 0.6666666666666667,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "h2h_opuslow_hard_r1",
+        "id": "rg1900",
+        "match": "any",
+        "gold_n": 3,
+        "question": "Avery manifests the top card of their library with [Soul Summons]. Then, they mutate [Trumpeting Gnarr] targeting the manifested creature. What are the characteristics of the resulting creature if Avery chooses to put the manifested creature on top?",
+        "coverage": 0.3333333333333333,
+        "hit": true,
+        "gap": 0.6666666666666667,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "h2h_opuslow_hard_r1",
+        "id": "rg2855",
+        "match": "any",
+        "gold_n": 3,
+        "question": "Alex controls [Magus of the Moon] and [Forgotten Monument]. Neil casts [Lizard, Connors's Curse] targeting Magus of the Moon. After Lizard, Connors's Curse has resolved, what are the characteristics of Forgotten Monument?",
+        "coverage": 0.3333333333333333,
+        "hit": true,
+        "gap": 0.6666666666666667,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "h2h_opuslow_hard_r1",
+        "id": "rg4070",
+        "match": "any",
+        "gold_n": 3,
+        "question": "Aaden activates [Inkmoth Nexus], equips [Colossus Hammer] to it, then activates Inkmoth Nexus again. What are the characteristics of Inkmoth Nexus?",
+        "coverage": 0.3333333333333333,
+        "hit": true,
+        "gap": 0.6666666666666667,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "h2h_opuslow_hard_r1",
+        "id": "rg4854",
+        "match": "any",
+        "gold_n": 3,
+        "question": "Natalie controls [High Fae Trickster]. Allen activates the crew ability of [Capenna Express]. Before it resolves Natalie casts [One with the Stars] targeting Capenna Express. What happens when the crew ability resolves?",
+        "coverage": 0.3333333333333333,
+        "hit": true,
+        "gap": 0.6666666666666667,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "h2h_opuslow_hard_r2",
+        "id": "rg87",
+        "match": "any",
+        "gold_n": 3,
+        "question": "Alan controls [Iroas, God of Victory] and 3 other enchantments. Their devotion to white is 2. They cast [Starfield of Nyx]. After it resolves, is Iroas, God of Victory a creature? If so, what are its power and toughness?",
+        "coverage": 0.3333333333333333,
+        "hit": true,
+        "gap": 0.6666666666666667,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "h2h_opuslow_hard_r2",
+        "id": "rg129",
+        "match": "any",
+        "gold_n": 3,
+        "question": "Alex controls a [Life and Limb], a [Blood Moon], and a 1/1 Green Saproling Creature token, that entered the battlefield in that order. What is the Saproling?",
+        "coverage": 0.3333333333333333,
+        "hit": true,
+        "gap": 0.6666666666666667,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "h2h_opuslow_hard_r2",
+        "id": "rg614",
+        "match": "any",
+        "gold_n": 3,
+        "question": "Aya controls a [Skullbriar, the Walking Grave] with 3 +1/+1 counters on it. Nico casts [Duplicant] and has it exile Skullbriar, the Walking Grave. What are Duplicant's power and toughness after the imprint ability resolves?",
+        "coverage": 0.3333333333333333,
+        "hit": true,
+        "gap": 0.6666666666666667,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "h2h_opuslow_hard_r2",
+        "id": "rg807",
+        "match": "any",
+        "gold_n": 6,
+        "question": "Ariah controls [Wayward Angel] and has 7 cards in their graveyard. Nickolas casts [Turn to Frog], targeting Wayward Angel. What are Wayward Angel's characteristics after Turn to Frog resolves?",
+        "coverage": 0.3333333333333333,
+        "hit": true,
+        "gap": 0.6666666666666667,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "h2h_opuslow_hard_r2",
+        "id": "rg1900",
+        "match": "any",
+        "gold_n": 3,
+        "question": "Avery manifests the top card of their library with [Soul Summons]. Then, they mutate [Trumpeting Gnarr] targeting the manifested creature. What are the characteristics of the resulting creature if Avery chooses to put the manifested creature on top?",
+        "coverage": 0.3333333333333333,
+        "hit": true,
+        "gap": 0.6666666666666667,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "h2h_opuslow_hard_r2",
+        "id": "rg2855",
+        "match": "any",
+        "gold_n": 3,
+        "question": "Alex controls [Magus of the Moon] and [Forgotten Monument]. Neil casts [Lizard, Connors's Curse] targeting Magus of the Moon. After Lizard, Connors's Curse has resolved, what are the characteristics of Forgotten Monument?",
+        "coverage": 0.3333333333333333,
+        "hit": true,
+        "gap": 0.6666666666666667,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "h2h_opuslow_hard_r2",
+        "id": "rg4070",
+        "match": "any",
+        "gold_n": 3,
+        "question": "Aaden activates [Inkmoth Nexus], equips [Colossus Hammer] to it, then activates Inkmoth Nexus again. What are the characteristics of Inkmoth Nexus?",
+        "coverage": 0.3333333333333333,
+        "hit": true,
+        "gap": 0.6666666666666667,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "h2h_opuslow_hard_r2",
+        "id": "rg4854",
+        "match": "any",
+        "gold_n": 3,
+        "question": "Natalie controls [High Fae Trickster]. Allen activates the crew ability of [Capenna Express]. Before it resolves Natalie casts [One with the Stars] targeting Capenna Express. What happens when the crew ability resolves?",
+        "coverage": 0.3333333333333333,
+        "hit": true,
+        "gap": 0.6666666666666667,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "h2h_sonnet_easy_r1",
+        "id": "rg1663",
+        "match": "any",
+        "gold_n": 3,
+        "question": "Autumn controls [Bolas's Citadel] and has [Sidisi's Pet] on top of their library, can they cast it for its morph cost? If so, how much life will they pay?",
+        "coverage": 0.3333333333333333,
+        "hit": true,
+        "gap": 0.6666666666666667,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "h2h_sonnet_easy_r2",
+        "id": "rg1663",
+        "match": "any",
+        "gold_n": 3,
+        "question": "Autumn controls [Bolas's Citadel] and has [Sidisi's Pet] on top of their library, can they cast it for its morph cost? If so, how much life will they pay?",
+        "coverage": 0.3333333333333333,
+        "hit": true,
+        "gap": 0.6666666666666667,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "l0_opuslow",
+        "id": "rg93",
+        "match": "any",
+        "gold_n": 3,
+        "question": "Arielle casts [Sram's Expertise]. As it resolves, they would like tap the tokens it created to cast [Collective Effort] escalated twice. Can they?",
+        "coverage": 0.3333333333333333,
+        "hit": true,
+        "gap": 0.6666666666666667,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "l0_opuslow",
+        "id": "rg259",
+        "match": "any",
+        "gold_n": 3,
+        "question": "Aurora controls [Summit Prowler]. Nickolas casts [Crippling Chill] targeting Summit Prowler. Before it resolves, Aurora casts [Momentary Blink] targeting the Summit Prowler. What happens to the Summit Prowler? Does Nickolas draw a card?",
+        "coverage": 0.3333333333333333,
+        "hit": true,
+        "gap": 0.6666666666666667,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "l0_opuslow",
+        "id": "rg2628",
+        "match": "any",
+        "gold_n": 3,
+        "question": "Ariel attacks with [Survivor of Korlis]. Nevaeh blocks with [Trained Caracal]. What happens after the declare blockers step?",
+        "coverage": 0.3333333333333333,
+        "hit": true,
+        "gap": 0.6666666666666667,
+        "retrieved_n": 16
+      },
+      {
+        "arm": "layers_slice0_base_layers_r1",
+        "id": "rg87",
+        "match": "any",
+        "gold_n": 3,
+        "question": "Alan controls [Iroas, God of Victory] and 3 other enchantments. Their devotion to white is 2. They cast [Starfield of Nyx]. After it resolves, is Iroas, God of Victory a creature? If so, what are its power and toughness?",
+        "coverage": 0.3333333333333333,
+        "hit": true,
+        "gap": 0.6666666666666667,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "layers_slice0_base_layers_r1",
+        "id": "rg129",
+        "match": "any",
+        "gold_n": 3,
+        "question": "Alex controls a [Life and Limb], a [Blood Moon], and a 1/1 Green Saproling Creature token, that entered the battlefield in that order. What is the Saproling?",
+        "coverage": 0.3333333333333333,
+        "hit": true,
+        "gap": 0.6666666666666667,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "layers_slice0_base_layers_r1",
+        "id": "rg614",
+        "match": "any",
+        "gold_n": 3,
+        "question": "Aya controls a [Skullbriar, the Walking Grave] with 3 +1/+1 counters on it. Nico casts [Duplicant] and has it exile Skullbriar, the Walking Grave. What are Duplicant's power and toughness after the imprint ability resolves?",
+        "coverage": 0.3333333333333333,
+        "hit": true,
+        "gap": 0.6666666666666667,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "layers_slice0_base_layers_r1",
+        "id": "rg807",
+        "match": "any",
+        "gold_n": 6,
+        "question": "Ariah controls [Wayward Angel] and has 7 cards in their graveyard. Nickolas casts [Turn to Frog], targeting Wayward Angel. What are Wayward Angel's characteristics after Turn to Frog resolves?",
+        "coverage": 0.3333333333333333,
+        "hit": true,
+        "gap": 0.6666666666666667,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "layers_slice0_base_layers_r1",
+        "id": "rg1900",
+        "match": "any",
+        "gold_n": 3,
+        "question": "Avery manifests the top card of their library with [Soul Summons]. Then, they mutate [Trumpeting Gnarr] targeting the manifested creature. What are the characteristics of the resulting creature if Avery chooses to put the manifested creature on top?",
+        "coverage": 0.3333333333333333,
+        "hit": true,
+        "gap": 0.6666666666666667,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "layers_slice0_base_layers_r1",
+        "id": "rg2855",
+        "match": "any",
+        "gold_n": 3,
+        "question": "Alex controls [Magus of the Moon] and [Forgotten Monument]. Neil casts [Lizard, Connors's Curse] targeting Magus of the Moon. After Lizard, Connors's Curse has resolved, what are the characteristics of Forgotten Monument?",
+        "coverage": 0.3333333333333333,
+        "hit": true,
+        "gap": 0.6666666666666667,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "layers_slice0_base_layers_r1",
+        "id": "rg4070",
+        "match": "any",
+        "gold_n": 3,
+        "question": "Aaden activates [Inkmoth Nexus], equips [Colossus Hammer] to it, then activates Inkmoth Nexus again. What are the characteristics of Inkmoth Nexus?",
+        "coverage": 0.3333333333333333,
+        "hit": true,
+        "gap": 0.6666666666666667,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "layers_slice0_base_layers_r1",
+        "id": "rg4854",
+        "match": "any",
+        "gold_n": 3,
+        "question": "Natalie controls [High Fae Trickster]. Allen activates the crew ability of [Capenna Express]. Before it resolves Natalie casts [One with the Stars] targeting Capenna Express. What happens when the crew ability resolves?",
+        "coverage": 0.3333333333333333,
+        "hit": true,
+        "gap": 0.6666666666666667,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "layers_slice0_base_layers_r2",
+        "id": "rg87",
+        "match": "any",
+        "gold_n": 3,
+        "question": "Alan controls [Iroas, God of Victory] and 3 other enchantments. Their devotion to white is 2. They cast [Starfield of Nyx]. After it resolves, is Iroas, God of Victory a creature? If so, what are its power and toughness?",
+        "coverage": 0.3333333333333333,
+        "hit": true,
+        "gap": 0.6666666666666667,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "layers_slice0_base_layers_r2",
+        "id": "rg129",
+        "match": "any",
+        "gold_n": 3,
+        "question": "Alex controls a [Life and Limb], a [Blood Moon], and a 1/1 Green Saproling Creature token, that entered the battlefield in that order. What is the Saproling?",
+        "coverage": 0.3333333333333333,
+        "hit": true,
+        "gap": 0.6666666666666667,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "layers_slice0_base_layers_r2",
+        "id": "rg614",
+        "match": "any",
+        "gold_n": 3,
+        "question": "Aya controls a [Skullbriar, the Walking Grave] with 3 +1/+1 counters on it. Nico casts [Duplicant] and has it exile Skullbriar, the Walking Grave. What are Duplicant's power and toughness after the imprint ability resolves?",
+        "coverage": 0.3333333333333333,
+        "hit": true,
+        "gap": 0.6666666666666667,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "layers_slice0_base_layers_r2",
+        "id": "rg807",
+        "match": "any",
+        "gold_n": 6,
+        "question": "Ariah controls [Wayward Angel] and has 7 cards in their graveyard. Nickolas casts [Turn to Frog], targeting Wayward Angel. What are Wayward Angel's characteristics after Turn to Frog resolves?",
+        "coverage": 0.3333333333333333,
+        "hit": true,
+        "gap": 0.6666666666666667,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "layers_slice0_base_layers_r2",
+        "id": "rg1900",
+        "match": "any",
+        "gold_n": 3,
+        "question": "Avery manifests the top card of their library with [Soul Summons]. Then, they mutate [Trumpeting Gnarr] targeting the manifested creature. What are the characteristics of the resulting creature if Avery chooses to put the manifested creature on top?",
+        "coverage": 0.3333333333333333,
+        "hit": true,
+        "gap": 0.6666666666666667,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "layers_slice0_base_layers_r2",
+        "id": "rg2855",
+        "match": "any",
+        "gold_n": 3,
+        "question": "Alex controls [Magus of the Moon] and [Forgotten Monument]. Neil casts [Lizard, Connors's Curse] targeting Magus of the Moon. After Lizard, Connors's Curse has resolved, what are the characteristics of Forgotten Monument?",
+        "coverage": 0.3333333333333333,
+        "hit": true,
+        "gap": 0.6666666666666667,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "layers_slice0_base_layers_r2",
+        "id": "rg4070",
+        "match": "any",
+        "gold_n": 3,
+        "question": "Aaden activates [Inkmoth Nexus], equips [Colossus Hammer] to it, then activates Inkmoth Nexus again. What are the characteristics of Inkmoth Nexus?",
+        "coverage": 0.3333333333333333,
+        "hit": true,
+        "gap": 0.6666666666666667,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "layers_slice0_base_layers_r2",
+        "id": "rg4854",
+        "match": "any",
+        "gold_n": 3,
+        "question": "Natalie controls [High Fae Trickster]. Allen activates the crew ability of [Capenna Express]. Before it resolves Natalie casts [One with the Stars] targeting Capenna Express. What happens when the crew ability resolves?",
+        "coverage": 0.3333333333333333,
+        "hit": true,
+        "gap": 0.6666666666666667,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "layers_slice0_base_layers_r3",
+        "id": "rg87",
+        "match": "any",
+        "gold_n": 3,
+        "question": "Alan controls [Iroas, God of Victory] and 3 other enchantments. Their devotion to white is 2. They cast [Starfield of Nyx]. After it resolves, is Iroas, God of Victory a creature? If so, what are its power and toughness?",
+        "coverage": 0.3333333333333333,
+        "hit": true,
+        "gap": 0.6666666666666667,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "layers_slice0_base_layers_r3",
+        "id": "rg129",
+        "match": "any",
+        "gold_n": 3,
+        "question": "Alex controls a [Life and Limb], a [Blood Moon], and a 1/1 Green Saproling Creature token, that entered the battlefield in that order. What is the Saproling?",
+        "coverage": 0.3333333333333333,
+        "hit": true,
+        "gap": 0.6666666666666667,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "layers_slice0_base_layers_r3",
+        "id": "rg614",
+        "match": "any",
+        "gold_n": 3,
+        "question": "Aya controls a [Skullbriar, the Walking Grave] with 3 +1/+1 counters on it. Nico casts [Duplicant] and has it exile Skullbriar, the Walking Grave. What are Duplicant's power and toughness after the imprint ability resolves?",
+        "coverage": 0.3333333333333333,
+        "hit": true,
+        "gap": 0.6666666666666667,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "layers_slice0_base_layers_r3",
+        "id": "rg807",
+        "match": "any",
+        "gold_n": 6,
+        "question": "Ariah controls [Wayward Angel] and has 7 cards in their graveyard. Nickolas casts [Turn to Frog], targeting Wayward Angel. What are Wayward Angel's characteristics after Turn to Frog resolves?",
+        "coverage": 0.3333333333333333,
+        "hit": true,
+        "gap": 0.6666666666666667,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "layers_slice0_base_layers_r3",
+        "id": "rg1900",
+        "match": "any",
+        "gold_n": 3,
+        "question": "Avery manifests the top card of their library with [Soul Summons]. Then, they mutate [Trumpeting Gnarr] targeting the manifested creature. What are the characteristics of the resulting creature if Avery chooses to put the manifested creature on top?",
+        "coverage": 0.3333333333333333,
+        "hit": true,
+        "gap": 0.6666666666666667,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "opus5_low_norewrite_costbase",
+        "id": "rg1900",
+        "match": "any",
+        "gold_n": 3,
+        "question": "Avery manifests the top card of their library with [Soul Summons]. Then, they mutate [Trumpeting Gnarr] targeting the manifested creature. What are the characteristics of the resulting creature if Avery chooses to put the manifested creature on top?",
+        "coverage": 0.3333333333333333,
+        "hit": true,
+        "gap": 0.6666666666666667,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "opus5_low_norewrite_costbase",
+        "id": "rg2742",
+        "match": "any",
+        "gold_n": 3,
+        "question": "Ari controls [Xathrid Gorgon]. Neriah controls a [Hexavus] and [Stonehewer Giant]. Ari activates Xathrid Gorgon to put a petrification counter on Stonehewer Giant which Neriah removes with Hexavus. Can Neriah activate Stonehewer Giant's activated ability?",
+        "coverage": 0.3333333333333333,
+        "hit": true,
+        "gap": 0.6666666666666667,
+        "retrieved_n": 18
+      },
+      {
+        "arm": "opus5_low_norewrite_costbase",
+        "id": "rg4070",
+        "match": "any",
+        "gold_n": 3,
+        "question": "Aaden activates [Inkmoth Nexus], equips [Colossus Hammer] to it, then activates Inkmoth Nexus again. What are the characteristics of Inkmoth Nexus?",
+        "coverage": 0.3333333333333333,
+        "hit": true,
+        "gap": 0.6666666666666667,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "opus5_low_norewrite_costbase",
+        "id": "rg4854",
+        "match": "any",
+        "gold_n": 3,
+        "question": "Natalie controls [High Fae Trickster]. Allen activates the crew ability of [Capenna Express]. Before it resolves Natalie casts [One with the Stars] targeting Capenna Express. What happens when the crew ability resolves?",
+        "coverage": 0.3333333333333333,
+        "hit": true,
+        "gap": 0.6666666666666667,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "opus5_low_norewrite_costbase",
+        "id": "rg5800",
+        "match": "any",
+        "gold_n": 3,
+        "question": "Alex controls [Karametra, God of Harvests], and then casts [Opalescence]. Their devotion to white is 2. Is Karametra, God of Harvests a creature? If so, what is its power and toughness? ",
+        "coverage": 0.3333333333333333,
+        "hit": true,
+        "gap": 0.6666666666666667,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "opus5_low_norewrite_costbase",
+        "id": "rg6682",
+        "match": "any",
+        "gold_n": 3,
+        "question": "Ariana controls [Painter's Servant] naming \"blue.\" Nico casts [Dress Down]. What color are Painter's Servant and Dress Down?",
+        "coverage": 0.3333333333333333,
+        "hit": true,
+        "gap": 0.6666666666666667,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "opus5_low_norewrite_costbase",
+        "id": "rg7752",
+        "match": "any",
+        "gold_n": 3,
+        "question": "What layer does [Grand Abolisher]'s \"During your turn, your opponents can't cast spells or activate abilities of artifacts, creatures, or enchantments.\" ability apply in? ",
+        "coverage": 0.3333333333333333,
+        "hit": true,
+        "gap": 0.6666666666666667,
+        "retrieved_n": 19
+      },
+      {
+        "arm": "h2h_gpt5mini",
+        "id": "rg130",
+        "match": "any",
+        "gold_n": 5,
+        "question": "Aubriella controls a [Life and Limb], a [Blood Moon], a [Sapseep Forest], and a 1/1 Green Saproling Creature token, that entered the battlefield in that order. What do the Sapseep Forest and Saproling look like?",
+        "coverage": 0.4,
+        "hit": true,
+        "gap": 0.6,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "h2h_opuslow_hard_r1",
+        "id": "rg130",
+        "match": "any",
+        "gold_n": 5,
+        "question": "Aubriella controls a [Life and Limb], a [Blood Moon], a [Sapseep Forest], and a 1/1 Green Saproling Creature token, that entered the battlefield in that order. What do the Sapseep Forest and Saproling look like?",
+        "coverage": 0.4,
+        "hit": true,
+        "gap": 0.6,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "h2h_opuslow_hard_r2",
+        "id": "rg130",
+        "match": "any",
+        "gold_n": 5,
+        "question": "Aubriella controls a [Life and Limb], a [Blood Moon], a [Sapseep Forest], and a 1/1 Green Saproling Creature token, that entered the battlefield in that order. What do the Sapseep Forest and Saproling look like?",
+        "coverage": 0.4,
+        "hit": true,
+        "gap": 0.6,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "layers_slice0_base_layers_r1",
+        "id": "rg130",
+        "match": "any",
+        "gold_n": 5,
+        "question": "Aubriella controls a [Life and Limb], a [Blood Moon], a [Sapseep Forest], and a 1/1 Green Saproling Creature token, that entered the battlefield in that order. What do the Sapseep Forest and Saproling look like?",
+        "coverage": 0.4,
+        "hit": true,
+        "gap": 0.6,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "layers_slice0_base_layers_r2",
+        "id": "rg130",
+        "match": "any",
+        "gold_n": 5,
+        "question": "Aubriella controls a [Life and Limb], a [Blood Moon], a [Sapseep Forest], and a 1/1 Green Saproling Creature token, that entered the battlefield in that order. What do the Sapseep Forest and Saproling look like?",
+        "coverage": 0.4,
+        "hit": true,
+        "gap": 0.6,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "layers_slice0_base_layers_r3",
+        "id": "rg130",
+        "match": "any",
+        "gold_n": 5,
+        "question": "Aubriella controls a [Life and Limb], a [Blood Moon], a [Sapseep Forest], and a 1/1 Green Saproling Creature token, that entered the battlefield in that order. What do the Sapseep Forest and Saproling look like?",
+        "coverage": 0.4,
+        "hit": true,
+        "gap": 0.6,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "opus5_low_norewrite_costbase",
+        "id": "rg3868",
+        "match": "any",
+        "gold_n": 10,
+        "question": "Averie controls [Muraganda Petroglyphs] and [Wayward Angel], and has more than 7 cards in their graveyard. Nathan casts and resolves [Humility]. What are Wayward Angel's characteristics?",
+        "coverage": 0.4,
+        "hit": true,
+        "gap": 0.6,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "_opus5_low_disagreements",
+        "id": "rg132",
+        "match": "any",
+        "gold_n": 2,
+        "question": "Alannah controls [Ore-Rich Stalactite], [Life and Limb], [March of the Machines], and [Xenograft] naming \"Saproling\", that entered the battlefield in that order. What is the Ore-Rich Stalactite?",
+        "coverage": 0.5,
+        "hit": true,
+        "gap": 0.5,
+        "retrieved_n": 19
+      },
+      {
+        "arm": "gold_audit_batch2_candidates",
+        "id": "rg132",
+        "match": "any",
+        "gold_n": 2,
+        "question": "Alannah controls [Ore-Rich Stalactite], [Life and Limb], [March of the Machines], and [Xenograft] naming \"Saproling\", that entered the battlefield in that order. What is the Ore-Rich Stalactite?",
+        "coverage": 0.5,
+        "hit": true,
+        "gap": 0.5,
+        "retrieved_n": 19
+      },
+      {
+        "arm": "gold_audit_batch2_opuslow_candidates",
+        "id": "rg132",
+        "match": "any",
+        "gold_n": 2,
+        "question": "Alannah controls [Ore-Rich Stalactite], [Life and Limb], [March of the Machines], and [Xenograft] naming \"Saproling\", that entered the battlefield in that order. What is the Ore-Rich Stalactite?",
+        "coverage": 0.5,
+        "hit": true,
+        "gap": 0.5,
+        "retrieved_n": 19
+      },
+      {
+        "arm": "h2h_gpt5mini",
+        "id": "rg132",
+        "match": "any",
+        "gold_n": 2,
+        "question": "Alannah controls [Ore-Rich Stalactite], [Life and Limb], [March of the Machines], and [Xenograft] naming \"Saproling\", that entered the battlefield in that order. What is the Ore-Rich Stalactite?",
+        "coverage": 0.5,
+        "hit": true,
+        "gap": 0.5,
+        "retrieved_n": 19
+      },
+      {
+        "arm": "h2h_gpt5mini",
+        "id": "rg1128",
+        "match": "any",
+        "gold_n": 4,
+        "question": "Apollo controls [Realmwright] naming \"Island\", [Arcane Adaptation] naming \"Saproling\", and [Life and Limb], which entered the battlefield in that order. What are the types and subtypes of Realmwright?",
+        "coverage": 0.5,
+        "hit": true,
+        "gap": 0.5,
+        "retrieved_n": 19
+      },
+      {
+        "arm": "h2h_gpt5mini",
+        "id": "rg1469",
+        "match": "any",
+        "gold_n": 4,
+        "question": "Addison controls [Dryad of the Ilysian Grove] and casts [Blood Moon]. What are the characteristics of [Snow-Covered Island], [Study Hall], [Dryad Arbor], and [Mountain] after Blood Moon resolves?",
+        "coverage": 0.5,
+        "hit": true,
+        "gap": 0.5,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "h2h_opuslow_easy_r1",
+        "id": "rg1304",
+        "match": "any",
+        "gold_n": 2,
+        "question": "Anderson plays their land for the turn, then casts a morphed [Zoetic Cavern]. Nataly casts [Delay] targeting Zoetic Cavern on the stack. After that resolves, Anderson casts [Timecrafting] to remove 2 time counters from Zoetic Cavern. After that resolves, Anderson casts Timecrafting to remove the last time counter from Zoetic Cavern. What happens to Zoetic Cavern?",
+        "coverage": 0.5,
+        "hit": true,
+        "gap": 0.5,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "h2h_opuslow_easy_r1",
+        "id": "rg257",
+        "match": "any",
+        "gold_n": 2,
+        "question": "Augustine controls [Butcher Ghoul] enchanted by their [Unhallowed Pact]. They attack with it and Nico blocks with [Scaled Wurm]. Will Butcher Ghoul have a +1/+1 counter when it returns to the battlefield?",
+        "coverage": 0.5,
+        "hit": true,
+        "gap": 0.5,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "h2h_opuslow_easy_r1",
+        "id": "rg292",
+        "match": "any",
+        "gold_n": 2,
+        "question": "Ariel controls [Bastion Inventor] and an [Oblivion Ring] that exiled Noelle's [Ghostly Possession]. Noelle casts [Serene Offering] targeting Oblivion Ring. What happens as the Ghostly Possession returns to the battlefield?",
+        "coverage": 0.5,
+        "hit": true,
+        "gap": 0.5,
+        "retrieved_n": 18
+      },
+      {
+        "arm": "h2h_opuslow_easy_r1",
+        "id": "rg403",
+        "match": "any",
+        "gold_n": 2,
+        "question": "Ari attacks with [Suntail Hawk]. Nayeli casts [Vault Skyward] to give [Brimaz, King of Oreskos] flying until end of turn and blocks Suntail Hawk. Will the token created by Brimaz, King of Oreskos also be blocking Suntail Hawk? ",
+        "coverage": 0.5,
+        "hit": true,
+        "gap": 0.5,
+        "retrieved_n": 18
+      },
+      {
+        "arm": "h2h_opuslow_easy_r1",
+        "id": "rg417",
+        "match": "any",
+        "gold_n": 2,
+        "question": "Aryan splice [Evermind] onto [Barrel Down Sokenzan]. Can they target [Phyrexian Crusader] with the spliced spell? ",
+        "coverage": 0.5,
+        "hit": true,
+        "gap": 0.5,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "h2h_opuslow_easy_r1",
+        "id": "rg53",
+        "match": "any",
+        "gold_n": 2,
+        "question": "Alberto casts [Parch] with its second mode, targeting Nico's [Kasimir the Lone Wolf]. In response, Nico casts [Prismatic Lace], choosing red. What happens when Parch resolves?",
+        "coverage": 0.5,
+        "hit": true,
+        "gap": 0.5,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "h2h_opuslow_easy_r1",
+        "id": "rg642",
+        "match": "any",
+        "gold_n": 4,
+        "question": "Aimee casts [Animate Dead] targeting [Scalebane's Elite] in their graveyard. What happens?",
+        "coverage": 0.5,
+        "hit": true,
+        "gap": 0.5,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "h2h_opuslow_easy_r1",
+        "id": "rg7121",
+        "match": "any",
+        "gold_n": 2,
+        "question": "Alma deals combat damage to Nico with their [Ragavan, Nimble Pilferer]. They exile [Deceit] from Nico's library. Can Alma evoke Deceit?",
+        "coverage": 0.5,
+        "hit": true,
+        "gap": 0.5,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "h2h_opuslow_easy_r1",
+        "id": "rg77",
+        "match": "any",
+        "gold_n": 2,
+        "question": "Arely controls a [Barony Vampire]. Nico controls a [Trained Jackal]. Arely casts [Prey Upon], targeting the Barony Vampire and Trained Jackal. In response, Nico casts [Hanabi Blast], targeting the Barony Vampire. What happens?",
+        "coverage": 0.5,
+        "hit": true,
+        "gap": 0.5,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "h2h_opuslow_easy_r1",
+        "id": "rg964",
+        "match": "any",
+        "gold_n": 2,
+        "question": "Aubrey and Arely are playing 2HG. Aubrey attacks with [Coral Commando] and Arely casts [Flash Conscription] to gain control of Coral Commando after it's been declared as an attacker in the declare attackers step. Is it still attacking?",
+        "coverage": 0.5,
+        "hit": true,
+        "gap": 0.5,
+        "retrieved_n": 19
+      },
+      {
+        "arm": "h2h_opuslow_easy_r2",
+        "id": "rg1304",
+        "match": "any",
+        "gold_n": 2,
+        "question": "Anderson plays their land for the turn, then casts a morphed [Zoetic Cavern]. Nataly casts [Delay] targeting Zoetic Cavern on the stack. After that resolves, Anderson casts [Timecrafting] to remove 2 time counters from Zoetic Cavern. After that resolves, Anderson casts Timecrafting to remove the last time counter from Zoetic Cavern. What happens to Zoetic Cavern?",
+        "coverage": 0.5,
+        "hit": true,
+        "gap": 0.5,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "h2h_opuslow_easy_r2",
+        "id": "rg257",
+        "match": "any",
+        "gold_n": 2,
+        "question": "Augustine controls [Butcher Ghoul] enchanted by their [Unhallowed Pact]. They attack with it and Nico blocks with [Scaled Wurm]. Will Butcher Ghoul have a +1/+1 counter when it returns to the battlefield?",
+        "coverage": 0.5,
+        "hit": true,
+        "gap": 0.5,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "h2h_opuslow_easy_r2",
+        "id": "rg292",
+        "match": "any",
+        "gold_n": 2,
+        "question": "Ariel controls [Bastion Inventor] and an [Oblivion Ring] that exiled Noelle's [Ghostly Possession]. Noelle casts [Serene Offering] targeting Oblivion Ring. What happens as the Ghostly Possession returns to the battlefield?",
+        "coverage": 0.5,
+        "hit": true,
+        "gap": 0.5,
+        "retrieved_n": 18
+      },
+      {
+        "arm": "h2h_opuslow_easy_r2",
+        "id": "rg403",
+        "match": "any",
+        "gold_n": 2,
+        "question": "Ari attacks with [Suntail Hawk]. Nayeli casts [Vault Skyward] to give [Brimaz, King of Oreskos] flying until end of turn and blocks Suntail Hawk. Will the token created by Brimaz, King of Oreskos also be blocking Suntail Hawk? ",
+        "coverage": 0.5,
+        "hit": true,
+        "gap": 0.5,
+        "retrieved_n": 18
+      },
+      {
+        "arm": "h2h_opuslow_easy_r2",
+        "id": "rg417",
+        "match": "any",
+        "gold_n": 2,
+        "question": "Aryan splice [Evermind] onto [Barrel Down Sokenzan]. Can they target [Phyrexian Crusader] with the spliced spell? ",
+        "coverage": 0.5,
+        "hit": true,
+        "gap": 0.5,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "h2h_opuslow_easy_r2",
+        "id": "rg53",
+        "match": "any",
+        "gold_n": 2,
+        "question": "Alberto casts [Parch] with its second mode, targeting Nico's [Kasimir the Lone Wolf]. In response, Nico casts [Prismatic Lace], choosing red. What happens when Parch resolves?",
+        "coverage": 0.5,
+        "hit": true,
+        "gap": 0.5,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "h2h_opuslow_easy_r2",
+        "id": "rg642",
+        "match": "any",
+        "gold_n": 4,
+        "question": "Aimee casts [Animate Dead] targeting [Scalebane's Elite] in their graveyard. What happens?",
+        "coverage": 0.5,
+        "hit": true,
+        "gap": 0.5,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "h2h_opuslow_easy_r2",
+        "id": "rg7121",
+        "match": "any",
+        "gold_n": 2,
+        "question": "Alma deals combat damage to Nico with their [Ragavan, Nimble Pilferer]. They exile [Deceit] from Nico's library. Can Alma evoke Deceit?",
+        "coverage": 0.5,
+        "hit": true,
+        "gap": 0.5,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "h2h_opuslow_easy_r2",
+        "id": "rg77",
+        "match": "any",
+        "gold_n": 2,
+        "question": "Arely controls a [Barony Vampire]. Nico controls a [Trained Jackal]. Arely casts [Prey Upon], targeting the Barony Vampire and Trained Jackal. In response, Nico casts [Hanabi Blast], targeting the Barony Vampire. What happens?",
+        "coverage": 0.5,
+        "hit": true,
+        "gap": 0.5,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "h2h_opuslow_easy_r2",
+        "id": "rg964",
+        "match": "any",
+        "gold_n": 2,
+        "question": "Aubrey and Arely are playing 2HG. Aubrey attacks with [Coral Commando] and Arely casts [Flash Conscription] to gain control of Coral Commando after it's been declared as an attacker in the declare attackers step. Is it still attacking?",
+        "coverage": 0.5,
+        "hit": true,
+        "gap": 0.5,
+        "retrieved_n": 19
+      },
+      {
+        "arm": "h2h_opuslow_hard_r1",
+        "id": "rg132",
+        "match": "any",
+        "gold_n": 2,
+        "question": "Alannah controls [Ore-Rich Stalactite], [Life and Limb], [March of the Machines], and [Xenograft] naming \"Saproling\", that entered the battlefield in that order. What is the Ore-Rich Stalactite?",
+        "coverage": 0.5,
+        "hit": true,
+        "gap": 0.5,
+        "retrieved_n": 19
+      },
+      {
+        "arm": "h2h_opuslow_hard_r1",
+        "id": "rg1128",
+        "match": "any",
+        "gold_n": 4,
+        "question": "Apollo controls [Realmwright] naming \"Island\", [Arcane Adaptation] naming \"Saproling\", and [Life and Limb], which entered the battlefield in that order. What are the types and subtypes of Realmwright?",
+        "coverage": 0.5,
+        "hit": true,
+        "gap": 0.5,
+        "retrieved_n": 19
+      },
+      {
+        "arm": "h2h_opuslow_hard_r1",
+        "id": "rg1469",
+        "match": "any",
+        "gold_n": 4,
+        "question": "Addison controls [Dryad of the Ilysian Grove] and casts [Blood Moon]. What are the characteristics of [Snow-Covered Island], [Study Hall], [Dryad Arbor], and [Mountain] after Blood Moon resolves?",
+        "coverage": 0.5,
+        "hit": true,
+        "gap": 0.5,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "h2h_opuslow_hard_r1",
+        "id": "rg2966",
+        "match": "any",
+        "gold_n": 2,
+        "question": "Ashley equips [Colossus Hammer] to [Ogre Warrior], then enchants it with [Phantom Wings]. Does Ogre Warrior have flying? ",
+        "coverage": 0.5,
+        "hit": true,
+        "gap": 0.5,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "h2h_opuslow_hard_r1",
+        "id": "rg3228",
+        "match": "any",
+        "gold_n": 2,
+        "question": "Ari controls [Magus of the Moon] enchanted with [Ichthyomorphosis]. Is Ari's [Dormant Volcano] a Mountain?",
+        "coverage": 0.5,
+        "hit": true,
+        "gap": 0.5,
+        "retrieved_n": 18
+      },
+      {
+        "arm": "h2h_opuslow_hard_r1",
+        "id": "rg6370",
+        "match": "any",
+        "gold_n": 2,
+        "question": "Autumn animates [Inkmoth Nexus] and attacks with it. Nayeli then flashes in [Dress Down]. What does Inkmoth Nexus look like?",
+        "coverage": 0.5,
+        "hit": true,
+        "gap": 0.5,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "h2h_opuslow_hard_r2",
+        "id": "rg132",
+        "match": "any",
+        "gold_n": 2,
+        "question": "Alannah controls [Ore-Rich Stalactite], [Life and Limb], [March of the Machines], and [Xenograft] naming \"Saproling\", that entered the battlefield in that order. What is the Ore-Rich Stalactite?",
+        "coverage": 0.5,
+        "hit": true,
+        "gap": 0.5,
+        "retrieved_n": 19
+      },
+      {
+        "arm": "h2h_opuslow_hard_r2",
+        "id": "rg1128",
+        "match": "any",
+        "gold_n": 4,
+        "question": "Apollo controls [Realmwright] naming \"Island\", [Arcane Adaptation] naming \"Saproling\", and [Life and Limb], which entered the battlefield in that order. What are the types and subtypes of Realmwright?",
+        "coverage": 0.5,
+        "hit": true,
+        "gap": 0.5,
+        "retrieved_n": 19
+      },
+      {
+        "arm": "h2h_opuslow_hard_r2",
+        "id": "rg1469",
+        "match": "any",
+        "gold_n": 4,
+        "question": "Addison controls [Dryad of the Ilysian Grove] and casts [Blood Moon]. What are the characteristics of [Snow-Covered Island], [Study Hall], [Dryad Arbor], and [Mountain] after Blood Moon resolves?",
+        "coverage": 0.5,
+        "hit": true,
+        "gap": 0.5,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "h2h_opuslow_hard_r2",
+        "id": "rg2966",
+        "match": "any",
+        "gold_n": 2,
+        "question": "Ashley equips [Colossus Hammer] to [Ogre Warrior], then enchants it with [Phantom Wings]. Does Ogre Warrior have flying? ",
+        "coverage": 0.5,
+        "hit": true,
+        "gap": 0.5,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "h2h_opuslow_hard_r2",
+        "id": "rg3228",
+        "match": "any",
+        "gold_n": 2,
+        "question": "Ari controls [Magus of the Moon] enchanted with [Ichthyomorphosis]. Is Ari's [Dormant Volcano] a Mountain?",
+        "coverage": 0.5,
+        "hit": true,
+        "gap": 0.5,
+        "retrieved_n": 18
+      },
+      {
+        "arm": "h2h_opuslow_hard_r2",
+        "id": "rg6370",
+        "match": "any",
+        "gold_n": 2,
+        "question": "Autumn animates [Inkmoth Nexus] and attacks with it. Nayeli then flashes in [Dress Down]. What does Inkmoth Nexus look like?",
+        "coverage": 0.5,
+        "hit": true,
+        "gap": 0.5,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "h2h_sonnet_easy_r1",
+        "id": "rg1304",
+        "match": "any",
+        "gold_n": 2,
+        "question": "Anderson plays their land for the turn, then casts a morphed [Zoetic Cavern]. Nataly casts [Delay] targeting Zoetic Cavern on the stack. After that resolves, Anderson casts [Timecrafting] to remove 2 time counters from Zoetic Cavern. After that resolves, Anderson casts Timecrafting to remove the last time counter from Zoetic Cavern. What happens to Zoetic Cavern?",
+        "coverage": 0.5,
+        "hit": true,
+        "gap": 0.5,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "h2h_sonnet_easy_r1",
+        "id": "rg257",
+        "match": "any",
+        "gold_n": 2,
+        "question": "Augustine controls [Butcher Ghoul] enchanted by their [Unhallowed Pact]. They attack with it and Nico blocks with [Scaled Wurm]. Will Butcher Ghoul have a +1/+1 counter when it returns to the battlefield?",
+        "coverage": 0.5,
+        "hit": true,
+        "gap": 0.5,
+        "retrieved_n": 20
+      },
+      {
+        "arm": "h2h_sonnet_easy_r1",
+        "id": "rg292",
+        "match": "any",
+        "gold_n": 2,
+        "question": "Ariel controls [Bastion Inventor] and an [Oblivion Ring] that exiled Noelle's [Ghostly Possession]. Noelle casts [Serene Offering] targeting Oblivion Ring. What happens as the Ghostly Possession returns to the battlefield?",
+        "coverage": 0.5,
+        "hit": true,
+        "gap": 0.5,
+        "retrieved_n": 18
+      },
+      {
+        "arm": "h2h_sonnet_easy_r1",
+        "id": "rg403",
+        "match": "any",
+        "gold_n": 2,
+        "question": "Ari attacks with [Suntail Hawk]. Nayeli casts [Vault Skyward] to give [Brimaz, King of Oreskos] flying until end of turn and blocks Suntail Hawk. Will the token created by Brimaz, King of Oreskos also be blocking Suntail Hawk? ",
+        "coverage": 0.5,
+        "hit": true,
+        "gap": 0.5,
+        "retrieved_n": 18
+      }
+    ]
   }
 }

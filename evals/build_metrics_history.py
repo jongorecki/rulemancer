@@ -661,6 +661,7 @@ ROADMAP: list[dict] = [
         "info_why": "It targets a measured side effect of a change that already shipped to "
                     "production, and it costs nothing at runtime.",
         "tells_us": "Whether the chunk churn multi-query introduced is costing us anything.",
+        "docs": ["docs/spec-cosine-floor.md"],
         "evidence": [
             {"kind": "doc", "ref": "docs/HANDOFF-development.md",
              "note": "live queue item 4: \"free at runtime (scores = embeddings @ qvec is one "
@@ -679,6 +680,43 @@ ROADMAP: list[dict] = [
                  "why": "one in-process matmul over embeddings already in memory; no API call in "
                         "the runtime path. Measuring the effect on recall would reuse the "
                         "cache-only diversity harness, which ran at zero API spend."},
+        "deps": [],
+    },
+    {
+        "id": "gold-sufficiency",
+        "title": "Spec gold sufficiency and necessity testing",
+        "one_line": "Use the oracle (gold-only) arm as a formal test: success proves a candidate "
+                    "gold set is sufficient, leave-one-out checks whether it's also minimal.",
+        "status": "open", "action": "build", "info": 2,
+        "info_why": "Gold quality has only ever been judged by reading CR text next to a question; "
+                    "this turns it into a measurement the oracle arm already produces evidence for.",
+        "tells_us": "Whether a candidate gold set is sufficient, whether it's over-specified, and "
+                    "how much of arm B's 91.3% is gold versus the model's own MTG training.",
+        "docs": ["docs/spec-gold-sufficiency.md"],
+        "evidence": [
+            {"kind": "doc", "ref": "docs/results-derivability.md",
+             "note": "arm B (137/150 = 91.3%) is this test already run; rg7215/rg549/rg811 are "
+                     "the confirmed positive case -- failed gold-only, passed once retrieval "
+                     "supplied a rule gold lacked"},
+            {"kind": "doc", "ref": "docs/results-miss-partition.md",
+             "note": "90/202 rows answered correctly without the flagged gold rule ever in "
+                     "context -- the corroborating over-specification signal this spec's "
+                     "leave-one-out design targets directly"},
+            {"kind": "doc", "ref": "docs/results-orgroup-repass.md",
+             "note": "the 25 needs-Jon OR-groups this spec's member-level necessity test can "
+                     "mechanically resolve, per rule 6's own criterion"},
+        ],
+        "metric": {"name": "gold sufficiency / necessity rate", "dir": "none", "basis": "predicted",
+                   "cite": "docs/results-derivability.md",
+                   "detail": "arm B's 91.3% and the 2% confirmed-incomplete rate are measured; "
+                             "the necessity (over-specification) rate and the parametric-knowledge "
+                             "confound rate are not measured yet -- that's what this spec proposes."},
+        "cost": {"kind": "api_stated", "lo": 2.88, "hi": 16.49,
+                 "cite": "docs/spec-gold-sufficiency.md",
+                 "why": "$2.88 for the 25 needs-Jon OR-group member tests alone (51 calls at arm "
+                        "B's own $0.05647/question rate) up to ~$16.49 for the full recommended "
+                        "first pass (needs-Jon necessity + a 20-row general necessity sample + "
+                        "13-row failure triage + a full-150 parametric-knowledge control)."},
         "deps": [],
     },
     {
@@ -705,6 +743,107 @@ ROADMAP: list[dict] = [
         "cost": {"kind": "subscription",
                  "why": "gold mining runs on Claude Code subagents. docs/spec-cr-gold-mining.md "
                         "§8 puts \"anything requiring an API call\" out of scope."},
+        "deps": [],
+    },
+    {
+        "id": "match-semantics-curation",
+        "title": "Curate match modes on the full 1,409-question corpus",
+        "one_line": "Every row in rulesguru_full_v2.jsonl (and its 207-row L0 subset) defaults to "
+                    "match: \"any\" with no exceptions; 745 rows (52.9%) have 2+ gold rules, so a "
+                    "single incidental retrieval hit currently scores as a full pass on more than "
+                    "half the corpus.",
+        "status": "open", "action": "measure", "info": 2,
+        "info_why": "It is the same measurement-validity defect as or-group-repass, at 7x the row "
+                    "count and with no prior curation pass at all -- every retrieval number "
+                    "computed against the full corpus inherits it.",
+        "tells_us": "How much of the full-corpus recall/hit@k/\"context ok\" numbers are real versus "
+                    "an artefact of an uncurated default.",
+        "evidence": [
+            {"kind": "doc", "ref": "docs/results-match-semantics.md",
+             "note": "measured distributions across all three question files, confirms the judge "
+                     "path (evals/judge_rulesguru.py) never reads match/gold so accuracy is "
+                     "unaffected, and sizes the fix"},
+            {"kind": "doc", "ref": "docs/results-orgroup-repass.md",
+             "note": "the same defect, already found and partly corrected on the 150-set's 105 "
+                     "curated groups (54 mis-encoded conjunctions)"},
+            {"kind": "path", "ref": "evals/run_eval.py",
+             "note": "gold_groups()/hit_at() (lines 158-177): match:\"any\" collapses the whole "
+                     "gold list into one OR-group, so recall/hit@k/\"context ok\" all inherit "
+                     "whatever match says, correctly given what match IS -- the gap is upstream, "
+                     "in match never having been curated on this file"},
+        ],
+        "metric": {"name": "retrieval recall (measurement validity), full corpus", "dir": "down",
+                   "basis": "measured",
+                   "cite": "docs/results-match-semantics.md",
+                   "detail": "745/1,409 rows (52.9%) carry 2+ gold rules under the uncurated "
+                             "default; the or-group-repass pilot found 54/105 (51%) of a "
+                             "comparable multi-rule population were mis-encoded once actually "
+                             "checked against CR text, so a comparable share of these 745 rows "
+                             "is a reasonable prior, not yet confirmed row-by-row."},
+        "cost": {"kind": "subscription",
+                 "why": "same CR-grounded read as or-group-repass (grep the CR text, Scryfall's "
+                        "local cache where a card's wording decides it) -- no API call, no "
+                        "Anthropic credits. Scale is the real cost: 745 rows is roughly 7x the "
+                        "105-group pilot, and that pilot still needed Jon's own ruling on 25 of "
+                        "105 groups (24%) even with full CR grounding."},
+        "deps": ["or-group-repass"],
+        "dep_why": "or-group-repass is the proven method (rule 6's test, applied and validated at "
+                   "n=105); running the same method across 7x the rows before it's been checked "
+                   "once on the pilot scope would be repeating unvalidated work at scale.",
+    },
+    {
+        "id": "coverage-metric",
+        "title": "Graded retrieval coverage score",
+        "one_line": "Replaced hit_at()'s boolean hit/miss with the fraction of a question's gold "
+                    "ids actually retrieved, so match:\"any\"/\"all\"/\"groups\" stop deciding how "
+                    "strict the score is.",
+        "status": "shipped", "action": "build", "info": 2,
+        "info_why": "It targets a measured scoring defect (match-semantics-curation, "
+                    "results-miss-partition's context-ok paradox) with a metric that needed zero "
+                    "new model calls to validate.",
+        "tells_us": "What fraction of a question's cited evidence actually lands in the retrieved "
+                    "window, independent of whether that question's match mode was ever curated. "
+                    "The per-row gap against hit_at() also ranks which multi-rule rows are worth a "
+                    "human look, instead of leaving all 745 as an undifferentiated pile.",
+        "docs": ["docs/spec-coverage-metric.md"],
+        "evidence": [
+            {"kind": "doc", "ref": "docs/results-match-semantics.md",
+             "note": "745/1,409 full-corpus rows (52.9%) are match:\"any\" with 2+ gold ids, so a "
+                     "single incidental hit currently scores full retrieval success"},
+            {"kind": "doc", "ref": "docs/results-miss-partition.md",
+             "note": "rg4023: a 10-id gold list scored \"context ok\" on 3 unrelated-enough ids "
+                     "while the two deciding rules were never retrieved -- the boolean's failure "
+                     "mode this spec targets"},
+            {"kind": "path", "ref": "evals/run_eval.py",
+             "note": "gold_groups()/hit_at() (lines 158-177) byte-identical, untouched; "
+                     "coverage_at()/coverage_from_ids() added alongside, printed as a second table"},
+            {"kind": "path", "ref": "evals/run_retrieval_diversity.py",
+             "note": "group_coverage() (line 122) already exists but collapses to boolean on "
+                     "match:\"any\" rows -- the spec's flat formula is the part that still works "
+                     "on a 100%-any corpus; untouched"},
+            {"kind": "path", "ref": "evals/backfill_coverage.py",
+             "note": "backfills coverage across all 21 evals/answers/*.json files that record "
+                     "retrieved_rule_ids (989 rows), zero model calls; also builds the hit_at-vs-"
+                     "coverage gap worklist"},
+            {"kind": "path", "ref": "evals/coverage_backfill.json",
+             "note": "the backfill's output: per-arm mean coverage + hit rate, and the ranked "
+                     "worklist, regenerate with evals/backfill_coverage.py"},
+            {"kind": "path", "ref": "tests/test_coverage_metric.py",
+             "note": "24 tests: empty gold excluded from means, single-rule gold, the any-mode "
+                     "multi-rule disagreement case, groups-mode strictness, and hit_bool_from_ids() "
+                     "checked for exact agreement with the untouched hit_at()"},
+        ],
+        "metric": {"name": "retrieval measurement resolution", "dir": "none", "basis": "measured",
+                   "cite": "evals/coverage_backfill.json",
+                   "detail": "a scoring-instrument change, not an intervention -- it moves no "
+                             "accuracy or recall number by itself. Backfilled across 989 rows: "
+                             "158 rows score a gap > 0.5 (hit_at() calls it a full pass while more "
+                             "than half the cited gold never showed up) -- the worklist, not a "
+                             "single mean, is the useful output."},
+        "cost": {"kind": "zero",
+                 "why": "recomputable directly from retrieved_rule_ids and gold already recorded "
+                        "per row in evals/answers/*.json (confirmed on all 21 files that carry "
+                        "retrieved_rule_ids, 989 rows total) -- no new model calls, no re-run arms."},
         "deps": [],
     },
     {
@@ -953,6 +1092,7 @@ ROADMAP: list[dict] = [
         "info_why": "Two separate rulings are parked waiting on this instrument, so it unblocks "
                     "more than it measures.",
         "tells_us": "Nothing directly — it is the missing instrument two open decisions need.",
+        "docs": ["docs/spec-pure-rules-holdout.md"],
         "evidence": [
             {"kind": "commit", "ref": "47b3090", "note": "batch 1 drafted (8 candidates) + approval UI"},
             {"kind": "commit", "ref": "f4396c5", "note": "approval UI shows power/toughness and DFC faces"},
@@ -1500,6 +1640,54 @@ ROADMAP: list[dict] = [
                 "detail": "v3 was adopted on the graded A/B; the later v4 attempt used v3 as its "
                           "baseline and lost to it."},
      "cost": {"kind": "spent", "why": "shipped"}, "deps": []},
+    {
+        "id": "se-rule-chains",
+        "title": "Stack Exchange as a source of rule-chain structure (not gold)",
+        "one_line": "Mine Board & Card Games Stack Exchange's magic-the-gathering tag for the "
+                    "ordered CR-rule chains disciplined answers walk through, filtered to "
+                    "top-answer-equals-accepted-answer plus specific numbered citations -- never "
+                    "as answer gold, only as candidate structure for gold_groups composition.",
+        "status": "design-only", "action": "decide", "info": 2,
+        "info_why": "It's a candidate feed for two already-identified problems (the 54 mis-encoded "
+                    "OR-groups and rg241's second-hop retrieval gap) at zero API spend for the pull "
+                    "itself, but yield is thin (roughly half the sample fails the hard filter, and "
+                    "only 2 of 10 sampled questions produce a genuinely conjunctive multi-rule "
+                    "chain) and every retained row needs real per-item drift and licensing checks "
+                    "before it can touch anything.",
+        "tells_us": "Whether a free, self-refreshing, community-vetted stream can supply usable "
+                    "rule-composition evidence once RulesGuru itself is exhausted as a growth path.",
+        "docs": ["docs/spec-stackexchange-rule-chains.md"],
+        "evidence": [
+            {"kind": "doc", "ref": "docs/results-orgroup-repass.md",
+             "note": "the 105-group re-pass this spec targets: 54 mis-encoded conjunctions, 25 "
+                     "needing Jon's judgment -- categories an SE answer's explicit rule-chain "
+                     "language can provide a second opinion on, never an override"},
+            {"kind": "doc", "ref": "docs/HANDOFF-development.md",
+             "note": "live queue item 5, the rg241 second-hop finding this spec's Q64560 worked "
+                     "example (614.1c/614.12/702.161a/702.44a, none surface-resembling the "
+                     "question) is offered as a concrete instance of"},
+            {"kind": "path", "ref": "scripts/check_cr_update.py",
+             "note": "its normalize()/rule_fingerprint() are reused as one-sided text functions for "
+                     "citation resolution; its classify_rules() needs a full old-release-vs-new "
+                     "diff an isolated SE quote can't supply on its own -- resolved in this spec "
+                     "by sourcing per-release CR text from the Academy Ruins archive instead"},
+        ],
+        "metric": {"name": "OR-group adjudication and second-hop retrieval evidence", "dir": "none",
+                   "basis": "predicted",
+                   "cite": "docs/spec-stackexchange-rule-chains.md",
+                   "detail": "a candidate-structure feed, not an intervention -- it moves no "
+                             "project metric by itself. The 50% filter-survival rate and 3-of-12 "
+                             "citations needing content-level drift resolution are measured, on a "
+                             "10-question design-phase sample; whether a real pilot's yield "
+                             "resolves any of the 25 flagged OR-groups is not established here."},
+        "cost": {"kind": "zero",
+                 "why": "the Stack Exchange API pull is free and self-serve (confirmed live: "
+                        "quota_max 300/day unkeyed, 10,000/day with a free registered key); the "
+                        "real cost is per-candidate validation labor (CR drift checks, license/"
+                        "attribution bookkeeping), which is Haiku-batchable, not an API/Voyage "
+                        "spend."},
+        "deps": ["or-group-repass"],
+    },
 ]
 
 
@@ -2098,6 +2286,8 @@ def build_timeline(arms: list[dict]) -> dict:
 
 FULL_CORPUS = 1409  # RulesGuru questions imported (docs/report-rulesguru-full-import.md)
 CORPUS_FILE = EVALS / "rulesguru_full_v2.jsonl"
+CURATED_150_FILE = EVALS / "questions_rulesguru150_v3.jsonl"
+L0_ONLY_FILE = EVALS / "_l0_only.jsonl"
 
 
 # ---------------------------------------------------------------------------
@@ -2136,6 +2326,49 @@ def corpus_level_mix() -> dict:
     return {"file": CORPUS_FILE.relative_to(REPO).as_posix(), "mtime": _mtime(CORPUS_FILE),
             "total": total, "by_level": counts,
             "share": {k: v / total for k, v in counts.items()} if total else {}}
+
+
+def _match_mode_stats(path: Path) -> dict | None:
+    """Per-file distribution of the `match` field, and how often it governs a
+    multi-rule gold list (2+ ids in `gold`) -- see docs/results-match-semantics.md.
+    Read fresh from the question file every build (never hardcoded) so this
+    self-corrects the moment any file is re-curated."""
+    if not path.exists():
+        return None
+    match_counts: dict[str, int] = {}
+    multi_sizes: list[int] = []
+    total = 0
+    with path.open(encoding="utf-8") as fh:
+        for line in fh:
+            line = line.strip()
+            if not line:
+                continue
+            row = json.loads(line)
+            total += 1
+            m = row.get("match")
+            match_counts[m] = match_counts.get(m, 0) + 1
+            gold = row.get("gold")
+            if isinstance(gold, list) and len(gold) >= 2:
+                multi_sizes.append(len(gold))
+    return {
+        "file": path.relative_to(REPO).as_posix(), "total": total,
+        "match_counts": match_counts,
+        "multi_rule_rows": len(multi_sizes),
+        "multi_rule_share": (len(multi_sizes) / total) if total else None,
+        "multi_rule_mean_size": (sum(multi_sizes) / len(multi_sizes)) if multi_sizes else None,
+        "multi_rule_max_size": max(multi_sizes) if multi_sizes else None,
+    }
+
+
+def match_semantics_audit() -> dict:
+    """Whether the corpus's `match` field reflects a real per-question call or
+    is sitting at an uncurated default -- docs/results-match-semantics.md.
+    Every number here is recomputed from the question files at build time."""
+    return {
+        "curated_150": _match_mode_stats(CURATED_150_FILE),
+        "full_corpus": _match_mode_stats(CORPUS_FILE),
+        "l0_only": _match_mode_stats(L0_ONLY_FILE),
+    }
 
 
 def wilson(p: float | None, n: float | None, z: float = 1.96) -> list[float] | None:
@@ -2470,6 +2703,38 @@ def build_comparisons(timeline: dict, corpus: dict) -> dict:
                       for lv in p["thin_levels"]],
             "changes": ("Each of those questions moves that level's accuracy by a large step, and "
                         "the level is weighted by its corpus share in the projection above."),
+        })
+    # docs/results-match-semantics.md: the full corpus's `match` field (governs
+    # what counts as a retrieval hit) is measured fresh from the question files
+    # every build, not hardcoded, so this self-corrects if they are re-curated.
+    msa = match_semantics_audit()
+    fc = msa["full_corpus"]
+    if fc and fc["total"] and len(fc["match_counts"]) == 1 and fc["multi_rule_rows"]:
+        only_mode = next(iter(fc["match_counts"]))
+        curated = msa["curated_150"]
+        curated_note = (f"{CURATED_150_FILE.name} carries a real mix: {curated['match_counts']}"
+                         if curated else f"{CURATED_150_FILE.name} not found")
+        open_items.append({
+            "level": "crit",
+            "what": (f"all {fc['total']} rows in {fc['file']} carry `match: \"{only_mode}\"` -- one "
+                     "mode, no exceptions, on the file every retrieval number on this page not "
+                     "explicitly scoped to the 150-set is measured against"),
+            "which": [f"{fc['multi_rule_rows']} of {fc['total']} rows ({fc['multi_rule_share']:.1%}) "
+                      f"have 2+ gold rules (mean {fc['multi_rule_mean_size']:.2f}, max "
+                      f"{fc['multi_rule_max_size']}) and are scored a retrieval hit if just ONE "
+                      "of those rules is found",
+                      curated_note,
+                      "docs/results-match-semantics.md"],
+            "changes": ("Answer accuracy (LLM judge vs. reference text) does not read `match` or "
+                        "`gold`, so it is unaffected -- the 80.3% projection and the arm accuracies "
+                        "stand. But recall, hit@k and \"context ok\" are all computed through this "
+                        "field (evals/run_eval.py's gold_groups()/hit_at()), so every retrieval "
+                        "measurement on the full corpus and its L0 subset is inflated by an unknown "
+                        "amount on any multi-rule row -- the same defect docs/results-orgroup-repass.md "
+                        "found in 54/105 groups on the curated 150-set, here uncurated across 745 "
+                        "rows of the full 1,409. This is also why docs/results-miss-partition.md's "
+                        "context-ok-vs-retrieval-miss conditionals are not interpretable as "
+                        "retrieval-vs-reasoning on the hard arm."),
         })
 
     return {
@@ -2808,6 +3073,11 @@ const joinBadge = j => {
 };
 
 const C = D.comparisons || {};
+const RC = D.retrieval_coverage || {arms:[], worklist:[], worklist_n_total:0,
+  worklist_n_above_threshold:0, gap_threshold:0.5, skipped:[]};
+// RC is the GRADED coverage backfill (docs/spec-coverage-metric.md), not to be
+// confused with RM.coverage below (that's plan/spec DOC coverage -- how many
+// roadmap docs are accounted for -- an unrelated meaning of the same word).
 const pp = v => (v>=0?'+':'−') + Math.abs(v).toFixed(1) + ' pp';
 const pctd = v => (v>=0?'+':'−') + Math.abs(v).toFixed(0) + '%';
 const arrow = v => v>0 ? '▲' : (v<0 ? '▼' : '▬');
@@ -2996,7 +3266,7 @@ function decisionHTML(){
        corpus is not.
        ${gap ? `<strong>Covers ${(HEAD.covered_share*100).toFixed(0)}% of the corpus by level</strong>
        — level ${esc(HEAD.missing_levels.join(', '))} is untested, and it is the corpus's easiest
-       and largest slice, so this is more likely low than high.` : 'Covers every level in the corpus.'}</p>
+       slice, so this is more likely low than high.` : 'Covers every level in the corpus.'}</p>
      </div>
      <div class="card">
        <h4>Measurement error vs real difference</h4>
@@ -3213,6 +3483,63 @@ function matrixHTML(){
     failures, they are untested. ${esc(M.note)}</p>
     <div class="scroll"><table aria-label="Configuration coverage matrix">
       <thead><tr><th>Model / effort</th>${head}</tr></thead><tbody>${rows}</tbody></table></div>
+    </section>`;
+}
+
+/* ======================= RETRIEVAL COVERAGE (graded) ========================
+   docs/spec-coverage-metric.md. RC is the backfilled coverage data
+   (evals/backfill_coverage.py -> evals/coverage_backfill.json), NOT the same
+   thing as RM.coverage (roadmap doc coverage) below -- different meaning of
+   the same English word, kept apart on purpose. */
+function retrievalCoverageHTML(){
+  const arms = (RC.arms||[]).filter(a=>!a.debug);
+  const debugArms = (RC.arms||[]).filter(a=>a.debug);
+  if(!arms.length && !debugArms.length) return '';
+  const rows = arms.map(a=>{
+    const cov = a.mean_coverage==null?'—':pct(a.mean_coverage);
+    const hr = a.hit_rate==null?'—':pct(a.hit_rate);
+    const flag = a.retrieval_off
+      ? '<span class="badge b-warn" title="retrieved_rule_ids empty on every row -- retrieval was OFF by design (e.g. gold handed to the generator directly), not a retrieval failure">retrieval off (oracle)</span>'
+      : '';
+    return `<tr><td>${esc(a.arm)} ${flag}</td><td class="num dim">${a.n_scored}/${a.n_rows}</td>
+      <td class="num">${hr}</td><td class="num"><strong>${cov}</strong></td></tr>`;
+  }).join('');
+  const wl = (RC.worklist||[]).slice(0,20);
+  const wlRows = wl.map((r,i)=>`<tr><td class="num dim">${i+1}</td><td>${esc(r.arm)}</td>
+    <td><code>${esc(r.id)}</code></td><td>${esc(r.match)}</td><td class="num">${r.gold_n}</td>
+    <td class="num">${pct(r.coverage)}</td><td class="num"><strong>${pct(r.gap)}</strong></td>
+    <td class="dim" style="white-space:normal;max-width:40ch">${esc((r.question||'').slice(0,90))}${(r.question||'').length>90?'…':''}</td></tr>`).join('');
+  return `<section class="sec" id="retrieval-coverage"><h2>Retrieval coverage — graded, alongside recall@k</h2>
+    <p class="lede">recall@k / hit@k elsewhere on this page is a boolean: did retrieval satisfy the
+    question's own <code>match</code> rule at all. Coverage is graded: what fraction of a question's
+    cited gold ids actually landed in the retrieved set, computed flat over <code>gold</code> -- it never
+    calls <code>gold_groups()</code>, so a <code>match:"any"</code> row with several required facts can no
+    longer look fully retrieved on the strength of one incidental hit. Backfilled from recorded
+    <code>retrieved_rule_ids</code> across every <code>evals/answers/*.json</code> arm that has them
+    (${arms.length + debugArms.length} arms, zero model calls, zero re-runs) --
+    see <code>docs/spec-coverage-metric.md</code>. <code>hit_at()</code>/<code>gold_groups()</code> are
+    unchanged; this is reported beside them, never instead of them.</p>
+    <div class="scroll"><table aria-label="Mean coverage per arm">
+      <thead><tr><th>Arm</th><th>Scored / rows</th><th>Hit rate (boolean)</th><th>Mean coverage (graded)</th></tr></thead>
+      <tbody>${rows}</tbody></table></div>
+    ${debugArms.length ? `<p class="note" style="margin-top:var(--s3)"><strong>Debug/smoke fixtures
+      (n&lt;10 rows, excluded from the table above -- not meaningful evidence on their own):</strong>
+      ${debugArms.map(a=>`<code>${esc(a.arm)}</code> (n=${a.n_rows})`).join(', ')}</p>` : ''}
+    <h3 style="margin:var(--s4) 0 var(--s2);font-size:1rem;letter-spacing:-.01em">The diagnostic:
+      where the boolean is most inflated</h3>
+    <p class="lede">Rows where <code>hit_at()</code> scores a complete pass
+      (<code>match:"any"</code> needs one gold id; <code>match:"groups"</code> needs one member per
+      group) while coverage says otherwise, ranked by the size of that gap. Gap = 1 − coverage, shown
+      only for rows where <code>hit_at()</code> is true -- a miss isn't "inflation," there's no
+      full-credit call to disagree with.
+      <strong>${RC.worklist_n_above_threshold} of ${RC.worklist_n_total}</strong> scored rows exceed a
+      gap of ${(RC.gap_threshold*100).toFixed(0)}% -- more than half that row's cited gold missing
+      despite a full-credit hit. Top 20 shown below; the full ranking is in
+      <code>evals/coverage_backfill.json</code>.</p>
+    <div class="scroll"><table aria-label="Retrieval coverage worklist, ranked by hit-versus-coverage gap">
+      <thead><tr><th>#</th><th>Arm</th><th>Question id</th><th>Match</th><th>Gold size</th>
+        <th>Coverage</th><th>Gap</th><th>Question</th></tr></thead>
+      <tbody>${wlRows}</tbody></table></div>
     </section>`;
 }
 
@@ -3919,7 +4246,8 @@ function render(){
   let html = `<nav class="nav" aria-label="Sections">
     ${[['#exec','Summary'],['#decisions','Decisions'],['#roadmap','Roadmap'],
        ['#decision','The numbers behind it'],['#h2h','Head to head'],['#frontier','Cost vs accuracy'],
-       ['#levels','Per level'],['#matrix','Config matrix'],['#repro','Reproducibility'],
+       ['#levels','Per level'],['#matrix','Config matrix'],['#retrieval-coverage','Retrieval coverage'],
+       ['#repro','Reproducibility'],
        ['#tl','Timeline'],['#arms','Every arm']]
       .map(([href,label])=>`<a href="${href}">${label}</a>`).join('')}</nav>`;
 
@@ -3938,6 +4266,7 @@ function render(){
   html += frontierHTML();
   html += levelsHTML();
   html += matrixHTML();
+  html += retrievalCoverageHTML();
   html += reproHTML();
 
   html += `<section class="sec" id="tl">${timelineHTML()}</section>`;
@@ -4039,6 +4368,19 @@ def render_html(data: dict) -> str:
             .replace("__DATA__", json.dumps(data).replace("</", "<\\/")))
 
 
+def load_retrieval_coverage() -> dict:
+    """docs/spec-coverage-metric.md's backfill: evals/backfill_coverage.py
+    writes evals/coverage_backfill.json (per-arm mean coverage + hit rate,
+    plus the hit-vs-coverage gap worklist) from recorded retrieved_rule_ids,
+    zero model calls. Returns an empty-but-shaped dict if the backfill hasn't
+    been run yet, so the dashboard degrades to "no data" rather than KeyError."""
+    path = REPO / "evals" / "coverage_backfill.json"
+    if not path.exists():
+        return {"arms": [], "worklist": [], "worklist_n_total": 0,
+                "worklist_n_above_threshold": 0, "gap_threshold": 0.5, "skipped": []}
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -4052,6 +4394,7 @@ def main() -> None:
     data["comparisons"] = build_comparisons(data["timeline"], corpus_level_mix())
     data["roadmap"] = build_roadmap(data["comparisons"], data["current_config"])
     data["summary"] = build_summary(data)
+    data["retrieval_coverage"] = load_retrieval_coverage()
     for s in data["timeline"]["sets"]:   # working data, not a result
         for st in s["steps"]:
             st.pop("_arms", None)

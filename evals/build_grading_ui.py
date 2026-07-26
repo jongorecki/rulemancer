@@ -66,9 +66,34 @@ VERDICT_SETS = {
         "export": "gold_audit_verdicts.json",
         "storage": "mtg_gold_audit_v1",
         "title": "MTG gold audit",
-        "hint": ("Every row here already failed with complete gold, so the question "
-                 "is not whether we got it wrong — it is who is wrong. An official "
-                 "card ruling outranks RulesGuru gold (docs/gold-corrections.md)."),
+        # Two framings share this vocabulary but describe DIFFERENT experiments
+        # -- the header is the row's only account of what it is, so getting it
+        # wrong misdescribes the grading task to the human doing it.
+        #
+        # "oracle" (default, unchanged): batch-1-style rows -- gold was HANDED
+        # to the model (retrieval off), so a row here failed with complete
+        # gold and the open question is who is wrong.
+        #
+        # "pipeline-miss": h2h-style rows -- retrieval was ON and gold was
+        # NEVER supplied to the model; a row here is a STABLE miss (the judge
+        # called it wrong in both repetitions, so it's a reproducible failure,
+        # not judge noise), and "already failed with complete gold" would be
+        # false of it. Selected via --audit-frame; see build_gold_audit_input.py
+        # for the row-level provenance this pairs with.
+        "hint": {
+            "oracle": (
+                "Every row here already failed with complete gold, so the question "
+                "is not whether we got it wrong — it is who is wrong. An official "
+                "card ruling outranks RulesGuru gold (docs/gold-corrections.md)."
+            ),
+            "pipeline-miss": (
+                "Every row here is a stable pipeline miss: the shipped opus-5/low "
+                "config was judged wrong by the auto-judge in both repetitions, so "
+                "these are reproducible failures, not judge noise. Retrieval was on "
+                "for these rows; gold was never handed to the model. An official "
+                "card ruling outranks RulesGuru gold (docs/gold-corrections.md)."
+            ),
+        },
     },
 }
 
@@ -198,8 +223,21 @@ def main() -> None:
         "buttons and exports to gold_audit_verdicts.json "
         "(docs/spec-gold-audit-ui.md).",
     )
+    ap.add_argument(
+        "--audit-frame", choices=("oracle", "pipeline-miss"), default="oracle",
+        help="only affects --verdicts gold-audit: which experiment the header "
+        "hint describes. 'oracle' (default, unchanged) is batch-1-style rows "
+        "-- gold handed to the model, retrieval off, already-failed-with-"
+        "complete-gold framing. 'pipeline-miss' is h2h-style rows -- retrieval "
+        "on, gold never supplied, rows are stable auto-judge misses (wrong in "
+        "both repetitions). Picking the wrong one misdescribes the grading "
+        "task to whoever grades it, so it is never inferred from the data --"
+        "pass it explicitly for a non-oracle batch.",
+    )
     args = ap.parse_args()
-    cfg = VERDICT_SETS[args.verdicts]
+    cfg = dict(VERDICT_SETS[args.verdicts])
+    if isinstance(cfg["hint"], dict):
+        cfg["hint"] = cfg["hint"][args.audit_frame]
 
     review = json.loads(args.inp.read_text(encoding="utf-8"))
 
