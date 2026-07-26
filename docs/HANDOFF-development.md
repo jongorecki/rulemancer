@@ -203,24 +203,37 @@ category, not the top rung of difficulty.
 
 ## NEXT SESSION, IN ORDER
 
-1. **Apply the 5-row rescore** and **correct `results-derivability.md`**:
-   withdraw the incomplete-gold category, the 92.7% ceiling, and the single-id
-   heuristic; replace with the 93.3-95.3% range and the class breakdown above.
-2. **Write `docs/results-gold-audit-batch1.md`.** ⚠️ **`results-easy-regression.md`
-   already references this file and it does not exist** — a dangling reference
-   introduced this session.
+1. ~~**Apply the 5-row rescore** and **correct `results-derivability.md`**.~~
+   **DONE** `373c4aa`. Arm B is 93.3% (`evals/verdicts_derivability_B_human.json`,
+   built by the new `evals/merge_human_verdicts.py`); all three claims withdrawn.
+2. ~~**Write `docs/results-gold-audit-batch1.md`.**~~ **DONE** `373c4aa`.
+   ⚠️ **The dangling-reference warning in this list was itself wrong** —
+   `results-easy-regression.md` never referenced that file; it links
+   `docs/spec-gold-audit-ui.md`, which exists. Checked with grep across the repo
+   before acting. It *did* carry a stale "11 unreachable questions" reference,
+   now corrected to 10 and pointed at the batch-1 results.
 3. **Build weighted scoring** per the spec + the ruling above.
 4. **Investigate out-of-range ruling citations** (3/15 rows).
-5. **Measure the judge's false-negative rate** on a sample of judged-"different"
+5. **Build the metrics-history view** (Jon, 2026-07-26, requested mid-session;
+   he wants it after item 4). Every number we own — cost, accuracy, precision,
+   `TOP_N`, retrieval@k, weighting, cosine — for every arm and iteration, **side
+   by side across time**, in one HTML page rather than a terminal table. The
+   stated purpose is a decision: *is it time for the full RulesGuru run on the
+   entire dataset?* Spec it first (Rule 0). Two constraints already known:
+   numbers must carry their provenance (run, date, judging run) because the
+   judge is nondeterministic and flat-vs-weighted will now be two columns; and
+   the arms are not all measured on the same instrument or question set, so the
+   page must show what is comparable to what rather than implying one ladder.
+6. **Measure the judge's false-negative rate** on a sample of judged-"different"
    rows across arms. This gates how much to trust every accuracy number we own,
    including this session's. `evals/opus_grader_calibration.py`,
    `docs/plan-opus-grader-calibration.md`, and `evals/judge_agreement_results.json`
    are existing infrastructure for exactly this.
-6. **Batch 2 of the gold audit** — the full-data rows (`rg1802`, `rg4440`,
+7. **Batch 2 of the gold audit** — the full-data rows (`rg1802`, `rg4440`,
    `rg5628` plus h2h/costbase). Build with `--provenance run`; those rows carry
    real `retrieved_rule_ids` and the panel flips to the green "retrieved by the
    run" label.
-7. **Spec the cosine floor** (free at runtime, cuts churn, restores a calibrated
+8. **Spec the cosine floor** (free at runtime, cuts churn, restores a calibrated
    signal) and **second-hop retrieval** (the multi-hop gap above).
 
 Still open from before: double-mine for stability (0.54 run-to-run overlap),

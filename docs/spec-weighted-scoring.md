@@ -1,6 +1,13 @@
 # Spec — level-weighted scoring
 
-Design-only until Jon rules. Requested 2026-07-26 off two gold-audit notes:
+> **RULED AND BUILT, 2026-07-26.** Jon ruled **flat across L0-L3, Corner Case
+> 0.5** — Scheme B below, named `corner-half`. Shipped as
+> `evals/weighted_score.py` with `tests/test_weighted_score.py`. The
+> "Recommended" framing further down is preserved as the argument that led to the
+> ruling; it is no longer a proposal. Measured results are in
+> [What it actually did](#what-it-actually-did).
+
+Requested 2026-07-26 off two gold-audit notes:
 
 > rg842 — *"I wouldn't consider this one part of scoring too strongly... it's more
 > important that we get the level 3 questions right than it is we get the corner
@@ -114,6 +121,45 @@ comparable across the whole history.
   not a silent default to 1.0 — a typo'd level name must fail loudly rather than
   quietly reweighting.
 - Round-trip: the emitted weight vector re-scores to the emitted number.
+
+## What it actually did
+
+Re-scored across every arm carrying `by_level_counts`, `corner-half` vs flat
+(read from the files 2026-07-26, after the derivability rescore landed):
+
+```
+                                        flat   corner-half    delta
+derivability B  auto                    90.0%      91.5%      +1.5pp
+derivability B  human-corrected         93.3%      94.4%      +1.1pp
+opus5-low bucketA  auto                 75.0%      75.6%      +0.6pp
+opus5-low bucketA  human-corrected      82.4%      83.2%      +0.9pp
+h2h opus-low hard r1                    75.9%      76.2%      +0.3pp
+h2h opus-low hard r2                    72.2%      73.3%      +1.1pp
+h2h opus-low easy r1 / r2         92.0% / 86.0%   unchanged    0.0pp
+h2h sonnet easy   r1 / r2         78.0% / 74.0%   unchanged    0.0pp
+h2h gpt5-mini (judge bakeoff)           52.8%      52.2%      -0.6pp
+```
+
+**No conclusion flips, exactly as predicted.** Largest movement is 1.5pp. The
+easy set is untouched because it contains only L1 and L2 — no Corner Case rows to
+discount. The opus-low hard mean moves 74.1% -> 74.8%, reproducing this spec's
+own sensitivity figures from an independent implementation.
+
+`h2h_verdicts_gpt5mini.json` moves **down**, which is the useful sanity check:
+weighting is not a way of making numbers bigger. It moves whichever way an arm's
+corner-case performance sits relative to its own average.
+
+Two implementation facts the spec did not anticipate:
+
+- **`by_level_counts` has two shapes.** Auto files store `{same, different}`;
+  human-merged files store `{correct, n}`, with `correct` as a **float** because
+  partial credit is possible. `normalize_counts()` handles both and raises on an
+  unrecognised third rather than guessing — a wrong guess silently halves or
+  doubles a denominator.
+- **Flat re-scoring is now a repo-wide regression test.** `test_weighted_score.py`
+  asserts a flat vector reproduces `summary.accuracy` for *every* verdict file
+  matching `evals/*verdicts*.json`, so a malformed or drifted summary in any
+  future arm fails the suite instead of being discovered later.
 
 ## Out of scope
 
