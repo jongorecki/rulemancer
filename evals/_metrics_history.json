@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-26T12:15-05:00",
+  "generated_at": "2026-07-26T12:40-05:00",
   "arms": [
     {
       "arm": "derivability_B_human",
@@ -895,5 +895,833 @@
     },
     "ruled_by": "Jon, 2026-07-26"
   },
-  "full_corpus": 1409
+  "full_corpus": 1409,
+  "timeline": {
+    "sets": [
+      {
+        "qset": "0b355419",
+        "n": 150,
+        "n_steps": 3,
+        "floor_pp": 1.0,
+        "floor_source": "judge nondeterminism only (~1 verdict flip per 100 rows, and one row on this set is 0.7 pp) — no repeated arm here",
+        "judge_floor_pp": 1.0,
+        "steps": [
+          {
+            "qset": "0b355419",
+            "step": "rulesguru_sonnet",
+            "kind": "pipeline",
+            "kind_why": "",
+            "n": 150,
+            "run_at": "2026-07-24T00:39-05:00",
+            "run_at_source": "answers file mtime",
+            "config": {
+              "model": "claude-sonnet-5",
+              "effort": null,
+              "rewrite_version": "v2",
+              "ruling_query_mode": "raw",
+              "system_version": null
+            },
+            "config_recorded": true,
+            "heterogeneous_fields": [],
+            "flat": 0.72,
+            "weighted": 0.7444444444444445,
+            "auto": null,
+            "cost_per_q": null,
+            "in_per_q": null,
+            "out_per_q": null,
+            "n_reps": 1,
+            "rep_spread_pp": null,
+            "rep_churn": null,
+            "reps": [
+              {
+                "arm": "rulesguru_sonnet",
+                "answers": "evals/answers/rulesguru_answers.json",
+                "flat": 0.72,
+                "weighted": 0.7444444444444445,
+                "auto": null,
+                "run_at": "2026-07-24T00:39-05:00",
+                "run_at_source": "answers file mtime",
+                "human_corrected": false,
+                "regrade_of": null,
+                "regrade_pp": null,
+                "cost_per_q": null,
+                "in_per_q": null,
+                "out_per_q": null,
+                "join": "alias"
+              }
+            ],
+            "judge_model": null,
+            "judge_digest": null,
+            "delta": null
+          },
+          {
+            "qset": "0b355419",
+            "step": "rulesguru_gpt-5-mini",
+            "kind": "pipeline",
+            "kind_why": "",
+            "n": 150,
+            "run_at": "2026-07-24T00:54-05:00",
+            "run_at_source": "verdict file mtime (no answers file joined)",
+            "config": {
+              "model": null,
+              "effort": null,
+              "rewrite_version": null,
+              "ruling_query_mode": null,
+              "system_version": null
+            },
+            "config_recorded": false,
+            "heterogeneous_fields": [],
+            "flat": 0.5733333333333334,
+            "weighted": 0.5962962962962963,
+            "auto": null,
+            "cost_per_q": null,
+            "in_per_q": null,
+            "out_per_q": null,
+            "n_reps": 1,
+            "rep_spread_pp": null,
+            "rep_churn": null,
+            "reps": [
+              {
+                "arm": "rulesguru_gpt-5-mini",
+                "answers": null,
+                "flat": 0.5733333333333334,
+                "weighted": 0.5962962962962963,
+                "auto": null,
+                "run_at": "2026-07-24T00:54-05:00",
+                "run_at_source": "verdict file mtime (no answers file joined)",
+                "human_corrected": false,
+                "regrade_of": null,
+                "regrade_pp": null,
+                "cost_per_q": null,
+                "in_per_q": null,
+                "out_per_q": null,
+                "join": "ambiguous (2 files share these ids)"
+              }
+            ],
+            "judge_model": null,
+            "judge_digest": null,
+            "delta": {
+              "baseline": "rulesguru_sonnet",
+              "baseline_run_at": "2026-07-24T00:39-05:00",
+              "baseline_flat": 0.72,
+              "baseline_cost": null,
+              "changed": [],
+              "changed_known": false,
+              "flat_pp": -14.66666666666666,
+              "weighted_pp": -14.814814814814813,
+              "cost_pct": null,
+              "cost_abs": null,
+              "out_tok_pct": null,
+              "floor_pp": 1.0,
+              "beats_noise": true,
+              "commits": [
+                {
+                  "sha": "1820322",
+                  "at": "2026-07-24T00:40:25-05:00",
+                  "subject": "Merge retrieved-id logging: both runners record retrieved_rule_ids per row"
+                }
+              ],
+              "commits_total": 1
+            }
+          },
+          {
+            "qset": "0b355419",
+            "step": "derivability_B",
+            "kind": "oracle",
+            "kind_why": "Gold rules handed to the model, no retrieval — measures whether the answers are derivable at all, not what the pipeline scores.",
+            "n": 150,
+            "run_at": "2026-07-26T00:05-05:00",
+            "run_at_source": "answers file mtime",
+            "config": {
+              "model": "claude-opus-5",
+              "effort": "high",
+              "rewrite_version": "none",
+              "ruling_query_mode": "union",
+              "system_version": 3
+            },
+            "config_recorded": true,
+            "heterogeneous_fields": [],
+            "flat": 0.9333333333333333,
+            "weighted": 0.9444444444444444,
+            "auto": 0.9,
+            "cost_per_q": 0.0564699,
+            "in_per_q": 1670.2133333333334,
+            "out_per_q": 1883.4533333333334,
+            "n_reps": 1,
+            "rep_spread_pp": null,
+            "rep_churn": null,
+            "reps": [
+              {
+                "arm": "derivability_B_human",
+                "answers": "evals/answers/derivability_B_goldonly.json",
+                "flat": 0.9333333333333333,
+                "weighted": 0.9444444444444444,
+                "auto": 0.9,
+                "run_at": "2026-07-26T00:05-05:00",
+                "run_at_source": "answers file mtime",
+                "human_corrected": true,
+                "regrade_of": [
+                  "derivability_B"
+                ],
+                "regrade_pp": 3.3333333333333326,
+                "cost_per_q": 0.0564699,
+                "in_per_q": 1670.2133333333334,
+                "out_per_q": 1883.4533333333334,
+                "join": "alias"
+              }
+            ],
+            "judge_model": "openai/gpt-5-mini",
+            "judge_digest": "b54fbdb95565abf8",
+            "delta": null
+          }
+        ]
+      },
+      {
+        "qset": "5cedbcf3",
+        "n": 54,
+        "n_steps": 2,
+        "floor_pp": 3.703703703703709,
+        "floor_source": "widest observed spread between reps of one configuration",
+        "judge_floor_pp": 1.8518518518518519,
+        "steps": [
+          {
+            "qset": "5cedbcf3",
+            "step": "layers_slice0_base_layers",
+            "kind": "pipeline",
+            "kind_why": "",
+            "n": 54,
+            "run_at": "2026-07-24T20:51-05:00",
+            "run_at_source": "answers file mtime",
+            "config": {
+              "model": "claude-sonnet-5",
+              "effort": null,
+              "rewrite_version": "v2",
+              "ruling_query_mode": "raw",
+              "system_version": 3
+            },
+            "config_recorded": true,
+            "heterogeneous_fields": [],
+            "flat": 0.6481481481481481,
+            "weighted": 0.6619047619047619,
+            "auto": null,
+            "cost_per_q": 0.12977392400419285,
+            "in_per_q": 7000.500873515024,
+            "out_per_q": 7251.494758909854,
+            "n_reps": 2,
+            "rep_spread_pp": 3.703703703703698,
+            "rep_churn": {
+              "n_rows": 54,
+              "n_flipped": 6,
+              "ids": [
+                "rg126",
+                "rg132",
+                "rg1932",
+                "rg633",
+                "rg783",
+                "rg807"
+              ]
+            },
+            "reps": [
+              {
+                "arm": "layers_slice0_base_layers_r1",
+                "answers": "evals/answers/layers_slice0_base_layers_r1.json",
+                "flat": 0.6666666666666666,
+                "weighted": 0.6857142857142857,
+                "auto": null,
+                "run_at": "2026-07-24T20:51-05:00",
+                "run_at_source": "answers file mtime",
+                "human_corrected": false,
+                "regrade_of": null,
+                "regrade_pp": null,
+                "cost_per_q": 0.12888205555555554,
+                "in_per_q": 6987.907407407408,
+                "out_per_q": 7194.555555555556,
+                "join": "exact"
+              },
+              {
+                "arm": "layers_slice0_base_layers_r2",
+                "answers": "evals/answers/layers_slice0_base_layers_r2.json",
+                "flat": 0.6296296296296297,
+                "weighted": 0.638095238095238,
+                "auto": null,
+                "run_at": "2026-07-24T22:08-05:00",
+                "run_at_source": "answers file mtime",
+                "human_corrected": false,
+                "regrade_of": null,
+                "regrade_pp": null,
+                "cost_per_q": 0.1306657924528302,
+                "in_per_q": 7013.094339622641,
+                "out_per_q": 7308.433962264151,
+                "join": "exact"
+              }
+            ],
+            "judge_model": null,
+            "judge_digest": null,
+            "delta": null
+          },
+          {
+            "qset": "5cedbcf3",
+            "step": "h2h_opuslow_hard",
+            "kind": "pipeline",
+            "kind_why": "",
+            "n": 54,
+            "run_at": "2026-07-26T01:40-05:00",
+            "run_at_source": "answers file mtime",
+            "config": {
+              "model": "claude-opus-5",
+              "effort": "low",
+              "rewrite_version": "v2",
+              "ruling_query_mode": "raw",
+              "system_version": 3
+            },
+            "config_recorded": true,
+            "heterogeneous_fields": [],
+            "flat": 0.7407407407407407,
+            "weighted": 0.7476190476190476,
+            "auto": null,
+            "cost_per_q": 0.06445404629629631,
+            "in_per_q": 6375.87962962963,
+            "out_per_q": 1211.1018518518517,
+            "n_reps": 2,
+            "rep_spread_pp": 3.703703703703709,
+            "rep_churn": {
+              "n_rows": 54,
+              "n_flipped": 4,
+              "ids": [
+                "rg1128",
+                "rg130",
+                "rg4854",
+                "rg811"
+              ]
+            },
+            "reps": [
+              {
+                "arm": "h2h_opuslow_hard_r1",
+                "answers": "evals/answers/h2h_opuslow_hard_r1.json",
+                "flat": 0.7592592592592593,
+                "weighted": 0.7619047619047619,
+                "auto": null,
+                "run_at": "2026-07-26T01:40-05:00",
+                "run_at_source": "answers file mtime",
+                "human_corrected": false,
+                "regrade_of": null,
+                "regrade_pp": null,
+                "cost_per_q": 0.06424941666666667,
+                "in_per_q": 6408.888888888889,
+                "out_per_q": 1196.3148148148148,
+                "join": "exact"
+              },
+              {
+                "arm": "h2h_opuslow_hard_r2",
+                "answers": "evals/answers/h2h_opuslow_hard_r2.json",
+                "flat": 0.7222222222222222,
+                "weighted": 0.7333333333333333,
+                "auto": null,
+                "run_at": "2026-07-26T08:03-05:00",
+                "run_at_source": "answers file mtime",
+                "human_corrected": false,
+                "regrade_of": null,
+                "regrade_pp": null,
+                "cost_per_q": 0.06465867592592593,
+                "in_per_q": 6342.87037037037,
+                "out_per_q": 1225.888888888889,
+                "join": "exact"
+              }
+            ],
+            "judge_model": "openai/gpt-5-mini",
+            "judge_digest": "b54fbdb95565abf8",
+            "delta": {
+              "baseline": "layers_slice0_base_layers",
+              "baseline_run_at": "2026-07-24T20:51-05:00",
+              "baseline_flat": 0.6481481481481481,
+              "baseline_cost": 0.12977392400419285,
+              "changed": [
+                {
+                  "field": "model",
+                  "label": "model",
+                  "from": "claude-sonnet-5",
+                  "to": "claude-opus-5"
+                },
+                {
+                  "field": "effort",
+                  "label": "effort",
+                  "from": null,
+                  "to": "low"
+                }
+              ],
+              "changed_known": true,
+              "flat_pp": 9.259259259259256,
+              "weighted_pp": 8.571428571428575,
+              "cost_pct": -50.33359221363002,
+              "cost_abs": -0.06531987770789655,
+              "out_tok_pct": -83.29859026149359,
+              "floor_pp": 3.703703703703709,
+              "beats_noise": true,
+              "commits": [
+                {
+                  "sha": "0a36b83",
+                  "at": "2026-07-26T00:48:25-05:00",
+                  "subject": "Derivability: the gold supports the answers 90% of the time; retrieval is the bottleneck"
+                },
+                {
+                  "sha": "56990b3",
+                  "at": "2026-07-26T00:01:26-05:00",
+                  "subject": "Make the gold-miner prompt a versioned file, and add the merge rule"
+                },
+                {
+                  "sha": "e116fc2",
+                  "at": "2026-07-25T23:29:08-05:00",
+                  "subject": "Repoint 10 questions whose gold pointed at rules the retriever cannot return"
+                },
+                {
+                  "sha": "eb0d410",
+                  "at": "2026-07-25T23:07:00-05:00",
+                  "subject": "Derivability harness: gold-only and gold+retrieved arms, and fix effort/caching on the frozen-prompt path"
+                },
+                {
+                  "sha": "a280f56",
+                  "at": "2026-07-25T22:56:48-05:00",
+                  "subject": "Add opt-in prompt caching, and drop positional ruling ordinals from corrected gold"
+                },
+                {
+                  "sha": "fb480c9",
+                  "at": "2026-07-25T22:18:49-05:00",
+                  "subject": "Retrieval diversity factorial: MMR refuted, most of the rewrite gain already banked"
+                },
+                {
+                  "sha": "a1c1bb8",
+                  "at": "2026-07-25T22:18:27-05:00",
+                  "subject": "Correct three Urza's Saga gold answers that contradict a card ruling"
+                },
+                {
+                  "sha": "da7f374",
+                  "at": "2026-07-25T19:13:23-05:00",
+                  "subject": "Record Jon's rulings: CR-update checker approved, full-corpus mining opportunistic"
+                },
+                {
+                  "sha": "715e17b",
+                  "at": "2026-07-25T19:09:15-05:00",
+                  "subject": "Point the handoff at v3 gold and record both jobs landing"
+                },
+                {
+                  "sha": "30e611e",
+                  "at": "2026-07-25T19:08:59-05:00",
+                  "subject": "Sharpen header gold to subrules -- and mostly find it was already right"
+                },
+                {
+                  "sha": "1fdfc9c",
+                  "at": "2026-07-25T19:06:25-05:00",
+                  "subject": "Auto-judge the bucket-A arm: opus-5 @ effort low scores 75%"
+                },
+                {
+                  "sha": "eed656f",
+                  "at": "2026-07-25T19:01:32-05:00",
+                  "subject": "Rewrite the handoff for session 7; spec the CR-update checker"
+                },
+                {
+                  "sha": "2d212a7",
+                  "at": "2026-07-25T18:53:36-05:00",
+                  "subject": "Add subrule-letter and orphan-parent guards for CR parsing"
+                },
+                {
+                  "sha": "9e41d7d",
+                  "at": "2026-07-25T18:51:40-05:00",
+                  "subject": "Stop the CR parser silently dropping rules"
+                }
+              ],
+              "commits_total": 24
+            }
+          }
+        ]
+      },
+      {
+        "qset": "23aa5200",
+        "n": 50,
+        "n_steps": 2,
+        "floor_pp": 6.000000000000005,
+        "floor_source": "widest observed spread between reps of one configuration",
+        "judge_floor_pp": 2.0,
+        "steps": [
+          {
+            "qset": "23aa5200",
+            "step": "h2h_opuslow_easy",
+            "kind": "pipeline",
+            "kind_why": "",
+            "n": 50,
+            "run_at": "2026-07-26T08:20-05:00",
+            "run_at_source": "answers file mtime",
+            "config": {
+              "model": "claude-opus-5",
+              "effort": "low",
+              "rewrite_version": "v2",
+              "ruling_query_mode": "raw",
+              "system_version": 3
+            },
+            "config_recorded": true,
+            "heterogeneous_fields": [],
+            "flat": 0.89,
+            "weighted": 0.89,
+            "auto": null,
+            "cost_per_q": 0.051531709999999994,
+            "in_per_q": 4205.4,
+            "out_per_q": 1178.04,
+            "n_reps": 2,
+            "rep_spread_pp": 6.000000000000005,
+            "rep_churn": {
+              "n_rows": 50,
+              "n_flipped": 5,
+              "ids": [
+                "rg275",
+                "rg4171",
+                "rg6456",
+                "rg6461",
+                "rg692"
+              ]
+            },
+            "reps": [
+              {
+                "arm": "h2h_opuslow_easy_r1",
+                "answers": "evals/answers/h2h_opuslow_easy_r1.json",
+                "flat": 0.92,
+                "weighted": 0.92,
+                "auto": null,
+                "run_at": "2026-07-26T08:20-05:00",
+                "run_at_source": "answers file mtime",
+                "human_corrected": false,
+                "regrade_of": null,
+                "regrade_pp": null,
+                "cost_per_q": 0.05171381,
+                "in_per_q": 4204.22,
+                "out_per_q": 1185.56,
+                "join": "exact"
+              },
+              {
+                "arm": "h2h_opuslow_easy_r2",
+                "answers": "evals/answers/h2h_opuslow_easy_r2.json",
+                "flat": 0.86,
+                "weighted": 0.86,
+                "auto": null,
+                "run_at": "2026-07-26T08:34-05:00",
+                "run_at_source": "answers file mtime",
+                "human_corrected": false,
+                "regrade_of": null,
+                "regrade_pp": null,
+                "cost_per_q": 0.05134961,
+                "in_per_q": 4206.58,
+                "out_per_q": 1170.52,
+                "join": "exact"
+              }
+            ],
+            "judge_model": "openai/gpt-5-mini",
+            "judge_digest": "b54fbdb95565abf8",
+            "delta": null
+          },
+          {
+            "qset": "23aa5200",
+            "step": "h2h_sonnet_easy",
+            "kind": "pipeline",
+            "kind_why": "",
+            "n": 50,
+            "run_at": "2026-07-26T09:13-05:00",
+            "run_at_source": "answers file mtime",
+            "config": {
+              "model": "claude-sonnet-5",
+              "effort": null,
+              "rewrite_version": "v2",
+              "ruling_query_mode": "raw",
+              "system_version": 3
+            },
+            "config_recorded": true,
+            "heterogeneous_fields": [],
+            "flat": 0.76,
+            "weighted": 0.76,
+            "auto": null,
+            "cost_per_q": 0.070862379,
+            "in_per_q": 4549.92,
+            "out_per_q": 3762.5,
+            "n_reps": 2,
+            "rep_spread_pp": 4.0000000000000036,
+            "rep_churn": {
+              "n_rows": 50,
+              "n_flipped": 6,
+              "ids": [
+                "rg1304",
+                "rg275",
+                "rg6461",
+                "rg685",
+                "rg7201",
+                "rg985"
+              ]
+            },
+            "reps": [
+              {
+                "arm": "h2h_sonnet_easy_r1",
+                "answers": "evals/answers/h2h_sonnet_easy_r1.json",
+                "flat": 0.78,
+                "weighted": 0.78,
+                "auto": null,
+                "run_at": "2026-07-26T09:13-05:00",
+                "run_at_source": "answers file mtime",
+                "human_corrected": false,
+                "regrade_of": null,
+                "regrade_pp": null,
+                "cost_per_q": 0.065066559,
+                "in_per_q": 4500.98,
+                "out_per_q": 3385.9,
+                "join": "exact"
+              },
+              {
+                "arm": "h2h_sonnet_easy_r2",
+                "answers": "evals/answers/h2h_sonnet_easy_r2.json",
+                "flat": 0.74,
+                "weighted": 0.74,
+                "auto": null,
+                "run_at": "2026-07-26T10:01-05:00",
+                "run_at_source": "answers file mtime",
+                "human_corrected": false,
+                "regrade_of": null,
+                "regrade_pp": null,
+                "cost_per_q": 0.07665819900000001,
+                "in_per_q": 4598.86,
+                "out_per_q": 4139.1,
+                "join": "exact"
+              }
+            ],
+            "judge_model": "openai/gpt-5-mini",
+            "judge_digest": "b54fbdb95565abf8",
+            "delta": {
+              "baseline": "h2h_opuslow_easy",
+              "baseline_run_at": "2026-07-26T08:20-05:00",
+              "baseline_flat": 0.89,
+              "baseline_cost": 0.051531709999999994,
+              "changed": [
+                {
+                  "field": "model",
+                  "label": "model",
+                  "from": "claude-opus-5",
+                  "to": "claude-sonnet-5"
+                },
+                {
+                  "field": "effort",
+                  "label": "effort",
+                  "from": "low",
+                  "to": null
+                }
+              ],
+              "changed_known": true,
+              "flat_pp": -13.0,
+              "weighted_pp": -13.0,
+              "cost_pct": 37.512182304837175,
+              "cost_abs": 0.01933066900000001,
+              "out_tok_pct": 219.38643849105293,
+              "floor_pp": 6.000000000000005,
+              "beats_noise": true,
+              "commits": [
+                {
+                  "sha": "d95a461",
+                  "at": "2026-07-26T09:12:51-05:00",
+                  "subject": "Switch production generation to opus-5 at effort=low"
+                },
+                {
+                  "sha": "d053900",
+                  "at": "2026-07-26T09:02:19-05:00",
+                  "subject": "Handoff: warn that a truncated run reads as a legitimate result"
+                },
+                {
+                  "sha": "4657168",
+                  "at": "2026-07-26T08:58:31-05:00",
+                  "subject": "Handoff: refresh the in-flight state before the session switch"
+                }
+              ],
+              "commits_total": 3
+            }
+          }
+        ]
+      },
+      {
+        "qset": "c78c738d",
+        "n": 68,
+        "n_steps": 1,
+        "floor_pp": 1.4705882352941178,
+        "floor_source": "judge nondeterminism only (~1 verdict flip per 100 rows, and one row on this set is 1.5 pp) — no repeated arm here",
+        "judge_floor_pp": 1.4705882352941178,
+        "steps": [
+          {
+            "qset": "c78c738d",
+            "step": "opus5_low_bucketA",
+            "kind": "pipeline",
+            "kind_why": "",
+            "n": 68,
+            "run_at": "2026-07-25T18:35-05:00",
+            "run_at_source": "answers file mtime",
+            "config": {
+              "model": "claude-opus-5",
+              "effort": "low",
+              "rewrite_version": "none",
+              "ruling_query_mode": "raw",
+              "system_version": 3
+            },
+            "config_recorded": true,
+            "heterogeneous_fields": [],
+            "flat": 0.8235294117647058,
+            "weighted": 0.8320610687022901,
+            "auto": 0.75,
+            "cost_per_q": 0.07411411764705883,
+            "in_per_q": 8472.823529411764,
+            "out_per_q": 1270.0,
+            "n_reps": 1,
+            "rep_spread_pp": null,
+            "rep_churn": null,
+            "reps": [
+              {
+                "arm": "opus5_low_bucketA_human",
+                "answers": "evals/answers/opus5_low_norewrite_costbase.json",
+                "flat": 0.8235294117647058,
+                "weighted": 0.8320610687022901,
+                "auto": 0.75,
+                "run_at": "2026-07-25T18:35-05:00",
+                "run_at_source": "answers file mtime",
+                "human_corrected": true,
+                "regrade_of": [
+                  "opus5_low_bucketA"
+                ],
+                "regrade_pp": 7.352941176470584,
+                "cost_per_q": 0.07411411764705883,
+                "in_per_q": 8472.823529411764,
+                "out_per_q": 1270.0,
+                "join": "id-match"
+              }
+            ],
+            "judge_model": "openai/gpt-5-mini",
+            "judge_digest": "b54fbdb95565abf8",
+            "delta": null
+          }
+        ]
+      },
+      {
+        "qset": "536a77b0",
+        "n": 36,
+        "n_steps": 1,
+        "floor_pp": 2.7777777777777777,
+        "floor_source": "judge nondeterminism only (~1 verdict flip per 100 rows, and one row on this set is 2.8 pp) — no repeated arm here",
+        "judge_floor_pp": 2.7777777777777777,
+        "steps": [
+          {
+            "qset": "536a77b0",
+            "step": "h2h_gpt5mini",
+            "kind": "pipeline",
+            "kind_why": "",
+            "n": 36,
+            "run_at": "2026-07-24T22:51-05:00",
+            "run_at_source": "verdict file mtime (no answers file joined)",
+            "config": {
+              "model": null,
+              "effort": null,
+              "rewrite_version": null,
+              "ruling_query_mode": null,
+              "system_version": null
+            },
+            "config_recorded": false,
+            "heterogeneous_fields": [],
+            "flat": 0.5277777777777778,
+            "weighted": 0.5217391304347826,
+            "auto": null,
+            "cost_per_q": null,
+            "in_per_q": null,
+            "out_per_q": null,
+            "n_reps": 1,
+            "rep_spread_pp": null,
+            "rep_churn": null,
+            "reps": [
+              {
+                "arm": "h2h_gpt5mini",
+                "answers": null,
+                "flat": 0.5277777777777778,
+                "weighted": 0.5217391304347826,
+                "auto": null,
+                "run_at": "2026-07-24T22:51-05:00",
+                "run_at_source": "verdict file mtime (no answers file joined)",
+                "human_corrected": false,
+                "regrade_of": null,
+                "regrade_pp": null,
+                "cost_per_q": null,
+                "in_per_q": null,
+                "out_per_q": null,
+                "join": "unmatched"
+              }
+            ],
+            "judge_model": null,
+            "judge_digest": null,
+            "delta": null
+          }
+        ]
+      },
+      {
+        "qset": "570140e9",
+        "n": 15,
+        "n_steps": 1,
+        "floor_pp": 6.666666666666667,
+        "floor_source": "judge nondeterminism only (~1 verdict flip per 100 rows, and one row on this set is 6.7 pp) — no repeated arm here",
+        "judge_floor_pp": 6.666666666666667,
+        "steps": [
+          {
+            "qset": "570140e9",
+            "step": "derivability_C",
+            "kind": "oracle",
+            "kind_why": "Gold plus retrieval, on the 15 rows arm B got wrong. docs/results-derivability.md withdraws its reading — the four 'passes' were the judge changing its mind, not retrieval closing a gap.",
+            "n": 15,
+            "run_at": "2026-07-26T00:45-05:00",
+            "run_at_source": "answers file mtime",
+            "config": {
+              "model": "claude-opus-5",
+              "effort": "high",
+              "rewrite_version": "v2",
+              "ruling_query_mode": "union",
+              "system_version": 3
+            },
+            "config_recorded": true,
+            "heterogeneous_fields": [],
+            "flat": 0.26666666666666666,
+            "weighted": 0.2608695652173913,
+            "auto": null,
+            "cost_per_q": 0.09121041666666667,
+            "in_per_q": 4351.266666666666,
+            "out_per_q": 2705.2,
+            "n_reps": 1,
+            "rep_spread_pp": null,
+            "rep_churn": null,
+            "reps": [
+              {
+                "arm": "derivability_C",
+                "answers": "evals/answers/derivability_C_failures.json",
+                "flat": 0.26666666666666666,
+                "weighted": 0.2608695652173913,
+                "auto": null,
+                "run_at": "2026-07-26T00:45-05:00",
+                "run_at_source": "answers file mtime",
+                "human_corrected": false,
+                "regrade_of": null,
+                "regrade_pp": null,
+                "cost_per_q": 0.09121041666666667,
+                "in_per_q": 4351.266666666666,
+                "out_per_q": 2705.2,
+                "join": "alias"
+              }
+            ],
+            "judge_model": "openai/gpt-5-mini",
+            "judge_digest": "b54fbdb95565abf8",
+            "delta": null
+          }
+        ]
+      }
+    ],
+    "commits_indexed": 284,
+    "notes": {
+      "baseline": "Each delta compares a step to the previous PIPELINE step on the same question-set fingerprint, ordered by run time. Nothing is compared across fingerprints.",
+      "ordering": "Run time is the answers file's mtime where one is joined, else the verdict file's. Neither is a recorded run timestamp — the answers files do not carry one.",
+      "commits": "Commits are associated by falling inside the window between the baseline run and this run. That is an inference from timestamps, NOT a recorded link — no arm records the commit it ran on.",
+      "retrieval": "TOP_K / TOP_N / COSINE_FLOOR are not recorded per arm, so they never appear as a step change. What is per-arm: model, effort, rewrite_version, ruling_query_mode, system_version.",
+      "oracle": "Oracle arms are shown on their set but never chained, because they were handed gold instead of retrieving it."
+    }
+  }
 }
