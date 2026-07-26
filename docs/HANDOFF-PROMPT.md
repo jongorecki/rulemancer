@@ -49,6 +49,14 @@ was launched and deferred — **check whether the verdict files already exist
 before re-running the judge.** Exact filenames and the command are in the
 handoff.
 
+**CHECK ROW COUNTS FIRST.** The sonnet arms were generating unattended when the
+last session ended, and nothing flags a run that stopped early — a short file is
+still valid JSON and reads as a real result. A usage cap already killed one run
+at 47/54 this session and the file looked fine. Every `_easy` file should be 50
+rows and `h2h_opuslow_hard_r2.json` should be 54. If one is short, re-issue that
+run; `run_answer_eval.py` resumes from the existing `--out` rather than starting
+over.
+
 No regression confirms the switch; a regression doesn't reverse it (Jon decided
 on cost) but tells you to watch simple questions. Sonnet's within-arm noise on
 the hard set was 6 of 54 (11%), so a gap smaller than that is not a finding.

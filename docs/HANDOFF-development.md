@@ -228,6 +228,36 @@ splitting effort by question difficulty. Remember sonnet's within-arm noise on
 the hard set was 6 of 54 questions (11%), so a gap smaller than that is not a
 finding.
 
+### ⚠️ CHECK ROW COUNTS BEFORE INTERPRETING ANYTHING
+
+The sonnet arms were still generating when the previous session ended, unattended.
+**Nothing flags a run that stopped early** — a sonnet arm that quietly died at 30
+of 50 questions produces a valid-looking JSON file and reads as a legitimate
+result. This already happened once this session: an account usage cap killed
+`h2h_opuslow_hard_r2` at 47/54 mid-run, and the file looked fine.
+
+Before judging or interpreting, confirm every file is full length:
+
+```
+h2h_opuslow_hard_r2.json      54 rows
+h2h_opuslow_easy_r{1,2}.json  50 rows each
+h2h_sonnet_easy_r{1,2}.json   50 rows each   <- these two are the risk
+```
+
+If a file is short, or `h2h_sonnet_easy_r2.json` never appeared at all, the
+process died rather than finished. The fix is simply to re-issue that one run —
+`run_answer_eval.py` resumes from the existing `--out` file rather than starting
+over, so only the missing questions cost anything. The exact commands are in
+git: `git log -1 --format=%H` on the session that created these, or reconstruct
+from the `condition` field recorded in each row.
+
+Two sessions can safely run against this repo at once — the processes are
+ordinary OS processes writing incrementally, and editing `answer.py` cannot
+affect a run already in flight since Python reads the module at import. The one
+real collision risk is a second session **re-running or re-judging these same
+files while they are still being written**, so leave them alone until the row
+counts above check out.
+
 **How to read it:** no regression confirms the switch; a regression does not
 reverse it (Jon decided on cost) but tells you to watch simple questions and
 points at a fix such as splitting effort by difficulty.
