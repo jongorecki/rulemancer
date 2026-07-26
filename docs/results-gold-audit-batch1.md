@@ -1,9 +1,14 @@
 # Results — gold audit, batch 1 (the derivability 15)
 
-Jon graded all 15 rows that the judge flagged as failures in derivability arm B.
-**A third of them turned out to be the judge being wrong, not the bot.** That
-finding forced a correction to `docs/results-derivability.md` and is the origin
-of the queued work on judge false-negative rate.
+Jon graded all 15 rows that the judge flagged as failures in derivability arm B,
+then adjudicated a disputed subset on a second pass. **Two of the fifteen were
+the judge being wrong; three more were the bot being wrong in a way that
+retrieval later fixed.** Arm B is **137/150 = 91.3%**.
+
+This doc initially reported five judge errors and drove a correction to
+`docs/results-derivability.md` that has since been reversed — the original
+version of that doc was right. The reversal is documented in Finding 1, because
+how the mistake happened is more useful than the count.
 
 ## Provenance
 
