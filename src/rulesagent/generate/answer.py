@@ -136,7 +136,28 @@ PROMPT_VERSION = 3
 # Kept as module constants -- not inlined below -- so picking a different
 # cell later is a one-line change here rather than a code change.
 REWRITE_MODEL = "claude-haiku-4-5"
-REWRITE_N = 1
+# Multi-query. Jon ruled 3 on 2026-07-26, OVERRIDING A NULL RESULT: measured
+# against v3 gold at production TOP_K=15, groups@15 went 16.5% (n=1, the
+# previous production value) -> 20.3% (n=3), paired +10/-4, for +$0.0005 per
+# question with generation cost unchanged. That +3.8pp is BELOW the 7pp bar
+# fixed before the run, so this is a cost-benefit call on a nearly-free and
+# trivially revertible change, not a cleared bar. Recorded as such because the
+# bar existing and being missed is part of the result.
+#
+# n=1 is still better at the very top (groups@5: 8.9% vs 3.8%); n=3 wins deeper,
+# and at TOP_K=15 it is ahead only just.
+#
+# Raising this above 1 also ACTIVATES A PREVIOUSLY DORMANT PRODUCTION PATH --
+# the RRF fusion branch in answer() runs only when REWRITE_N > 1, so production
+# retrieval now fuses several rankings instead of taking one. That path was
+# exercised by the retrieval evals, not by production traffic.
+#
+# NOT reachable from the CLI: run_answer_eval.py's --rewrite-version sets the
+# PROMPT version, not the count, and answer() reads this module constant
+# directly -- so this cannot be A/B'd on ANSWERS today, only on retrieval
+# recall. Threading it as a constructor param + --rewrite-n (the pattern
+# `effort` and `cache_prompt` already follow) is what that would take.
+REWRITE_N = 3
 REWRITE_FUSION_DEPTH = 100  # candidates pulled per rewrite before RRF fusion
 # when REWRITE_N > 1 -- matches evals/run_eval.py's DEPTH, so production
 # retrieval is fused at the same depth the eval actually measured, not a
