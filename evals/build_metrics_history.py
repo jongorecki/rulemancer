@@ -85,6 +85,7 @@ ANSWERS = EVALS / "answers"
 # three hand-maintained copies of a number that expires is three chances to
 # publish a stale cost. Never edit rates here -- refresh the module.
 from rulesagent.pricing import (  # noqa: E402
+    BATCH_DISCOUNT,
     CACHE_READ_MULT,
     CACHE_WRITE_MULT,
     CHECKED_ON as PRICING_CHECKED_ON,
@@ -295,6 +296,7 @@ def cost_of(rows: list[dict], model: str) -> dict:
     """Per-question cost, tokens, and cache behaviour. Returns {} if unpriceable."""
     tot = {"input": 0, "output": 0, "cache_read": 0, "cache_write": 0}
     n = 0
+    n_batch = 0
     for r in rows:
         u = r.get("usage") or {}
         if not u:
@@ -304,19 +306,31 @@ def cost_of(rows: list[dict], model: str) -> dict:
         tot["output"] += u.get("output_tokens", 0) or 0
         tot["cache_read"] += u.get("cache_read_input_tokens", 0) or 0
         tot["cache_write"] += u.get("cache_creation_input_tokens", 0) or 0
+        if r.get("batch") is True:
+            n_batch += 1
     if not n:
         return {}
+    # Anthropic's Message Batches API is BATCH_DISCOUNT (50%) off every token
+    # tier -- see rulesagent/pricing.py's cost_usd(), which this module used to
+    # bypass by pricing off the raw PRICING table directly. run_answer_eval.py
+    # --batch stamps a `"batch": true` field on every row it writes precisely so
+    # this can be read off the file rather than assumed; an arm is only priced
+    # at the batch rate when EVERY costed row in it says so, so a mixed arm
+    # (should never happen, but would be a real bug if it did) prices at the
+    # non-batch rate rather than silently guessing.
+    is_batch = n_batch == n
 
     def price(key: str) -> float | None:
         if key not in PRICING:
             return None
         pin, pout = PRICING[key]
-        return (
+        total = (
             tot["input"] * pin
             + tot["cache_write"] * pin * CACHE_WRITE_MULT
             + tot["cache_read"] * pin * CACHE_READ_MULT
             + tot["output"] * pout
         ) / 1_000_000 / n
+        return total * BATCH_DISCOUNT if is_batch else total
 
     out = {
         "n_costed": n,
@@ -326,6 +340,7 @@ def cost_of(rows: list[dict], model: str) -> dict:
         "cache_write_per_q": tot["cache_write"] / n,
         "cost_per_q": price(model),
         "priced_as": model if model in PRICING else None,
+        "batch": is_batch,
     }
     # Sonnet's intro rate expires; show both so a re-run decision uses the right one.
     if model == "claude-sonnet-5":
@@ -487,6 +502,12 @@ def collect() -> dict:
                 "ruling_query_mode": first.get("ruling_query_mode"),
                 "system_version": first.get("system_version"),
                 "n_answers": len(rows),
+                # Not a CONFIG_FIELDS axis (those gate the delta/pair machinery),
+                # but a comparison whose losing side never recorded a prompt
+                # cache can't have "same prompt" verified even in principle --
+                # that gap is otherwise invisible next to fields that compare
+                # None == None as "not differing".
+                "prompts_cache_recorded": bool(first.get("prompts_cache")),
             }
             cost = cost_of(rows, first.get("model") or "")
             kind, kind_why = classify_arm(rows)
@@ -752,29 +773,35 @@ ROADMAP: list[dict] = [
     # ---------------------------------------------------------------- ready --
     {
         "id": "l0-arm",
-        "title": "L0-only pipeline arm (207 questions)",
+        "title": "L0-only pipeline arm (207 questions) -- SUPERSEDED by the full corpus run",
         "one_line": "Run the shipped config over the corpus's L0 questions, the one difficulty "
-                    "level no pipeline arm has ever touched.",
-        "status": "open", "action": "run", "info": 3,
-        "info_why": "L0 is the only level with zero pipeline rows, so the full-run projection "
-                    "is currently extrapolated over it rather than measured.",
-        "tells_us": "Whether the 80.3% full-run projection is honest. It is built from levels "
-                    "covering 85.3% of the corpus by mix; L0 is the missing 14.7%.",
+                    "level no pipeline arm had ever touched. Folded into the full 1,409-row run "
+                    "on 2026-07-27, which measured all 207 L0 rows directly.",
+        "status": "shipped", "action": "run", "info": 3,
+        "info_why": "SUPERSEDED 2026-07-27: this item's own goal -- get L0 out of extrapolation "
+                    "and into measurement -- was achieved as a side effect of running the entire "
+                    "corpus (docs/results-headline-accuracy.md) rather than by running it in "
+                    "isolation. Originally: \"L0 is the only level with zero pipeline rows, so the "
+                    "full-run projection is currently extrapolated over it rather than measured.\"",
+        "tells_us": "L0 measured 199/207 = 96.14% (95% CI [92.6%, 98.0%]), the highest of any "
+                    "level -- confirming the handoff's prediction that the projection read low "
+                    "because L0 is the corpus's easiest slice. The 80.3% full-run projection this "
+                    "item questioned is retired; the real number is 85.88%, 3.1 points above it.",
         "evidence": [
             {"kind": "doc", "ref": "docs/HANDOFF-development.md",
-             "note": "live queue item 1: \"Run an L0-only pipeline arm (~$11, 207 questions)\""},
-            {"kind": "derived",
-             "note": "this page's own projection reports missing_levels=['0'] and covered_share "
-                     "for every pipeline configuration -- recomputed at build time, below"},
+             "note": "live queue item 1: \"Run an L0-only pipeline arm (~$11, 207 questions)\" "
+                     "-- the original ask, now overtaken"},
+            {"kind": "doc", "ref": "docs/results-headline-accuracy.md",
+             "note": "L0: 199/207 correct, 96.14%, measured as part of the full 1,409-row run, "
+                     "commit 2543454"},
         ],
         "metric": {"name": "full-run projection coverage", "dir": "up", "basis": "measured",
-                   "cite": "evals/_metrics_history.json (comparisons.projections)",
-                   "detail": "coverage moves from the measured share to 100% of the corpus mix. "
-                             "The handoff predicts the point estimate reads low because L0 is the "
-                             "corpus's easiest slice -- that direction is predicted, not measured."},
-        "cost": {"kind": "api_questions", "n": 207,
-                 "why": "207 L0 questions in evals/rulesguru_full_v2.jsonl, at the measured "
-                        "$/question of the shipped config"},
+                   "cite": "docs/results-headline-accuracy.md",
+                   "detail": "coverage moved from a projected share to 100% of the corpus mix in "
+                             "one run. L0 landed at 96.14%, the corpus's best level, which is the "
+                             "direction the handoff predicted and this item existed to confirm."},
+        "cost": {"kind": "spent", "why": "measured as part of the $43.61 full-corpus run rather "
+                                          "than as a standalone ~$11 arm"},
         "deps": [],
     },
     {
@@ -843,8 +870,15 @@ ROADMAP: list[dict] = [
                     "index does nothing for rules answering.",
         "status": "cut", "action": "none", "info": 3,
         "info_why": "The channel ablation showed card oracle text carries the system (-31 pts "
-                    "when scrambled, p=4.3e-07) while CR-rule retrieval is ~inert (-3 pts, "
-                    "p=0.50). This points retrieval effort at the channel that matters.",
+                    "when scrambled, p=4.3e-07) while CR-rule retrieval measured ~inert on that "
+                    "same corpus (-3.3 pts, p=0.50). SUPERSEDED 2026-07-27: that \"inert\" result "
+                    "was a corpus artifact -- the ablation ran on a corpus that is 99.4% "
+                    "card-interaction questions, and on card-free rules questions scrambling the "
+                    "retrieved rules collapses accuracy 98.84% -> 15.12% (-83.7 pts, "
+                    "docs/results-rules86-placebo.md, commit f515246). Correct restatement: rules "
+                    "are redundant GIVEN card text, not inert in general. This does not change the "
+                    "cut decision here -- card-name resolution still isn't the failure mode -- but "
+                    "the retrieval-effort rationale above is no longer the reason to skip it.",
         "tells_us": "Whether semantic search over 38,336 cards can find functional equivalents "
                     "and constrained substitutes. Unlike the rules index, its ground truth is "
                     "COMPUTED (functional reprints, strictly-better and colour-shifted pairs are "
@@ -853,7 +887,11 @@ ROADMAP: list[dict] = [
         "evidence": [
             {"kind": "doc", "ref": "docs/results-channel-ablation.md",
              "note": "the ablation that motivates it -- oracle text -31 pts, rulings -6, CR "
-                     "rules -3, layers tool 0"},
+                     "rules -3, layers tool 0 (measured on the card-heavy corpus)"},
+            {"kind": "doc", "ref": "docs/results-rules86-placebo.md",
+             "note": "the reversal: on 86 card-free rules questions, the same intervention "
+                     "collapses accuracy -83.7 pts. CR rules are load-bearing when cards aren't "
+                     "there to cover for them."},
             {"kind": "path", "ref": "data/scryfall.db",
              "note": "38,336 oracle cards and 77,999 rulings already local, with oracle_text, "
                      "type_line, mana_value, colors and faces per card"},
@@ -872,40 +910,203 @@ ROADMAP: list[dict] = [
     },
     {
         "id": "retrieval-value-ab",
-        "title": "Measure what retrieval is actually worth (single-variable A/B)",
+        "title": "Measure what retrieval is actually worth (single-variable A/B) -- DONE",
         "one_line": "Hold the entire pipeline fixed and swap only WHICH rules go in the context "
                     "block — real retrieval vs another question's retrieval — so the difference "
-                    "is retrieval's contribution and nothing else.",
-        "status": "open", "action": "build", "info": 3,
-        "info_why": "No arm on disk isolates retrieval. Every published comparison changes two or "
-                    "more variables at once, so the 82.8% -> 91.3% gap that motivates the entire "
-                    "retrieval roadmap cannot currently be attributed to retrieval.",
-        "tells_us": "Whether the retrieved rules improve the answers at all, at the difficulty "
-                    "levels where they could. Also decomposes how much of the oracle gap is "
-                    "reasoning effort (arm B runs effort=high, the shipped pipeline effort=low) "
-                    "and whether the layers tool earns its complexity.",
+                    "is retrieval's contribution and nothing else. Run 2026-07-27 on 86 card-free "
+                    "rules questions.",
+        "status": "shipped", "action": "build", "info": 3,
+        "info_why": "DONE 2026-07-27. Originally: \"No arm on disk isolates retrieval. Every "
+                    "published comparison changes two or more variables at once.\" That's no "
+                    "longer true -- real vs placebo prompts are byte-identical except inside the "
+                    "rules block (first divergence at character offset 16), which is exactly the "
+                    "single-variable swap this item proposed.",
+        "tells_us": "Retrieval is load-bearing, not decorative: scrambling the retrieved rules "
+                    "collapses accuracy 98.84% -> 15.12% (-83.7 pts) on card-free questions. But "
+                    "the collapse is mostly REFUSAL, not error -- placebo declined to answer on "
+                    "78/86 rows (90.7%) and confabulated a confident wrong answer on only 3/86 "
+                    "(3.5%; one of those looks like a possible judge false positive). The old "
+                    "82.8% -> 91.3% oracle-gap framing this item was scoped to answer is "
+                    "superseded by results-headline-accuracy.md's measured 85.88% corpus figure; "
+                    "this experiment answers the narrower, cleaner question of whether retrieval "
+                    "itself does anything, and the answer is yes, decisively.",
         "docs": ["docs/spec-retrieval-value-ab.md"],
         "evidence": [
+            {"kind": "doc", "ref": "docs/results-rules86-placebo.md",
+             "note": "the run: real rules 85/86 = 98.84% [93.70%, 99.79%] vs scrambled rules "
+                     "13/86 = 15.12% [9.05%, 24.16%], arms rules86_real_votes3 / "
+                     "rules86_placebo_votes3, judge openai/gpt-5-mini 3-vote majority, commit "
+                     "f515246"},
             {"kind": "doc", "ref": "docs/results-adversarial-review.md",
-             "note": "the review that found it: citations are 99.2% grounded, but retrieval "
-                     "supplies zero gold on 55.6% of scored rows and those rows still score "
-                     "89.4%; correlation between coverage and correctness is r=+0.06"},
+             "note": "the review that found the original gap: citations are 99.2% grounded, but "
+                     "retrieval supplies zero gold on 55.6% of scored rows and those rows still "
+                     "score 89.4%; correlation between coverage and correctness is r=+0.06 -- this "
+                     "review is why a card-free set was needed to see retrieval's effect at all"},
             {"kind": "doc", "ref": "docs/results-norules-control.md",
-             "note": "the control this design replaces as the primary instrument — it is matched "
-                     "to arm B (effort=high), not to the shipped pipeline (effort=low), so it "
-                     "cannot measure the shipped product's dependence on retrieval"},
+             "note": "the earlier control this design replaced as the primary instrument — it was "
+                     "matched to arm B (effort=high), not the shipped pipeline (effort=low), so it "
+                     "could not measure the shipped product's dependence on retrieval"},
         ],
         "metric": {"name": "accuracy delta, real vs placebo context", "dir": "up",
-                   "basis": "predicted", "cite": "docs/spec-retrieval-value-ab.md",
-                   "detail": "no prior estimate exists — that is the point. Decision thresholds "
-                             "are pre-registered in the spec against a measured 7-10% run-to-run "
-                             "noise floor."},
-        "cost": {"kind": "api_stated", "lo": 4.55, "hi": 45.0,
-                 "cite": "docs/spec-retrieval-value-ab.md",
-                 "why": "$4.55 for the mandatory 15-row pilot across all four arms; ~$38 for the "
-                        "full 120-row four-arm run, ceiling $45. Arms A+B alone answer the core "
-                        "question for ~$19. Output-token estimates are deliberately pessimistic "
-                        "because an arm's cost model does not transfer across arm kinds."},
+                   "basis": "measured", "cite": "docs/results-rules86-placebo.md",
+                   "detail": "-83.7 points (98.84% -> 15.12%), far past the pre-registered "
+                             "decision thresholds against the measured 7-10% run-to-run noise "
+                             "floor. Judge instability at contestable accuracy is ~2-4 points "
+                             "(docs/results-judge-stability.md), so the gap is not an instrument "
+                             "artifact."},
+        "cost": {"kind": "spent",
+                 "why": "ran within the pre-registered $4.55-$45 range (86 questions x 2 arms x "
+                        "3 judge votes)"},
+        "deps": [],
+    },
+    {
+        "id": "three-way-verdicts",
+        "title": "Three-way verdicts — correct / incorrect / declined",
+        "one_line": "Split the judge's binary correct/incorrect into three states so a grounded "
+                    "refusal stops scoring identically to a confident wrong answer.",
+        "status": "open", "action": "build", "info": 2,
+        "info_why": "The rules86 placebo arm showed why this matters: 90.7% of its rows were "
+                    "honest declines and only 3.5% were confabulations, but the accuracy metric "
+                    "scored both as \"incorrect\" and made the system look roughly 6x worse than "
+                    "it actually behaved. `answered` is already recorded per row at generation "
+                    "time, so this is a scoring-layer change, not a re-run.",
+        "tells_us": "Whether other arms -- especially low-scoring ones like level 3 (67.90%) -- "
+                    "are hiding a similar refuse-vs-error split, or whether the headline run's "
+                    "refusal rate (0.71%, 9 of 10 declines scored wrong) means this mostly matters "
+                    "under corrupted/adversarial retrieval rather than in the shipped pipeline.",
+        "evidence": [
+            {"kind": "doc", "ref": "docs/results-rules86-placebo.md",
+             "note": "\"Verdicts should be three-way: correct / incorrect / declined. Recommended "
+                     "follow-up, and it costs nothing because answered is already recorded per "
+                     "row.\""},
+            {"kind": "doc", "ref": "docs/results-headline-accuracy.md",
+             "note": "the shipped pipeline's own refusal rate for contrast: 10/1,409 (0.71%), "
+                     "9 of which scored incorrect -- so the corpus run is not currently hiding a "
+                     "large refusal population, unlike the placebo arm"},
+            {"kind": "path", "ref": "evals/run_answer_eval.py",
+             "note": "line ~1026: `\"answered\": ans.answered` already recorded per row; line "
+                     "~1153: `declined = [r[\"id\"] for r in results if not r[\"answered\"]]` "
+                     "already computed but not threaded into the judge/scoring path"},
+        ],
+        "metric": {"name": "instrument validity (refusal separated from error)", "dir": "up",
+                   "basis": "predicted", "cite": "docs/results-rules86-placebo.md",
+                   "detail": "not built yet -- the placebo arm shows the size of the effect where "
+                             "refusals are common (a 6x apparent-vs-real severity gap); on the "
+                             "shipped pipeline where refusals are rare it mainly changes how a "
+                             "handful of rows get read, not the headline number."},
+        "cost": {"kind": "zero",
+                 "why": "arithmetic over `answered`, already recorded on every answer row -- no "
+                        "new generation, no new judge calls"},
+        "deps": [],
+    },
+    {
+        "id": "harder-cardfree-set",
+        "title": "Harder card-free rules set (rules86 is near-ceiling)",
+        "one_line": "Draft a card-free rules set calibrated to be hard enough to detect pipeline "
+                    "improvements -- rules86's real arm sits at 98.84%, too close to ceiling to "
+                    "measure gains, only damage.",
+        "status": "open", "action": "build", "info": 2,
+        "info_why": "results-rules86-placebo.md names this gap in its own caveats: \"The real arm "
+                    "at 98.84% is near-ceiling, which means this set cannot detect improvements to "
+                    "the real pipeline. It is a sensitive instrument for damage, not for gains. A "
+                    "harder card-free set would be needed to measure progress.\"",
+        "tells_us": "Whether future retrieval or prompt changes actually move accuracy on "
+                    "rules-only questions -- something rules86 structurally cannot show at 98.84%.",
+        "evidence": [
+            {"kind": "doc", "ref": "docs/results-rules86-placebo.md",
+             "note": "the near-ceiling caveat and its own recommendation to build a harder set"},
+            {"kind": "doc", "ref": "docs/spec-pure-rules-holdout.md",
+             "note": "reusable machinery: the approval UI and purerules.jsonl pipeline "
+                     "(build_purerules_approval_ui.py, Jon approves/rewrites/cuts in browser) "
+                     "already exists for drafting and vetting card-free/harder questions"},
+        ],
+        "metric": {"name": "real-arm accuracy headroom", "dir": "down", "basis": "predicted",
+                   "cite": "docs/results-rules86-placebo.md",
+                   "detail": "rules86's real arm has ~1 point of headroom below ceiling (98.84%); "
+                             "no target headroom is set yet for a harder set -- that is what this "
+                             "item would draft."},
+        "cost": {"kind": "subscription",
+                 "why": "drafting runs on subagents under the standing grant, same as "
+                        "purerules-eval and the rules86 55-row batch; Jon's blind-review pass is "
+                        "the bottleneck, not credits"},
+        "deps": ["retrieval-value-ab"],
+        "dep_why": "it is the direct follow-on to that experiment's stated ceiling limitation",
+    },
+    {
+        "id": "attack-level3",
+        "title": "Attack level 3 (67.90% -- the corpus's weakest tier)",
+        "one_line": "Level 3 is the lowest-scoring tier in the first corpus-wide measurement "
+                    "(67.90%, n=162) and fails at ~6x the base rate in a separate sample -- "
+                    "diagnose why before spending on anything else.",
+        "status": "open", "action": "decide", "info": 3,
+        "info_why": "Two independent measurements now agree level 3 is the weak point: the "
+                    "headline run's monotonic per-level decline and the failure taxonomy's ~6x "
+                    "base-rate finding on a different 311-row sample. Two instruments landing on "
+                    "the same tier is a stronger signal than either alone.",
+        "tells_us": "Whether level 3 failures cluster by cause (retrieval miss vs reasoning "
+                    "failure, the split miss-partition targets) and whether any item already on "
+                    "this board (second-hop, gold-sufficiency) actually reaches level 3 "
+                    "specifically, or whether none of them do and a new item is needed.",
+        "evidence": [
+            {"kind": "doc", "ref": "docs/results-headline-accuracy.md",
+             "note": "per-level table: L0 96.14%, L1 90.27%, L2 84.24%, L3 67.90% [60.4%, 74.6%] "
+                     "n=162, Corner Case 71.01% -- L3 is the lowest of the four numbered levels"},
+            {"kind": "doc", "ref": "docs/results-failure-taxonomy.md",
+             "note": "7.4% base failure rate corpus-wide; level 3 at 42.9%, ~6x the base rate, "
+                     "measured on a separate 311-row sample -- the headline run corroborates this "
+                     "independently rather than repeating the same data"},
+        ],
+        "metric": {"name": "level 3 accuracy", "dir": "up", "basis": "measured",
+                   "cite": "docs/results-headline-accuracy.md",
+                   "detail": "67.90% [60.4%, 74.6%], n=162 -- the baseline this item would move. "
+                             "No intervention is scoped yet; that is what the diagnosis decides."},
+        "cost": {"kind": "unknown",
+                 "why": "no plan sizes an L3-specific fix yet -- the diagnosis (miss-partition, "
+                        "run first) decides whether the lever is retrieval, reasoning, or gold "
+                        "quality before anything gets priced"},
+        "deps": ["miss-partition"],
+        "dep_why": "need the retrieval-vs-reasoning split before scoping an L3-specific fix, or "
+                   "the spend targets the wrong half of the stack",
+    },
+    {
+        "id": "human-grading-sample",
+        "title": "Human-grade a plain random sample (not just judge-flagged rows)",
+        "one_line": "Grade a random cross-section of the corpus by hand instead of only rows a "
+                    "judge already flagged -- every human verdict in this project so far comes "
+                    "from a stratified pull (judge-flagged-different, or judge-passed hard-level), "
+                    "never a plain random draw across the full accuracy distribution.",
+        "status": "open", "action": "measure", "info": 2,
+        "info_why": "results-judge-error-rate.md's 32 hand-graded rows are a census of "
+                    "judge-flagged-different rows only (15 arm-B + 17 bucket-A). "
+                    "results-judge-false-negatives.md's newer 77-row hand-grade improves on this "
+                    "by covering judge-PASSED rows, including a census of all 53 hard-level "
+                    "passes, and measures 0/77 false negatives (95% CI [0%, 4.7%]). Both are real "
+                    "improvements, but both are still stratified pulls, not a plain random sample "
+                    "across the whole corpus -- so the residual risk is a class of error neither "
+                    "stratum happens to contain.",
+        "tells_us": "Whether the measured 0% false-negative rate (upper bound 4.7%) holds outside "
+                    "the strata it has been checked on, and gives the judge false-positive/"
+                    "false-negative rates their first check against an unbiased sample.",
+        "evidence": [
+            {"kind": "doc", "ref": "docs/results-judge-error-rate.md",
+             "note": "the 32-row census, explicitly \"every row those arms' judge flagged "
+                     "different\" -- judge-flagged-only, not random"},
+            {"kind": "doc", "ref": "docs/results-judge-false-negatives.md",
+             "note": "77 rows hand-graded, 0/77 false negatives, CI [0%, 4.7%], including a "
+                     "census of all 53 hard-level passes -- judge-passed-only, still not random"},
+            {"kind": "doc", "ref": "docs/results-judge-panel.md",
+             "note": "the multi-model judge panel was tested and rejected as primary (40% vs "
+                     "gpt-5-mini's 72% agreement with human verdicts) -- a reminder that LLM "
+                     "cross-checks of LLM answers are not a substitute for a human anchor"},
+        ],
+        "metric": {"name": "false-negative rate, unbiased sample", "dir": "none", "basis": "measured",
+                   "cite": "docs/results-judge-false-negatives.md",
+                   "detail": "current baseline is 0/77 (CI to 4.7%), but on two stratified "
+                             "samples; a random draw could land inside or outside that interval "
+                             "and either result is informative."},
+        "cost": {"kind": "zero",
+                 "why": "Jon's own grading time against answers already on disk, same cost shape "
+                        "as gold-audit-b2 -- no generation, no judge calls, no Anthropic client"},
         "deps": [],
     },
     {
@@ -1439,26 +1640,38 @@ ROADMAP: list[dict] = [
     # -------------------------------------------------------------- blocked --
     {
         "id": "full-run",
-        "title": "The full RulesGuru run — all 1,409 questions",
+        "title": "The full RulesGuru run — all 1,409 questions -- DONE",
         "one_line": "Run the shipped config over the entire corpus and publish a real number "
-                    "instead of a projection.",
-        "status": "open", "action": "run", "info": 3,
-        "info_why": "It is the decision this whole page exists to serve.",
-        "tells_us": "The actual accuracy, with no reweighting and no extrapolation.",
+                    "instead of a projection. Ran 2026-07-27: 85.88%.",
+        "status": "shipped", "action": "run", "info": 3,
+        "info_why": "DONE 2026-07-27. It was the decision this whole page existed to serve, and "
+                    "it went ahead without waiting on gold-audit-b2 (grading-error correction is "
+                    "still open and not yet folded into this figure).",
+        "tells_us": "The actual accuracy, with no reweighting and no extrapolation: 85.88% on all "
+                    "1,409 rows (1,210 correct), 95% Wilson CI [83.96%, 87.60%]. By level: L0 "
+                    "96.14%, L1 90.27%, L2 84.24%, L3 67.90%, Corner Case 71.01% -- a monotonic "
+                    "decline that corroborates docs/results-failure-taxonomy.md's separate finding "
+                    "that L3 fails at ~6x the base rate. This beat the old 80.3% [71.7-86.8] "
+                    "projection by 3.1 points; that projection is now retired.",
         "evidence": [
             {"kind": "doc", "ref": "docs/HANDOFF-development.md",
              "note": "live queue item 3: \"At $73-91 it is not a cost decision. The judge is now "
-                     "measured; the remaining question is L0 coverage.\""},
+                     "measured; the remaining question is L0 coverage.\" -- the ask that was run"},
+            {"kind": "doc", "ref": "docs/results-headline-accuracy.md",
+             "note": "the result: 85.88% [83.96%, 87.60%], config opus-5/low/v2/raw/no-layers-tool, "
+                     "batched, $43.61, commit 2543454. Refusals measured at 0.71% (10/1,409 rows), "
+                     "so the figure is not a refusal artifact -- contrast docs/"
+                     "results-rules86-placebo.md where placebo context drives refusal to 90.7%"},
         ],
         "metric": {"name": "headline accuracy", "dir": "none", "basis": "measured",
-                   "cite": "evals/_metrics_history.json",
-                   "detail": "replaces a projected 80.3% [71.7-86.8] with a measured value. "
-                             "Which way it lands is exactly what is unknown."},
-        "cost": {"kind": "api_questions", "n": 1409,
-                 "why": "the full corpus at the measured $/question of the shipped config"},
-        "deps": ["l0-arm", "gold-audit-b2"],
-        "dep_why": "L0 coverage is the named remaining question, and grading error should be "
-                   "measured before a headline number is produced under it",
+                   "cite": "docs/results-headline-accuracy.md",
+                   "detail": "85.88% [83.96%, 87.60%], n=1,409. Net error direction is more "
+                             "likely an understatement than an overstatement: judge false "
+                             "positives run 4.4% (pull the number down) while false negatives "
+                             "measure 0% with a 4.7% upper bound (would pull it up)."},
+        "cost": {"kind": "spent", "why": "$43.61, generation only, 1,409 rows batched -- plus "
+                                          "$1.90 to warm the v2 rewrite prompt cache first"},
+        "deps": [],
     },
     {
         "id": "rewriter-bakeoff-p2",
@@ -1493,17 +1706,28 @@ ROADMAP: list[dict] = [
         "id": "l2-generator",
         "title": "Re-test the generator model choice, post-tools",
         "one_line": "Re-run the sonnet-vs-cheap-model comparison on the tool-triggering subset, "
-                    "now that exact sub-computations live in Python instead of the model.",
+                    "now that exact sub-computations live in Python instead of the model. The "
+                    "tool-triggering subset is smaller than when this item was scoped: the layer "
+                    "resolver that motivated it was removed 2026-07-27 (measured zero benefit), so "
+                    "only the cost calculator remains as a live tool to re-test against.",
         "status": "open", "action": "run", "info": 2,
         "info_why": "The tool roadmap changed the generator's job, so the old comparison measured "
-                    "a pipeline that no longer exists.",
-        "tells_us": "Whether a cheap model plus tools matches an expensive model without them.",
+                    "a pipeline that no longer exists. UPDATE 2026-07-27: it's changed again -- "
+                    "the layers tool this item originally cited as \"the tool this was waiting on\" "
+                    "is gone (commit f357c4a), so \"post-tools\" now means post-cost-calculator "
+                    "only. Re-scope to the cost-tagged subset before running.",
+        "tells_us": "Whether a cheap model plus the cost-calculator tool matches an expensive "
+                    "model without it.",
         "evidence": [
             {"kind": "doc", "ref": "DECISIONS.md",
              "note": "2026-07-24 Lever 2: \"DEFERRED to post-tools\". The re-test measures three "
                      "things, not one: accuracy, tool-call well-formedness, citation stability"},
             {"kind": "commit", "ref": "24f2bb9",
-             "note": "layers trigger calibrated — the tool this was waiting on has shipped"},
+             "note": "layers trigger calibrated to 77.8% -- the tool this item was originally "
+                     "waiting on; since removed"},
+            {"kind": "commit", "ref": "f357c4a",
+             "note": "layer resolver REMOVED 2026-07-27, measured zero benefit (5-3 on fired "
+                     "rows, p=0.73) -- narrows this item's scope to the cost calculator alone"},
         ],
         "metric": {"name": "cost per question at equal accuracy", "dir": "down",
                    "basis": "predicted", "cite": "DECISIONS.md",
@@ -1607,10 +1831,13 @@ ROADMAP: list[dict] = [
                 "detail": "multi-query wins, MMR refuted. Ran at zero API spend (cache-only)."},
      "cost": {"kind": "spent", "why": "shipped; the run itself was cache-only, zero API spend"},
      "deps": []},
-    {"id": "s-tools", "title": "Deterministic tools — cost calculator and layer resolver",
+    {"id": "s-tools", "title": "Deterministic tools — cost calculator (shipped); "
+                               "layer resolver (shipped, then REMOVED)",
      "status": "shipped", "info": 2, "action": "run",
      "one_line": "Move exact sub-computations (mana costs, CR 613 layers) out of the model and "
-                 "into Python functions the model can call.",
+                 "into Python functions the model can call. The cost calculator stuck; the layer "
+                 "resolver was built, calibrated, measured at zero benefit, and removed "
+                 "(commit f357c4a, 2026-07-27) along with its 76-test suite.",
      "tells_us": "",
      "merged": ["docs/plan-cost-calculator-tool.md", "docs/plan-layer-system-tool.md",
                 "docs/spec-slice0-harness.md"],
@@ -1623,12 +1850,22 @@ ROADMAP: list[dict] = [
                   {"kind": "commit", "ref": "4343848", "note": "resolve_layers wired into the dispatch loop"},
                   {"kind": "commit", "ref": "24f2bb9",
                    "note": "trigger calibration FAILED at 20.4%, ruled to threshold 1, now 77.8%"},
-                  {"kind": "path", "ref": "src/rulesagent/tools/cost_calculator.py"}],
-     "metric": {"name": "accuracy on tool-shaped questions", "dir": "up", "basis": "measured",
-                "cite": "docs/report-costtool-validation.md",
-                "detail": "validated at scale on the 199 cost-tagged questions; the layers trigger "
-                          "reaches 42/54 = 77.8% of bucket A."},
-     "cost": {"kind": "spent", "why": "shipped"}, "deps": []},
+                  {"kind": "commit", "ref": "f357c4a",
+                   "note": "layer resolver REMOVED, measured zero benefit -- layer_resolver.py "
+                           "and its 76-test suite deleted; the rules86 A/B (results-rules86-"
+                           "placebo.md) confirms it did not exist at run time"},
+                  {"kind": "path", "ref": "src/rulesagent/tools/cost_calculator.py",
+                   "note": "the surviving tool"}],
+     "metric": {"name": "accuracy on tool-shaped questions", "dir": "none", "basis": "measured",
+                "cite": "docs/report-costtool-validation.md; commit f357c4a for the removal",
+                "detail": "cost calculator validated at scale on the 199 cost-tagged questions. "
+                          "The layers trigger had reached 42/54 = 77.8% of bucket A, but the "
+                          "removal measurement (commit f357c4a) found it fired on 42 of 68 rows "
+                          "whose gold requires a CR 613 rule and changed nothing: 5-3 on fired "
+                          "rows, p=0.73 -- while costing 8.6% per query and 41% more API round "
+                          "trips (8,469 -> 5,982 input tokens, 116 -> 68 rounds). Trigger rate was "
+                          "never the bottleneck; the tool just didn't help once it fired."},
+     "cost": {"kind": "spent", "why": "shipped, then partly reverted"}, "deps": []},
     {"id": "s-eval-harness", "title": "Eval instrument — RulesGuru import, judging, and the knobs",
      "status": "shipped", "info": 3, "action": "measure",
      "one_line": "The measurement stack: an external judge-authored question set, an outside "
@@ -2176,6 +2413,42 @@ RUNTIME_NOTE = ("Wall-clock is not recorded per row in any answers file, so run 
                 "~4s per question, putting 150 questions at \"roughly 10+ minutes\" — that was "
                 "written about sonnet, and the shipped config is a different model.")
 
+# Doc-sourced, NOT measured here. docs/results-judge-false-negatives.md hand-grades
+# rows itself (Jon reading answers against gold) -- there is no JSON verdict file
+# behind it the way fp_rate above has judge_error_results.json, so it cannot be
+# read as a number the way the rest of this function is. Quoted with its source
+# for the same reason RUNTIME_NOTE is, and superseding judge_error_results.json's
+# older fn_ref_rate (2/30 on a smaller, still-stratified sample) with the newer,
+# larger, deduplicated combined bound.
+FALSE_NEGATIVE_NOTE = {
+    "combined_rate": 0.0, "combined_k": 0, "combined_n": 77, "combined_ci": [0.0, 0.047],
+    "doc": "docs/results-judge-false-negatives.md",
+    "why": ("77 unique rows hand-graded across two passes (30, then 53 more including a census "
+            "of all hard-level judge-PASSED rows), 0 confirmed false negatives, 95% CI [0%, 4.7%] "
+            "-- tighter than either pass alone. Supersedes judge_error_results.json's older "
+            "2/30 = 6.7% reference-sample figure, a smaller and still-stratified predecessor."),
+}
+
+
+# Doc-sourced, NOT reconstructed here. Once the full-corpus arm exists, its own
+# rows get folded into the same config-signature bucket the live projection
+# machinery groups by (see `projections` in build_comparisons), so re-deriving
+# "what the projection said before the run" from the current data would be
+# circular -- the blend now includes the answer it is supposed to be predicting.
+# docs/results-headline-accuracy.md recorded the actual pre-run figure at the
+# time (82.8% [78.2%, 86.6%], from the three then-existing partial arms under
+# the shipped config) before that circularity existed, so that is quoted rather
+# than recomputed.
+PROJECTION_VALIDATION = {
+    "projected": 0.828, "ci": [0.782, 0.866], "measured": 0.8588, "miss_pp": 3.1,
+    "cost_estimate_lo": 52, "cost_estimate_hi": 91,
+    "doc": "docs/results-headline-accuracy.md",
+    "why": ("This page projected 82.8% [78.2%, 86.6%] from three partial-coverage arms under "
+            "the shipped config before the full run existed. The measured result, 85.88% on all "
+            "1,409 questions, landed +3.1 points above it -- near the top of the projected "
+            "interval, not outside it. That is what the corpus-mix reweighting method was for."),
+}
+
 
 def judge_error() -> dict:
     """The measured judge error rates, read from their file at build time."""
@@ -2196,6 +2469,7 @@ def judge_error() -> dict:
         "ref_agreement": (d.get("validation") or {}).get("agreement"),
         "ref_n": (d.get("validation") or {}).get("n"),
         "fn_ref_rate": (fn.get("reference_sample") or {}).get("rate"),
+        "fn_census": FALSE_NEGATIVE_NOTE,
     }
 
 
@@ -2212,9 +2486,50 @@ def build_summary(data: dict) -> dict:
     head = shipped[0] if shipped else (proj[0] if proj else None)
     je = judge_error()
 
+    # ---- has the full corpus already been measured? --------------------------
+    # Data-driven, not a hardcoded arm name: any pipeline-kind step whose n
+    # equals the full corpus size, on a config that was actually recorded. An
+    # unrelated question set landing on exactly N pipeline-graded rows by
+    # coincidence would be its own kind of newsworthy, so this is treated as
+    # conclusive rather than hedged.
+    full_run = next((st for s in data["timeline"]["sets"] for st in s["steps"]
+                      if st["kind"] == "pipeline" and st["n"] == N and st["config_recorded"]),
+                     None)
+    f_full = None
+    if full_run:
+        lvl = full_run["by_level"]
+        arm_match = next((a for a in data["arms"]
+                          if a["arm"] == full_run["step"] and a["qset"] == full_run["qset"]), None)
+        f_full = {
+            "step": full_run["step"], "qset": full_run["qset"], "n": full_run["n"],
+            "acc": full_run["flat"], "ci95": wilson(full_run["flat"], full_run["n"]),
+            "cost_per_q": full_run["cost_per_q"],
+            "cost_total": (full_run["cost_per_q"] * full_run["n"])
+                          if full_run["cost_per_q"] is not None else None,
+            "batch": bool(((arm_match or {}).get("cost") or {}).get("batch")),
+            "model": full_run["config"].get("model"), "effort": full_run["config"].get("effort"),
+            "run_at": full_run["run_at"],
+            "levels": {k: {"acc": v["acc"], "n_questions": v["n_questions"]} for k, v in lvl.items()},
+        }
+
     # ---- the facts every sentence below interpolates -----------------------
-    f: dict = {"N": N, "judge": je, "runtime_note": RUNTIME_NOTE}
-    if head:
+    f: dict = {"N": N, "judge": je, "runtime_note": RUNTIME_NOTE, "full_run": f_full,
+               "projection_validation": PROJECTION_VALIDATION if f_full else None}
+    if f_full:
+        # The corpus is measured. Use ITS OWN numbers, not the blended
+        # same-config projection -- that projection groups by config signature
+        # and this very run now sits inside that bucket, so reusing it here
+        # would be circular (see PROJECTION_VALIDATION's comment above).
+        f.update({
+            "acc": f_full["acc"], "ci": f_full["ci95"],
+            "ci_width_pp": (f_full["ci95"][1] - f_full["ci95"][0]) * 100 if f_full["ci95"] else None,
+            "coverage": 1.0, "missing": [],
+            "cost_lo": f_full["cost_per_q"], "cost_hi": f_full["cost_per_q"],
+            "full_lo": f_full["cost_total"], "full_hi": f_full["cost_total"],
+            "model": f_full["model"], "effort": f_full["effort"],
+            "n_run": f_full["n"],
+        })
+    elif head:
         f.update({
             "acc": head["projected_acc"], "ci": head["ci95"],
             "ci_width_pp": (head["ci95"][1] - head["ci95"][0]) * 100 if head.get("ci95") else None,
@@ -2232,7 +2547,23 @@ def build_summary(data: dict) -> dict:
 
     # ---- BRANCH SELECTION. Ordered; the first unmet threshold decides. ------
     checks = []
-    if not head:
+    if f_full:
+        # The question this branch chain used to answer -- should we run the
+        # full corpus -- is resolved. The thresholds still get evaluated, for
+        # the record of what cleared before the run, but they no longer pick
+        # the verdict.
+        verdict, why_key = "measured", None
+        checks = [
+            {"key": "coverage_min", "pass": True, "actual": 1.0, "fmt": "pct"},
+            {"key": "interval_max_pp", "pass": (f["ci_width_pp"] or 0) <= THRESH["interval_max_pp"],
+             "actual": f["ci_width_pp"], "fmt": "pp"},
+            {"key": "judge_fp_max_pp",
+             "pass": je.get("fp_rate") is not None and je["fp_rate"] * 100 <= THRESH["judge_fp_max_pp"],
+             "actual": (je.get("fp_rate") or 0) * 100, "fmt": "pp"},
+            {"key": "budget_max_usd", "pass": (f["full_hi"] or 0) <= THRESH["budget_max_usd"],
+             "actual": f["full_hi"], "fmt": "usd"},
+        ]
+    elif not head:
         verdict, why_key = "nodata", None
     else:
         checks = [
@@ -2255,7 +2586,49 @@ def build_summary(data: dict) -> dict:
     f["verdict"] = verdict
     f["why_key"] = why_key
 
+    # ---- what's next, now that the corpus itself has an answer --------------
+    # Not invented: read off the roadmap's own open items (status/cost/deps
+    # already computed by build_roadmap) plus the on-disk state of the one
+    # experiment that is neither on the roadmap nor finished -- the fair
+    # cross-model comparison, still generating.
+    f["next"] = None
+    if f_full:
+        by_id = {i["id"]: i for i in rm["items"]}
+        cost_rank = {"zero": 0, "free": 0, "subscription": 1, "hosting": 2, "spent": 3, "unknown": 4}
+        candidates = []
+        for cid in ("three-way-verdicts", "harder-cardfree-set", "attack-level3"):
+            it = by_id.get(cid)
+            if not it or it.get("status") != "open":
+                continue
+            deps = it.get("deps") or []
+            deps_ok = all(by_id.get(d, {}).get("status") == "shipped" for d in deps)
+            blocking = [by_id[d]["title"] for d in deps if by_id.get(d, {}).get("status") != "shipped"]
+            candidates.append({"id": cid, "title": it["title"], "cost": it["cost"],
+                               "deps_ok": deps_ok, "blocking": blocking,
+                               "rank": cost_rank.get(it["cost"].get("kind"), 5)})
+        ready = sorted([c for c in candidates if c["deps_ok"]], key=lambda c: c["rank"])
+
+        fair_path = ANSWERS / "gpt5mini_fair_1409.json"
+        fair = None
+        if fair_path.exists():
+            try:
+                rows = json.loads(fair_path.read_text(encoding="utf-8"))
+                rows = rows if isinstance(rows, list) else list(rows.values())
+                rows = [r for r in rows if isinstance(r, dict)]
+                answered = sum(1 for r in rows if r.get("answered"))
+                judged = any((a.get("provenance", {}).get("answers") or "")
+                             .endswith("gpt5mini_fair_1409.json") for a in data["arms"])
+                fair = {"n_rows": len(rows), "n_target": N, "n_answered": answered,
+                        "n_shards": len(list(ANSWERS.glob("gpt5mini_sh*.json"))),
+                        "judged": judged}
+            except (OSError, ValueError):
+                fair = None
+        f["next"] = {"pick": ready[0] if ready else None,
+                     "blocked": [c for c in candidates if not c["deps_ok"]],
+                     "fair_comparison": fair}
+
     # ---- model choice, computed from kind-matched pairs ---------------------
+    arm_cfg_by_step = {(a["qset"], a["arm"]): a["config"] for a in data["arms"]}
     model_pairs = []
     for s in C.get("head_to_head", []):
         for p in s.get("pairs", []):
@@ -2263,6 +2636,9 @@ def build_summary(data: dict) -> dict:
                 lead, trail = ((p["a"], p["b"]) if p["flat_pp"] < 0 else (p["b"], p["a"]))
                 # flat_pp is a-b; the arm with the HIGHER score leads.
                 a_wins = p["flat_pp"] > 0
+                win_step, lose_step = (p["a"], p["b"]) if a_wins else (p["b"], p["a"])
+                win_cfg = arm_cfg_by_step.get((s["qset"], win_step), {})
+                lose_cfg = arm_cfg_by_step.get((s["qset"], lose_step), {})
                 model_pairs.append({
                     "n": p["n"], "floor_pp": p["floor_pp"], "beats_noise": p["beats_noise"],
                     "winner": p["a"] if a_wins else p["b"],
@@ -2276,8 +2652,39 @@ def build_summary(data: dict) -> dict:
                     "lose_cost": p["b_cost"] if a_wins else p["a_cost"],
                     "confounded": len(p["differs"]) > 1,
                     "differs": [d["label"] for d in p["differs"]],
+                    # A field can fail to appear in `differs` because both sides
+                    # genuinely match, OR because neither side ever recorded it
+                    # (None == None reads as "not differing"). prompts_cache
+                    # tells the two apart for the one field that would prove
+                    # "same prompt" rather than assume it.
+                    "prompt_parity_unverified": not (win_cfg.get("prompts_cache_recorded")
+                                                      and lose_cfg.get("prompts_cache_recorded")),
                 })
     f["model_pairs"] = model_pairs
+
+    # A comparison against gpt-5-mini can only enter model_pairs above if it
+    # shares BOTH a question set and a classified kind with an opus arm --
+    # checked against the data rather than asserted, because it is easy to
+    # believe a comparison exists once report_h2h.py has been run even though
+    # the numbers never join anything on this page.
+    gpt5mini_arms = [a for a in data["arms"]
+                     if "gpt-5-mini" in (a["config"].get("model") or "").lower()
+                     or "gpt-5-mini" in a["arm"].lower() or "gpt5mini" in a["arm"].lower()]
+    opus_qset_kind = {(a["qset"], a["kind"]) for a in data["arms"]
+                      if a["config"].get("model") == "claude-opus-5"}
+    gpt5mini_joins = any((a["qset"], a["kind"]) in opus_qset_kind and a["kind"] != "unknown"
+                         for a in gpt5mini_arms)
+    f["model_comparison_note"] = {
+        "any_confounded": any(m["confounded"] for m in model_pairs),
+        "any_prompt_unverified": any(m["prompt_parity_unverified"] for m in model_pairs),
+        "gpt5mini_joins_any_pair": gpt5mini_joins,
+        "gpt5mini_self_judged_quote": (
+            "READ THE RESULT ASYMMETRICALLY. The judge IS gpt-5-mini (judge_bakeoff + "
+            "openai/gpt-5-mini, frozen). This arm is therefore graded by its own family, which "
+            "the RulesGuru held-out report already flagged as bias in gpt-5-mini's favour. "
+            "Consequence: a LOSS here is strong evidence, a WIN is weak."),
+        "gpt5mini_self_judged_cite": "evals/report_h2h.py:15-19",
+    }
     cheaper_too = [m for m in model_pairs
                    if m["win_cost"] is not None and m["lose_cost"] is not None
                    and m["win_cost"] < m["lose_cost"]]
@@ -3401,7 +3808,11 @@ const warnline = w => w ? `<p class="warnline ${esc(w.level)}"><b>${w.level==='c
 
 /* The decision number. It must be the SAME basis as the decision panel below --
    two different cost ranges on one page, both labelled "the full run", is exactly
-   the sort of thing this page exists to stop. Both read HEAD. */
+   the sort of thing this page exists to stop. Both read FULL_RUN when it exists,
+   HEAD (the blended same-config projection) only when it doesn't -- reusing HEAD
+   once FULL_RUN exists would be circular, since the full run's own rows are by
+   then folded into HEAD's blend (see build_summary's PROJECTION_VALIDATION note
+   in the python source for the full explanation). */
 const N = D.full_corpus;
 const PROJ = (D.comparisons||{}).projections || [];
 const PIPE = PROJ.filter(p => p.kind==='pipeline' && p.projected_acc!=null);
@@ -3409,19 +3820,28 @@ const shipped = PIPE.filter(p => p.config.model===D.current_config.GEN_MODEL
                               && p.config.effort===D.current_config.GEN_EFFORT)
                     .sort((a,b)=>b.n_questions-a.n_questions);
 const HEAD = shipped[0] || PIPE[0] || null;
+const FULL_RUN = ((D.summary||{}).facts||{}).full_run || null;
 const lo = HEAD ? HEAD.cost_lo : null, hi = HEAD ? HEAD.cost_hi : null;
 
 const tiles = [
-  {k:'Full RulesGuru run', v: lo==null?'—':('$'+(lo*N).toFixed(0)+'–'+(hi*N).toFixed(0)),
-   n: HEAD ? `${N.toLocaleString()} questions at the measured cost/question of `
+  {k:'Full RulesGuru run', v: FULL_RUN ? ('$'+FULL_RUN.cost_total.toFixed(0))
+                            : (lo==null?'—':('$'+(lo*N).toFixed(0)+'–'+(hi*N).toFixed(0))),
+   n: FULL_RUN ? `${N.toLocaleString()} questions, measured (not estimated) — `
+                 + `$${FULL_RUN.cost_per_q.toFixed(5)}/question on `
+                 + `${FULL_RUN.model} / ${FULL_RUN.effort||'default'}`
+                 + `${FULL_RUN.batch?', batch API rate':''}, run ${(FULL_RUN.run_at||'').slice(0,10)}`
+      : (HEAD ? `${N.toLocaleString()} questions at the measured cost/question of `
              + `${HEAD.config.model} / ${HEAD.config.effort||'default'} `
              + `(${HEAD.sets.length} question set${HEAD.sets.length>1?'s':''}, ${HEAD.n_questions} questions run)`
-           : 'no pipeline arm carries both a cost and per-level counts',
+           : 'no pipeline arm carries both a cost and per-level counts'),
    cls:'decision'},
-  {k:'Expected accuracy', v: HEAD ? pct(HEAD.projected_acc) : '—',
-   n: HEAD ? `corpus-mix reweighted · 95% interval ${pct(HEAD.ci95[0])}–${pct(HEAD.ci95[1])} `
+  {k: FULL_RUN ? 'Measured accuracy' : 'Expected accuracy',
+   v: FULL_RUN ? pct(FULL_RUN.acc) : (HEAD ? pct(HEAD.projected_acc) : '—'),
+   n: FULL_RUN ? `measured, not projected · 95% interval ${pct(FULL_RUN.ci95[0])}–${pct(FULL_RUN.ci95[1])} `
+                 + `· all ${N.toLocaleString()} corpus questions`
+      : (HEAD ? `corpus-mix reweighted · 95% interval ${pct(HEAD.ci95[0])}–${pct(HEAD.ci95[1])} `
              + `· covers ${(HEAD.covered_share*100).toFixed(0)}% of the corpus by level`
-           : 'nothing projectable'},
+           : 'nothing projectable')},
   {k:'Arms tracked', v: String(D.arms.length),
    n:`${new Set(D.arms.map(a=>a.qset)).size} distinct question sets · `
      + `${D.arms.filter(a=>a.kind==='pipeline').length} pipeline, `
@@ -4269,8 +4689,28 @@ function execHTML(){
   const fullCost  = money0(F.full_lo, F.full_hi);
   const acc = pct(F.acc), cov = (F.coverage*100).toFixed(0)+'%';
   let pill='Recommended', tone='', title='', why='', gets='', flip='';
+  const fc = F.full_run || {};
+  const nextPick = F.next && F.next.pick;
 
-  if(F.verdict==='slice-first'){
+  if(F.verdict==='measured'){
+    pill='Measured'; tone='';
+    title = nextPick
+      ? `The corpus is measured: ${acc}. Next: ${esc(nextPick.title)}.`
+      : `The corpus is measured: ${acc}. Nothing ready and unblocked is queued next.`;
+    why = `The full ${int(F.N)}-question corpus has been run, not projected: ${acc} `
+        + `[${pct(F.ci[0])}–${pct(F.ci[1])}], ${ppw(F.ci_width_pp)} wide, on `
+        + `${esc(fc.model||'the shipped model')}${fc.effort?' at effort '+esc(fc.effort):''}, `
+        + `run ${esc((fc.run_at||'').slice(0,10))}. That question is closed. ${nextPick
+          ? `The next one open is ${esc(nextPick.title)}, ready now (${esc(nextPick.cost && nextPick.cost.why || '')}).`
+          : `Every roadmap item this page would point to next is still blocked on something else.`}`;
+    gets = nextPick
+      ? `${esc(nextPick.title)}: ${esc(nextPick.cost && nextPick.cost.why || '')}`
+      : `No further move without unblocking one of the items below first.`;
+    flip = nextPick
+      ? `Once ${esc(nextPick.title)} lands, re-check whether it changes the read on level 3 (67.90%,
+         the corpus's weakest tier) before spending on a level-3-specific fix.`
+      : `Unblocking one of the dependencies listed below.`;
+  } else if(F.verdict==='slice-first'){
     pill='Do this first'; tone='hold';
     title = `Run the ${int(F.missing_n)}-question ${missLabel} slice first, for about ${sliceCost}. Then decide on the full run.`;
     why = `The number for the whole corpus is a projection, not a measurement: ${acc}, built only from `
@@ -4319,7 +4759,31 @@ function execHTML(){
 
   const je = F.judge||{};
   const ceil = (F.ceilings||[])[0];
-  const caveats = [
+  const fn = je.fn_census;
+  const caveats = F.verdict==='measured' ? [
+    F.projection_validation ? (() => { const pv = F.projection_validation; return (
+      `<li><b>✓</b><span><b>The projection was validated, then retired.</b> This page projected
+      ${pct(pv.projected)} [${pct(pv.ci[0])}–${pct(pv.ci[1])}] from partial-coverage arms before this run
+      existed; the measured result is ${pct(pv.measured)} on all ${int(F.N)} questions — a
+      +${pv.miss_pp.toFixed(1)}-point miss, near the top of the projected interval rather than outside it.
+      ${esc(pv.doc)} has the full comparison. The reweighting machinery stays live below for every arm that
+      still lacks a measurement.</span></li>`); })() : '',
+    ceil ? `<li><b>⚠</b><span><b>${pct(ceil.oracle_flat)} is a ceiling, not a product score.</b>
+      <code>${esc(ceil.oracle)}</code> answered with retrieval switched off and the gold rules handed to it.
+      It says the answers are derivable; it does not say the product finds them. The best pipeline score on
+      the same ${int(ceil_n(ceil))} questions is ${pct(ceil.other_flat)}.</span></li>` : '',
+    (je.fp_rate!=null && fn) ? `<li><b>⚠</b><span><b>The judge's error is a two-sided bound now, not just
+      an upper one.</b> False positives (wrongly passing a wrong answer as correct) run ${pct(je.fp_rate)}
+      (${je.fp_k}/${je.fp_n} sampled) and pull the headline down. False negatives (wrongly failing a
+      correct answer) measure 0% across ${fn.combined_n} hand-graded rows, 95% CI [0%,
+      ${(fn.combined_ci[1]*100).toFixed(1)}%], and would pull it up. At point estimates they do not cancel
+      — net direction favours <em>understatement</em>, not overstatement. ${esc(fn.doc)}.</span></li>`
+      : (je.fp_rate!=null ? `<li><b>⚠</b><span><b>The judge error is an upper bound.</b> ${pct(je.fp_rate)}
+      (${je.fp_k} of ${je.fp_n} sampled) is the rate at which the judge passed an answer it should have
+      failed. The reference grader that measured it agreed with the judge on
+      ${(je.ref_agreement*100).toFixed(0)}% of the rows with human ground truth, so it is not an independent
+      check — read ${pct(je.fp_rate)} as a ceiling on the error, not an estimate of it.</span></li>` : ''),
+  ].filter(Boolean).join('') : [
     `<li><b>⚠</b><span><b>The headline is a projection.</b> ${acc} reweights measured levels onto the
       corpus mix and covers ${cov} of it. ${missLabel} has zero pipeline rows across every arm on this
       page — that share is extrapolated, not measured.</span></li>`,
@@ -4341,16 +4805,26 @@ function execHTML(){
       <p class="execwhy">${why}</p>
       <div class="execgrid">
         <div><span class="lab">What it costs</span>
+          ${F.verdict==='measured' ? `
+          <span class="big">${money2(fc.cost_per_q, fc.cost_per_q)}</span>
+          <p>per question${fc.batch?', through the batch API (half the standard rate)':''}. ${fullCost} total
+             for all ${int(F.N)} questions — measured, not estimated.${fc.batch
+             ? ` The pre-run estimate assumed the standard (non-batch) rate, which is why the actual
+                spend came in under it.` : ''}</p>` : `
           <span class="big">${esc(sliceCost)}</span>
           <p>for the slice. The full ${int(F.N)}-question run is ${fullCost}, at the measured cost per
-             question of ${esc(F.model||'the shipped model')}${F.effort?' at effort '+esc(F.effort):''}.</p></div>
+             question of ${esc(F.model||'the shipped model')}${F.effort?' at effort '+esc(F.effort):''}.</p>`}</div>
         <div><span class="lab">What we get</span>
           <p style="margin-top:0">${gets}</p>
-          <p class="dim">${esc(S.runtime_note||'')}</p></div>
+          ${F.verdict!=='measured' ? `<p class="dim">${esc(S.runtime_note||'')}</p>` : ''}</div>
         <div><span class="lab">How sure we are</span>
           <span class="big">${acc}</span>
           <p>95% interval ${pct(F.ci[0])}–${pct(F.ci[1])}, ${ppw(F.ci_width_pp)} wide, measured on
-             ${int(F.n_run)} questions. Treat it as a range, not a number.</p></div>
+             ${int(F.n_run)} questions.${F.verdict==='measured'
+             ? ` On top of sampling, judge instability adds roughly another 2-4 points of variance
+                (docs/results-judge-stability.md) — read this as "roughly ${(F.acc*100).toFixed(0)}%,
+                give or take a few points," not a three-digit-precise figure.`
+             : ' Treat it as a range, not a number.'}</p></div>
         <div><span class="lab">What would change this</span>
           <p style="margin-top:0">${flip}</p></div>
       </div>
@@ -4394,54 +4868,98 @@ function decisionsHTML(){
   const decs = [];
   const sliceCost = money2(F.slice_lo,F.slice_hi), fullCost = money0(F.full_lo,F.full_hi);
   const sharePct = (F.slice_lo && F.full_lo) ? Math.round(F.slice_lo/F.full_lo*100) : null;
+  const fc = F.full_run || {};
+  const acc = pct(F.acc);
 
   // 1. THE FULL RUN -------------------------------------------------------
-  decs.push({
-    title:'Decision 1 — the full RulesGuru run',
-    question:`Do we spend ${fullCost} answering all ${int(F.N)} questions now?`,
-    options:[
-      {name:`Run all ${int(F.N)} now`, cost:fullCost, pick:F.verdict==='go',
-       pros:[`Covers 100% of the corpus, so the number stops being a reweighted projection`,
-             `${fullCost} is below the $${TH.budget_max_usd} line where cost would decide anything`,
-             `Ends the argument in one pass instead of two`],
-       cons:[`${(100-F.coverage*100).toFixed(0)}% of the corpus mix (${missLabel}, ${int(F.missing_n)} questions) has never run, so a surprise there lands after the money is spent`,
-             `Going in, the 95% interval is ${ppw(F.ci_width_pp)} wide`]},
-      {name:`Run the ${missLabel} slice first (${sliceCost})`, cost:sliceCost,
-       pick:F.verdict==='slice-first',
-       pros:[`Costs ${sliceCost}${sharePct?` — about ${sharePct}% of the full run`:''}`,
-             `Closes the single largest coverage gap on the page`,
-             `The full run stays available afterwards, and it is not price-sensitive`],
-       cons:[`Adds a step before the headline number exists`,
-             `If ${missLabel} lands where expected, the slice bought confirmation rather than news`]},
-      {name:'Do not run yet', cost:'$0',
-       pick:F.verdict!=='go' && F.verdict!=='slice-first',
-       pros:[`Spends nothing`,
-             `${F.ready_free_n} backlog items cost no credits and can land first`],
-       cons:[`The headline stays a projection`,
-             `None of the free items reduce the ${missLabel} gap — only running ${missLabel} does`]},
-    ],
-    why:`Selected by the coverage threshold: ${(F.coverage*100).toFixed(1)}% measured against a
-         ${(TH.coverage_min*100).toFixed(0)}% bar. Cost is genuinely not the constraint — ${fullCost} is well
-         under the $${TH.budget_max_usd} line — so the question is only whether the number would mean
-         anything, and today one question in seven is extrapolated.`,
-    against:`The slice may simply confirm what the projection already assumes, in which case ${sliceCost}
-         and a day bought nothing the full run would not have shown anyway. That is a fair argument. It
-         loses on the ratio: the slice is a small fraction of the full run's cost and removes the page's
-         largest named unknown, and a full run that turns out to have been mis-projected costs ${fullCost}
-         to learn the same thing.`,
-    close:`Running everything now is the close second. If ${fullCost} were already approved and nobody
-         cared about the ordering, the difference between these two options is one extra step.`,
-    flip:`A measured ${missLabel} accuracy. If it lands within the spread of the levels already measured,
-         run everything. If it lands well below, the retrieval and gold work in the backlog matters more
-         than the headline does.`,
-  });
+  if(F.verdict==='measured'){
+    const pv = F.projection_validation;
+    const nx = F.next || {};
+    const pick = nx.pick;
+    decs.push({
+      title:'Decision 1 — the full RulesGuru run (RESOLVED)',
+      question:`Ran ${esc((fc.run_at||'').slice(0,10))}. Cost ${fullCost}, scored ${acc}.`,
+      options:[
+        {name:`Run all ${int(fc.n||F.N)} now`, cost:fullCost, pick:true,
+         pros:[`Done — the number stopped being a reweighted projection`,
+               pv ? `Actual cost ${fullCost} came in under the ${money0(pv.cost_estimate_lo,pv.cost_estimate_hi)}
+                     pre-run estimate` + (fc.batch?` because of the batch discount`:``) : `Cost cleared its bar`,
+               pv ? `Validated the projection method: ${pct(pv.projected)} projected vs ${pct(pv.measured)}
+                     measured, a +${pv.miss_pp.toFixed(1)}-point miss` : `Coverage is now 100%`],
+         cons:[`Level 3 came in at ${pct((fc.levels&&fc.levels['3']&&fc.levels['3'].acc)||0)}, the corpus's
+               weakest tier, which the pre-run number could not have surfaced`,
+               `${ppw(F.ci_width_pp)} of sampling interval remains, plus judge-instability noise on top`]},
+        {name:'Run a coverage slice first, then the rest', cost:sliceCost,
+         pick:false,
+         pros:[`Would have cost ${sliceCost}${sharePct?` — about ${sharePct}% of the full run`:``} up front`],
+         cons:[`Moot now — the full run already answered the coverage question directly`]},
+        {name:'Do not run yet', cost:'$0', pick:false,
+         pros:[`Would have spent nothing`],
+         cons:[`Moot now — this is the option that did not happen`]},
+      ],
+      why:`The coverage/interval/judge-fp/budget thresholds that used to select this decision all cleared
+           before the run (see the thresholds table on the recommendation above); the run itself confirmed
+           what they predicted rather than contradicting it.`,
+      against:`The measured 85.88% carries its own uncertainty — sampling (±1.8pp), judge instability
+           (~2-4pp), and unresolved judge false-positive/negative rates — so treating the third digit as
+           meaningful would be false precision of a different kind than the one this decision used to
+           worry about.`,
+      close:'',
+      flip:pick
+        ? `The next open question is ${esc(pick.title)} (${esc(pick.cost && pick.cost.why || 'ready now')}).`
+        : `Every roadmap item this would point to next is still blocked — see the blocked list below.`,
+    });
+  } else {
+    decs.push({
+      title:'Decision 1 — the full RulesGuru run',
+      question:`Do we spend ${fullCost} answering all ${int(F.N)} questions now?`,
+      options:[
+        {name:`Run all ${int(F.N)} now`, cost:fullCost, pick:F.verdict==='go',
+         pros:[`Covers 100% of the corpus, so the number stops being a reweighted projection`,
+               `${fullCost} is below the $${TH.budget_max_usd} line where cost would decide anything`,
+               `Ends the argument in one pass instead of two`],
+         cons:[`${(100-F.coverage*100).toFixed(0)}% of the corpus mix (${missLabel}, ${int(F.missing_n)} questions) has never run, so a surprise there lands after the money is spent`,
+               `Going in, the 95% interval is ${ppw(F.ci_width_pp)} wide`]},
+        {name:`Run the ${missLabel} slice first (${sliceCost})`, cost:sliceCost,
+         pick:F.verdict==='slice-first',
+         pros:[`Costs ${sliceCost}${sharePct?` — about ${sharePct}% of the full run`:''}`,
+               `Closes the single largest coverage gap on the page`,
+               `The full run stays available afterwards, and it is not price-sensitive`],
+         cons:[`Adds a step before the headline number exists`,
+               `If ${missLabel} lands where expected, the slice bought confirmation rather than news`]},
+        {name:'Do not run yet', cost:'$0',
+         pick:F.verdict!=='go' && F.verdict!=='slice-first',
+         pros:[`Spends nothing`,
+               `${F.ready_free_n} backlog items cost no credits and can land first`],
+         cons:[`The headline stays a projection`,
+               `None of the free items reduce the ${missLabel} gap — only running ${missLabel} does`]},
+      ],
+      why:`Selected by the coverage threshold: ${(F.coverage*100).toFixed(1)}% measured against a
+           ${(TH.coverage_min*100).toFixed(0)}% bar. Cost is genuinely not the constraint — ${fullCost} is well
+           under the $${TH.budget_max_usd} line — so the question is only whether the number would mean
+           anything, and today one question in seven is extrapolated.`,
+      against:`The slice may simply confirm what the projection already assumes, in which case ${sliceCost}
+           and a day bought nothing the full run would not have shown anyway. That is a fair argument. It
+           loses on the ratio: the slice is a small fraction of the full run's cost and removes the page's
+           largest named unknown, and a full run that turns out to have been mis-projected costs ${fullCost}
+           to learn the same thing.`,
+      close:`Running everything now is the close second. If ${fullCost} were already approved and nobody
+           cared about the ordering, the difference between these two options is one extra step.`,
+      flip:`A measured ${missLabel} accuracy. If it lands within the spread of the levels already measured,
+           run everything. If it lands well below, the retrieval and gold work in the backlog matters more
+           than the headline does.`,
+    });
+  }
 
   // 2. MODEL CHOICE -------------------------------------------------------
   const mp = F.model_pairs||[];
   if(mp.length){
     const w = mp[0].win_model, l = mp[0].lose_model;
     const gaps = mp.map(m=>`+${m.gap_pp.toFixed(1)} pp on the ${m.n}-question set (noise floor ${m.floor_pp.toFixed(1)} pp)`).join(', ');
-    const confounded = mp.some(m=>m.confounded);
+    const allConfounded = mp.every(m=>m.confounded);
+    const promptUnverified = mp.some(m=>m.prompt_parity_unverified);
+    const mcn = F.model_comparison_note || {};
+    const fair = (F.next && F.next.fair_comparison) || null;
     const flipRow = FLIP.filter(f=>!f.cheaper_at_intro);
     const introCon = flipRow.length
       ? `On the ${flipRow.map(f=>f.n).join(' and ')}-question set, ${esc(l)} at its introductory rate is
@@ -4449,6 +4967,23 @@ function decisionsHTML(){
          to ${esc(D.pricing.sonnet_intro_ends)}; after it, ${esc(w)} is cheaper on every set measured.`
       : `${esc(l)}'s introductory rate runs to ${esc(D.pricing.sonnet_intro_ends)}; the comparison above uses
          the standard rate, and should be re-checked after that date.`;
+    const confoundNote = allConfounded
+      ? `Every ${esc(w)}-vs-${esc(l)} pair measured on this page differs in effort as well as model
+         (${esc(l)}'s effort is not recorded; ${esc(w)}'s is <code>${esc(F.effort||'low')}</code>) — the
+         gap shown is the package, not the model in isolation.`
+      : (mp.some(m=>m.confounded) ? `Some of these pairs differ in more than model alone.` : '');
+    const promptNote = promptUnverified
+      ? `${esc(l)}'s rows never recorded a prompt cache the way ${esc(w)}'s did, so "same prompt" cannot be
+         verified even in principle from what is on disk here — it is assumed, not confirmed.`
+      : '';
+    const fairNote = fair
+      ? (fair.judged
+         ? `A byte-identical-prompt comparison against gpt-5-mini has since been judged — that result should
+            settle the model question, not this one.`
+         : `A clean, byte-identical-prompt comparison against gpt-5-mini is in flight
+            (${fair.n_answered}/${fair.n_target} rows generated across ${fair.n_shards} shards, not yet
+            judged). It will be the first unconfounded cross-model evidence this page has.`)
+      : '';
     decs.push({
       title:'Decision 2 — which generation model',
       question:`${esc(w)} or ${esc(l)}?`,
@@ -4460,21 +4995,25 @@ function decisionsHTML(){
                `Cheaper per question at standard pricing on every set measured`,
                `Output is nearly constant regardless of difficulty, so cost does not blow up on hard traffic`],
          cons:[introCon],
-         judge: confounded ? [`The pairs differ in ${mp[0].differs.join(' and ')}, not model alone, so the
-           gap is the package rather than the model in isolation`] : []},
+         judge: [confoundNote, promptNote, fairNote].filter(Boolean)},
         {name:esc(l), cost:'measured '+usd(mp[0].lose_cost)+'/question on the '+int(mp[0].n)+'-question set',
          pros:[`Cheaper on some traffic while its introductory rate lasts (see the caveat opposite)`],
          cons:[`Lower accuracy on every set measured, by more than the noise floor`,
                `More expensive per question at standard pricing`]},
       ],
-      why:`This one is not close. ${esc(l)} is <strong>dominated</strong> — worse and, at standard pricing,
-           pricier on both question sets, and both accuracy gaps clear their measured noise floors, so
-           neither is a coin flip. Manufacturing a balanced case here would be dishonest.`,
-      against:`The one real caveat is pricing, not quality: ${esc(l)} is dual-priced and the arithmetic
-           should be re-run after ${esc(D.pricing.sonnet_intro_ends)} rather than treated as settled forever.`,
+      why:`${esc(w)} wins every comparison this page can currently make, and every gap clears its own set's
+           noise floor — real evidence, pointing one direction. But every one of those comparisons is
+           confounded on effort as well as model, and none has verified prompt parity on the losing side.
+           That makes this a real lead, not settled proof.`,
+      against:`The available comparisons are not a clean test in isolation.${mcn.gpt5mini_joins_any_pair
+           ? '' : ` gpt-5-mini is not represented in these numbers at all — it shares no question set with
+           any opus arm on this page, so it cannot enter a paired comparison here.`}${mcn.gpt5mini_self_judged_cite
+           ? ` Where a separate gpt-5-mini head-to-head does exist elsewhere in this repo, it is judged by a
+           model from gpt-5-mini's own family (${esc(mcn.gpt5mini_self_judged_cite)}): "${esc(mcn.gpt5mini_self_judged_quote||'')}"`
+           : ''} ${fairNote}`,
       close:'',
-      flip:`A price change, or a ${esc(l)} result that clears the noise floor in the other direction. Neither
-           has happened in any run on this page.`,
+      flip:`The fair cross-model comparison landing${fair && !fair.judged ? ' (still generating)' : ''}, or a
+           price change. "Settled by the data" overstates what today's confounded pairs can carry on their own.`,
     });
   }
 
@@ -4525,8 +5064,12 @@ function decisionsHTML(){
 function takeaways(){
   const t = {};
   const je = F.judge||{}, ceil=(F.ceilings||[])[0];
-  t.decisions = `Three calls are live. Only the first one — whether to run the full corpus — is genuinely
-    close; the model choice is settled by the data and the effort setting has never been tested.`;
+  t.decisions = F.verdict==='measured'
+    ? `The full-corpus call is resolved — it ran, cost less than estimated, and confirmed the projection to
+       within 3.1 points. The model choice is a real lead but rests on confounded comparisons, not settled
+       proof; a clean cross-model result is in flight. Effort has still never been tested.`
+    : `Three calls are live. Only the first one — whether to run the full corpus — is genuinely
+       close; the model choice is settled by the data and the effort setting has never been tested.`;
   const mp=(F.model_pairs||[])[0];
   t.h2h = mp
     ? `<b>${esc(mp.win_model)} wins both head-to-heads</b> by ${mp.gap_pp.toFixed(1)} pp or more, and each gap
