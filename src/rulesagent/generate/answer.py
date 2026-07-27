@@ -17,7 +17,7 @@ import anthropic
 from dotenv import load_dotenv
 from pydantic import ValidationError
 
-from rulesagent.contracts import Answer, Card, CardFace, Retrieved
+from rulesagent.contracts import Answer, Card, CardFace, Retrieved, normalize_source_id
 from rulesagent.index.store import VectorStore
 from rulesagent.retrieve.crossrefs import expand_crossrefs
 from rulesagent.retrieve.hybrid import rrf_fuse
@@ -1709,6 +1709,139 @@ def _cacheable_system(system: str, cache: bool):
     return [{"type": "text", "text": system, "cache_control": {"type": "ephemeral"}}]
 
 
+# --- groundedness guard (docs/results-groundedness-guard.md) -----------------
+#
+# The existing check just above (`parsed.answered and not parsed.citations`,
+# the last_uncited_success flag read by the live API's Debug field) is left
+# untouched -- it is advisory by design and something else depends on it.
+# This is a SEPARATE, ENFORCING guard for a narrower, correct condition:
+# `citations` deliberately mixes four kinds of thing (CR rule numbers,
+# glossary terms, card names, and card-ruling labels like "Archive Trap
+# ruling #2"), so a row that names zero CR rules but cites one card ruling
+# passes the old emptiness test while never actually resting on the provided
+# rules. Measured: rows citing zero CR rules run 4.6% at baseline, 6.7% with
+# real retrieved rules, and 86.7% when the rules in context are irrelevant --
+# a strong, already-computed signal that nothing previously read.
+_CR_RULE_ID_RE = re.compile(r"^\d{3}(\.\d+[a-z]?)?$")
+
+
+def cr_rule_citations(citations: list[str]) -> list[str]:
+    """The subset of `citations` that are CR rule numbers (e.g. "104",
+    "601.2b", "613.8a") -- glossary terms, card names, and
+    "[Name ruling #N]" labels never match. Compared after
+    normalize_source_id() folds the curly apostrophe some glossary ids carry,
+    though that never affects a rule-number match itself (rule numbers have
+    no apostrophes) -- kept for consistency with every other id comparison
+    in this codebase, and so a caller that hands in an already-normalised id
+    behaves identically to one that hasn't."""
+    return [c for c in citations if _CR_RULE_ID_RE.match(normalize_source_id(c))]
+
+
+def needs_regrounding(parsed: Answer) -> bool:
+    """True when a confident answer (answered=True) rests on zero CR rule
+    citations -- the exact defect in docs/results-groundedness-guard.md: the
+    model answered from parametric memory or from card data alone while the
+    provided rules sat unused. False (an honest decline) never needs
+    regrounding regardless of its citations."""
+    return bool(parsed.answered) and not cr_rule_citations(parsed.citations)
+
+
+# Written to invite an honest `answered: false` over a rationalised citation.
+# It does NOT say "find a rule that supports your answer" (which would push
+# the model to reverse-justify an answer it already reached from memory) --
+# it says look again at what's actually in front of you, and if it doesn't
+# cover the question, say so.
+REGROUND_INSTRUCTION = (
+    "Your last answer set answered=true but cited no rule numbers from the "
+    "Comprehensive Rules text given to you in this conversation -- only the "
+    "rules actually shown to you above count, not rules you may know from "
+    "memory. Look again at ONLY that provided rules text, independent of "
+    "what you already believe the answer is, and do one of the following:\n"
+    "1. If the provided rules text genuinely settles this question, revise "
+    "your answer to rest on it and list the specific rule numbers you relied "
+    "on in the citations field.\n"
+    "2. If the provided rules text does not cover this question, set "
+    "answered to false and say plainly that the rules you were given don't "
+    "settle it. That is a correct, honest answer -- do not invent a "
+    "citation just to fill the field, and do not keep answered=true on the "
+    "strength of outside knowledge alone."
+)
+
+
+def reground_once(client, model: str, system: str, messages: list[dict], prior_response,
+                   max_tokens: int, effort: str | None = None, cache_prompt: bool = False):
+    """Re-ask exactly once after `needs_regrounding(parsed)` fires on
+    `prior_response.parsed_output`. Shared by RulesAgent.answer() (the live
+    path) and evals/run_answer_eval.py's _answer_from_frozen_prompt() (the
+    --prompts-cache path the A/B harness uses) -- implementing this in only
+    one would make the other's arm unmeasurable, so both call this one
+    function rather than duplicating the logic.
+
+    `messages` is the exact message list that produced `prior_response` (NOT
+    including that response itself) -- this appends the model's own prior
+    turn plus REGROUND_INSTRUCTION and reissues a single plain
+    messages.parse() call: no tools, no round loop, matching
+    _answer_from_frozen_prompt's tail rather than RulesAgent.answer()'s full
+    tool-round machinery, since regrounding is about citation grounding, not
+    tool use.
+
+    Returns (Answer | None, response | None): None, None when the reground
+    call itself raises ValidationError (empty/invalid structured output) --
+    the caller must keep the ORIGINAL parsed answer in that case, never
+    silently drop it. A non-None Answer here is returned as-is, even if it
+    still cites zero CR rules after the re-ask -- callers must keep that
+    second response and record the fact rather than looping again or
+    reverting to the first draw."""
+    effort_kwargs = {"output_config": {"effort": effort}} if effort is not None else {}
+    reground_msgs = messages + [
+        {"role": "assistant", "content": prior_response.content},
+        {"role": "user", "content": REGROUND_INSTRUCTION},
+    ]
+    try:
+        response = client.messages.parse(
+            model=model, max_tokens=max_tokens,
+            system=_cacheable_system(system, cache_prompt),
+            messages=reground_msgs, output_format=Answer,
+            **effort_kwargs,
+        )
+    except ValidationError:
+        return None, None
+    return response.parsed_output, response
+
+
+def _usage_dict(response) -> dict | None:
+    """Same {"input_tokens", ...} shape RulesAgent.last_usage / the eval
+    rows already use, read off a raw SDK response -- factored out so
+    reground bookkeeping (both call sites) doesn't repeat the four getattr()
+    lines. None when the response carries no `.usage` at all (e.g. a bare
+    fake stub in an older test)."""
+    usage_obj = getattr(response, "usage", None)
+    if usage_obj is None:
+        return None
+    return {
+        "input_tokens": getattr(usage_obj, "input_tokens", None),
+        "output_tokens": getattr(usage_obj, "output_tokens", None),
+        "cache_read_input_tokens": getattr(usage_obj, "cache_read_input_tokens", 0) or 0,
+        "cache_creation_input_tokens": getattr(usage_obj, "cache_creation_input_tokens", 0) or 0,
+    }
+
+
+def _sum_usage(a: dict | None, b: dict | None) -> dict | None:
+    """Elementwise sum of two usage dicts, None-safe (either or both may be
+    missing, e.g. a bare fake response stub with no `.usage`). A regrounded
+    row costs TWO generations, so the row's recorded usage must fold in the
+    reground call's tokens rather than silently reporting only the second
+    (or only the first) -- otherwise every downstream cost tool
+    (evals/build_metrics_history.py's cost_of(), which sums whatever is in
+    each row's "usage" field) undercounts a regrounded arm."""
+    if a is None:
+        return b
+    if b is None:
+        return a
+    keys = set(a) | set(b)
+    return {k: (a.get(k) or 0) + (b.get(k) or 0) for k in keys}
+
+
 class RulesAgent:
     def __init__(self, store: VectorStore, client: anthropic.Anthropic | None = None,
                  model: str = GEN_MODEL, k: int = TOP_K, rewrite: bool = True,
@@ -1718,7 +1851,8 @@ class RulesAgent:
                  system_version: int | str = PROMPT_VERSION,
                  max_tokens: int = GEN_MAX_TOKENS,
                  request_timeout: float | None = GEN_REQUEST_TIMEOUT,
-                 effort: str | None = None, cache_prompt: bool = False):
+                 effort: str | None = None, cache_prompt: bool = False,
+                 reground: bool = False):
         self.store = store
         self.client = client or anthropic.Anthropic()
         # Generation output cap, and the per-request timeout override that
@@ -1817,6 +1951,13 @@ class RulesAgent:
         # The real payoff is ablation, which re-sends the same prefix hundreds
         # of times against one question.
         self.cache_prompt = cache_prompt
+        # Groundedness-guard reground step (docs/results-groundedness-guard.md):
+        # default OFF so an agent built without this argument -- every
+        # existing caller -- makes byte-identical requests and answer()
+        # never re-asks. evals/run_answer_eval.py threads its own
+        # --reground/--no-reground flag into this (default off) so every
+        # existing arm's numbers stay untouched.
+        self.reground = reground
         self.k = k
         self.rewrite = rewrite
         self.show_rewrite = show_rewrite
@@ -1922,6 +2063,19 @@ class RulesAgent:
         # ref that resolved to no chunk (e.g. 701.5 "Cast") is an observable
         # miss, not a silent one. Same pattern as last_rewritten.
         self.last_uncited_success: bool = False
+        # Groundedness-guard reground telemetry (docs/results-groundedness-
+        # guard.md), set by answer() on every call regardless of
+        # self.reground: last_cr_citations_before/after are the CR-rule-
+        # citation counts (cr_rule_citations(), NOT the raw citations list)
+        # on the pre-reground / post-reground draw respectively.
+        # last_regrounded is True iff the reground condition actually fired
+        # this call (self.reground True AND needs_regrounding() True) --
+        # independent of whether the reground call itself then succeeded.
+        # after stays None when reground never fired (distinct from 0,
+        # which means it fired and still came back uncited).
+        self.last_regrounded: bool = False
+        self.last_cr_citations_before: int | None = None
+        self.last_cr_citations_after: int | None = None
         # Set by answer() on every call (Plan A amendment, docs/plan-q029-
         # empty-answer-guard.md header ruling 1, Jon 2026-07-23): True when
         # the final draw is answered=true but cites nothing -- "then it's
@@ -1986,6 +2140,9 @@ class RulesAgent:
         history = history or []
         self.last_rewritten = None
         self.last_uncited_success = False
+        self.last_regrounded = False
+        self.last_cr_citations_before = None
+        self.last_cr_citations_after = None
         # Parse `[Card Name]` / `[oracle-id]` tokens BEFORE anything else
         # touches the question. `question` from here on is bracket-stripped
         # ("[Dovescape]" -> "Dovescape") -- what the rewriter sees, what the
@@ -2390,6 +2547,39 @@ class RulesAgent:
                 parsed.text[:200],
             )
             self.last_uncited_success = True
+        # Groundedness-guard enforcement (docs/results-groundedness-guard.md):
+        # a SEPARATE, narrower-and-enforcing check from last_uncited_success
+        # above -- that one fires on ANY empty citations list (rule numbers,
+        # glossary terms, card names, or ruling labels all count) and only
+        # logs; this one fires ONLY when zero CR RULE citations are present
+        # (a card-ruling-only answer does NOT pass here) and actually re-asks.
+        # Gated on self.reground, default False, so every existing caller
+        # (no reground= argument) makes the exact same request(s) as before
+        # this guard existed -- tests/test_groundedness_guard.py checks the
+        # disabled-by-default path stays byte-identical.
+        self.last_cr_citations_before = len(cr_rule_citations(parsed.citations))
+        if self.reground and needs_regrounding(parsed):
+            self.last_regrounded = True
+            new_parsed, new_response = reground_once(
+                self._gen_client, self.model, call_system, attempt_msgs, response,
+                self.max_tokens, effort=self.effort, cache_prompt=self.cache_prompt,
+            )
+            if new_parsed is not None:
+                # Take the re-ask's own answer verbatim, including its own
+                # `answered` value -- an honest answered=false from the
+                # re-ask is a CORRECT outcome here, never overwritten back to
+                # True, and a re-ask that still cites zero CR rules is kept
+                # (not discarded/retried) per the design: re-ask once, then
+                # live with whatever comes back.
+                parsed = new_parsed
+                self.last_cr_citations_after = len(cr_rule_citations(parsed.citations))
+                self.last_stop_reason = getattr(new_response, "stop_reason", self.last_stop_reason)
+                self.last_usage = _sum_usage(self.last_usage, _usage_dict(new_response))
+            # else: the reground call itself came back empty/invalid
+            # (ValidationError) -- keep the ORIGINAL `parsed` untouched.
+            # last_regrounded stays True (an attempt was made);
+            # last_cr_citations_after stays None, distinct from 0 (fired and
+            # still uncited) -- this is "fired but produced nothing usable."
         if cards:
             # Minimal approach consistent with the Answer contract (no new
             # field): append the Fan Content Policy attribution to the

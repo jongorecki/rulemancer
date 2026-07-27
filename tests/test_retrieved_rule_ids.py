@@ -216,6 +216,13 @@ def test_run_answer_eval_schema_additive(tmp_path):
         # derived from system_version/layers_tool, always a list (possibly
         # empty), never absent.
         "prompt_supplied_rule_ids",
+        # Groundedness-guard fields (docs/results-groundedness-guard.md,
+        # tests/test_groundedness_guard.py): "reground" is this run's
+        # --reground flag (constant per file); "regrounded" is whether the
+        # re-ask actually fired for this row; cr_citations_before/after are
+        # cr_rule_citations() counts pre-/post-reground. Additive, always
+        # present (never absent), null-able only on cr_citations_after.
+        "reground", "regrounded", "cr_citations_before", "cr_citations_after",
     }
     assert pre_existing_keys <= row.keys()
     assert row.keys() - pre_existing_keys == new_keys

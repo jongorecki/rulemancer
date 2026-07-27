@@ -41,7 +41,12 @@ from rulesagent.generate.answer import (  # noqa: E402
     RulesAgent,
     _cacheable_system,
     _degenerate,
+    _sum_usage,
+    _usage_dict,
+    cr_rule_citations,
+    needs_regrounding,
     prompt_supplied_rule_ids,
+    reground_once,
 )
 from rulesagent.index.store import VectorStore  # noqa: E402
 from rulesagent.ingest.chunker import chunk_rules  # noqa: E402
@@ -144,6 +149,17 @@ def _load_resumable(out_path: Path, args: argparse.Namespace,
             # before this field existed read as None, which correctly matches an
             # unset --effort and correctly mismatches any explicit level.
             or first.get("effort") != args.effort
+            # reground defines the arm exactly the way effort does (docs/
+            # results-groundedness-guard.md): a reground=True row costs a
+            # second generation and can carry a different answered/citations
+            # value than the same question run with reground=False, so
+            # mixing them into one --out would silently blend two
+            # experiments. reground's default is False (not None, unlike
+            # effort/system_version), so a row written before this field
+            # existed reads as `first.get("reground") or False` == False --
+            # matching an unset (default) --reground and still correctly
+            # mismatching an explicit --reground True.
+            or (first.get("reground") or False) != args.reground
             or first.get("run") != args.run):
         print(f"[resume] {out_path} exists but was generated with a different config "
               f"-- starting fresh rather than resuming from it")
@@ -156,8 +172,8 @@ def _load_resumable(out_path: Path, args: argparse.Namespace,
 
 def _answer_from_frozen_prompt(
     client, model: str, system: str, user: str, max_tokens: int = GEN_MAX_TOKENS,
-    effort: str | None = None, cache_prompt: bool = False,
-) -> tuple[Answer, str | None, dict | None]:
+    effort: str | None = None, cache_prompt: bool = False, reground: bool = False,
+) -> tuple[Answer, str | None, dict | None, bool, int | None, int | None]:
     """Generate straight from an already-assembled (system, user) pair,
     bypassing RulesAgent.answer()'s retrieval/rewrite/assembly entirely --
     used only when --prompts-cache supplies a frozen prompt (docs/plan-v3-
@@ -178,13 +194,25 @@ def _answer_from_frozen_prompt(
     non-empty) rather than threaded separately, since the prompts-cache
     stores only the two assembled strings.
 
-    Returns (answer, stop_reason, usage) -- stop_reason/usage read off the
-    FINAL response, whether it produced `answer` directly, contributed the
-    `weak` fallback, or the call degraded to the honest non-answer (docs/
-    spec-slice0-harness.md Task 3). There is no tool loop here at all -- this
-    is a single messages.parse() call, never a round trip -- so callers must
-    record `tool_rounds: None` for rows generated this way; that absence is
-    real information, not a gap to paper over with a fake 0 or 1."""
+    Returns (answer, stop_reason, usage, regrounded, cr_citations_before,
+    cr_citations_after) -- stop_reason/usage read off the FINAL response
+    (the reground call's response when regrounding fired and produced usable
+    output, otherwise the original). There is no tool loop here at all --
+    this is a single messages.parse() call, never a round trip -- so callers
+    must record `tool_rounds: None` for rows generated this way; that
+    absence is real information, not a gap to paper over with a fake 0 or 1.
+
+    `reground` (docs/results-groundedness-guard.md, default False): when
+    True and the first draw is answered=true with zero CR-rule citations
+    (needs_regrounding()), re-ask once via reground_once() -- the SAME
+    shared helper RulesAgent.answer() uses, so this arm and the live path
+    measure identical enforcement. regrounded is True iff that condition
+    fired (independent of whether the reground call itself then produced
+    parseable output); cr_citations_before/after are cr_rule_citations()
+    counts on the pre-/post-reground draw, with after staying None when
+    regrounding never fired. usage folds in the reground call's own tokens
+    (via _sum_usage()) so a regrounded row's cost reflects both
+    generations, not just one."""
     msgs: list[dict] = [{"role": "user", "content": user}]
     # `effort` and `cache_prompt` were NOT plumbed here originally, so a
     # --prompts-cache run silently generated at the API's DEFAULT effort no
@@ -223,6 +251,32 @@ def _answer_from_frozen_prompt(
             "cache_read_input_tokens": getattr(usage_obj, "cache_read_input_tokens", 0) or 0,
             "cache_creation_input_tokens": getattr(usage_obj, "cache_creation_input_tokens", 0) or 0,
         }
+    regrounded = False
+    cr_before = None
+    cr_after = None
+    if parsed is not None:
+        # Only a genuine successful draw (not the empty/degenerate-fallback
+        # paths below) is ever eligible -- an honest answered=false decline
+        # never matches needs_regrounding() anyway, so this is never reached
+        # for the `weak` fallback case.
+        cr_before = len(cr_rule_citations(parsed.citations))
+        if reground and needs_regrounding(parsed):
+            regrounded = True
+            new_parsed, new_response = reground_once(
+                client, model, system, msgs, response, max_tokens,
+                effort=effort, cache_prompt=cache_prompt,
+            )
+            if new_parsed is not None:
+                # Take the re-ask's own answer (including its own `answered`
+                # value) verbatim -- never overwritten back to True.
+                parsed = new_parsed
+                cr_after = len(cr_rule_citations(parsed.citations))
+                stop_reason = getattr(new_response, "stop_reason", stop_reason)
+                usage = _sum_usage(usage, _usage_dict(new_response))
+            # else: the reground call itself came back empty/invalid --
+            # keep the ORIGINAL parsed untouched; cr_after stays None
+            # (distinct from 0, which means it fired and still came back
+            # uncited).
     if parsed is None and weak is not None:
         parsed = weak
     if parsed is None:
@@ -232,10 +286,10 @@ def _answer_from_frozen_prompt(
             f"twice, stop_reason={stop} -- try again)",
             tldr="Something went wrong generating this answer -- try again.",
             citations=[], answered=False, suggested_followups=[],
-        ), stop_reason, usage
+        ), stop_reason, usage, regrounded, cr_before, cr_after
     if "\n\nCard data:\n" in user:
         parsed.text = f"{parsed.text}\n\n{ATTRIBUTION}"
-    return parsed, stop_reason, usage
+    return parsed, stop_reason, usage, regrounded, cr_before, cr_after
 
 
 def parse_args() -> argparse.Namespace:
@@ -360,6 +414,18 @@ def parse_args() -> argparse.Namespace:
         "clarification (RulesAgent never ran its rewrite step) -- an honest gap, same "
         "treatment build_arm_review.py already gives the non-native OpenRouter rows.",
     )
+    p.add_argument(
+        "--reground",
+        action=argparse.BooleanOptionalAction,
+        default=False,
+        help="re-ask once when a draw is answered=true with zero CR-rule citations "
+        "(docs/results-groundedness-guard.md) -- applies on BOTH the live agent.answer() "
+        "path (threaded into RulesAgent(reground=...)) and the --prompts-cache path "
+        "(threaded into _answer_from_frozen_prompt(reground=...)), so either arm can be "
+        "measured. Default OFF: every existing arm's requests/numbers stay byte-identical "
+        "unless this is explicitly turned on. Recorded per row: reground (this flag), "
+        "regrounded (did the re-ask actually fire), cr_citations_before/after.",
+    )
     return p.parse_args()
 
 
@@ -419,6 +485,7 @@ def main() -> None:
         system_version=system_version, layers_tool=args.layers_tool,
         max_tokens=args.max_tokens, request_timeout=args.request_timeout,
         effort=args.effort, cache_prompt=args.cache_prompt,
+        reground=args.reground,
         # card_no_refresh=True: eval-reproducibility freeze mode (plan #3b) --
         # use any cached Scryfall entry regardless of TTL age. Previously
         # unset (defaulted False) on this native-sonnet path while
@@ -504,7 +571,7 @@ def main() -> None:
                         print(f"[ERROR] question id {q.id!r} not found in {args.prompts_cache} -- "
                               f"the cache doesn't cover this question set")
                         return
-                    ans, stop_reason, usage = _answer_from_frozen_prompt(
+                    ans, stop_reason, usage, regrounded, cr_before, cr_after = _answer_from_frozen_prompt(
                         # agent._gen_client, not agent.client: the raw client
                         # has no timeout override, and GEN_MAX_TOKENS is above
                         # the SDK's non-streaming guard, so the plain client
@@ -518,6 +585,7 @@ def main() -> None:
                         # this path and a frozen "high effort" arm really ran at
                         # the API default. Both flags now reach the request.
                         effort=args.effort, cache_prompt=args.cache_prompt,
+                        reground=args.reground,
                     )
                     # No tool loop on this path at all -- the absence is real
                     # (docs/spec-slice0-harness.md Task 3), never faked as 0/1/[].
@@ -529,6 +597,9 @@ def main() -> None:
                     usage = agent.last_usage
                     tool_calls = agent.last_tool_calls
                     tool_rounds = agent.last_tool_rounds
+                    regrounded = agent.last_regrounded
+                    cr_before = agent.last_cr_citations_before
+                    cr_after = agent.last_cr_citations_after
                 rewritten = agent.last_rewritten  # None when --no-rewrite, or when using --prompts-cache
                 # agent.last_retrieved: list[Retrieved] (rulesagent.contracts) set by
                 # RulesAgent.answer() right before the generation call -- None when
@@ -620,6 +691,21 @@ def main() -> None:
                     # defaulted to a string, so a row predating this field
                     # matches an unset --effort and mismatches any explicit level.
                     "effort": args.effort,
+                    # Groundedness-guard experiment fields (docs/results-
+                    # groundedness-guard.md), additive only. "reground" is
+                    # whether the flag was ON for this whole run (constant
+                    # per file, stamped per row for provenance like model/
+                    # system_version above); "regrounded" is whether the
+                    # re-ask actually fired for THIS row; cr_citations_before/
+                    # after are cr_rule_citations() counts pre-/post-reground
+                    # (after is None when regrounding never fired for this
+                    # row -- distinct from 0, which means it fired and still
+                    # came back uncited). usage above already folds in the
+                    # reground call's own tokens when it fired.
+                    "reground": args.reground,
+                    "regrounded": regrounded,
+                    "cr_citations_before": cr_before,
+                    "cr_citations_after": cr_after,
                 }
                 if q.id in answer_gold:
                     # Carried through only for questions that have it (RulesGuru
