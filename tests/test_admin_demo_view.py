@@ -20,6 +20,28 @@ def test_requires_admin_token():
     assert exc.value.status_code == 401
 
 
+def test_require_admin_token_constant_time_compare_still_gates_correctly():
+    """_require_admin_token now compares with hmac.compare_digest instead of
+    `!=` (constant-time, since it also gates /admin, which renders every
+    code/label/question). Prove the swap didn't break the gate: right token
+    passes, wrong token -- including one that shares a long prefix with the
+    real token, the case a naive `!=` timing side-channel would leak -- is
+    still rejected, and a non-str header never raises TypeError."""
+    main._require_admin_token("Bearer secret-token")  # correct: no raise
+
+    with pytest.raises(HTTPException) as exc:
+        main._require_admin_token("Bearer secret-tokeX")  # wrong, shares prefix
+    assert exc.value.status_code == 401
+
+    with pytest.raises(HTTPException) as exc:
+        main._require_admin_token("Bearer wrong")
+    assert exc.value.status_code == 401
+
+    with pytest.raises(HTTPException) as exc:
+        main._require_admin_token(None)
+    assert exc.value.status_code == 401
+
+
 def test_wrong_token_rejected_and_leaks_nothing(monkeypatch, tmp_path):
     db = tmp_path / "demo.db"
     monkeypatch.setattr(main, "DEMO_DB", db)

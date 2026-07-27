@@ -17,6 +17,7 @@ smuggled into L3.
 Run: uv run uvicorn rulesagent.api.main:app --reload
 """
 
+import hmac
 import html as _html
 import json
 import logging
@@ -877,7 +878,16 @@ def _require_admin_token(authorization: str | None) -> None:
     token = os.environ.get("ADMIN_TOKEN")
     if not token:
         raise HTTPException(status_code=503, detail="admin endpoint not configured (no ADMIN_TOKEN)")
-    if authorization != f"Bearer {token}":
+    # hmac.compare_digest instead of `!=`: a plain string comparison
+    # short-circuits on the first differing byte, so its timing leaks how
+    # much of the prefix was correct -- a real risk now that this same gate
+    # gates /admin, which renders every code/label/question, in a public
+    # repo. compare_digest raises TypeError on mixed str/bytes, so guard
+    # `authorization` being None (missing header) or any non-str value
+    # explicitly rather than letting a malformed header turn an auth check
+    # into a 500.
+    expected = f"Bearer {token}"
+    if not isinstance(authorization, str) or not hmac.compare_digest(authorization, expected):
         raise HTTPException(status_code=401, detail="missing or invalid admin token")
 
 
