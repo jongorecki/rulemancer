@@ -15,9 +15,13 @@ def _admin_env(monkeypatch):
 
 
 def test_requires_admin_token():
-    with pytest.raises(HTTPException) as exc:
-        main.admin_demo_view(authorization=None)
-    assert exc.value.status_code == 401
+    """Behavior change (browser-login task): no auth used to raise
+    HTTPException(401) straight to a JSON error body -- unreachable from a
+    browser address bar. It now renders the login form at 401 instead. See
+    tests/test_admin_login.py for the full coverage of that path."""
+    resp = main.admin_demo_view(authorization=None)
+    assert resp.status_code == 401
+    assert "<form" in resp.body.decode()
 
 
 def test_require_admin_token_constant_time_compare_still_gates_correctly():
@@ -47,13 +51,15 @@ def test_wrong_token_rejected_and_leaks_nothing(monkeypatch, tmp_path):
     monkeypatch.setattr(main, "DEMO_DB", db)
     create_code(db, "raptor-quill-42", "Cribl -- Jane R.", max_queries=25)
 
-    with pytest.raises(HTTPException) as exc:
-        main.admin_demo_view(authorization="Bearer wrong-token")
-    assert exc.value.status_code == 401
-    # The exception itself must not carry any code/label data -- nothing
-    # about the DB should leak through the rejection.
-    assert "raptor-quill-42" not in str(exc.value.detail)
-    assert "Cribl" not in str(exc.value.detail)
+    resp = main.admin_demo_view(authorization="Bearer wrong-token")
+    assert resp.status_code == 401
+    body = resp.body.decode()
+    # Renders the login form now (browser-login task), not a raised
+    # HTTPException/JSON error -- and still must not leak any code/label
+    # data through the rejection.
+    assert "<form" in body
+    assert "raptor-quill-42" not in body
+    assert "Cribl" not in body
 
 
 def test_renders_code_label_and_stats(monkeypatch, tmp_path):

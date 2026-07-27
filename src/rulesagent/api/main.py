@@ -35,7 +35,7 @@ from typing import Literal
 import httpx
 from fastapi import BackgroundTasks, Cookie, FastAPI, Form, Header, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
@@ -904,6 +904,155 @@ class AdminStatusResponse(BaseModel):
     error: str | None
 
 
+# --- Browser login for /admin (.superpowers/sdd/2026-07-27-gated-demo/
+# task-admin-login-report.md). _require_admin_token below only reads an
+# Authorization: Bearer header -- a browser can't send a custom header from
+# the address bar, so GET /admin was unreachable except via curl/scripts.
+# This adds a signed admin session COOKIE as a second way in, alongside the
+# bearer header (which keeps working unchanged for scripts and the Scryfall
+# refresh/status endpoints below).
+
+ADMIN_COOKIE_NAME = "rulemancer_admin_session"
+# Deliberately a different NAME than COOKIE_NAME ("rulemancer_demo") -- a
+# demo visitor's cookie and an admin session cookie must never be
+# interchangeable, and giving them different names is half of that (a
+# visitor's cookie is never even looked up under this name).
+ADMIN_COOKIE_MAX_AGE_S = 4 * 3600  # 4 hours -- short-lived; login again after.
+ADMIN_SESSION_MARKER = 0
+# The other half of "never interchangeable": this reuses demo_auth's
+# sign_session/verify_session machinery (same HMAC, same COOKIE_SECRET)
+# rather than inventing a second signing scheme, but signs the sentinel
+# "code id" 0 instead of a real code row id. demo_db.create_code inserts
+# into a SQLite INTEGER PRIMARY KEY AUTOINCREMENT column, whose rowids start
+# at 1 and are never reused or 0 -- so no real demo code can ever sign as
+# marker 0, and a genuine visitor session cookie (which signs their real,
+# positive code_id) can never verify as an admin session. Symmetrically, if
+# an admin cookie ever ended up read as a demo session, verify_session would
+# hand back code_id=0, and get_code_by_id(DEMO_DB, 0) returns None (row 0
+# doesn't exist) -- same as no session at all, not a privilege leak.
+
+
+def _admin_bearer_ok(authorization: str | None) -> bool:
+    """The existing Bearer-token check as a boolean instead of a raise, so
+    /admin can fall through to the login form on failure instead of a bare
+    401 JSON error. Identical comparison to _require_admin_token (same
+    constant-time hmac.compare_digest) -- this does not change what counts
+    as a valid bearer header, only what happens when it's missing/wrong."""
+    token = os.environ.get("ADMIN_TOKEN")
+    if not token or not isinstance(authorization, str):
+        return False
+    return hmac.compare_digest(authorization, f"Bearer {token}")
+
+
+def _verify_admin_session(token: str | None, secret: str) -> bool:
+    code_id = verify_session(token, secret, max_age_s=ADMIN_COOKIE_MAX_AGE_S)
+    return code_id == ADMIN_SESSION_MARKER
+
+
+def _require_admin_login_config() -> tuple[str, str]:
+    """Fail-closed guard for POST /admin/login, same shape as
+    _require_admin_token / _require_demo_config: refuse with 503 rather than
+    checking a token against nothing or signing a cookie with a missing
+    secret. Both ADMIN_TOKEN (what's being checked) and COOKIE_SECRET (what
+    signs the resulting cookie) must be configured -- never fall back to an
+    unsigned cookie."""
+    token = os.environ.get("ADMIN_TOKEN")
+    secret = session_secret()
+    if not token or not secret:
+        raise HTTPException(
+            status_code=503,
+            detail="admin login not configured (ADMIN_TOKEN/COOKIE_SECRET)",
+        )
+    return token, secret
+
+
+def _admin_login_page(error: bool = False, status_code: int = 401) -> HTMLResponse:
+    """The browser-facing login form -- rendered whenever a request has
+    neither a valid Bearer header nor a valid admin session cookie, and
+    re-rendered (with a generic error) after a wrong token. Same dark,
+    token-styled surface as admin_demo_view's dashboard and
+    frontend/gate.html's visitor gate (same colors_and_type.css tokens) --
+    the whole point is that this is reachable and readable from a plain
+    browser visit, not a JSON error. Never includes any code, label,
+    question, or count -- that data only exists past a successful login,
+    and this function never touches the demo DB."""
+    msg_html = (
+        '<p id="msg" role="alert">That token didn&#39;t work. Check it and try again.</p>'
+        if error else
+        '<p id="msg" role="status" aria-live="polite"></p>'
+    )
+    aria_invalid = "true" if error else "false"
+    border = "var(--status-red)" if error else "var(--border-default)"
+    body = f"""<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rulemancer admin -- log in</title>
+<link rel="stylesheet" href="/colors_and_type.css">
+<style>
+  * {{ box-sizing: border-box; }}
+  html, body {{ margin: 0; padding: 0; height: 100%; }}
+  body {{ display: flex; align-items: center; justify-content: center;
+          min-height: 100vh; padding: var(--space-5); font-family: var(--font-sans); }}
+  .admin-login-card {{ max-width: 380px; width: 100%; background: var(--bg-card);
+          border: 1px solid var(--border-default); border-radius: var(--radius-lg);
+          box-shadow: var(--shadow-lg); padding: var(--space-6) var(--space-5); text-align: center; }}
+  h1 {{ font-family: var(--font-wordmark); font-size: var(--fs-2xl); font-weight: var(--fw-semibold);
+        color: var(--fg-primary); margin: 0 0 var(--space-2); }}
+  .sub {{ color: var(--fg-secondary); font-size: var(--fs-sm); line-height: var(--lh-base);
+          margin: 0 0 var(--space-5); }}
+  form {{ display: flex; flex-direction: column; gap: var(--space-3); }}
+  label {{ text-align: left; font-size: var(--fs-sm); font-weight: var(--fw-medium); color: var(--fg-secondary); }}
+  input[type=password] {{ width: 100%; padding: 0.75rem 1rem; font-size: var(--fs-base);
+          font-family: var(--font-mono); background: var(--bg-elevated);
+          border: 1px solid {border}; border-radius: var(--radius-md); color: var(--fg-primary); }}
+  input[type=password]::placeholder {{ color: var(--fg-subtle); }}
+  input[type=password]:focus-visible {{ outline: 2px solid var(--accent); outline-offset: 2px;
+          border-color: var(--accent); }}
+  button {{ width: 100%; padding: 0.75rem 1rem; font-size: var(--fs-base); font-weight: var(--fw-semibold);
+          font-family: var(--font-sans); background: var(--accent); color: var(--fg-on-garnet, #fff);
+          border: none; border-radius: var(--radius-md); cursor: pointer; transition: background var(--t-fast); }}
+  button:hover {{ background: var(--accent-hover); }}
+  button:focus-visible {{ outline: 2px solid var(--accent); outline-offset: 2px; }}
+  #msg {{ margin: var(--space-3) 0 0; font-size: var(--fs-sm); min-height: 1.2em; color: var(--status-red); }}
+</style>
+</head>
+<body data-surface="dark">
+<div class="admin-login-card">
+  <h1>Rulemancer admin</h1>
+  <p class="sub">Enter the admin token to view the demo dashboard.</p>
+  <form method="post" action="/admin/login">
+    <label for="token">Admin token</label>
+    <input type="password" id="token" name="token" placeholder="admin token"
+           autocomplete="off" autofocus aria-invalid="{aria_invalid}" />
+    <button type="submit">Log in</button>
+  </form>
+  {msg_html}
+</div>
+</body></html>"""
+    return HTMLResponse(content=body, status_code=status_code)
+
+
+@app.post("/admin/login", tags=["ops"], summary="Log into /admin with the admin token",
+          include_in_schema=False)
+def admin_login(token: str = Form(...)):
+    """Constant-time compare against ADMIN_TOKEN (matches _require_admin_token's
+    hmac.compare_digest pattern); on success, signs and sets ADMIN_COOKIE_NAME
+    and 303-redirects to /admin. On failure, re-renders the login form with a
+    generic error and sets no cookie -- never reveals how close the guess
+    was. Token arrives in the POST form body, never a query parameter: a
+    query string lands in browser history, server access logs, and any
+    Referer header sent to third parties; a form body does none of that."""
+    expected, secret = _require_admin_login_config()
+    if not hmac.compare_digest(token, expected):
+        return _admin_login_page(error=True, status_code=401)
+    signed = sign_session(ADMIN_SESSION_MARKER, secret)
+    resp = RedirectResponse(url="/admin", status_code=303)
+    resp.set_cookie(ADMIN_COOKIE_NAME, signed, max_age=ADMIN_COOKIE_MAX_AGE_S,
+                     httponly=True, samesite="lax", secure=True)
+    return resp
+
+
 def _require_admin_token(authorization: str | None) -> None:
     """Bearer-token gate, matching the existing os.environ.get(...) key
     pattern (openrouter_backend.py's OPENROUTER_API_KEY). Fails CLOSED: if
@@ -998,17 +1147,33 @@ def _fmt_ts(ts: str | None) -> str:
 
 @app.get(
     "/admin", tags=["ops"], summary="Demo codes/usage dashboard",
-    description="Token-protected (Authorization: Bearer <ADMIN_TOKEN>) -- reuses the same "
-    "admin token as the Scryfall refresh endpoints. Per code: unlocks, queries, first/last "
-    "seen, total cost, remaining quota, and every question asked (newest first). Plus "
-    "today's global spend against the daily budget cap.",
+    description="Accepts EITHER Authorization: Bearer <ADMIN_TOKEN> (unchanged, for scripts "
+    "and the Scryfall refresh endpoints) OR a signed admin session cookie set by POST "
+    "/admin/login. No valid auth renders a browser-friendly login form (401) instead of a "
+    "JSON error -- see .superpowers/sdd/2026-07-27-gated-demo/task-admin-login-report.md. "
+    "Per code: unlocks, queries, first/last seen, total cost, remaining quota, and every "
+    "question asked (newest first). Plus today's global spend against the daily budget cap.",
 )
-def admin_demo_view(authorization: str | None = Header(default=None)) -> HTMLResponse:
-    # _require_admin_token raises before anything below runs -- an
-    # unauthenticated or wrongly-authenticated request never touches
+def admin_demo_view(
+    authorization: str | None = Header(default=None),
+    admin_session: str | None = Cookie(default=None, alias=ADMIN_COOKIE_NAME),
+) -> HTMLResponse:
+    # Bearer path first, unchanged from before -- scripts and the Scryfall
+    # admin endpoints depend on this exact check still working. Only if that
+    # fails do we look at the cookie; only if BOTH fail do we render the
+    # login form. Neither branch below (nor _admin_login_page) ever touches
     # list_codes/code_stats/events_for_code, so no code, label, question, or
-    # count can leak into the 401/503 response.
-    _require_admin_token(authorization)
+    # count can leak into an unauthenticated response.
+    if not _admin_bearer_ok(authorization):
+        secret = session_secret()
+        # Same DI-vs-direct-call guard as answer()'s `session` param above
+        # (main.py:690): FastAPI injects a real str|None when this route
+        # runs through the app, but the test suite calls admin_demo_view()
+        # directly without ever passing admin_session, leaving it as the
+        # Cookie(...) field-info sentinel rather than None.
+        cookie_val = admin_session if isinstance(admin_session, str) else None
+        if not (secret and _verify_admin_session(cookie_val, secret)):
+            return _admin_login_page()
 
     today = datetime.now(timezone.utc).date().isoformat()
     budget = float(os.environ.get("DAILY_BUDGET_USD", DAILY_BUDGET_USD_DEFAULT))
