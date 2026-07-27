@@ -908,6 +908,23 @@ def admin_scryfall_status(authorization: str | None = Header(default=None)) -> A
     return AdminStatusResponse(**state)
 
 
+async def _unhandled_exception_handler(request: Request, exc: Exception) -> HTMLResponse:
+    """Last-resort net: an uncaught exception anywhere in the app renders as
+    a friendly page, never FastAPI's default raw-JSON 500. The real
+    exception is still logged server-side for debugging -- only the
+    response body is sanitized, not the operator's visibility into it."""
+    logger.exception("unhandled exception on %s", getattr(request, "url", "?"))
+    return _friendly_html(
+        "Something went wrong",
+        "That request hit an unexpected error on our end. Try again in a "
+        "moment -- if it keeps happening, let Jon know.",
+        status_code=500,
+    )
+
+
+app.add_exception_handler(Exception, _unhandled_exception_handler)
+
+
 # Serve the frontend from the same process (mounted LAST so the API routes and
 # /docs win the match first). One `uv run python run.py` then serves everything;
 # the guard keeps the bare API working if frontend/ is ever absent.
