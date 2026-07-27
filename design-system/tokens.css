@@ -1,0 +1,219 @@
+/* tokens.css — Rulemancer design tokens
+ *
+ * Single source of truth for the visual identity. Color tokens use a
+ * raw-palette + semantic-mapping pattern: the raw palette (--garnet-*,
+ * --parchment-*, etc.) defines the brand axes, and the semantic
+ * tokens used by selectors elsewhere (--bg-page, --accent-blue, etc.)
+ * map ONTO those raw values. Swapping the brand later means editing
+ * the raw palette and the semantic map; selectors throughout the app
+ * stay untouched.
+ *
+ * Loaded BEFORE style.css in templates/index.html.
+ *
+ * Design system spec: plans/design-system/README.md.
+ */
+
+/* =========================================================================
+ * Self-host the wordmark face. Citadel of Blackrose is the actual hand-
+ * lettered face used on the Rulemancer logo (BlackFridayFont FMF / dafont,
+ * free use). The .ttf ships in static/branding/fonts/. The body sans
+ * (Inter) and code mono (JetBrains Mono) come from Google Fonts via the
+ * <link> in templates/index.html — keeping them off-tree avoids bundling
+ * megabytes of woff2 into the repo.
+ * ========================================================================= */
+@font-face {
+    font-family: 'Citadel of Blackrose';
+    src: url('/static/branding/fonts/CitadelOfBlackrose.ttf') format('truetype');
+    font-weight: 400 700;
+    font-style: normal;
+    font-display: swap;
+}
+
+:root {
+    /* =====================================================================
+     * BRAND PALETTE — raw color axes (do not reference these directly from
+     * components; reference the semantic tokens below).
+     *
+     * Plum is the primary brand axis (promoted 2026-07-27 from an inline
+     * override in frontend/index.html; see design-system/README.md
+     * "Palette history"). Garnet has been retired -- do not add it back
+     * here or point --accent at it; that recreates the exact bug this file
+     * exists to prevent. This file and frontend/colors_and_type.css (the
+     * file the running app actually loads) must carry identical --plum-*
+     * and semantic accent values -- there is no build step or static mount
+     * connecting the two, so drift between them is only caught by
+     * tests/test_design_tokens_no_drift.py, not by a shared import.
+     * ================================================================== */
+
+    /* Plum — primary brand axis */
+    --plum-50:  #F4EFF8;
+    --plum-100: #E5DAF0;
+    --plum-200: #CDB7E0;
+    --plum-300: #B191CE;
+    --plum-400: #9469B4;
+    --plum-500: #7C4E9E;
+    --plum-600: #653C86;   /* PRIMARY — light-surface accent */
+    --plum-700: #4F2E6B;
+    --plum-800: #382050;
+    --plum-900: #241334;
+
+    /* Parchment — warm neutral axis (light surfaces / marketing canvas) */
+    --parchment-50:  #FBF9F9;
+    --parchment-100: #F2EFEF;
+    --parchment-200: #E6DEDF;
+    --parchment-300: #D3C7C8;
+
+    /* Ink — text on parchment */
+    --ink-900: #241519;
+    --ink-700: #43323A;
+    --ink-500: #6B5B61;
+    --ink-300: #9E9095;
+
+    /* Sigil teal — ritual / accent moments only (secondary accent, unchanged
+     * by the plum move) */
+    --teal-300: #7ECFC2;
+    --teal-500: #309B8C;
+    --teal-700: #1E6459;
+
+    /* Status colors — preserved from existing operator UI for parity */
+    --status-green:  #4CAF7C;
+    --status-yellow: #E0A740;
+    --status-red:    #E05050;
+    --status-cyan:   #56C8D8;
+
+    /* =====================================================================
+     * SEMANTIC TOKENS — light surface (default). Dark surface is the
+     * [data-surface="dark"] block below. Values are identical to
+     * frontend/colors_and_type.css by design -- keep them that way.
+     * ================================================================== */
+    --bg-page: var(--parchment-100);
+    --bg-elevated: var(--parchment-50);
+    --bg-card: #FFFFFF;
+    --bg-overlay: rgba(73, 21, 28, 0.6);   /* legacy garnet-tinted literal, kept for pixel parity -- see README */
+    --bg-muted: var(--parchment-200);
+    --fg-primary: var(--ink-900);
+    --fg-secondary: var(--ink-700);
+    --fg-muted: var(--ink-500);
+    --fg-subtle: var(--ink-300);
+    --fg-on-garnet: var(--parchment-50);   /* legacy name; always-light text for use on --accent */
+    --border-default: var(--parchment-300);
+    --border-strong: var(--ink-300);
+    --accent: var(--plum-600);
+    --accent-hover: var(--plum-700);
+    --accent-soft: var(--plum-100);
+    --accent-link: var(--plum-500);
+    --sigil: var(--teal-500);
+    --sigil-soft: var(--teal-300);
+
+    /* =====================================================================
+     * Spacing scale (4px base)
+     * ================================================================== */
+    --space-0:  0;
+    --space-1:  0.25rem;   /* 4  */
+    --space-2:  0.5rem;    /* 8  */
+    --space-3:  0.75rem;   /* 12 */
+    --space-4:  1rem;      /* 16 */
+    --space-5:  1.5rem;    /* 24 */
+    --space-6:  2rem;      /* 32 */
+    --space-8:  3rem;      /* 48 */
+    --space-10: 4rem;      /* 64 */
+
+    /* =====================================================================
+     * Border radius
+     * ================================================================== */
+    --radius-sm:   4px;
+    --radius-md:   8px;
+    --radius-lg:  12px;
+    --radius-pill: 999px;
+
+    /* =====================================================================
+     * Typography
+     * ================================================================== */
+    --font-display: 'Citadel of Blackrose', 'Cormorant Garamond', 'Cinzel',
+                    Georgia, 'Times New Roman', serif;
+    --font-serif:   'Cormorant Garamond', Georgia, 'Times New Roman', serif;
+    --font-sans:    'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI',
+                    Roboto, 'Helvetica Neue', Arial, sans-serif;
+    --font-mono:    'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo,
+                    Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+
+    --font-size-xs:  0.75rem;
+    --font-size-sm:  0.875rem;     /* body default in operator UI */
+    --font-size-md:  1rem;
+    --font-size-lg:  1.125rem;
+    --font-size-xl:  1.25rem;
+    --font-size-2xl: 1.5rem;
+
+    --font-weight-normal:   400;
+    --font-weight-medium:   500;
+    --font-weight-semibold: 600;
+    --font-weight-bold:     700;
+
+    --line-height-tight:  1.25;
+    --line-height-normal: 1.5;
+    --line-height-loose:  1.75;
+
+    --letter-spacing-tagline: 0.18em;   /* the wordmark tagline treatment */
+
+    /* =====================================================================
+     * Elevation / shadows — garnet-tinted instead of pure black so the
+     * shadow tone harmonizes with the brand on both surfaces.
+     * ================================================================== */
+    --shadow-sm: 0 2px 4px rgba(73, 21, 28, 0.20);
+    --shadow-md: 0 4px 12px rgba(73, 21, 28, 0.28);
+    --shadow-lg: 0 12px 32px rgba(73, 21, 28, 0.36);
+    --shadow-glow-sigil: 0 0 24px rgba(48, 155, 140, 0.30);
+
+    /* =====================================================================
+     * Motion
+     * ================================================================== */
+    --transition-fast: 120ms ease-out;
+    --transition-base: 220ms ease-out;
+    --transition-slow: 400ms ease-out;
+
+    /* =====================================================================
+     * Layering
+     * ================================================================== */
+    --z-dropdown: 1000;
+    --z-modal:    1050;
+    --z-toast:    1080;
+}
+
+/* =========================================================================
+ * Light-theme shadow softening (less drop, more subtle on parchment).
+ * Color-token light overrides happen in style.css alongside the existing
+ * [data-theme="light"] block so the operator UI can keep its
+ * dark-by-default behavior and selectors stay co-located.
+ * ========================================================================= */
+[data-theme="light"] {
+    --shadow-sm: 0 1px 2px rgba(73, 21, 28, 0.06);
+    --shadow-md: 0 2px 8px rgba(73, 21, 28, 0.08);
+    --shadow-lg: 0 4px 16px rgba(73, 21, 28, 0.12);
+}
+
+/* =========================================================================
+ * Dark surface — the web app's default surface. Values are identical to
+ * frontend/colors_and_type.css's [data-surface="dark"] block by design;
+ * keep them that way (see the note on the brand palette above).
+ * ========================================================================= */
+.surface-dark,
+[data-surface="dark"] {
+    --bg-page: #17131F;
+    --bg-elevated: #241D2E;
+    --bg-card: #201A2A;
+    --bg-overlay: rgba(0, 0, 0, .62);
+    --bg-muted: #2E2640;
+    --fg-primary: #F1ECF4;
+    --fg-secondary: #C6BDCD;
+    --fg-muted: #928899;
+    --fg-subtle: #6C6379;
+    --fg-on-garnet: #F2EAEC;
+    --border-default: #392F4A;
+    --border-strong: #4E4166;
+    --accent: var(--plum-400);
+    --accent-hover: var(--plum-300);
+    --accent-soft: rgba(148, 105, 180, 0.24);
+    --accent-link: var(--plum-300);
+    color: var(--fg-primary);
+    background: var(--bg-page);
+}

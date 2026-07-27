@@ -1,0 +1,58 @@
+<!-- @dsCard group="Components" name="Cards, inputs & badges" subtitle="Answer card, field, pills" -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Cards, inputs & badges — Rulemancer</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  html,body{margin:0;padding:0}
+  body{width:760px;height:320px;background:var(--parchment-100);padding:24px 28px;
+       box-sizing:border-box;font-family:var(--font-sans);color:var(--ink-900);display:flex;gap:22px}
+  .col{flex:1;display:flex;flex-direction:column;gap:14px}
+  .label{font-size:10px;text-transform:uppercase;letter-spacing:.14em;color:var(--ink-500);font-weight:600}
+  .card{background:var(--bg-card);border:1px solid var(--parchment-300);border-radius:var(--radius-lg);
+        padding:16px 18px;box-shadow:var(--shadow-md)}
+  .card h4{margin:0 0 6px;font-size:15px;font-weight:600;color:var(--garnet-600)}
+  .card p{margin:0;font-size:13px;line-height:1.5;color:var(--ink-700)}
+  .cite{margin-top:10px;font-family:var(--font-mono);font-size:11px;color:var(--teal-700);
+        border-left:2px solid var(--teal-500);padding-left:8px}
+  .field{display:block;width:100%;box-sizing:border-box;padding:10px 12px;font-size:14px;
+         font-family:var(--font-sans);color:var(--ink-900);background:#fff;
+         border:1px solid var(--parchment-300);border-radius:var(--radius-md)}
+  .field:focus{outline:none;border-color:var(--garnet-600);box-shadow:0 0 0 3px var(--garnet-100)}
+  .badges{display:flex;gap:8px;flex-wrap:wrap}
+  .badge{font-size:11px;font-weight:600;padding:4px 10px;border-radius:var(--radius-pill)}
+  .b-accent{background:var(--garnet-100);color:var(--garnet-700)}
+  .b-teal{background:#d9f0ec;color:var(--teal-700)}
+  .b-neutral{background:var(--parchment-200);color:var(--ink-700)}
+</style>
+</head>
+<body>
+  <div class="col">
+    <div class="label">Answer card</div>
+    <div class="card">
+      <h4>Can I respond to a land drop?</h4>
+      <p>No. Playing a land is a special action — it doesn't use the stack, so there's no window to respond before it resolves.</p>
+      <div class="cite">CR 116.2a · 305.1</div>
+    </div>
+    <div class="label">Input · focus ring in garnet</div>
+    <input class="field" placeholder="Ask a rules question…" />
+  </div>
+  <div class="col">
+    <div class="label">Badges</div>
+    <div class="badges">
+      <span class="badge b-accent">Ruling</span>
+      <span class="badge b-teal">Verified</span>
+      <span class="badge b-neutral">Layer 6</span>
+      <span class="badge b-accent">Priority</span>
+      <span class="badge b-teal">Cited</span>
+    </div>
+    <div class="label" style="margin-top:6px">Card · dark surface</div>
+    <div class="card surface-dark" style="background:var(--garnet-900);border-color:var(--garnet-800)">
+      <h4 style="color:var(--teal-300)">State-based actions</h4>
+      <p style="color:#d9c7ca">Checked whenever a player would receive priority. A creature with lethal damage is destroyed here.</p>
+    </div>
+  </div>
+</body>
+</html>

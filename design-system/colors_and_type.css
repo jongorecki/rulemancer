@@ -1,0 +1,387 @@
+/* ============================================================================
+ * Rulemancer — colors_and_type.css
+ *
+ * Single source of truth for the brand palette and typography. Imported by
+ * every preview card, UI kit page, and marketing surface in this design
+ * system. The variables here also drop in cleanly to override the existing
+ * Scripts/static/style.css and tokens.css (same names where possible).
+ *
+ * Load order:
+ *   1. fonts (@font-face declarations below — files in fonts/)
+ *   2. :root variables
+ *   3. semantic helper classes (.h1 .h2 .body .mono etc.)
+ * ========================================================================= */
+
+
+/* ----------------------------------------------------------------------------
+ * Webfonts — self-hosted from fonts/
+ *
+ * Wordmark face:
+ *   - Citadel of Blackrose (BlackFridayFont FMF, dafont) — the actual hand-
+ *     lettered face used on the Rulemancer logo. Drop the .ttf into
+ *     fonts/CitadelOfBlackrose.ttf and it'll bind here.
+ *
+ * Body / numerals:
+ *   - Inter            (body sans)
+ *   - JetBrains Mono   (code / numerals)
+ *   - Cormorant Garamond kept as a graceful fallback for serif headings
+ *     where the display face would be too ornate (h2/h3 in long-form copy).
+ * ------------------------------------------------------------------------- */
+
+@font-face {
+    font-family: 'Citadel of Blackrose';
+    src: url('fonts/CitadelOfBlackrose.ttf') format('truetype'),
+         url('fonts/CitadelOfBlackrose.woff2') format('woff2');
+    font-weight: 400 700;
+    font-style: normal;
+    font-display: swap;
+}
+@font-face {
+    font-family: 'Cormorant Garamond';
+    src: url('fonts/CormorantGaramond-SemiBold.woff2') format('woff2');
+    font-weight: 600;
+    font-style: normal;
+    font-display: swap;
+}
+@font-face {
+    font-family: 'Cormorant Garamond';
+    src: url('fonts/CormorantGaramond-Bold.woff2') format('woff2');
+    font-weight: 700;
+    font-style: normal;
+    font-display: swap;
+}
+@font-face {
+    font-family: 'Inter';
+    src: url('fonts/Inter-Regular.woff2') format('woff2');
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+}
+@font-face {
+    font-family: 'Inter';
+    src: url('fonts/Inter-Medium.woff2') format('woff2');
+    font-weight: 500;
+    font-style: normal;
+    font-display: swap;
+}
+@font-face {
+    font-family: 'Inter';
+    src: url('fonts/Inter-SemiBold.woff2') format('woff2');
+    font-weight: 600;
+    font-style: normal;
+    font-display: swap;
+}
+@font-face {
+    font-family: 'JetBrains Mono';
+    src: url('fonts/JetBrainsMono-Regular.woff2') format('woff2');
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+}
+
+/* If the local woff2 files are missing, the import below pulls the same
+ * faces from Google Fonts as a fallback. Comment out for offline use. */
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+
+
+:root {
+
+    /* ========================================================================
+     * BRAND COLORS — base palette
+     * ===================================================================== */
+
+    /* Garnet — primary brand axis, sampled from the wordmark */
+    --garnet-50:  #F8EFF1;
+    --garnet-100: #EAD8DB;   /* rose mist  */
+    --garnet-200: #D9BEC2;
+    --garnet-300: #C69AA1;
+    --garnet-400: #AC6470;   /* mid garnet (sampled from logo) */
+    --garnet-500: #973C49;   /* tagline garnet (sampled from logo) */
+    --garnet-600: #7C2530;   /* PRIMARY — wordmark garnet (sampled from logo) */
+    --garnet-700: #631C26;
+    --garnet-800: #49151C;   /* deep / nav / hero panel */
+    --garnet-900: #2B0F13;
+
+    /* Parchment — warm neutral axis */
+    --parchment-50:  #FBF9F9;
+    --parchment-100: #F2EFEF;   /* MAIN — marketing canvas */
+    --parchment-200: #E6DEDF;
+    --parchment-300: #D3C7C8;
+    --parchment-400: #A99C9E;
+    --parchment-500: #6E6162;
+
+    /* Ink — text on parchment */
+    --ink-900: #241519;     /* body text on parchment */
+    --ink-700: #43323A;
+    --ink-500: #6B5B61;
+    --ink-300: #9E9095;
+
+    /* Sigil teal — ritual / accent moments only */
+    --teal-300: #7ECFC2;
+    --teal-500: #309B8C;
+    --teal-700: #1E6459;
+
+    /* Status colors — preserved from existing operator UI for parity,
+     * but desaturated slightly so they sit beside garnet without clashing */
+    --status-green:  #4CAF7C;
+    --status-yellow: #E0A740;
+    --status-red:    #E05050;
+    --status-cyan:   #56C8D8;
+
+    /* ========================================================================
+     * SEMANTIC TOKENS — light surface (marketing default)
+     * ===================================================================== */
+
+    --bg-page:        var(--parchment-100);
+    --bg-elevated:    var(--parchment-50);
+    --bg-card:        #FFFFFF;
+    --bg-overlay:     rgba(73, 21, 28, 0.6);
+    --bg-muted:       var(--parchment-200);
+
+    --fg-primary:     var(--ink-900);
+    --fg-secondary:   var(--ink-700);
+    --fg-muted:       var(--ink-500);
+    --fg-subtle:      var(--ink-300);
+    --fg-on-garnet:   var(--parchment-50);
+
+    --border-default: var(--parchment-300);
+    --border-strong:  var(--ink-300);
+    --border-garnet:  var(--garnet-600);
+
+    --accent:         var(--garnet-600);
+    --accent-hover:   var(--garnet-700);
+    --accent-soft:    var(--garnet-100);
+    --accent-link:    var(--garnet-500);
+
+    --sigil:          var(--teal-500);
+    --sigil-soft:     var(--teal-300);
+
+    /* ========================================================================
+     * TYPOGRAPHY
+     * ===================================================================== */
+
+    --font-display: 'Citadel of Blackrose', 'Cormorant Garamond', 'Cinzel',
+                    'EB Garamond', Georgia, 'Times New Roman', serif;
+    --font-wordmark: 'Citadel of Blackrose', 'Cormorant Garamond',
+                    'Cinzel', Georgia, serif;
+    --font-sans:    'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI',
+                    Roboto, 'Helvetica Neue', Arial, sans-serif;
+    --font-mono:    'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo,
+                    Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+
+    --fs-xs:    0.75rem;     /* 12 — micro labels, table headers */
+    --fs-sm:    0.875rem;    /* 14 — body small, UI default      */
+    --fs-base:  1rem;        /* 16 — body                         */
+    --fs-lg:    1.125rem;    /* 18 — emphasized body              */
+    --fs-xl:    1.375rem;    /* 22 — h4                           */
+    --fs-2xl:   1.75rem;     /* 28 — h3                           */
+    --fs-3xl:   2.5rem;      /* 40 — h2                           */
+    --fs-4xl:   3.5rem;      /* 56 — h1 marketing                 */
+    --fs-5xl:   5rem;        /* 80 — hero display                 */
+
+    --fw-regular:  400;
+    --fw-medium:   500;
+    --fw-semibold: 600;
+    --fw-bold:     700;
+
+    --lh-tight:  1.1;
+    --lh-snug:   1.25;
+    --lh-base:   1.5;
+    --lh-loose:  1.7;
+
+    --ls-tight:   -0.02em;
+    --ls-normal:  0;
+    --ls-wide:    0.04em;
+    --ls-tagline: 0.18em;     /* the wide-tracked logo tagline treatment */
+
+    /* ========================================================================
+     * SHAPE & MOTION
+     * ===================================================================== */
+
+    --radius-xs:  2px;
+    --radius-sm:  4px;
+    --radius-md:  8px;
+    --radius-lg:  12px;
+    --radius-xl:  20px;
+    --radius-pill: 999px;
+
+    --shadow-xs: 0 1px 2px rgba(73, 21, 28, 0.06);
+    --shadow-sm: 0 2px 4px rgba(73, 21, 28, 0.08);
+    --shadow-md: 0 4px 12px rgba(73, 21, 28, 0.10);
+    --shadow-lg: 0 12px 32px rgba(73, 21, 28, 0.14);
+    --shadow-glow-sigil: 0 0 24px rgba(48, 155, 140, 0.30);
+    --shadow-inset:      inset 0 1px 0 rgba(255, 255, 255, 0.5);
+
+    --ease-out:  cubic-bezier(0.22, 1, 0.36, 1);
+    --t-fast:    120ms var(--ease-out);
+    --t-base:    220ms var(--ease-out);
+    --t-slow:    400ms var(--ease-out);
+
+    /* 4px-base spacing — keeps parity with Scripts/static/tokens.css */
+    --space-1:  0.25rem;
+    --space-2:  0.5rem;
+    --space-3:  0.75rem;
+    --space-4:  1rem;
+    --space-5:  1.5rem;
+    --space-6:  2rem;
+    --space-8:  3rem;
+    --space-10: 4rem;
+    --space-12: 6rem;
+    --space-16: 8rem;
+}
+
+/* ============================================================================
+ * DARK SURFACE — used by the sorter operator UI and all dark hero panels
+ * ========================================================================= */
+
+.surface-dark,
+[data-surface="dark"] {
+    --bg-page:        var(--garnet-900);
+    --bg-elevated:    var(--garnet-800);
+    --bg-card:        #2A1A1F;
+    --bg-overlay:     rgba(0, 0, 0, 0.55);
+    --bg-muted:       #3A2429;
+
+    --fg-primary:     #F2EAEC;
+    --fg-secondary:   #C9B9BE;
+    --fg-muted:       #9A8288;
+    --fg-subtle:      #6E5860;
+    --fg-on-garnet:   #F2EAEC;
+
+    --border-default: #3E2A30;
+    --border-strong:  #5E434B;
+    --border-garnet:  var(--garnet-400);
+
+    --accent:         var(--garnet-400);   /* lighter on dark */
+    --accent-hover:   var(--garnet-300);
+    --accent-soft:    rgba(172, 100, 112, 0.15);
+    --accent-link:    var(--garnet-300);
+
+    color: var(--fg-primary);
+    background: var(--bg-page);
+}
+
+/* ============================================================================
+ * SEMANTIC TYPE HELPERS
+ *   .display   poster-scale, hero only
+ *   .h1 .h2 .h3 .h4   marketing hierarchy
+ *   .eyebrow   wide-tracked uppercase, like the logo tagline
+ *   .body      default body
+ *   .body-sm   dense UI body
+ *   .mono      code, numerals, tokens
+ *   .caption   muted micro-copy
+ * ========================================================================= */
+
+body {
+    font-family: var(--font-sans);
+    font-size:   var(--fs-base);
+    line-height: var(--lh-base);
+    color:       var(--fg-primary);
+    background:  var(--bg-page);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+.display {
+    font-family: var(--font-display);
+    font-weight: var(--fw-bold);
+    font-size:   var(--fs-5xl);
+    line-height: var(--lh-tight);
+    letter-spacing: var(--ls-tight);
+    color: var(--garnet-600);
+}
+
+h1, .h1 {
+    font-family: var(--font-display);
+    font-weight: var(--fw-bold);
+    font-size:   var(--fs-4xl);
+    line-height: var(--lh-tight);
+    letter-spacing: var(--ls-tight);
+    color: var(--garnet-600);
+    margin: 0 0 var(--space-4);
+}
+
+h2, .h2 {
+    font-family: var(--font-display);
+    font-weight: var(--fw-semibold);
+    font-size:   var(--fs-3xl);
+    line-height: var(--lh-snug);
+    letter-spacing: var(--ls-tight);
+    color: var(--garnet-600);
+    margin: 0 0 var(--space-3);
+}
+
+h3, .h3 {
+    font-family: var(--font-sans);
+    font-weight: var(--fw-semibold);
+    font-size:   var(--fs-2xl);
+    line-height: var(--lh-snug);
+    color: var(--fg-primary);
+    margin: 0 0 var(--space-3);
+}
+
+h4, .h4 {
+    font-family: var(--font-sans);
+    font-weight: var(--fw-semibold);
+    font-size:   var(--fs-xl);
+    line-height: var(--lh-snug);
+    color: var(--fg-primary);
+    margin: 0 0 var(--space-2);
+}
+
+.eyebrow {
+    font-family: var(--font-sans);
+    font-weight: var(--fw-medium);
+    font-size:   var(--fs-xs);
+    text-transform: uppercase;
+    letter-spacing: var(--ls-tagline);
+    color: var(--garnet-500);
+}
+
+.body {
+    font-family: var(--font-sans);
+    font-weight: var(--fw-regular);
+    font-size:   var(--fs-base);
+    line-height: var(--lh-loose);
+    color: var(--fg-primary);
+}
+
+.body-sm {
+    font-family: var(--font-sans);
+    font-weight: var(--fw-regular);
+    font-size:   var(--fs-sm);
+    line-height: var(--lh-base);
+    color: var(--fg-primary);
+}
+
+.mono,
+code, kbd, pre, samp {
+    font-family: var(--font-mono);
+    font-size:   0.92em;
+    font-feature-settings: "ss01", "calt";
+    color: var(--garnet-700);
+}
+
+.caption {
+    font-family: var(--font-sans);
+    font-weight: var(--fw-regular);
+    font-size:   var(--fs-xs);
+    line-height: var(--lh-base);
+    color: var(--fg-muted);
+}
+
+a {
+    color: var(--accent-link);
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+    transition: color var(--t-fast), border-color var(--t-fast);
+}
+a:hover {
+    color: var(--garnet-600);
+    border-bottom-color: currentColor;
+}
+
+::selection {
+    background: var(--garnet-200);
+    color: var(--garnet-800);
+}
