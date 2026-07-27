@@ -258,19 +258,50 @@ _scryfall_refresh_state: dict = dict(_SCRYFALL_REFRESH_IDLE)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    store = VectorStore.load(REPO / "data" / "parsed" / f"vector_{VECTOR_MODEL}.pkl")
-    # ruling_select on; live Scryfall (fresh rulings). effort=GEN_EFFORT pairs
-    # production with the arm GEN_MODEL was actually measured at -- opus-5 at
-    # the API's default effort is an unmeasured, costlier arm (see answer.py).
-    agent = RulesAgent(store, effort=GEN_EFFORT)
-    # chunk_map resolves a rule/glossary citation id -> its full text. The
-    # agent is now its one owner (L1, docs/plan-l1-crossref-expansion.md --
-    # expand_crossrefs needs the same dict), built once from the store's own
-    # chunks; the API just reuses it rather than building a second copy.
-    _state["chunk_map"] = agent.chunk_map
-    _state["agent"] = agent
+    # Fly deploys mount an EMPTY volume on first boot -- the vector pickle is
+    # seeded onto it manually after the machine is up (task-14-brief.md Step
+    # 4), so the file legitimately does not exist yet the first time this
+    # runs. A missing or unreadable store must NOT crash-loop the process:
+    # there'd be no running machine left to `fly ssh console` into to seed
+    # it -- chicken and egg. So this catches load failure, logs it, and
+    # leaves the app serving with _state empty; `agent`/`chunk_map` simply
+    # never get set, and /health + every route that needs them (see
+    # _require_agent below) treat that as "still starting up", not a 500.
+    try:
+        store = VectorStore.load(REPO / "data" / "parsed" / f"vector_{VECTOR_MODEL}.pkl")
+        # ruling_select on; live Scryfall (fresh rulings). effort=GEN_EFFORT pairs
+        # production with the arm GEN_MODEL was actually measured at -- opus-5 at
+        # the API's default effort is an unmeasured, costlier arm (see answer.py).
+        agent = RulesAgent(store, effort=GEN_EFFORT)
+        # chunk_map resolves a rule/glossary citation id -> its full text. The
+        # agent is now its one owner (L1, docs/plan-l1-crossref-expansion.md --
+        # expand_crossrefs needs the same dict), built once from the store's own
+        # chunks; the API just reuses it rather than building a second copy.
+        _state["chunk_map"] = agent.chunk_map
+        _state["agent"] = agent
+    except Exception:
+        logger.exception(
+            "vector store failed to load at startup -- serving unready "
+            "(agent not in _state) instead of crash-looping; seed the "
+            "volume and restart the machine"
+        )
     yield
     _state.clear()
+
+
+def _require_agent() -> RulesAgent:
+    """Every route that touches the agent/chunk_map goes through this
+    instead of reading `_state["agent"]` directly, so a not-yet-seeded
+    deploy (see lifespan above) answers with a clear, friendly 503 instead
+    of an unhandled KeyError -- same shape as _require_demo_config's fail
+    -closed pattern elsewhere in this module."""
+    agent = _state.get("agent")
+    if agent is None:
+        raise HTTPException(
+            status_code=503,
+            detail="Still starting up -- the rules data isn't loaded yet. Try again shortly.",
+        )
+    return agent
 
 
 API_DESCRIPTION = """
@@ -527,7 +558,10 @@ def unlock(code: str = Form(...), request: Request = None):
 
 @app.get("/health", tags=["ops"], summary="Liveness / readiness")
 def health() -> dict:
-    """`ready` is true once the vector store has loaded at startup."""
+    """`ready` is true once the vector store has loaded at startup. Stays
+    "status": "ok" even when not ready -- the process is alive and serving,
+    it just hasn't finished loading the store (or, on a fresh Fly volume
+    before Step 4's seeding, the store file doesn't exist yet)."""
     return {"status": "ok", "ready": "agent" in _state}
 
 
@@ -692,7 +726,8 @@ def answer(req: AnswerRequest, request: Request = None,
         # unaffected because this is the same single global `_lock` that
         # already serialized every /answer call before Task 6.
 
-    agent, chunk_map = _state["agent"], _state["chunk_map"]
+    agent = _require_agent()
+    chunk_map = _state["chunk_map"]
     # Bound what a thread can cost: last 12 turns, each clipped to 4k chars.
     history = [{"role": t.role, "content": t.content[:4000]} for t in req.history[-12:]]
     request_id = uuid.uuid4().hex

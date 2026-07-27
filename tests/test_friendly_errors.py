@@ -39,12 +39,19 @@ def test_handler_is_registered_on_the_app():
 def test_unexpected_exception_on_json_api_route_returns_json_not_html(monkeypatch):
     # Fix-round-1: /answer's frontend caller does `await r.json()` -- an HTML
     # body on an unexpected 500 would throw a parse error there instead of
-    # showing the friendly message. Force a genuinely unexpected exception
-    # (no lifespan means _state["agent"] is unset -> KeyError deep inside the
-    # route, not one of the deliberate guard HTTPExceptions) and confirm the
-    # JSON API path gets a JSON body with no leaked internals.
+    # showing the friendly message. Task 14: a missing/not-yet-loaded agent
+    # (no lifespan run) is no longer this scenario -- that's now a deliberate,
+    # friendly 503 via _require_agent() (Fly's empty-volume-on-first-boot
+    # case, task-14-brief.md). So force a genuinely unexpected exception a
+    # different way: stub `agent` in as a ready-but-broken object, which
+    # passes the readiness check but blows up with AttributeError inside
+    # agent.answer() deeper in the route -- still not one of the deliberate
+    # guard HTTPExceptions. Confirm the JSON API path gets a JSON body with
+    # no leaked internals.
     for var in ("COOKIE_SECRET", "IP_HASH_SALT", "DEMO_ORIGIN"):
         monkeypatch.delenv(var, raising=False)
+    monkeypatch.setitem(main._state, "agent", object())
+    monkeypatch.setitem(main._state, "chunk_map", {})
     client = TestClient(main.app, raise_server_exceptions=False)
     resp = client.post("/answer", json={"question": "what is trample"})
 
@@ -52,16 +59,19 @@ def test_unexpected_exception_on_json_api_route_returns_json_not_html(monkeypatc
     assert resp.headers["content-type"].startswith("application/json")
     body = resp.json()
     assert "detail" in body
-    assert "KeyError" not in body["detail"]
+    assert "AttributeError" not in body["detail"]
     assert "agent" not in body["detail"]
 
 
 def test_unexpected_exception_on_page_route_still_returns_friendly_html(monkeypatch):
     # A caller that explicitly asks for HTML (a real browser navigation) must
     # still get the friendly page, not a JSON body -- same unexpected
-    # exception, different Accept header.
+    # exception, different Accept header. Same stub-agent approach as above
+    # (see its comment) now that a missing agent is its own deliberate 503.
     for var in ("COOKIE_SECRET", "IP_HASH_SALT", "DEMO_ORIGIN"):
         monkeypatch.delenv(var, raising=False)
+    monkeypatch.setitem(main._state, "agent", object())
+    monkeypatch.setitem(main._state, "chunk_map", {})
     client = TestClient(main.app, raise_server_exceptions=False)
     resp = client.post(
         "/answer",
@@ -72,5 +82,5 @@ def test_unexpected_exception_on_page_route_still_returns_friendly_html(monkeypa
     assert resp.status_code == 500
     assert resp.headers["content-type"].startswith("text/html")
     body = resp.text
-    assert "KeyError" not in body
+    assert "AttributeError" not in body
     assert "<html" in body.lower()
