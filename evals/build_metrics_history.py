@@ -179,7 +179,53 @@ def _ids_of(path: Path) -> frozenset[str] | None:
     return frozenset(ids) or None
 
 
-def resolve_answers(stem: str, want: frozenset[str]) -> tuple[Path | None, str]:
+def _answer_match_fraction(path: Path, want: frozenset[str], judged: dict[str, str]) -> float | None:
+    """Fraction of ids where this candidate's `answer` text equals the text the
+    verdict actually judged for that id (`judged`, read off the verdict's own
+    `entries[*].answer`). None if there's nothing usable to compare.
+
+    This is content evidence, not a naming convention: the verdict file quotes
+    back the literal answer string it graded, and only the answers file that
+    produced that string can match it on (close to) every id. Two arms that
+    share a question-id set but ran a different retrieval condition -- real
+    rules retrieved vs. none (placebo) -- write different answer text for the
+    same question, so this discriminates exactly the case id-matching can't.
+    """
+    try:
+        raw = json.loads(path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return None
+    rows = raw if isinstance(raw, list) else list(raw.values()) if isinstance(raw, dict) else []
+    by_id = {r["id"]: r.get("answer") for r in rows if isinstance(r, dict) and "id" in r}
+    compared = [qid for qid in want if qid in by_id and qid in judged]
+    if not compared:
+        return None
+    matched = sum(1 for qid in compared if by_id[qid] == judged[qid])
+    return matched / len(compared)
+
+
+def _disambiguate_by_answer_text(
+    candidates: list[Path], want: frozenset[str], judged: dict[str, str]
+) -> tuple[Path | None, str]:
+    """Among several id-matching candidates, pick the one whose answer text the
+    verdict actually judged. Requires a clean win (exactly one candidate at a
+    perfect 1.0 match) -- anything less is evidence that doesn't resolve the
+    tie, and this fails loudly to `unknown` rather than guessing.
+    """
+    if not judged:
+        return None, f"ambiguous ({len(candidates)} files share these ids; verdict has no answer text to check against)"
+    scored = [(p, _answer_match_fraction(p, want, judged)) for p in candidates]
+    perfect = [p for p, frac in scored if frac == 1.0]
+    if len(perfect) == 1:
+        return perfect[0], "content-match"
+    if len(perfect) > 1:
+        return None, f"ambiguous ({len(perfect)} files share these ids AND match the judged answer text -- genuinely indistinguishable)"
+    return None, f"ambiguous ({len(candidates)} files share these ids; none matches the judged answer text on every question)"
+
+
+def resolve_answers(
+    stem: str, want: frozenset[str], judged: dict[str, str] | None = None
+) -> tuple[Path | None, str]:
     """(answers path, how the join was made) -- and the join is VERIFIED.
 
     Filename convention alone is a guess: verdict files do not record which
@@ -188,7 +234,17 @@ def resolve_answers(stem: str, want: frozenset[str]) -> tuple[Path | None, str]:
     do not is reported as `name-matched-ids-differ` rather than being used. That
     turns "probably the right file" into a checked fact, which is the difference
     between a cost figure you can publish and one you can't.
+
+    A shared id set is necessary but not sufficient -- two genuinely different
+    experiments (e.g. a real-vs-placebo retrieval pair) can be run on the exact
+    same question set on purpose. When more than one file matches on ids, the
+    tie is broken by content: `judged` is `{id: answer text}` read straight off
+    the verdict's own `entries`, i.e. the answer string it actually graded, and
+    only the file whose rows reproduce that text on every id can be the source
+    (see `_disambiguate_by_answer_text`). No filename whitelist is involved --
+    this holds for any future real/placebo-style pair, not just this one.
     """
+    judged = judged or {}
     candidates: list[tuple[Path, str]] = []
     exact = ANSWERS / f"{stem}.json"
     if exact.exists():
@@ -199,13 +255,29 @@ def resolve_answers(stem: str, want: frozenset[str]) -> tuple[Path | None, str]:
         if not p.name.startswith("_"):
             candidates.append((p, "prefix"))
 
-    named_but_wrong = False
+    # Dedup by resolved path, keeping the first (best) "how" tag seen: the
+    # prefix glob `{stem}*.json` also matches the exact-name file itself (star
+    # matches zero chars), so without this the same file would show up twice
+    # and manufacture a fake ambiguity between a file and itself.
+    seen_paths: dict[Path, str] = {}
     for path, how in candidates:
+        rp = path.resolve()
+        seen_paths.setdefault(rp, how)
+    deduped = [(p, how) for p, how in seen_paths.items()]
+
+    named_but_wrong = False
+    id_matched: list[tuple[Path, str]] = []
+    for path, how in deduped:
         got = _ids_of(path)
         if got == want:
-            return path, how
-        if got is not None:
+            id_matched.append((path, how))
+        elif got is not None:
             named_but_wrong = True
+
+    if len(id_matched) == 1:
+        return id_matched[0]
+    if len(id_matched) > 1:
+        return _disambiguate_by_answer_text([p for p, _ in id_matched], want, judged)
 
     # No name matched, or the named file held different questions. Fall back to
     # an id-set search across every answers file -- a slower but strictly
@@ -215,7 +287,7 @@ def resolve_answers(stem: str, want: frozenset[str]) -> tuple[Path | None, str]:
     if len(matches) == 1:
         return matches[0], "id-match"
     if len(matches) > 1:
-        return None, f"ambiguous ({len(matches)} files share these ids)"
+        return _disambiguate_by_answer_text(matches, want, judged)
     return None, "name-matched-ids-differ" if named_but_wrong else "unmatched"
 
 
@@ -395,7 +467,8 @@ def collect() -> dict:
             skipped.append(f"{vpath.name}: {e}")
             continue
 
-        apath, join = resolve_answers(stem, frozenset(ids))
+        judged = {e["id"]: e.get("answer") for e in entries if "id" in e}
+        apath, join = resolve_answers(stem, frozenset(ids), judged)
         cfg, cost, axes = {}, {}, {}
         kind, kind_why = "unknown", ("no answers file could be joined to this verdict file, so "
                                      "nothing records how the arm ran")

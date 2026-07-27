@@ -105,10 +105,12 @@ def test_unrecognised_shape_refuses_to_guess():
 
 
 def test_corner_half_is_the_ruled_scheme():
-    """Jon's ruling 2026-07-26: flat L0-L3, Corner Case 0.5."""
+    """Jon's ruling 2026-07-26: flat L0-L3, Corner Case 0.5. "rules" (the
+    86-row card-free instrument, added 2026-07-27) is not a corner case, so
+    it stays full weight like L0-L3."""
     assert ws.DEFAULT_SCHEME == "corner-half"
     assert ws.WEIGHT_SCHEMES["corner-half"]["weights"] == {
-        "0": 1.0, "1": 1.0, "2": 1.0, "3": 1.0, "Corner Case": 0.5}
+        "0": 1.0, "1": 1.0, "2": 1.0, "3": 1.0, "Corner Case": 0.5, "rules": 1.0}
 
 
 def test_corner_half_raises_a_corner_heavy_arm():

@@ -52,24 +52,46 @@ from pathlib import Path
 
 # One dict, one entry per scheme -- adding a scheme is a dict entry, not a code
 # change. Weights are RATIOS; see caveat 1 above.
+#
+# "rules" LEVEL. The 86-row card-free instrument (rules86_real / rules86_placebo)
+# tags every row `level: "rules"` -- not one of the corpus's L0-L3/Corner Case
+# labels, because it isn't a difficulty rung on the same ladder. It's a separate
+# instrument: 0 of the 1,409 corpus rows carry `level: "rules"`
+# (evals/rulesguru_full_v2.jsonl has only 0/1/2/3/Corner Case), so the card-free
+# set is not a stratum of the corpus and reweighting it into a corpus-mix
+# projection would be fabricating a share for a level the corpus doesn't have.
+# Concretely this is moot for `corpus_level_mix()`'s projection step (it only
+# includes levels present in the corpus mix, so "rules" is dropped there with
+# zero share automatically, never distorting the projected number) -- but
+# `weighted_score.py::score()` still has to score THESE FILES on their own
+# terms (accuracy on the 86-row set, flat and "weighted"), and every level
+# present in a verdict file must appear in the weight vector or it raises
+# (by design -- see ScoreError below). Since every row in a rules86 file is
+# level "rules" and no other level shares the file, the *value* chosen here is
+# mathematically inert for that file (num and den both scale by the same
+# weight, so the ratio is unchanged -- see caveat 1 above): 1.0 is chosen not
+# because the number matters, but because "rules" is an ordinary full-weight
+# level like L0-L3, not a discounted one like Corner Case, and a reader
+# scanning the vector should read it that way.
 WEIGHT_SCHEMES = {
     "flat": {
         "label": "Flat",
-        "weights": {"0": 1.0, "1": 1.0, "2": 1.0, "3": 1.0, "Corner Case": 1.0},
+        "weights": {"0": 1.0, "1": 1.0, "2": 1.0, "3": 1.0, "Corner Case": 1.0, "rules": 1.0},
         "rationale": "Every level equal. How every prior result in this repo is stated.",
     },
     "corner-half": {
         "label": "Flat L0-L3, Corner Case 0.5",
-        "weights": {"0": 1.0, "1": 1.0, "2": 1.0, "3": 1.0, "Corner Case": 0.5},
+        "weights": {"0": 1.0, "1": 1.0, "2": 1.0, "3": 1.0, "Corner Case": 0.5, "rules": 1.0},
         "rationale": (
             "Jon's ruling, 2026-07-26. Implements what he said and nothing more: "
             "corner cases are unrealistic, so they count half. Asserts no "
-            "difficulty ordering among L0-L3."
+            "difficulty ordering among L0-L3. 'rules' (the 86-row card-free "
+            "instrument) is not a corner case, so it stays full weight."
         ),
     },
     "difficulty-ramp": {
         "label": "1,2,3,4 | Corner 1",
-        "weights": {"0": 1.0, "1": 2.0, "2": 3.0, "3": 4.0, "Corner Case": 1.0},
+        "weights": {"0": 1.0, "1": 2.0, "2": 3.0, "3": 4.0, "Corner Case": 1.0, "rules": 1.0},
         "rationale": (
             "Scheme A from the spec, kept for sensitivity only. NOT ruled. "
             "Asserts L3 is four times as valuable as L0, which Jon never claimed."
@@ -77,7 +99,7 @@ WEIGHT_SCHEMES = {
     },
     "shallow-ramp": {
         "label": "1,1,1.25,1.5 | Corner 0.5",
-        "weights": {"0": 1.0, "1": 1.0, "2": 1.25, "3": 1.5, "Corner Case": 0.5},
+        "weights": {"0": 1.0, "1": 1.0, "2": 1.25, "3": 1.5, "Corner Case": 0.5, "rules": 1.0},
         "rationale": (
             "The honest form of difficulty emphasis if it is ever wanted: a "
             "shallow ramp with the corner discount kept separate. NOT ruled."

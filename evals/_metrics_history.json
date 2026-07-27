@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-27T05:52-05:00",
+  "generated_at": "2026-07-27T08:23-05:00",
   "arms": [
     {
       "arm": "derivability_B_human",
@@ -407,7 +407,7 @@
       "generation": {
         "file": null,
         "mtime": null,
-        "join": "ambiguous (2 files share these ids)",
+        "join": "ambiguous (2 files share these ids; none matches the judged answer text on every question)",
         "recorded": false
       },
       "judging": {
@@ -423,14 +423,14 @@
         "verdicts_mtime": "2026-07-24T00:54-05:00",
         "answers": null,
         "answers_mtime": null,
-        "join": "ambiguous (2 files share these ids)"
+        "join": "ambiguous (2 files share these ids; none matches the judged answer text on every question)"
       }
     },
     {
       "arm": "h2h_easy_votes3",
       "qset": "23aa5200",
-      "kind": "unknown",
-      "kind_why": "no answers file could be joined to this verdict file, so nothing records how the arm ran",
+      "kind": "pipeline",
+      "kind_why": "retrieval recorded and non-empty on all 50 rows (19.2 rule ids per question on average) — the product path",
       "n": 50,
       "accuracy_flat": 0.92,
       "accuracy_weighted": 0.92,
@@ -449,14 +449,75 @@
       },
       "judge_model": "openai/gpt-5-mini",
       "judge_digest": "b54fbdb95565abf8",
-      "config": {},
-      "config_axes": {},
-      "cost": {},
+      "config": {
+        "model": "claude-opus-5",
+        "effort": "low",
+        "rewrite_version": "v2",
+        "ruling_query_mode": "raw",
+        "system_version": 3,
+        "n_answers": 50
+      },
+      "config_axes": {
+        "model": {
+          "value": "claude-opus-5",
+          "mixed": false,
+          "breakdown": null
+        },
+        "system_version": {
+          "value": 3,
+          "mixed": false,
+          "breakdown": null
+        },
+        "effort": {
+          "value": "low",
+          "mixed": false,
+          "breakdown": null
+        },
+        "max_tokens": {
+          "value": 32768,
+          "mixed": false,
+          "breakdown": null
+        },
+        "ruling_query_mode": {
+          "value": "raw",
+          "mixed": false,
+          "breakdown": null
+        },
+        "layers_tool": {
+          "value": true,
+          "mixed": false,
+          "breakdown": null
+        },
+        "show_rewrite": {
+          "value": false,
+          "mixed": false,
+          "breakdown": null
+        },
+        "rewrite_version": {
+          "value": "v2",
+          "mixed": false,
+          "breakdown": null
+        },
+        "retrieval": {
+          "value": "on (mean 19.2 ids)",
+          "mixed": false,
+          "breakdown": null
+        }
+      },
+      "cost": {
+        "n_costed": 50,
+        "in_per_q": 4204.22,
+        "out_per_q": 1185.56,
+        "cache_read_per_q": 2107.42,
+        "cache_write_per_q": 0.0,
+        "cost_per_q": 0.05171381,
+        "priced_as": "claude-opus-5"
+      },
       "generation": {
-        "file": null,
-        "mtime": null,
-        "join": "ambiguous (4 files share these ids)",
-        "recorded": false
+        "file": "evals/answers/h2h_opuslow_easy_r1.json",
+        "mtime": "2026-07-26T08:20-05:00",
+        "join": "content-match",
+        "recorded": true
       },
       "judging": {
         "file": "evals/verdicts_h2h_easy_votes3.json",
@@ -469,9 +530,9 @@
       "provenance": {
         "verdicts": "evals/verdicts_h2h_easy_votes3.json",
         "verdicts_mtime": "2026-07-27T00:51-05:00",
-        "answers": null,
-        "answers_mtime": null,
-        "join": "ambiguous (4 files share these ids)"
+        "answers": "evals/answers/h2h_opuslow_easy_r1.json",
+        "answers_mtime": "2026-07-26T08:20-05:00",
+        "join": "content-match"
       }
     },
     {
@@ -586,8 +647,8 @@
     {
       "arm": "h2h_opuslow_easy_r1_votes3",
       "qset": "23aa5200",
-      "kind": "unknown",
-      "kind_why": "no answers file could be joined to this verdict file, so nothing records how the arm ran",
+      "kind": "pipeline",
+      "kind_why": "retrieval recorded and non-empty on all 50 rows (19.2 rule ids per question on average) — the product path",
       "n": 50,
       "accuracy_flat": 0.92,
       "accuracy_weighted": 0.92,
@@ -606,14 +667,75 @@
       },
       "judge_model": "openai/gpt-5-mini",
       "judge_digest": "b54fbdb95565abf8",
-      "config": {},
-      "config_axes": {},
-      "cost": {},
+      "config": {
+        "model": "claude-opus-5",
+        "effort": "low",
+        "rewrite_version": "v2",
+        "ruling_query_mode": "raw",
+        "system_version": 3,
+        "n_answers": 50
+      },
+      "config_axes": {
+        "model": {
+          "value": "claude-opus-5",
+          "mixed": false,
+          "breakdown": null
+        },
+        "system_version": {
+          "value": 3,
+          "mixed": false,
+          "breakdown": null
+        },
+        "effort": {
+          "value": "low",
+          "mixed": false,
+          "breakdown": null
+        },
+        "max_tokens": {
+          "value": 32768,
+          "mixed": false,
+          "breakdown": null
+        },
+        "ruling_query_mode": {
+          "value": "raw",
+          "mixed": false,
+          "breakdown": null
+        },
+        "layers_tool": {
+          "value": true,
+          "mixed": false,
+          "breakdown": null
+        },
+        "show_rewrite": {
+          "value": false,
+          "mixed": false,
+          "breakdown": null
+        },
+        "rewrite_version": {
+          "value": "v2",
+          "mixed": false,
+          "breakdown": null
+        },
+        "retrieval": {
+          "value": "on (mean 19.2 ids)",
+          "mixed": false,
+          "breakdown": null
+        }
+      },
+      "cost": {
+        "n_costed": 50,
+        "in_per_q": 4204.22,
+        "out_per_q": 1185.56,
+        "cache_read_per_q": 2107.42,
+        "cache_write_per_q": 0.0,
+        "cost_per_q": 0.05171381,
+        "priced_as": "claude-opus-5"
+      },
       "generation": {
-        "file": null,
-        "mtime": null,
-        "join": "ambiguous (4 files share these ids)",
-        "recorded": false
+        "file": "evals/answers/h2h_opuslow_easy_r1.json",
+        "mtime": "2026-07-26T08:20-05:00",
+        "join": "content-match",
+        "recorded": true
       },
       "judging": {
         "file": "evals/verdicts_h2h_opuslow_easy_r1_votes3.json",
@@ -626,9 +748,9 @@
       "provenance": {
         "verdicts": "evals/verdicts_h2h_opuslow_easy_r1_votes3.json",
         "verdicts_mtime": "2026-07-27T00:48-05:00",
-        "answers": null,
-        "answers_mtime": null,
-        "join": "ambiguous (4 files share these ids)"
+        "answers": "evals/answers/h2h_opuslow_easy_r1.json",
+        "answers_mtime": "2026-07-26T08:20-05:00",
+        "join": "content-match"
       }
     },
     {
@@ -1512,8 +1634,8 @@
     {
       "arm": "h2h_opuslow_hard_r1_votes3",
       "qset": "5cedbcf3",
-      "kind": "unknown",
-      "kind_why": "no answers file could be joined to this verdict file, so nothing records how the arm ran",
+      "kind": "pipeline",
+      "kind_why": "retrieval recorded and non-empty on all 54 rows (19.6 rule ids per question on average) — the product path",
       "n": 54,
       "accuracy_flat": 0.7222222222222222,
       "accuracy_weighted": 0.7238095238095238,
@@ -1540,14 +1662,75 @@
       },
       "judge_model": "openai/gpt-5-mini",
       "judge_digest": "b54fbdb95565abf8",
-      "config": {},
-      "config_axes": {},
-      "cost": {},
+      "config": {
+        "model": "claude-opus-5",
+        "effort": "low",
+        "rewrite_version": "v2",
+        "ruling_query_mode": "raw",
+        "system_version": 3,
+        "n_answers": 54
+      },
+      "config_axes": {
+        "model": {
+          "value": "claude-opus-5",
+          "mixed": false,
+          "breakdown": null
+        },
+        "system_version": {
+          "value": 3,
+          "mixed": false,
+          "breakdown": null
+        },
+        "effort": {
+          "value": "low",
+          "mixed": false,
+          "breakdown": null
+        },
+        "max_tokens": {
+          "value": 32768,
+          "mixed": false,
+          "breakdown": null
+        },
+        "ruling_query_mode": {
+          "value": "raw",
+          "mixed": false,
+          "breakdown": null
+        },
+        "layers_tool": {
+          "value": true,
+          "mixed": false,
+          "breakdown": null
+        },
+        "show_rewrite": {
+          "value": false,
+          "mixed": false,
+          "breakdown": null
+        },
+        "rewrite_version": {
+          "value": "v2",
+          "mixed": false,
+          "breakdown": null
+        },
+        "retrieval": {
+          "value": "on (mean 19.6 ids)",
+          "mixed": false,
+          "breakdown": null
+        }
+      },
+      "cost": {
+        "n_costed": 54,
+        "in_per_q": 6408.888888888889,
+        "out_per_q": 1196.3148148148148,
+        "cache_read_per_q": 3638.185185185185,
+        "cache_write_per_q": 76.48148148148148,
+        "cost_per_q": 0.06424941666666667,
+        "priced_as": "claude-opus-5"
+      },
       "generation": {
-        "file": null,
-        "mtime": null,
-        "join": "ambiguous (4 files share these ids)",
-        "recorded": false
+        "file": "evals/answers/h2h_opuslow_hard_r1.json",
+        "mtime": "2026-07-26T01:40-05:00",
+        "join": "content-match",
+        "recorded": true
       },
       "judging": {
         "file": "evals/verdicts_h2h_opuslow_hard_r1_votes3.json",
@@ -1560,9 +1743,9 @@
       "provenance": {
         "verdicts": "evals/verdicts_h2h_opuslow_hard_r1_votes3.json",
         "verdicts_mtime": "2026-07-27T00:52-05:00",
-        "answers": null,
-        "answers_mtime": null,
-        "join": "ambiguous (4 files share these ids)"
+        "answers": "evals/answers/h2h_opuslow_hard_r1.json",
+        "answers_mtime": "2026-07-26T01:40-05:00",
+        "join": "content-match"
       }
     },
     {
@@ -2495,10 +2678,220 @@
       }
     },
     {
+      "arm": "rules86_real_votes3",
+      "qset": "69f1a390",
+      "kind": "pipeline",
+      "kind_why": "retrieval recorded and non-empty on all 86 rows (19.2 rule ids per question on average) — the product path",
+      "n": 86,
+      "accuracy_flat": 0.9883720930232558,
+      "accuracy_weighted": 0.9883720930232558,
+      "accuracy_auto": null,
+      "human_corrected": false,
+      "grader": null,
+      "by_level": {
+        "rules": {
+          "correct": 85.0,
+          "n": 86.0
+        }
+      },
+      "judge_model": "openai/gpt-5-mini",
+      "judge_digest": "b54fbdb95565abf8",
+      "config": {
+        "model": "claude-opus-5",
+        "effort": "low",
+        "rewrite_version": "v2",
+        "ruling_query_mode": "raw",
+        "system_version": 3,
+        "n_answers": 86
+      },
+      "config_axes": {
+        "model": {
+          "value": "claude-opus-5",
+          "mixed": false,
+          "breakdown": null
+        },
+        "system_version": {
+          "value": 3,
+          "mixed": false,
+          "breakdown": null
+        },
+        "effort": {
+          "value": "low",
+          "mixed": false,
+          "breakdown": null
+        },
+        "max_tokens": {
+          "value": 32768,
+          "mixed": false,
+          "breakdown": null
+        },
+        "ruling_query_mode": {
+          "value": "raw",
+          "mixed": false,
+          "breakdown": null
+        },
+        "layers_tool": {
+          "value": null,
+          "mixed": false,
+          "breakdown": null
+        },
+        "show_rewrite": {
+          "value": false,
+          "mixed": false,
+          "breakdown": null
+        },
+        "rewrite_version": {
+          "value": "v2",
+          "mixed": false,
+          "breakdown": null
+        },
+        "retrieval": {
+          "value": "on (mean 19.2 ids)",
+          "mixed": false,
+          "breakdown": null
+        }
+      },
+      "cost": {
+        "n_costed": 86,
+        "in_per_q": 4923.883720930233,
+        "out_per_q": 791.4302325581396,
+        "cache_read_per_q": 0.0,
+        "cache_write_per_q": 0.0,
+        "cost_per_q": 0.04440517441860465,
+        "priced_as": "claude-opus-5"
+      },
+      "generation": {
+        "file": "evals/answers/rules86_real.json",
+        "mtime": "2026-07-27T08:11-05:00",
+        "join": "content-match",
+        "recorded": true
+      },
+      "judging": {
+        "file": "evals/verdicts_rules86_real_votes3.json",
+        "mtime": "2026-07-27T05:00-05:00",
+        "judge_model": "openai/gpt-5-mini",
+        "judge_digest": "b54fbdb95565abf8",
+        "recorded": true
+      },
+      "human": null,
+      "provenance": {
+        "verdicts": "evals/verdicts_rules86_real_votes3.json",
+        "verdicts_mtime": "2026-07-27T05:00-05:00",
+        "answers": "evals/answers/rules86_real.json",
+        "answers_mtime": "2026-07-27T08:11-05:00",
+        "join": "content-match"
+      }
+    },
+    {
+      "arm": "rules86_placebo_votes3",
+      "qset": "69f1a390",
+      "kind": "pipeline",
+      "kind_why": "retrieval recorded and non-empty on all 86 rows (19.2 rule ids per question on average) — the product path",
+      "n": 86,
+      "accuracy_flat": 0.1511627906976744,
+      "accuracy_weighted": 0.1511627906976744,
+      "accuracy_auto": null,
+      "human_corrected": false,
+      "grader": null,
+      "by_level": {
+        "rules": {
+          "correct": 13.0,
+          "n": 86.0
+        }
+      },
+      "judge_model": "openai/gpt-5-mini",
+      "judge_digest": "b54fbdb95565abf8",
+      "config": {
+        "model": "claude-opus-5",
+        "effort": "low",
+        "rewrite_version": "v2",
+        "ruling_query_mode": "raw",
+        "system_version": 3,
+        "n_answers": 86
+      },
+      "config_axes": {
+        "model": {
+          "value": "claude-opus-5",
+          "mixed": false,
+          "breakdown": null
+        },
+        "system_version": {
+          "value": 3,
+          "mixed": false,
+          "breakdown": null
+        },
+        "effort": {
+          "value": "low",
+          "mixed": false,
+          "breakdown": null
+        },
+        "max_tokens": {
+          "value": 32768,
+          "mixed": false,
+          "breakdown": null
+        },
+        "ruling_query_mode": {
+          "value": "raw",
+          "mixed": false,
+          "breakdown": null
+        },
+        "layers_tool": {
+          "value": null,
+          "mixed": false,
+          "breakdown": null
+        },
+        "show_rewrite": {
+          "value": false,
+          "mixed": false,
+          "breakdown": null
+        },
+        "rewrite_version": {
+          "value": "v2",
+          "mixed": false,
+          "breakdown": null
+        },
+        "retrieval": {
+          "value": "on (mean 19.2 ids)",
+          "mixed": false,
+          "breakdown": null
+        }
+      },
+      "cost": {
+        "n_costed": 86,
+        "in_per_q": 4923.883720930233,
+        "out_per_q": 488.09302325581393,
+        "cache_read_per_q": 0.0,
+        "cache_write_per_q": 0.0,
+        "cost_per_q": 0.03682174418604651,
+        "priced_as": "claude-opus-5"
+      },
+      "generation": {
+        "file": "evals/answers/rules86_placebo.json",
+        "mtime": "2026-07-27T08:11-05:00",
+        "join": "content-match",
+        "recorded": true
+      },
+      "judging": {
+        "file": "evals/verdicts_rules86_placebo_votes3.json",
+        "mtime": "2026-07-27T05:00-05:00",
+        "judge_model": "openai/gpt-5-mini",
+        "judge_digest": "b54fbdb95565abf8",
+        "recorded": true
+      },
+      "human": null,
+      "provenance": {
+        "verdicts": "evals/verdicts_rules86_placebo_votes3.json",
+        "verdicts_mtime": "2026-07-27T05:00-05:00",
+        "answers": "evals/answers/rules86_placebo.json",
+        "answers_mtime": "2026-07-27T08:11-05:00",
+        "join": "content-match"
+      }
+    },
+    {
       "arm": "headline_full_votes3",
       "qset": "6c72d9cc",
-      "kind": "oracle",
-      "kind_why": "retrieval recorded and EMPTY on all 1409 rows — the model answered without retrieved rules, so this measures whether the answer is derivable at all, not what the pipeline scores",
+      "kind": "pipeline",
+      "kind_why": "retrieval recorded and non-empty on all 1409 rows (19.3 rule ids per question on average) — the product path",
       "n": 1409,
       "accuracy_flat": 0.8587650816181689,
       "accuracy_weighted": 0.8624954528919607,
@@ -2579,7 +2972,7 @@
           "breakdown": null
         },
         "retrieval": {
-          "value": "off (0 rows retrieved)",
+          "value": "on (mean 19.3 ids)",
           "mixed": false,
           "breakdown": null
         }
@@ -2595,7 +2988,7 @@
       },
       "generation": {
         "file": "evals/answers/headline_full.json",
-        "mtime": "2026-07-27T04:59-05:00",
+        "mtime": "2026-07-27T08:11-05:00",
         "join": "id-match",
         "recorded": true
       },
@@ -2611,7 +3004,7 @@
         "verdicts": "evals/verdicts_headline_full_votes3.json",
         "verdicts_mtime": "2026-07-27T05:49-05:00",
         "answers": "evals/answers/headline_full.json",
-        "answers_mtime": "2026-07-27T04:59-05:00",
+        "answers_mtime": "2026-07-27T08:11-05:00",
         "join": "id-match"
       }
     },
@@ -3539,8 +3932,6 @@
     "verdicts_gpt-5-mini_final.json: bare array, no summary",
     "verdicts_gpt-5-mini_manual.json: bare array, no summary",
     "verdicts_orgroup_onlyone_members.json: no summary.by_level_counts",
-    "verdicts_rules86_placebo_votes3.json: levels present in the verdicts but absent from the weight vector: ['rules']. Add them explicitly rather than defaulting to 1.0.",
-    "verdicts_rules86_real_votes3.json: levels present in the verdicts but absent from the weight vector: ['rules']. Add them explicitly rather than defaulting to 1.0.",
     "verdicts_sonnet-v2.auto.json: bare array, no summary",
     "verdicts_sonnet-v2_final.json: bare array, no summary",
     "verdicts_sonnet-v2_manual.json: bare array, no summary",
@@ -3615,7 +4006,8 @@
       "1": 1.0,
       "2": 1.0,
       "3": 1.0,
-      "Corner Case": 0.5
+      "Corner Case": 0.5,
+      "rules": 1.0
     },
     "ruled_by": "Jon, 2026-07-26"
   },
@@ -4258,6 +4650,88 @@
         "steps": [
           {
             "qset": "23aa5200",
+            "step": "h2h_easy_votes3",
+            "kind": "pipeline",
+            "kind_why": "retrieval recorded and non-empty on all 50 rows (19.2 rule ids per question on average) — the product path",
+            "kind_note": null,
+            "n": 50,
+            "run_at": "2026-07-26T08:20-05:00",
+            "run_at_source": "answers file mtime",
+            "config": {
+              "model": "claude-opus-5",
+              "effort": "low",
+              "rewrite_version": "v2",
+              "ruling_query_mode": "raw",
+              "system_version": 3
+            },
+            "config_recorded": true,
+            "heterogeneous_fields": [],
+            "flat": 0.92,
+            "weighted": 0.92,
+            "auto": null,
+            "cost_per_q": 0.05171381,
+            "in_per_q": 4204.22,
+            "out_per_q": 1185.56,
+            "n_reps": 1,
+            "rep_spread_pp": null,
+            "rep_churn": null,
+            "reps": [
+              {
+                "arm": "h2h_easy_votes3",
+                "answers": "evals/answers/h2h_opuslow_easy_r1.json",
+                "flat": 0.92,
+                "weighted": 0.92,
+                "auto": null,
+                "run_at": "2026-07-26T08:20-05:00",
+                "run_at_source": "answers file mtime",
+                "human_corrected": false,
+                "regrade_of": null,
+                "regrade_pp": null,
+                "cost_per_q": 0.05171381,
+                "in_per_q": 4204.22,
+                "out_per_q": 1185.56,
+                "join": "content-match"
+              }
+            ],
+            "judge_model": "openai/gpt-5-mini",
+            "judge_digest": "b54fbdb95565abf8",
+            "generation_runs": [
+              {
+                "file": "evals/answers/h2h_opuslow_easy_r1.json",
+                "mtime": "2026-07-26T08:20-05:00",
+                "join": "content-match",
+                "arm": "h2h_easy_votes3"
+              }
+            ],
+            "judging_runs": [
+              {
+                "file": "evals/verdicts_h2h_easy_votes3.json",
+                "mtime": "2026-07-27T00:51-05:00",
+                "judge_model": "openai/gpt-5-mini",
+                "judge_digest": "b54fbdb95565abf8",
+                "recorded": true,
+                "arm": "h2h_easy_votes3"
+              }
+            ],
+            "human_passes": [],
+            "by_level": {
+              "2": {
+                "correct": 19.0,
+                "n": 19.0,
+                "n_questions": 19.0,
+                "acc": 1.0
+              },
+              "1": {
+                "correct": 27.0,
+                "n": 31.0,
+                "n_questions": 31.0,
+                "acc": 0.8709677419354839
+              }
+            },
+            "delta": null
+          },
+          {
+            "qset": "23aa5200",
             "step": "h2h_opuslow_easy",
             "kind": "pipeline",
             "kind_why": "retrieval recorded and non-empty on all 50 rows (19.2 rule ids per question on average) — the product path",
@@ -4376,7 +4850,121 @@
                 "acc": 0.8387096774193549
               }
             },
-            "delta": null
+            "delta": {
+              "baseline": "h2h_easy_votes3",
+              "baseline_run_at": "2026-07-26T08:20-05:00",
+              "baseline_flat": 0.92,
+              "baseline_cost": 0.05171381,
+              "changed": [],
+              "changed_known": true,
+              "flat_pp": -3.0000000000000027,
+              "weighted_pp": -3.0000000000000027,
+              "cost_pct": -0.3521303110329803,
+              "cost_abs": -0.00018210000000000448,
+              "out_tok_pct": -0.6342994028138587,
+              "floor_pp": 6.000000000000005,
+              "beats_noise": false,
+              "commits": [],
+              "commits_total": 0
+            }
+          },
+          {
+            "qset": "23aa5200",
+            "step": "h2h_opuslow_easy_r1_votes3",
+            "kind": "pipeline",
+            "kind_why": "retrieval recorded and non-empty on all 50 rows (19.2 rule ids per question on average) — the product path",
+            "kind_note": null,
+            "n": 50,
+            "run_at": "2026-07-26T08:20-05:00",
+            "run_at_source": "answers file mtime",
+            "config": {
+              "model": "claude-opus-5",
+              "effort": "low",
+              "rewrite_version": "v2",
+              "ruling_query_mode": "raw",
+              "system_version": 3
+            },
+            "config_recorded": true,
+            "heterogeneous_fields": [],
+            "flat": 0.92,
+            "weighted": 0.92,
+            "auto": null,
+            "cost_per_q": 0.05171381,
+            "in_per_q": 4204.22,
+            "out_per_q": 1185.56,
+            "n_reps": 1,
+            "rep_spread_pp": null,
+            "rep_churn": null,
+            "reps": [
+              {
+                "arm": "h2h_opuslow_easy_r1_votes3",
+                "answers": "evals/answers/h2h_opuslow_easy_r1.json",
+                "flat": 0.92,
+                "weighted": 0.92,
+                "auto": null,
+                "run_at": "2026-07-26T08:20-05:00",
+                "run_at_source": "answers file mtime",
+                "human_corrected": false,
+                "regrade_of": null,
+                "regrade_pp": null,
+                "cost_per_q": 0.05171381,
+                "in_per_q": 4204.22,
+                "out_per_q": 1185.56,
+                "join": "content-match"
+              }
+            ],
+            "judge_model": "openai/gpt-5-mini",
+            "judge_digest": "b54fbdb95565abf8",
+            "generation_runs": [
+              {
+                "file": "evals/answers/h2h_opuslow_easy_r1.json",
+                "mtime": "2026-07-26T08:20-05:00",
+                "join": "content-match",
+                "arm": "h2h_opuslow_easy_r1_votes3"
+              }
+            ],
+            "judging_runs": [
+              {
+                "file": "evals/verdicts_h2h_opuslow_easy_r1_votes3.json",
+                "mtime": "2026-07-27T00:48-05:00",
+                "judge_model": "openai/gpt-5-mini",
+                "judge_digest": "b54fbdb95565abf8",
+                "recorded": true,
+                "arm": "h2h_opuslow_easy_r1_votes3"
+              }
+            ],
+            "human_passes": [],
+            "by_level": {
+              "2": {
+                "correct": 19.0,
+                "n": 19.0,
+                "n_questions": 19.0,
+                "acc": 1.0
+              },
+              "1": {
+                "correct": 27.0,
+                "n": 31.0,
+                "n_questions": 31.0,
+                "acc": 0.8709677419354839
+              }
+            },
+            "delta": {
+              "baseline": "h2h_opuslow_easy",
+              "baseline_run_at": "2026-07-26T08:20-05:00",
+              "baseline_flat": 0.89,
+              "baseline_cost": 0.051531709999999994,
+              "changed": [],
+              "changed_known": true,
+              "flat_pp": 3.0000000000000027,
+              "weighted_pp": 3.0000000000000027,
+              "cost_pct": 0.35337465028815174,
+              "cost_abs": 0.00018210000000000448,
+              "out_tok_pct": 0.6383484431768006,
+              "floor_pp": 6.000000000000005,
+              "beats_noise": false,
+              "commits": [],
+              "commits_total": 0
+            }
           },
           {
             "qset": "23aa5200",
@@ -4500,10 +5088,10 @@
               }
             },
             "delta": {
-              "baseline": "h2h_opuslow_easy",
+              "baseline": "h2h_opuslow_easy_r1_votes3",
               "baseline_run_at": "2026-07-26T08:20-05:00",
-              "baseline_flat": 0.89,
-              "baseline_cost": 0.051531709999999994,
+              "baseline_flat": 0.92,
+              "baseline_cost": 0.05171381,
               "changed": [
                 {
                   "field": "model",
@@ -4519,11 +5107,11 @@
                 }
               ],
               "changed_known": true,
-              "flat_pp": -13.0,
-              "weighted_pp": -13.0,
-              "cost_pct": 37.512182304837175,
-              "cost_abs": 0.01933066900000001,
-              "out_tok_pct": 219.38643849105293,
+              "flat_pp": -16.000000000000004,
+              "weighted_pp": -16.000000000000004,
+              "cost_pct": 37.027960229578916,
+              "cost_abs": 0.019148569000000004,
+              "out_tok_pct": 217.36057221903576,
               "floor_pp": 6.000000000000005,
               "beats_noise": true,
               "commits": [
@@ -4545,170 +5133,6 @@
               ],
               "commits_total": 3
             }
-          },
-          {
-            "qset": "23aa5200",
-            "step": "h2h_opuslow_easy_r1_votes3",
-            "kind": "unknown",
-            "kind_why": "no answers file could be joined to this verdict file, so nothing records how the arm ran",
-            "kind_note": null,
-            "n": 50,
-            "run_at": "2026-07-27T00:48-05:00",
-            "run_at_source": "verdict file mtime (no answers file joined)",
-            "config": {
-              "model": null,
-              "effort": null,
-              "rewrite_version": null,
-              "ruling_query_mode": null,
-              "system_version": null
-            },
-            "config_recorded": false,
-            "heterogeneous_fields": [],
-            "flat": 0.92,
-            "weighted": 0.92,
-            "auto": null,
-            "cost_per_q": null,
-            "in_per_q": null,
-            "out_per_q": null,
-            "n_reps": 1,
-            "rep_spread_pp": null,
-            "rep_churn": null,
-            "reps": [
-              {
-                "arm": "h2h_opuslow_easy_r1_votes3",
-                "answers": null,
-                "flat": 0.92,
-                "weighted": 0.92,
-                "auto": null,
-                "run_at": "2026-07-27T00:48-05:00",
-                "run_at_source": "verdict file mtime (no answers file joined)",
-                "human_corrected": false,
-                "regrade_of": null,
-                "regrade_pp": null,
-                "cost_per_q": null,
-                "in_per_q": null,
-                "out_per_q": null,
-                "join": "ambiguous (4 files share these ids)"
-              }
-            ],
-            "judge_model": "openai/gpt-5-mini",
-            "judge_digest": "b54fbdb95565abf8",
-            "generation_runs": [
-              {
-                "file": null,
-                "mtime": null,
-                "join": "ambiguous (4 files share these ids)",
-                "arm": "h2h_opuslow_easy_r1_votes3"
-              }
-            ],
-            "judging_runs": [
-              {
-                "file": "evals/verdicts_h2h_opuslow_easy_r1_votes3.json",
-                "mtime": "2026-07-27T00:48-05:00",
-                "judge_model": "openai/gpt-5-mini",
-                "judge_digest": "b54fbdb95565abf8",
-                "recorded": true,
-                "arm": "h2h_opuslow_easy_r1_votes3"
-              }
-            ],
-            "human_passes": [],
-            "by_level": {
-              "2": {
-                "correct": 19.0,
-                "n": 19.0,
-                "n_questions": 19.0,
-                "acc": 1.0
-              },
-              "1": {
-                "correct": 27.0,
-                "n": 31.0,
-                "n_questions": 31.0,
-                "acc": 0.8709677419354839
-              }
-            },
-            "delta": null
-          },
-          {
-            "qset": "23aa5200",
-            "step": "h2h_easy_votes3",
-            "kind": "unknown",
-            "kind_why": "no answers file could be joined to this verdict file, so nothing records how the arm ran",
-            "kind_note": null,
-            "n": 50,
-            "run_at": "2026-07-27T00:51-05:00",
-            "run_at_source": "verdict file mtime (no answers file joined)",
-            "config": {
-              "model": null,
-              "effort": null,
-              "rewrite_version": null,
-              "ruling_query_mode": null,
-              "system_version": null
-            },
-            "config_recorded": false,
-            "heterogeneous_fields": [],
-            "flat": 0.92,
-            "weighted": 0.92,
-            "auto": null,
-            "cost_per_q": null,
-            "in_per_q": null,
-            "out_per_q": null,
-            "n_reps": 1,
-            "rep_spread_pp": null,
-            "rep_churn": null,
-            "reps": [
-              {
-                "arm": "h2h_easy_votes3",
-                "answers": null,
-                "flat": 0.92,
-                "weighted": 0.92,
-                "auto": null,
-                "run_at": "2026-07-27T00:51-05:00",
-                "run_at_source": "verdict file mtime (no answers file joined)",
-                "human_corrected": false,
-                "regrade_of": null,
-                "regrade_pp": null,
-                "cost_per_q": null,
-                "in_per_q": null,
-                "out_per_q": null,
-                "join": "ambiguous (4 files share these ids)"
-              }
-            ],
-            "judge_model": "openai/gpt-5-mini",
-            "judge_digest": "b54fbdb95565abf8",
-            "generation_runs": [
-              {
-                "file": null,
-                "mtime": null,
-                "join": "ambiguous (4 files share these ids)",
-                "arm": "h2h_easy_votes3"
-              }
-            ],
-            "judging_runs": [
-              {
-                "file": "evals/verdicts_h2h_easy_votes3.json",
-                "mtime": "2026-07-27T00:51-05:00",
-                "judge_model": "openai/gpt-5-mini",
-                "judge_digest": "b54fbdb95565abf8",
-                "recorded": true,
-                "arm": "h2h_easy_votes3"
-              }
-            ],
-            "human_passes": [],
-            "by_level": {
-              "2": {
-                "correct": 19.0,
-                "n": 19.0,
-                "n_questions": 19.0,
-                "acc": 1.0
-              },
-              "1": {
-                "correct": 27.0,
-                "n": 31.0,
-                "n_questions": 31.0,
-                "acc": 0.8709677419354839
-              }
-            },
-            "delta": null
           }
         ]
       },
@@ -4862,7 +5286,7 @@
                 "cost_per_q": null,
                 "in_per_q": null,
                 "out_per_q": null,
-                "join": "ambiguous (2 files share these ids)"
+                "join": "ambiguous (2 files share these ids; none matches the judged answer text on every question)"
               }
             ],
             "judge_model": null,
@@ -4871,7 +5295,7 @@
               {
                 "file": null,
                 "mtime": null,
-                "join": "ambiguous (2 files share these ids)",
+                "join": "ambiguous (2 files share these ids; none matches the judged answer text on every question)",
                 "arm": "rulesguru_gpt-5-mini"
               }
             ],
@@ -6323,55 +6747,55 @@
           {
             "qset": "5cedbcf3",
             "step": "h2h_opuslow_hard_r1_votes3",
-            "kind": "unknown",
-            "kind_why": "no answers file could be joined to this verdict file, so nothing records how the arm ran",
+            "kind": "pipeline",
+            "kind_why": "retrieval recorded and non-empty on all 54 rows (19.6 rule ids per question on average) — the product path",
             "kind_note": null,
             "n": 54,
-            "run_at": "2026-07-27T00:52-05:00",
-            "run_at_source": "verdict file mtime (no answers file joined)",
+            "run_at": "2026-07-26T01:40-05:00",
+            "run_at_source": "answers file mtime",
             "config": {
-              "model": null,
-              "effort": null,
-              "rewrite_version": null,
-              "ruling_query_mode": null,
-              "system_version": null
+              "model": "claude-opus-5",
+              "effort": "low",
+              "rewrite_version": "v2",
+              "ruling_query_mode": "raw",
+              "system_version": 3
             },
-            "config_recorded": false,
+            "config_recorded": true,
             "heterogeneous_fields": [],
             "flat": 0.7222222222222222,
             "weighted": 0.7238095238095238,
             "auto": null,
-            "cost_per_q": null,
-            "in_per_q": null,
-            "out_per_q": null,
+            "cost_per_q": 0.06424941666666667,
+            "in_per_q": 6408.888888888889,
+            "out_per_q": 1196.3148148148148,
             "n_reps": 1,
             "rep_spread_pp": null,
             "rep_churn": null,
             "reps": [
               {
                 "arm": "h2h_opuslow_hard_r1_votes3",
-                "answers": null,
+                "answers": "evals/answers/h2h_opuslow_hard_r1.json",
                 "flat": 0.7222222222222222,
                 "weighted": 0.7238095238095238,
                 "auto": null,
-                "run_at": "2026-07-27T00:52-05:00",
-                "run_at_source": "verdict file mtime (no answers file joined)",
+                "run_at": "2026-07-26T01:40-05:00",
+                "run_at_source": "answers file mtime",
                 "human_corrected": false,
                 "regrade_of": null,
                 "regrade_pp": null,
-                "cost_per_q": null,
-                "in_per_q": null,
-                "out_per_q": null,
-                "join": "ambiguous (4 files share these ids)"
+                "cost_per_q": 0.06424941666666667,
+                "in_per_q": 6408.888888888889,
+                "out_per_q": 1196.3148148148148,
+                "join": "content-match"
               }
             ],
             "judge_model": "openai/gpt-5-mini",
             "judge_digest": "b54fbdb95565abf8",
             "generation_runs": [
               {
-                "file": null,
-                "mtime": null,
-                "join": "ambiguous (4 files share these ids)",
+                "file": "evals/answers/h2h_opuslow_hard_r1.json",
+                "mtime": "2026-07-26T01:40-05:00",
+                "join": "content-match",
                 "arm": "h2h_opuslow_hard_r1_votes3"
               }
             ],
@@ -6412,7 +6836,23 @@
                 "acc": 0.6666666666666666
               }
             },
-            "delta": null
+            "delta": {
+              "baseline": "h2h_opuslow_hard",
+              "baseline_run_at": "2026-07-26T01:40-05:00",
+              "baseline_flat": 0.7407407407407407,
+              "baseline_cost": 0.06445404629629631,
+              "changed": [],
+              "changed_known": true,
+              "flat_pp": -1.851851851851849,
+              "weighted_pp": -2.3809523809523836,
+              "cost_pct": -0.3174814327233269,
+              "cost_abs": -0.00020462962962963793,
+              "out_tok_pct": -1.2209573467686994,
+              "floor_pp": 3.703703703703709,
+              "beats_noise": false,
+              "commits": [],
+              "commits_total": 0
+            }
           }
         ]
       },
@@ -6588,6 +7028,184 @@
               "out_tok_pct": 0.0,
               "floor_pp": 1.0,
               "beats_noise": false,
+              "commits": [],
+              "commits_total": 0
+            }
+          }
+        ]
+      },
+      {
+        "qset": "69f1a390",
+        "n": 86,
+        "n_steps": 2,
+        "floor_pp": 1.1627906976744187,
+        "floor_source": "judge nondeterminism only (~1 verdict flip per 100 rows, and one row on this set is 1.2 pp) — no repeated arm here",
+        "judge_floor_pp": 1.1627906976744187,
+        "steps": [
+          {
+            "qset": "69f1a390",
+            "step": "rules86_placebo_votes3",
+            "kind": "pipeline",
+            "kind_why": "retrieval recorded and non-empty on all 86 rows (19.2 rule ids per question on average) — the product path",
+            "kind_note": null,
+            "n": 86,
+            "run_at": "2026-07-27T08:11-05:00",
+            "run_at_source": "answers file mtime",
+            "config": {
+              "model": "claude-opus-5",
+              "effort": "low",
+              "rewrite_version": "v2",
+              "ruling_query_mode": "raw",
+              "system_version": 3
+            },
+            "config_recorded": true,
+            "heterogeneous_fields": [],
+            "flat": 0.1511627906976744,
+            "weighted": 0.1511627906976744,
+            "auto": null,
+            "cost_per_q": 0.03682174418604651,
+            "in_per_q": 4923.883720930233,
+            "out_per_q": 488.09302325581393,
+            "n_reps": 1,
+            "rep_spread_pp": null,
+            "rep_churn": null,
+            "reps": [
+              {
+                "arm": "rules86_placebo_votes3",
+                "answers": "evals/answers/rules86_placebo.json",
+                "flat": 0.1511627906976744,
+                "weighted": 0.1511627906976744,
+                "auto": null,
+                "run_at": "2026-07-27T08:11-05:00",
+                "run_at_source": "answers file mtime",
+                "human_corrected": false,
+                "regrade_of": null,
+                "regrade_pp": null,
+                "cost_per_q": 0.03682174418604651,
+                "in_per_q": 4923.883720930233,
+                "out_per_q": 488.09302325581393,
+                "join": "content-match"
+              }
+            ],
+            "judge_model": "openai/gpt-5-mini",
+            "judge_digest": "b54fbdb95565abf8",
+            "generation_runs": [
+              {
+                "file": "evals/answers/rules86_placebo.json",
+                "mtime": "2026-07-27T08:11-05:00",
+                "join": "content-match",
+                "arm": "rules86_placebo_votes3"
+              }
+            ],
+            "judging_runs": [
+              {
+                "file": "evals/verdicts_rules86_placebo_votes3.json",
+                "mtime": "2026-07-27T05:00-05:00",
+                "judge_model": "openai/gpt-5-mini",
+                "judge_digest": "b54fbdb95565abf8",
+                "recorded": true,
+                "arm": "rules86_placebo_votes3"
+              }
+            ],
+            "human_passes": [],
+            "by_level": {
+              "rules": {
+                "correct": 13.0,
+                "n": 86.0,
+                "n_questions": 86.0,
+                "acc": 0.1511627906976744
+              }
+            },
+            "delta": null
+          },
+          {
+            "qset": "69f1a390",
+            "step": "rules86_real_votes3",
+            "kind": "pipeline",
+            "kind_why": "retrieval recorded and non-empty on all 86 rows (19.2 rule ids per question on average) — the product path",
+            "kind_note": null,
+            "n": 86,
+            "run_at": "2026-07-27T08:11-05:00",
+            "run_at_source": "answers file mtime",
+            "config": {
+              "model": "claude-opus-5",
+              "effort": "low",
+              "rewrite_version": "v2",
+              "ruling_query_mode": "raw",
+              "system_version": 3
+            },
+            "config_recorded": true,
+            "heterogeneous_fields": [],
+            "flat": 0.9883720930232558,
+            "weighted": 0.9883720930232558,
+            "auto": null,
+            "cost_per_q": 0.04440517441860465,
+            "in_per_q": 4923.883720930233,
+            "out_per_q": 791.4302325581396,
+            "n_reps": 1,
+            "rep_spread_pp": null,
+            "rep_churn": null,
+            "reps": [
+              {
+                "arm": "rules86_real_votes3",
+                "answers": "evals/answers/rules86_real.json",
+                "flat": 0.9883720930232558,
+                "weighted": 0.9883720930232558,
+                "auto": null,
+                "run_at": "2026-07-27T08:11-05:00",
+                "run_at_source": "answers file mtime",
+                "human_corrected": false,
+                "regrade_of": null,
+                "regrade_pp": null,
+                "cost_per_q": 0.04440517441860465,
+                "in_per_q": 4923.883720930233,
+                "out_per_q": 791.4302325581396,
+                "join": "content-match"
+              }
+            ],
+            "judge_model": "openai/gpt-5-mini",
+            "judge_digest": "b54fbdb95565abf8",
+            "generation_runs": [
+              {
+                "file": "evals/answers/rules86_real.json",
+                "mtime": "2026-07-27T08:11-05:00",
+                "join": "content-match",
+                "arm": "rules86_real_votes3"
+              }
+            ],
+            "judging_runs": [
+              {
+                "file": "evals/verdicts_rules86_real_votes3.json",
+                "mtime": "2026-07-27T05:00-05:00",
+                "judge_model": "openai/gpt-5-mini",
+                "judge_digest": "b54fbdb95565abf8",
+                "recorded": true,
+                "arm": "rules86_real_votes3"
+              }
+            ],
+            "human_passes": [],
+            "by_level": {
+              "rules": {
+                "correct": 85.0,
+                "n": 86.0,
+                "n_questions": 86.0,
+                "acc": 0.9883720930232558
+              }
+            },
+            "delta": {
+              "baseline": "rules86_placebo_votes3",
+              "baseline_run_at": "2026-07-27T08:11-05:00",
+              "baseline_flat": 0.1511627906976744,
+              "baseline_cost": 0.03682174418604651,
+              "changed": [],
+              "changed_known": true,
+              "flat_pp": 83.72093023255813,
+              "weighted_pp": 83.72093023255813,
+              "cost_pct": 20.59497832107546,
+              "cost_abs": 0.0075834302325581415,
+              "out_tok_pct": 62.14741757194589,
+              "floor_pp": 1.1627906976744187,
+              "beats_noise": true,
               "commits": [],
               "commits_total": 0
             }
@@ -6791,11 +7409,11 @@
           {
             "qset": "6c72d9cc",
             "step": "headline_full_votes3",
-            "kind": "oracle",
-            "kind_why": "retrieval recorded and EMPTY on all 1409 rows — the model answered without retrieved rules, so this measures whether the answer is derivable at all, not what the pipeline scores",
+            "kind": "pipeline",
+            "kind_why": "retrieval recorded and non-empty on all 1409 rows (19.3 rule ids per question on average) — the product path",
             "kind_note": null,
             "n": 1409,
-            "run_at": "2026-07-27T04:59-05:00",
+            "run_at": "2026-07-27T08:11-05:00",
             "run_at_source": "answers file mtime",
             "config": {
               "model": "claude-opus-5",
@@ -6822,7 +7440,7 @@
                 "flat": 0.8587650816181689,
                 "weighted": 0.8624954528919607,
                 "auto": null,
-                "run_at": "2026-07-27T04:59-05:00",
+                "run_at": "2026-07-27T08:11-05:00",
                 "run_at_source": "answers file mtime",
                 "human_corrected": false,
                 "regrade_of": null,
@@ -6838,7 +7456,7 @@
             "generation_runs": [
               {
                 "file": "evals/answers/headline_full.json",
-                "mtime": "2026-07-27T04:59-05:00",
+                "mtime": "2026-07-27T08:11-05:00",
                 "join": "id-match",
                 "arm": "headline_full_votes3"
               }
@@ -7375,7 +7993,7 @@
         ]
       }
     ],
-    "commits_indexed": 314,
+    "commits_indexed": 315,
     "notes": {
       "baseline": "Each delta compares a step to the previous PIPELINE step on the same question-set fingerprint, ordered by run time. Nothing is compared across fingerprints.",
       "ordering": "Run time is the answers file's mtime where one is joined, else the verdict file's. Neither is a recorded run timestamp — the answers files do not carry one.",
@@ -7391,6 +8009,179 @@
         "n": 50,
         "floor_pp": 6.000000000000005,
         "pairs": [
+          {
+            "a": "h2h_easy_votes3",
+            "b": "h2h_opuslow_easy",
+            "kind": "pipeline",
+            "n": 50,
+            "differs": [],
+            "controlled": false,
+            "a_flat": 0.92,
+            "b_flat": 0.89,
+            "flat_pp": 3.0000000000000027,
+            "a_weighted": 0.92,
+            "b_weighted": 0.89,
+            "weighted_pp": 3.0000000000000027,
+            "a_cost": 0.05171381,
+            "b_cost": 0.051531709999999994,
+            "cost_pct": 0.35337465028815174,
+            "a_in": 4204.22,
+            "b_in": 4205.4,
+            "a_out": 1185.56,
+            "b_out": 1178.04,
+            "paired": {
+              "n_shared": 50,
+              "both": 46,
+              "a_only": 0,
+              "b_only": 0,
+              "neither": 4,
+              "a_run": "h2h_easy_votes3",
+              "b_run": "h2h_opuslow_easy_r1",
+              "a_judging": "evals/verdicts_h2h_easy_votes3.json",
+              "b_judging": "evals/verdicts_h2h_opuslow_easy_r1.json"
+            },
+            "judge": {
+              "level": "warn",
+              "same_judge": true,
+              "n_judging_runs": 3,
+              "text": "same judge and prompt digest, but scored in 3 separate judging runs. The judge is nondeterministic (~1 verdict flip per 100 rows), so part of this gap is the judge, not the models"
+            },
+            "floor_pp": 6.000000000000005,
+            "beats_noise": false
+          },
+          {
+            "a": "h2h_easy_votes3",
+            "b": "h2h_opuslow_easy_r1_votes3",
+            "kind": "pipeline",
+            "n": 50,
+            "differs": [],
+            "controlled": false,
+            "a_flat": 0.92,
+            "b_flat": 0.92,
+            "flat_pp": 0.0,
+            "a_weighted": 0.92,
+            "b_weighted": 0.92,
+            "weighted_pp": 0.0,
+            "a_cost": 0.05171381,
+            "b_cost": 0.05171381,
+            "cost_pct": 0.0,
+            "a_in": 4204.22,
+            "b_in": 4204.22,
+            "a_out": 1185.56,
+            "b_out": 1185.56,
+            "paired": {
+              "n_shared": 50,
+              "both": 46,
+              "a_only": 0,
+              "b_only": 0,
+              "neither": 4,
+              "a_run": "h2h_easy_votes3",
+              "b_run": "h2h_opuslow_easy_r1_votes3",
+              "a_judging": "evals/verdicts_h2h_easy_votes3.json",
+              "b_judging": "evals/verdicts_h2h_opuslow_easy_r1_votes3.json"
+            },
+            "judge": {
+              "level": "warn",
+              "same_judge": true,
+              "n_judging_runs": 2,
+              "text": "same judge and prompt digest, but scored in 2 separate judging runs. The judge is nondeterministic (~1 verdict flip per 100 rows), so part of this gap is the judge, not the models"
+            },
+            "floor_pp": 6.000000000000005,
+            "beats_noise": false
+          },
+          {
+            "a": "h2h_easy_votes3",
+            "b": "h2h_sonnet_easy",
+            "kind": "pipeline",
+            "n": 50,
+            "differs": [
+              {
+                "field": "model",
+                "label": "model",
+                "a": "claude-opus-5",
+                "b": "claude-sonnet-5"
+              },
+              {
+                "field": "effort",
+                "label": "effort",
+                "a": "low",
+                "b": null
+              }
+            ],
+            "controlled": false,
+            "a_flat": 0.92,
+            "b_flat": 0.76,
+            "flat_pp": 16.000000000000004,
+            "a_weighted": 0.92,
+            "b_weighted": 0.76,
+            "weighted_pp": 16.000000000000004,
+            "a_cost": 0.05171381,
+            "b_cost": 0.070862379,
+            "cost_pct": -27.02219325715836,
+            "a_in": 4204.22,
+            "b_in": 4549.92,
+            "a_out": 1185.56,
+            "b_out": 3762.5,
+            "paired": {
+              "n_shared": 50,
+              "both": 38,
+              "a_only": 8,
+              "b_only": 1,
+              "neither": 3,
+              "a_run": "h2h_easy_votes3",
+              "b_run": "h2h_sonnet_easy_r1",
+              "a_judging": "evals/verdicts_h2h_easy_votes3.json",
+              "b_judging": "evals/verdicts_h2h_sonnet_easy_r1.json"
+            },
+            "judge": {
+              "level": "warn",
+              "same_judge": true,
+              "n_judging_runs": 3,
+              "text": "same judge and prompt digest, but scored in 3 separate judging runs. The judge is nondeterministic (~1 verdict flip per 100 rows), so part of this gap is the judge, not the models"
+            },
+            "floor_pp": 6.000000000000005,
+            "beats_noise": true
+          },
+          {
+            "a": "h2h_opuslow_easy",
+            "b": "h2h_opuslow_easy_r1_votes3",
+            "kind": "pipeline",
+            "n": 50,
+            "differs": [],
+            "controlled": false,
+            "a_flat": 0.89,
+            "b_flat": 0.92,
+            "flat_pp": -3.0000000000000027,
+            "a_weighted": 0.89,
+            "b_weighted": 0.92,
+            "weighted_pp": -3.0000000000000027,
+            "a_cost": 0.051531709999999994,
+            "b_cost": 0.05171381,
+            "cost_pct": -0.3521303110329803,
+            "a_in": 4205.4,
+            "b_in": 4204.22,
+            "a_out": 1178.04,
+            "b_out": 1185.56,
+            "paired": {
+              "n_shared": 50,
+              "both": 46,
+              "a_only": 0,
+              "b_only": 0,
+              "neither": 4,
+              "a_run": "h2h_opuslow_easy_r1",
+              "b_run": "h2h_opuslow_easy_r1_votes3",
+              "a_judging": "evals/verdicts_h2h_opuslow_easy_r1.json",
+              "b_judging": "evals/verdicts_h2h_opuslow_easy_r1_votes3.json"
+            },
+            "judge": {
+              "level": "warn",
+              "same_judge": true,
+              "n_judging_runs": 3,
+              "text": "same judge and prompt digest, but scored in 3 separate judging runs. The judge is nondeterministic (~1 verdict flip per 100 rows), so part of this gap is the judge, not the models"
+            },
+            "floor_pp": 6.000000000000005,
+            "beats_noise": false
+          },
           {
             "a": "h2h_opuslow_easy",
             "b": "h2h_sonnet_easy",
@@ -7440,6 +8231,59 @@
               "same_judge": true,
               "n_judging_runs": 4,
               "text": "same judge and prompt digest, but scored in 4 separate judging runs. The judge is nondeterministic (~1 verdict flip per 100 rows), so part of this gap is the judge, not the models"
+            },
+            "floor_pp": 6.000000000000005,
+            "beats_noise": true
+          },
+          {
+            "a": "h2h_opuslow_easy_r1_votes3",
+            "b": "h2h_sonnet_easy",
+            "kind": "pipeline",
+            "n": 50,
+            "differs": [
+              {
+                "field": "model",
+                "label": "model",
+                "a": "claude-opus-5",
+                "b": "claude-sonnet-5"
+              },
+              {
+                "field": "effort",
+                "label": "effort",
+                "a": "low",
+                "b": null
+              }
+            ],
+            "controlled": false,
+            "a_flat": 0.92,
+            "b_flat": 0.76,
+            "flat_pp": 16.000000000000004,
+            "a_weighted": 0.92,
+            "b_weighted": 0.76,
+            "weighted_pp": 16.000000000000004,
+            "a_cost": 0.05171381,
+            "b_cost": 0.070862379,
+            "cost_pct": -27.02219325715836,
+            "a_in": 4204.22,
+            "b_in": 4549.92,
+            "a_out": 1185.56,
+            "b_out": 3762.5,
+            "paired": {
+              "n_shared": 50,
+              "both": 38,
+              "a_only": 8,
+              "b_only": 1,
+              "neither": 3,
+              "a_run": "h2h_opuslow_easy_r1_votes3",
+              "b_run": "h2h_sonnet_easy_r1",
+              "a_judging": "evals/verdicts_h2h_opuslow_easy_r1_votes3.json",
+              "b_judging": "evals/verdicts_h2h_sonnet_easy_r1.json"
+            },
+            "judge": {
+              "level": "warn",
+              "same_judge": true,
+              "n_judging_runs": 3,
+              "text": "same judge and prompt digest, but scored in 3 separate judging runs. The judge is nondeterministic (~1 verdict flip per 100 rows), so part of this gap is the judge, not the models"
             },
             "floor_pp": 6.000000000000005,
             "beats_noise": true
@@ -7652,6 +8496,98 @@
             },
             "floor_pp": 3.703703703703709,
             "beats_noise": true
+          },
+          {
+            "a": "layers_slice0_base_layers",
+            "b": "h2h_opuslow_hard_r1_votes3",
+            "kind": "pipeline",
+            "n": 54,
+            "differs": [
+              {
+                "field": "model",
+                "label": "model",
+                "a": "claude-sonnet-5",
+                "b": "claude-opus-5"
+              },
+              {
+                "field": "effort",
+                "label": "effort",
+                "a": null,
+                "b": "low"
+              }
+            ],
+            "controlled": false,
+            "a_flat": 0.6481481481481481,
+            "b_flat": 0.7222222222222222,
+            "flat_pp": -7.4074074074074066,
+            "a_weighted": 0.6619047619047619,
+            "b_weighted": 0.7238095238095238,
+            "weighted_pp": -6.190476190476191,
+            "a_cost": 0.12977392400419285,
+            "b_cost": 0.06424941666666667,
+            "cost_pct": 101.98459493799739,
+            "a_in": 7000.500873515024,
+            "b_in": 6408.888888888889,
+            "a_out": 7251.494758909854,
+            "b_out": 1196.3148148148148,
+            "paired": {
+              "n_shared": 54,
+              "both": 32,
+              "a_only": 4,
+              "b_only": 7,
+              "neither": 11,
+              "a_run": "layers_slice0_base_layers_r1",
+              "b_run": "h2h_opuslow_hard_r1_votes3",
+              "a_judging": "evals/layers_slice0_verdicts_base_layers_r1.json",
+              "b_judging": "evals/verdicts_h2h_opuslow_hard_r1_votes3.json"
+            },
+            "judge": {
+              "level": "crit",
+              "text": "no judging run is recorded for layers_slice0_base_layers — its verdict file names no judge model or prompt digest, so its accuracy is not reproducible and this gap cannot be attributed",
+              "same_judge": false
+            },
+            "floor_pp": 3.703703703703709,
+            "beats_noise": true
+          },
+          {
+            "a": "h2h_opuslow_hard",
+            "b": "h2h_opuslow_hard_r1_votes3",
+            "kind": "pipeline",
+            "n": 54,
+            "differs": [],
+            "controlled": false,
+            "a_flat": 0.7407407407407407,
+            "b_flat": 0.7222222222222222,
+            "flat_pp": 1.851851851851849,
+            "a_weighted": 0.7476190476190476,
+            "b_weighted": 0.7238095238095238,
+            "weighted_pp": 2.3809523809523836,
+            "a_cost": 0.06445404629629631,
+            "b_cost": 0.06424941666666667,
+            "cost_pct": 0.31849258755340903,
+            "a_in": 6375.87962962963,
+            "b_in": 6408.888888888889,
+            "a_out": 1211.1018518518517,
+            "b_out": 1196.3148148148148,
+            "paired": {
+              "n_shared": 54,
+              "both": 39,
+              "a_only": 2,
+              "b_only": 0,
+              "neither": 13,
+              "a_run": "h2h_opuslow_hard_r1",
+              "b_run": "h2h_opuslow_hard_r1_votes3",
+              "a_judging": "evals/verdicts_h2h_opuslow_hard_r1.json",
+              "b_judging": "evals/verdicts_h2h_opuslow_hard_r1_votes3.json"
+            },
+            "judge": {
+              "level": "warn",
+              "same_judge": true,
+              "n_judging_runs": 3,
+              "text": "same judge and prompt digest, but scored in 3 separate judging runs. The judge is nondeterministic (~1 verdict flip per 100 rows), so part of this gap is the judge, not the models"
+            },
+            "floor_pp": 3.703703703703709,
+            "beats_noise": false
           }
         ],
         "headroom": null
@@ -7700,6 +8636,54 @@
             },
             "floor_pp": 1.0,
             "beats_noise": false
+          }
+        ],
+        "headroom": null
+      },
+      {
+        "qset": "69f1a390",
+        "n": 86,
+        "floor_pp": 1.1627906976744187,
+        "pairs": [
+          {
+            "a": "rules86_placebo_votes3",
+            "b": "rules86_real_votes3",
+            "kind": "pipeline",
+            "n": 86,
+            "differs": [],
+            "controlled": false,
+            "a_flat": 0.1511627906976744,
+            "b_flat": 0.9883720930232558,
+            "flat_pp": -83.72093023255813,
+            "a_weighted": 0.1511627906976744,
+            "b_weighted": 0.9883720930232558,
+            "weighted_pp": -83.72093023255813,
+            "a_cost": 0.03682174418604651,
+            "b_cost": 0.04440517441860465,
+            "cost_pct": -17.07780755699695,
+            "a_in": 4923.883720930233,
+            "b_in": 4923.883720930233,
+            "a_out": 488.09302325581393,
+            "b_out": 791.4302325581396,
+            "paired": {
+              "n_shared": 86,
+              "both": 13,
+              "a_only": 0,
+              "b_only": 72,
+              "neither": 1,
+              "a_run": "rules86_placebo_votes3",
+              "b_run": "rules86_real_votes3",
+              "a_judging": "evals/verdicts_rules86_placebo_votes3.json",
+              "b_judging": "evals/verdicts_rules86_real_votes3.json"
+            },
+            "judge": {
+              "level": "warn",
+              "same_judge": true,
+              "n_judging_runs": 2,
+              "text": "same judge and prompt digest, but scored in 2 separate judging runs. The judge is nondeterministic (~1 verdict flip per 100 rows), so part of this gap is the judge, not the models"
+            },
+            "floor_pp": 1.1627906976744187,
+            "beats_noise": true
           }
         ],
         "headroom": null
@@ -7760,6 +8744,17 @@
         "n": 50,
         "points": [
           {
+            "step": "h2h_easy_votes3",
+            "kind": "pipeline",
+            "flat": 0.92,
+            "weighted": 0.92,
+            "cost": 0.05171381,
+            "model": "claude-opus-5",
+            "effort": "low",
+            "full_run": 72.86475829,
+            "dominated_by": null
+          },
+          {
             "step": "h2h_opuslow_easy",
             "kind": "pipeline",
             "flat": 0.89,
@@ -7771,6 +8766,17 @@
             "dominated_by": null
           },
           {
+            "step": "h2h_opuslow_easy_r1_votes3",
+            "kind": "pipeline",
+            "flat": 0.92,
+            "weighted": 0.92,
+            "cost": 0.05171381,
+            "model": "claude-opus-5",
+            "effort": "low",
+            "full_run": 72.86475829,
+            "dominated_by": null
+          },
+          {
             "step": "h2h_sonnet_easy",
             "kind": "pipeline",
             "flat": 0.76,
@@ -7779,23 +8785,10 @@
             "model": "claude-sonnet-5",
             "effort": null,
             "full_run": 99.845092011,
-            "dominated_by": "h2h_opuslow_easy"
+            "dominated_by": "h2h_easy_votes3"
           }
         ],
-        "unpriced": [
-          {
-            "step": "h2h_opuslow_easy_r1_votes3",
-            "kind": "unknown",
-            "flat": 0.92,
-            "why": "ambiguous (4 files share these ids)"
-          },
-          {
-            "step": "h2h_easy_votes3",
-            "kind": "unknown",
-            "flat": 0.92,
-            "why": "ambiguous (4 files share these ids)"
-          }
-        ]
+        "unpriced": []
       },
       {
         "qset": "0b355419",
@@ -7824,7 +8817,7 @@
             "step": "rulesguru_gpt-5-mini",
             "kind": "unknown",
             "flat": 0.5733333333333334,
-            "why": "ambiguous (2 files share these ids)"
+            "why": "ambiguous (2 files share these ids; none matches the judged answer text on every question)"
           }
         ]
       },
@@ -7943,16 +8936,20 @@
             "effort": "low",
             "full_run": 90.8157512314815,
             "dominated_by": null
-          }
-        ],
-        "unpriced": [
+          },
           {
             "step": "h2h_opuslow_hard_r1_votes3",
-            "kind": "unknown",
+            "kind": "pipeline",
             "flat": 0.7222222222222222,
-            "why": "ambiguous (4 files share these ids)"
+            "weighted": 0.7238095238095238,
+            "cost": 0.06424941666666667,
+            "model": "claude-opus-5",
+            "effort": "low",
+            "full_run": 90.52742808333333,
+            "dominated_by": null
           }
-        ]
+        ],
+        "unpriced": []
       },
       {
         "qset": "600700e4",
@@ -7984,6 +8981,35 @@
         "unpriced": []
       },
       {
+        "qset": "69f1a390",
+        "n": 86,
+        "points": [
+          {
+            "step": "rules86_placebo_votes3",
+            "kind": "pipeline",
+            "flat": 0.1511627906976744,
+            "weighted": 0.1511627906976744,
+            "cost": 0.03682174418604651,
+            "model": "claude-opus-5",
+            "effort": "low",
+            "full_run": 51.88183755813953,
+            "dominated_by": null
+          },
+          {
+            "step": "rules86_real_votes3",
+            "kind": "pipeline",
+            "flat": 0.9883720930232558,
+            "weighted": 0.9883720930232558,
+            "cost": 0.04440517441860465,
+            "model": "claude-opus-5",
+            "effort": "low",
+            "full_run": 62.56689075581395,
+            "dominated_by": null
+          }
+        ],
+        "unpriced": []
+      },
+      {
         "qset": "b6525371",
         "n": 8,
         "points": [],
@@ -8008,7 +9034,7 @@
         "points": [
           {
             "step": "headline_full_votes3",
-            "kind": "oracle",
+            "kind": "pipeline",
             "flat": 0.8587650816181689,
             "weighted": 0.8624954528919607,
             "cost": 0.06190687721788502,
@@ -8302,6 +9328,25 @@
         ],
         "rows": [
           {
+            "step": "h2h_easy_votes3",
+            "kind": "pipeline",
+            "flat": 0.92,
+            "cells": {
+              "1": {
+                "correct": 27.0,
+                "n": 31.0,
+                "n_questions": 31.0,
+                "acc": 0.8709677419354839
+              },
+              "2": {
+                "correct": 19.0,
+                "n": 19.0,
+                "n_questions": 19.0,
+                "acc": 1.0
+              }
+            }
+          },
+          {
             "step": "h2h_opuslow_easy",
             "kind": "pipeline",
             "flat": 0.89,
@@ -8321,6 +9366,25 @@
             }
           },
           {
+            "step": "h2h_opuslow_easy_r1_votes3",
+            "kind": "pipeline",
+            "flat": 0.92,
+            "cells": {
+              "1": {
+                "correct": 27.0,
+                "n": 31.0,
+                "n_questions": 31.0,
+                "acc": 0.8709677419354839
+              },
+              "2": {
+                "correct": 19.0,
+                "n": 19.0,
+                "n_questions": 19.0,
+                "acc": 1.0
+              }
+            }
+          },
+          {
             "step": "h2h_sonnet_easy",
             "kind": "pipeline",
             "flat": 0.76,
@@ -8336,44 +9400,6 @@
                 "n": 38.0,
                 "n_questions": 19.0,
                 "acc": 0.7631578947368421
-              }
-            }
-          },
-          {
-            "step": "h2h_opuslow_easy_r1_votes3",
-            "kind": "unknown",
-            "flat": 0.92,
-            "cells": {
-              "1": {
-                "correct": 27.0,
-                "n": 31.0,
-                "n_questions": 31.0,
-                "acc": 0.8709677419354839
-              },
-              "2": {
-                "correct": 19.0,
-                "n": 19.0,
-                "n_questions": 19.0,
-                "acc": 1.0
-              }
-            }
-          },
-          {
-            "step": "h2h_easy_votes3",
-            "kind": "unknown",
-            "flat": 0.92,
-            "cells": {
-              "1": {
-                "correct": 27.0,
-                "n": 31.0,
-                "n_questions": 31.0,
-                "acc": 0.8709677419354839
-              },
-              "2": {
-                "correct": 19.0,
-                "n": 19.0,
-                "n_questions": 19.0,
-                "acc": 1.0
               }
             }
           }
@@ -8881,7 +9907,7 @@
           },
           {
             "step": "h2h_opuslow_hard_r1_votes3",
-            "kind": "unknown",
+            "kind": "pipeline",
             "flat": 0.7222222222222222,
             "cells": {
               "1": {
@@ -8954,6 +9980,44 @@
         ],
         "corpus_share": {
           "0": 0.14691270404542228
+        }
+      },
+      {
+        "qset": "69f1a390",
+        "n": 86,
+        "order": [
+          "rules"
+        ],
+        "rows": [
+          {
+            "step": "rules86_placebo_votes3",
+            "kind": "pipeline",
+            "flat": 0.1511627906976744,
+            "cells": {
+              "rules": {
+                "correct": 13.0,
+                "n": 86.0,
+                "n_questions": 86.0,
+                "acc": 0.1511627906976744
+              }
+            }
+          },
+          {
+            "step": "rules86_real_votes3",
+            "kind": "pipeline",
+            "flat": 0.9883720930232558,
+            "cells": {
+              "rules": {
+                "correct": 85.0,
+                "n": 86.0,
+                "n_questions": 86.0,
+                "acc": 0.9883720930232558
+              }
+            }
+          }
+        ],
+        "corpus_share": {
+          "rules": null
         }
       },
       {
@@ -9035,7 +10099,7 @@
         "rows": [
           {
             "step": "headline_full_votes3",
-            "kind": "oracle",
+            "kind": "pipeline",
             "flat": 0.8587650816181689,
             "cells": {
               "0": {
@@ -9405,11 +10469,29 @@
           {
             "qset": "23aa5200",
             "n": 50,
+            "step": "h2h_easy_votes3",
+            "kind": "pipeline",
+            "flat": 0.92,
+            "cost": 0.05171381,
+            "n_reps": 1
+          },
+          {
+            "qset": "23aa5200",
+            "n": 50,
             "step": "h2h_opuslow_easy",
             "kind": "pipeline",
             "flat": 0.89,
             "cost": 0.051531709999999994,
             "n_reps": 2
+          },
+          {
+            "qset": "23aa5200",
+            "n": 50,
+            "step": "h2h_opuslow_easy_r1_votes3",
+            "kind": "pipeline",
+            "flat": 0.92,
+            "cost": 0.05171381,
+            "n_reps": 1
           },
           {
             "qset": "5cedbcf3",
@@ -9419,6 +10501,15 @@
             "flat": 0.7407407407407407,
             "cost": 0.06445404629629631,
             "n_reps": 2
+          },
+          {
+            "qset": "5cedbcf3",
+            "n": 54,
+            "step": "h2h_opuslow_hard_r1_votes3",
+            "kind": "pipeline",
+            "flat": 0.7222222222222222,
+            "cost": 0.06424941666666667,
+            "n_reps": 1
           },
           {
             "qset": "600700e4",
@@ -9439,10 +10530,28 @@
             "n_reps": 1
           },
           {
+            "qset": "69f1a390",
+            "n": 86,
+            "step": "rules86_placebo_votes3",
+            "kind": "pipeline",
+            "flat": 0.1511627906976744,
+            "cost": 0.03682174418604651,
+            "n_reps": 1
+          },
+          {
+            "qset": "69f1a390",
+            "n": 86,
+            "step": "rules86_real_votes3",
+            "kind": "pipeline",
+            "flat": 0.9883720930232558,
+            "cost": 0.04440517441860465,
+            "n_reps": 1
+          },
+          {
             "qset": "6c72d9cc",
             "n": 1409,
             "step": "headline_full_votes3",
-            "kind": "oracle",
+            "kind": "pipeline",
             "flat": 0.8587650816181689,
             "cost": 0.06190687721788502,
             "n_reps": 1
@@ -9743,14 +10852,14 @@
       {
         "qset": "23aa5200",
         "n": 50,
-        "step": "h2h_opuslow_easy_r1_votes3",
-        "kind": "unknown"
+        "step": "h2h_easy_votes3",
+        "kind": "pipeline"
       },
       {
         "qset": "23aa5200",
         "n": 50,
-        "step": "h2h_easy_votes3",
-        "kind": "unknown"
+        "step": "h2h_opuslow_easy_r1_votes3",
+        "kind": "pipeline"
       },
       {
         "qset": "0b355419",
@@ -9828,7 +10937,7 @@
         "qset": "5cedbcf3",
         "n": 54,
         "step": "h2h_opuslow_hard_r1_votes3",
-        "kind": "unknown"
+        "kind": "pipeline"
       },
       {
         "qset": "600700e4",
@@ -9840,6 +10949,18 @@
         "qset": "600700e4",
         "n": 207,
         "step": "l0_opuslow_votes3",
+        "kind": "pipeline"
+      },
+      {
+        "qset": "69f1a390",
+        "n": 86,
+        "step": "rules86_placebo_votes3",
+        "kind": "pipeline"
+      },
+      {
+        "qset": "69f1a390",
+        "n": 86,
+        "step": "rules86_real_votes3",
         "kind": "pipeline"
       },
       {
@@ -9858,7 +10979,7 @@
         "qset": "6c72d9cc",
         "n": 1409,
         "step": "headline_full_votes3",
-        "kind": "oracle"
+        "kind": "pipeline"
       },
       {
         "qset": "c2526995",
@@ -9905,11 +11026,29 @@
           {
             "qset": "23aa5200",
             "n": 50,
+            "step": "h2h_easy_votes3",
+            "flat": 0.92,
+            "cost": 0.05171381,
+            "n_reps": 1,
+            "spread_pp": null
+          },
+          {
+            "qset": "23aa5200",
+            "n": 50,
             "step": "h2h_opuslow_easy",
             "flat": 0.89,
             "cost": 0.051531709999999994,
             "n_reps": 2,
             "spread_pp": 6.000000000000005
+          },
+          {
+            "qset": "23aa5200",
+            "n": 50,
+            "step": "h2h_opuslow_easy_r1_votes3",
+            "flat": 0.92,
+            "cost": 0.05171381,
+            "n_reps": 1,
+            "spread_pp": null
           },
           {
             "qset": "5cedbcf3",
@@ -9919,6 +11058,15 @@
             "cost": 0.06445404629629631,
             "n_reps": 2,
             "spread_pp": 3.703703703703709
+          },
+          {
+            "qset": "5cedbcf3",
+            "n": 54,
+            "step": "h2h_opuslow_hard_r1_votes3",
+            "flat": 0.7222222222222222,
+            "cost": 0.06424941666666667,
+            "n_reps": 1,
+            "spread_pp": null
           },
           {
             "qset": "600700e4",
@@ -9939,6 +11087,24 @@
             "spread_pp": null
           },
           {
+            "qset": "69f1a390",
+            "n": 86,
+            "step": "rules86_placebo_votes3",
+            "flat": 0.1511627906976744,
+            "cost": 0.03682174418604651,
+            "n_reps": 1,
+            "spread_pp": null
+          },
+          {
+            "qset": "69f1a390",
+            "n": 86,
+            "step": "rules86_real_votes3",
+            "flat": 0.9883720930232558,
+            "cost": 0.04440517441860465,
+            "n_reps": 1,
+            "spread_pp": null
+          },
+          {
             "qset": "6c72d9cc",
             "n": 1409,
             "step": "headline_full_votes3",
@@ -9948,7 +11114,7 @@
             "spread_pp": null
           }
         ],
-        "n_questions": 1927,
+        "n_questions": 2081,
         "levels": {
           "0": {
             "acc": 0.9677938808373591,
@@ -9956,40 +11122,45 @@
             "share": 0.14691270404542228
           },
           "1": {
-            "acc": 0.8985959438377535,
-            "n_questions": 603.0,
+            "acc": 0.8971830985915493,
+            "n_questions": 672.0,
             "share": 0.40099361249112847
           },
           "2": {
-            "acc": 0.8452380952380952,
-            "n_questions": 455.0,
+            "acc": 0.8513986013986014,
+            "n_questions": 523.0,
             "share": 0.2881476224272534
           },
           "3": {
-            "acc": 0.6631578947368421,
-            "n_questions": 176.0,
+            "acc": 0.6519607843137255,
+            "n_questions": 190.0,
             "share": 0.11497515968772179
           },
           "Corner Case": {
-            "acc": 0.6933333333333334,
-            "n_questions": 72.0,
+            "acc": 0.6923076923076923,
+            "n_questions": 75.0,
             "share": 0.048970901348474094
+          },
+          "rules": {
+            "acc": 0.5697674418604651,
+            "n_questions": 172.0,
+            "share": null
           }
         },
         "covered_share": 1.0,
         "missing_levels": [],
         "thin_levels": [],
-        "projected_acc": 0.8562656403234202,
+        "projected_acc": 0.8561366174829277,
         "ci95": [
-          0.8398924638238487,
-          0.8712211654901569
+          0.8404012036174933,
+          0.8705595724740549
         ],
-        "cost_lo": 0.051531709999999994,
+        "cost_lo": 0.03682174418604651,
         "cost_hi": 0.06445404629629631,
-        "full_run_lo": 72.60817938999999,
+        "full_run_lo": 51.88183755813953,
         "full_run_hi": 90.8157512314815,
-        "in_per_q": 5909.153495381084,
-        "out_per_q": 1119.5322800195202,
+        "in_per_q": 5421.086380765478,
+        "out_per_q": 1044.461947072637,
         "max_spread_pp": 6.000000000000005
       },
       {
@@ -10357,7 +11528,7 @@
       },
       {
         "level": "warn",
-        "what": "21 runs have no verified answers file",
+        "what": "23 runs have no verified answers file",
         "which": [
           "ab_pilot_A (unmatched)",
           "ab_pilot_B (unmatched)",
@@ -10366,16 +11537,18 @@
           "ab_pilot_Ag (unmatched)",
           "ab_pilot_L_layers_on (unmatched)",
           "ab_pilot_L_layers_off (unmatched)",
-          "h2h_opuslow_easy_r1_votes3 (ambiguous (4 files share these ids))",
-          "h2h_easy_votes3 (ambiguous (4 files share these ids))",
-          "rulesguru_gpt-5-mini (ambiguous (2 files share these ids))",
+          "h2h_easy_votes3 (content-match)",
+          "h2h_opuslow_easy_r1_votes3 (content-match)",
+          "rulesguru_gpt-5-mini (ambiguous (2 files share these ids; none matches the judged answer text on every question))",
           "ab_pilot_K (unmatched)",
           "ab_pilot_Z (unmatched)",
           "ab_pilot_R (unmatched)",
           "ab_pilot_B_rest (unmatched)",
           "ab_pilot_A_rest (unmatched)",
           "ab_pilot_Ag_rest (unmatched)",
-          "h2h_opuslow_hard_r1_votes3 (ambiguous (4 files share these ids))",
+          "h2h_opuslow_hard_r1_votes3 (content-match)",
+          "rules86_placebo_votes3 (content-match)",
+          "rules86_real_votes3 (content-match)",
           "ab_pilot_PR_real (unmatched)",
           "ab_pilot_PR_placebo (unmatched)",
           "ab_pilot_Bg_rest (unmatched)",
@@ -10385,7 +11558,7 @@
       },
       {
         "level": "warn",
-        "what": "22 configurations cannot be classified",
+        "what": "19 configurations cannot be classified",
         "which": [
           "ab_pilot_A",
           "ab_pilot_A_rest",
@@ -10403,10 +11576,7 @@
           "ab_pilot_PR_real",
           "ab_pilot_R",
           "ab_pilot_Z",
-          "h2h_easy_votes3",
           "h2h_gpt5mini",
-          "h2h_opuslow_easy_r1_votes3",
-          "h2h_opuslow_hard_r1_votes3",
           "rulesguru_gpt-5-mini",
           "rulesguru_sonnet"
         ],
@@ -10414,7 +11584,7 @@
       },
       {
         "level": "warn",
-        "what": "32 configurations ran only once",
+        "what": "34 configurations ran only once",
         "which": [
           "ab_pilot_A (15q)",
           "ab_pilot_B (15q)",
@@ -10423,8 +11593,8 @@
           "ab_pilot_Ag (15q)",
           "ab_pilot_L_layers_on (15q)",
           "ab_pilot_L_layers_off (15q)",
-          "h2h_opuslow_easy_r1_votes3 (50q)",
           "h2h_easy_votes3 (50q)",
+          "h2h_opuslow_easy_r1_votes3 (50q)",
           "rulesguru_sonnet (150q)",
           "rulesguru_gpt-5-mini (150q)",
           "derivability_B (150q)",
@@ -10440,6 +11610,8 @@
           "h2h_opuslow_hard_r1_votes3 (54q)",
           "l0_opuslow (207q)",
           "l0_opuslow_votes3 (207q)",
+          "rules86_placebo_votes3 (86q)",
+          "rules86_real_votes3 (86q)",
           "ab_pilot_PR_real (8q)",
           "ab_pilot_PR_placebo (8q)",
           "headline_full_votes3 (1409q)",
@@ -10700,10 +11872,10 @@
           "n": 207,
           "why": "207 L0 questions in evals/rulesguru_full_v2.jsonl, at the measured $/question of the shipped config",
           "per_q": [
-            0.051531709999999994,
+            0.03682174418604651,
             0.06445404629629631
           ],
-          "lo": 10.66706397,
+          "lo": 7.622101046511627,
           "hi": 13.341987583333335,
           "pool": "api"
         },
@@ -10746,10 +11918,10 @@
           "n": 1409,
           "why": "the full corpus at the measured $/question of the shipped config",
           "per_q": [
-            0.051531709999999994,
+            0.03682174418604651,
             0.06445404629629631
           ],
-          "lo": 72.60817938999999,
+          "lo": 51.88183755813953,
           "hi": 90.8157512314815,
           "pool": "api"
         },
@@ -13293,10 +14465,10 @@
     },
     "cost_basis": "claude-opus-5 / effort low",
     "per_q": [
-      0.051531709999999994,
+      0.03682174418604651,
       0.06445404629629631
     ],
-    "ready_api_lo": 26.66706397,
+    "ready_api_lo": 23.622101046511627,
     "ready_api_hi": 83.60198758333334,
     "info_rank": {
       "3": "resolves a named uncertainty in the go/no-go decision",
@@ -13357,23 +14529,23 @@
         "fn_ref_rate": 0.06666666666666667
       },
       "runtime_note": "Wall-clock is not recorded per row in any answers file, so run time cannot be computed from measurement. docs/plan-rulesguru-as-instrument.md estimates ~4s per question, putting 150 questions at \"roughly 10+ minutes\" — that was written about sonnet, and the shipped config is a different model.",
-      "acc": 0.8562656403234202,
+      "acc": 0.8561366174829277,
       "ci": [
-        0.8398924638238487,
-        0.8712211654901569
+        0.8404012036174933,
+        0.8705595724740549
       ],
-      "ci_width_pp": 3.132870166630819,
+      "ci_width_pp": 3.0158368856561646,
       "coverage": 1.0,
       "missing": [],
-      "cost_lo": 0.051531709999999994,
+      "cost_lo": 0.03682174418604651,
       "cost_hi": 0.06445404629629631,
-      "full_lo": 72.60817938999999,
+      "full_lo": 51.88183755813953,
       "full_hi": 90.8157512314815,
       "model": "claude-opus-5",
       "effort": "low",
-      "n_run": 1927,
+      "n_run": 2081,
       "missing_n": 0,
-      "slice_lo": 10.66706397,
+      "slice_lo": 7.622101046511627,
       "slice_hi": 13.341987583333335,
       "checks": [
         {
@@ -13385,7 +14557,7 @@
         {
           "key": "interval_max_pp",
           "pass": true,
-          "actual": 3.132870166630819,
+          "actual": 3.0158368856561646,
           "fmt": "pp"
         },
         {
@@ -13408,12 +14580,46 @@
           "n": 50,
           "floor_pp": 6.000000000000005,
           "beats_noise": true,
+          "winner": "h2h_easy_votes3",
+          "loser": "h2h_sonnet_easy",
+          "win_model": "claude-opus-5",
+          "lose_model": "claude-sonnet-5",
+          "gap_pp": 16.000000000000004,
+          "win_cost": 0.05171381,
+          "lose_cost": 0.070862379,
+          "confounded": true,
+          "differs": [
+            "model",
+            "effort"
+          ]
+        },
+        {
+          "n": 50,
+          "floor_pp": 6.000000000000005,
+          "beats_noise": true,
           "winner": "h2h_opuslow_easy",
           "loser": "h2h_sonnet_easy",
           "win_model": "claude-opus-5",
           "lose_model": "claude-sonnet-5",
           "gap_pp": 13.0,
           "win_cost": 0.051531709999999994,
+          "lose_cost": 0.070862379,
+          "confounded": true,
+          "differs": [
+            "model",
+            "effort"
+          ]
+        },
+        {
+          "n": 50,
+          "floor_pp": 6.000000000000005,
+          "beats_noise": true,
+          "winner": "h2h_opuslow_easy_r1_votes3",
+          "loser": "h2h_sonnet_easy",
+          "win_model": "claude-opus-5",
+          "lose_model": "claude-sonnet-5",
+          "gap_pp": 16.000000000000004,
+          "win_cost": 0.05171381,
           "lose_cost": 0.070862379,
           "confounded": true,
           "differs": [
@@ -13431,6 +14637,23 @@
           "lose_model": "claude-sonnet-5",
           "gap_pp": 9.259259259259256,
           "win_cost": 0.06445404629629631,
+          "lose_cost": 0.12977392400419285,
+          "confounded": true,
+          "differs": [
+            "model",
+            "effort"
+          ]
+        },
+        {
+          "n": 54,
+          "floor_pp": 3.703703703703709,
+          "beats_noise": true,
+          "winner": "h2h_opuslow_hard_r1_votes3",
+          "loser": "layers_slice0_base_layers",
+          "win_model": "claude-opus-5",
+          "lose_model": "claude-sonnet-5",
+          "gap_pp": 7.4074074074074066,
+          "win_cost": 0.06424941666666667,
           "lose_cost": 0.12977392400419285,
           "confounded": true,
           "differs": [
@@ -13476,7 +14699,7 @@
       ],
       "effort_probe": {
         "n": 50,
-        "lo": 2.5765854999999998,
+        "lo": 1.8410872093023254,
         "hi": 3.2227023148148155
       },
       "ceilings": [
@@ -13530,10 +14753,10 @@
             "n": 207,
             "why": "207 L0 questions in evals/rulesguru_full_v2.jsonl, at the measured $/question of the shipped config",
             "per_q": [
-              0.051531709999999994,
+              0.03682174418604651,
               0.06445404629629631
             ],
-            "lo": 10.66706397,
+            "lo": 7.622101046511627,
             "hi": 13.341987583333335,
             "pool": "api"
           },
@@ -16954,51 +18177,51 @@
       {
         "arm": "h2h_easy_votes3",
         "qset": "23aa5200",
-        "kind": "unknown",
-        "config_recorded": false,
+        "kind": "pipeline",
+        "config_recorded": true,
         "values": {
           "model": {
-            "value": null,
+            "value": "claude-opus-5",
             "mixed": false,
             "breakdown": null
           },
           "system_version": {
-            "value": null,
+            "value": 3,
             "mixed": false,
             "breakdown": null
           },
           "effort": {
-            "value": null,
+            "value": "low",
             "mixed": false,
             "breakdown": null
           },
           "max_tokens": {
-            "value": null,
+            "value": 32768,
             "mixed": false,
             "breakdown": null
           },
           "ruling_query_mode": {
-            "value": null,
+            "value": "raw",
             "mixed": false,
             "breakdown": null
           },
           "layers_tool": {
-            "value": null,
+            "value": true,
             "mixed": false,
             "breakdown": null
           },
           "show_rewrite": {
-            "value": null,
+            "value": false,
             "mixed": false,
             "breakdown": null
           },
           "rewrite_version": {
-            "value": null,
+            "value": "v2",
             "mixed": false,
             "breakdown": null
           },
           "retrieval": {
-            "value": null,
+            "value": "on (mean 19.2 ids)",
             "mixed": false,
             "breakdown": null
           }
@@ -17060,51 +18283,51 @@
       {
         "arm": "h2h_opuslow_easy_r1_votes3",
         "qset": "23aa5200",
-        "kind": "unknown",
-        "config_recorded": false,
+        "kind": "pipeline",
+        "config_recorded": true,
         "values": {
           "model": {
-            "value": null,
+            "value": "claude-opus-5",
             "mixed": false,
             "breakdown": null
           },
           "system_version": {
-            "value": null,
+            "value": 3,
             "mixed": false,
             "breakdown": null
           },
           "effort": {
-            "value": null,
+            "value": "low",
             "mixed": false,
             "breakdown": null
           },
           "max_tokens": {
-            "value": null,
+            "value": 32768,
             "mixed": false,
             "breakdown": null
           },
           "ruling_query_mode": {
-            "value": null,
+            "value": "raw",
             "mixed": false,
             "breakdown": null
           },
           "layers_tool": {
-            "value": null,
+            "value": true,
             "mixed": false,
             "breakdown": null
           },
           "show_rewrite": {
-            "value": null,
+            "value": false,
             "mixed": false,
             "breakdown": null
           },
           "rewrite_version": {
-            "value": null,
+            "value": "v2",
             "mixed": false,
             "breakdown": null
           },
           "retrieval": {
-            "value": null,
+            "value": "on (mean 19.2 ids)",
             "mixed": false,
             "breakdown": null
           }
@@ -17643,51 +18866,51 @@
       {
         "arm": "h2h_opuslow_hard_r1_votes3",
         "qset": "5cedbcf3",
-        "kind": "unknown",
-        "config_recorded": false,
+        "kind": "pipeline",
+        "config_recorded": true,
         "values": {
           "model": {
-            "value": null,
+            "value": "claude-opus-5",
             "mixed": false,
             "breakdown": null
           },
           "system_version": {
-            "value": null,
+            "value": 3,
             "mixed": false,
             "breakdown": null
           },
           "effort": {
-            "value": null,
+            "value": "low",
             "mixed": false,
             "breakdown": null
           },
           "max_tokens": {
-            "value": null,
+            "value": 32768,
             "mixed": false,
             "breakdown": null
           },
           "ruling_query_mode": {
-            "value": null,
+            "value": "raw",
             "mixed": false,
             "breakdown": null
           },
           "layers_tool": {
-            "value": null,
+            "value": true,
             "mixed": false,
             "breakdown": null
           },
           "show_rewrite": {
-            "value": null,
+            "value": false,
             "mixed": false,
             "breakdown": null
           },
           "rewrite_version": {
-            "value": null,
+            "value": "v2",
             "mixed": false,
             "breakdown": null
           },
           "retrieval": {
-            "value": null,
+            "value": "on (mean 19.6 ids)",
             "mixed": false,
             "breakdown": null
           }
@@ -18330,9 +19553,9 @@
         }
       },
       {
-        "arm": "headline_full_votes3",
-        "qset": "6c72d9cc",
-        "kind": "oracle",
+        "arm": "rules86_real_votes3",
+        "qset": "69f1a390",
+        "kind": "pipeline",
         "config_recorded": true,
         "values": {
           "model": {
@@ -18376,7 +19599,113 @@
             "breakdown": null
           },
           "retrieval": {
-            "value": "off (0 rows retrieved)",
+            "value": "on (mean 19.2 ids)",
+            "mixed": false,
+            "breakdown": null
+          }
+        }
+      },
+      {
+        "arm": "rules86_placebo_votes3",
+        "qset": "69f1a390",
+        "kind": "pipeline",
+        "config_recorded": true,
+        "values": {
+          "model": {
+            "value": "claude-opus-5",
+            "mixed": false,
+            "breakdown": null
+          },
+          "system_version": {
+            "value": 3,
+            "mixed": false,
+            "breakdown": null
+          },
+          "effort": {
+            "value": "low",
+            "mixed": false,
+            "breakdown": null
+          },
+          "max_tokens": {
+            "value": 32768,
+            "mixed": false,
+            "breakdown": null
+          },
+          "ruling_query_mode": {
+            "value": "raw",
+            "mixed": false,
+            "breakdown": null
+          },
+          "layers_tool": {
+            "value": null,
+            "mixed": false,
+            "breakdown": null
+          },
+          "show_rewrite": {
+            "value": false,
+            "mixed": false,
+            "breakdown": null
+          },
+          "rewrite_version": {
+            "value": "v2",
+            "mixed": false,
+            "breakdown": null
+          },
+          "retrieval": {
+            "value": "on (mean 19.2 ids)",
+            "mixed": false,
+            "breakdown": null
+          }
+        }
+      },
+      {
+        "arm": "headline_full_votes3",
+        "qset": "6c72d9cc",
+        "kind": "pipeline",
+        "config_recorded": true,
+        "values": {
+          "model": {
+            "value": "claude-opus-5",
+            "mixed": false,
+            "breakdown": null
+          },
+          "system_version": {
+            "value": 3,
+            "mixed": false,
+            "breakdown": null
+          },
+          "effort": {
+            "value": "low",
+            "mixed": false,
+            "breakdown": null
+          },
+          "max_tokens": {
+            "value": 32768,
+            "mixed": false,
+            "breakdown": null
+          },
+          "ruling_query_mode": {
+            "value": "raw",
+            "mixed": false,
+            "breakdown": null
+          },
+          "layers_tool": {
+            "value": null,
+            "mixed": false,
+            "breakdown": null
+          },
+          "show_rewrite": {
+            "value": false,
+            "mixed": false,
+            "breakdown": null
+          },
+          "rewrite_version": {
+            "value": "v2",
+            "mixed": false,
+            "breakdown": null
+          },
+          "retrieval": {
+            "value": "on (mean 19.3 ids)",
             "mixed": false,
             "breakdown": null
           }
@@ -19023,9 +20352,35 @@
         "unresolved_citation_rate": 1.0
       },
       {
+        "arm": "rules86_real_votes3",
+        "qset": "69f1a390",
+        "kind": "pipeline",
+        "n_answered": 86,
+        "n_scored": 86,
+        "n_unknown": 0,
+        "cr_reliance_rate": 1.0,
+        "rulings_only_rate": 0.0,
+        "glossary_rate": 0.26744186046511625,
+        "nothing_resolvable_rate": 0.0,
+        "unresolved_citation_rate": 0.0
+      },
+      {
+        "arm": "rules86_placebo_votes3",
+        "qset": "69f1a390",
+        "kind": "pipeline",
+        "n_answered": 8,
+        "n_scored": 8,
+        "n_unknown": 0,
+        "cr_reliance_rate": 1.0,
+        "rulings_only_rate": 0.0,
+        "glossary_rate": 0.125,
+        "nothing_resolvable_rate": 0.0,
+        "unresolved_citation_rate": 0.0
+      },
+      {
         "arm": "headline_full_votes3",
         "qset": "6c72d9cc",
-        "kind": "oracle",
+        "kind": "pipeline",
         "n_answered": 1399,
         "n_scored": 1399,
         "n_unknown": 0,
