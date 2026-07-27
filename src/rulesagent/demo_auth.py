@@ -12,28 +12,45 @@ salting stops rainbow-table recovery of common IPs from the stored hash.
 Config (review finding from Task 1: the reviewer couldn't judge the ip_hash
 salt because no salting code existed yet -- this is where that gets decided):
 
-SESSION_SECRET and IP_HASH_SALT are read ONCE at import time from env vars
-(DEMO_SESSION_SECRET, IP_HASH_SALT), the same module-level-constant pattern
-as demo_db.DEFAULT_DEMO_DB reading DEMO_DB_PATH. Neither is a hardcoded
-constant in source -- this repo is public (github.com/jongorecki/rulemancer),
-so a literal default would ship a known secret/salt to every reader. A fixed
-salt also makes ip_hash correlatable across deployments and reversible: IPv4
-space is only ~4 billion addresses, cheap to hash in bulk and match against a
-stored hash once the salt is known.
+session_secret() and ip_hash_salt() read COOKIE_SECRET / IP_HASH_SALT from
+the environment AT CALL TIME, not import time (Task 4 fix-round-1 correction:
+the original design snapshotted these into module-level constants read once
+at import -- SESSION_SECRET from a DIFFERENT env var, DEMO_SESSION_SECRET,
+that no other module or the plan doc ever used. main.py and the whole plan
+(30+ references) standardized on COOKIE_SECRET; the DEMO_SESSION_SECRET name
+was a naming slip introduced dispatching Task 2, never caught until Task 4's
+implementer noticed main.py couldn't see this module's constant. An
+import-time snapshot under a name nothing else reads is a silent split-brain:
+set COOKIE_SECRET on the server and this module still returns None while
+main.py's own os.environ reads saw it -- two sources of truth with different
+lifetimes. Reading at call time removes both problems at once: one env var
+name, and no snapshot to go stale relative to a monkeypatched/updated
+environment.). Neither is a hardcoded constant in source -- this repo is
+public (github.com/jongorecki/rulemancer), so a literal default would ship a
+known secret/salt to every reader. A fixed salt also makes ip_hash
+correlatable across deployments and reversible: IPv4 space is only ~4 billion
+addresses, cheap to hash in bulk and match against a stored hash once the
+salt is known. This is also why callers must never fall back to
+`os.environ.get("IP_HASH_SALT", "")` -- an empty-string salt is not "no
+salt," it silently produces PLAIN unsalted sha256-HMAC hashes over that same
+~4B-address space, which is exactly the reversible-rainbow-table case this
+module exists to prevent. A future reader may be tempted to "simplify" the
+empty-string default back in; don't -- it defeats the whole point of salting.
 
-When the env var is absent, these constants are None -- fail CLOSED, not a
+When the env var is absent, these accessors return None -- fail CLOSED, not a
 random-per-process fallback, matching the existing ADMIN_TOKEN pattern in
 api/main.py (_require_admin_token: unset token -> 503, never silently open).
 A random fallback would look convenient in local dev but is actively wrong in
 production: multiple worker processes would each mint their own secret, so a
 cookie signed by one worker fails verification on another, and a missing
 env var would silently "work" instead of surfacing as a config error. It is
-the caller's job (the /unlock and /answer endpoints, Task 4/5) to check these
-for None and refuse to serve rather than invent a value -- same shape as
-_require_admin_token's 503. Local dev sets DEMO_SESSION_SECRET/IP_HASH_SALT
-in .env like every other secret in this repo (see .env.example); until then,
-the gated-demo endpoints simply refuse to serve, which is the correct
-failure mode for a public-facing gate.
+the caller's job (api/main.py's _require_demo_config(), used on every path
+that touches this module's crypto -- /unlock and the gated "/" route, and
+Task 5's /answer) to check these for None and refuse to serve rather than
+invent a value -- same shape as _require_admin_token's 503. Local dev sets
+COOKIE_SECRET/IP_HASH_SALT in .env like every other secret in this repo (see
+.env.example); until then, the gated-demo endpoints simply refuse to serve,
+which is the correct failure mode for a public-facing gate.
 """
 from __future__ import annotations
 
@@ -44,11 +61,21 @@ import time
 
 COOKIE_MAX_AGE_S = 7 * 24 * 3600
 
-# Read once at import -- verify_session/hash_ip take secret/salt as explicit
-# parameters (Tasks 4/5/11 pass these constants in), so the crypto functions
-# below stay pure and independently testable with no env dependency.
-SESSION_SECRET = os.environ.get("DEMO_SESSION_SECRET")
-IP_HASH_SALT = os.environ.get("IP_HASH_SALT")
+
+def session_secret() -> str | None:
+    """COOKIE_SECRET, read fresh on every call -- never cached at import, so
+    a config change (or a test's monkeypatch.setenv) takes effect
+    immediately. Returns None if unset; callers must fail closed (503), never
+    pass None into sign_session/verify_session."""
+    return os.environ.get("COOKIE_SECRET")
+
+
+def ip_hash_salt() -> str | None:
+    """IP_HASH_SALT, read fresh on every call -- same call-time contract as
+    session_secret(). Returns None if unset; callers must fail closed (503),
+    never fall back to "" (see module docstring: an empty salt is not 'no
+    salt', it's unsalted and reversible)."""
+    return os.environ.get("IP_HASH_SALT")
 
 
 def sign_session(code_id: int, secret: str, issued_at: int | None = None) -> str:

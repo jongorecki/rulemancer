@@ -38,7 +38,9 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from rulesagent.cache import DEFAULT_DB
-from rulesagent.demo_auth import COOKIE_MAX_AGE_S, hash_ip, sign_session, verify_session
+from rulesagent.demo_auth import (
+    COOKIE_MAX_AGE_S, hash_ip, ip_hash_salt, session_secret, sign_session, verify_session,
+)
 from rulesagent.demo_db import DEFAULT_DEMO_DB, get_code_by_value, log_event
 from rulesagent.generate.answer import GEN_EFFORT, PROMPT_VERSION, RulesAgent
 from rulesagent.index.store import VectorStore
@@ -75,8 +77,14 @@ DEMO_DB = DEFAULT_DEMO_DB
 def _gate_enabled() -> bool:
     """Gating is OFF unless COOKIE_SECRET is configured. Local dev (`python
     run.py`) and the existing test suite never set it, so this whole slice
-    is inert there -- only the Fly deployment sets it and becomes gated."""
-    return bool(os.environ.get("COOKIE_SECRET"))
+    is inert there -- only the Fly deployment sets it and becomes gated.
+    Reads via demo_auth.session_secret() (call-time, not an import-time
+    snapshot) -- Task 4 fix-round-1: this and _require_demo_config below are
+    now the ONLY places in this module that read COOKIE_SECRET/IP_HASH_SALT
+    from the environment; every other call site goes through them so there
+    is exactly one source of truth for demo config, not a raw os.environ
+    read scattered per call site."""
+    return bool(session_secret())
 
 
 def _client_ip(request: Request) -> str:
@@ -110,13 +118,21 @@ p {{ color:#c4c4c9; line-height:1.5; }}
 
 
 def _require_demo_config() -> tuple[str, str]:
-    """Fail-closed guard for /unlock, same shape as _require_admin_token
-    below: if COOKIE_SECRET or IP_HASH_SALT isn't configured, refuse with
-    503 rather than passing None into demo_auth's crypto functions or
-    silently coercing a missing salt to "" (Task 2 review finding -- an
-    empty-salt IP hash is a hash of nothing, i.e. no real hashing at all)."""
-    cookie_secret = os.environ.get("COOKIE_SECRET")
-    ip_salt = os.environ.get("IP_HASH_SALT")
+    """Fail-closed guard: if COOKIE_SECRET or IP_HASH_SALT isn't configured,
+    refuse with 503 rather than passing None into demo_auth's crypto
+    functions or silently coercing a missing salt to "" (Task 2 review
+    finding, restated by Task 4 fix-round-1: an empty-string salt is not "no
+    salt" -- it produces unsalted, reversible sha256-HMAC hashes over the
+    ~4B-address IPv4 space, exactly what salting exists to prevent. Never
+    "simplify" this back to a `.get(..., "")` default).
+
+    THE single gate for this module's demo-auth config -- every call site
+    that touches session_secret()/ip_hash_salt() (unlock() and the gated
+    "/" route below; Task 5's /answer) calls this first, so there is one
+    place, not one os.environ read per call site, that decides whether the
+    demo is configured to serve gated content at all."""
+    cookie_secret = session_secret()
+    ip_salt = ip_hash_salt()
     if not cookie_secret or not ip_salt:
         raise HTTPException(
             status_code=503,
@@ -587,11 +603,18 @@ if _frontend_dir.is_dir():
     @app.get("/", include_in_schema=False)
     @app.get("/index.html", include_in_schema=False)
     def _index(request: Request) -> FileResponse:
-        # _gate_enabled() is the only truthy-COOKIE_SECRET check needed here
-        # -- if it's True, os.environ["COOKIE_SECRET"] below can't KeyError.
+        # Task 4 fix-round-1: was a bare os.environ["COOKIE_SECRET"], which
+        # KeyErrors (surfaces as an unhandled 500) the moment COOKIE_SECRET
+        # is set but IP_HASH_SALT isn't -- a real, reachable misconfiguration,
+        # not just a hypothetical. _require_demo_config() is now the single
+        # gate for this module's demo-auth crypto, called on every path that
+        # touches it, this one included -- so a partial config (one var set,
+        # the other missing) refuses closed (503) here too, not just in
+        # /unlock.
         if _gate_enabled():
+            cookie_secret, _ip_salt = _require_demo_config()
             session = request.cookies.get(COOKIE_NAME)
-            code_id = verify_session(session, os.environ["COOKIE_SECRET"])
+            code_id = verify_session(session, cookie_secret)
             if code_id is None:
                 return FileResponse(_frontend_dir / "gate.html", headers={"Cache-Control": "no-cache"})
         return FileResponse(_frontend_dir / "index.html",

@@ -1,8 +1,16 @@
 # Slice 4 Task 4: "/" serves the gate page when ungated, the real frontend
 # once a valid session cookie is presented.
+#
+# Task 4 fix-round-1: _index() now runs _require_demo_config() (the single
+# demo-auth config gate) before its verify_session() call, not just the bare
+# COOKIE_SECRET read it used to do -- so every "gate enabled" test below also
+# sets IP_HASH_SALT, matching what _require_demo_config() actually requires.
+# See test_gate_enabled_missing_ip_hash_salt_returns_503 for the case that
+# motivated this: COOKIE_SECRET set, IP_HASH_SALT NOT set, must 503 rather
+# than silently gating on cookie_secret alone.
 
 import pytest
-from fastapi import Request
+from fastapi import HTTPException, Request
 
 from rulesagent.api import main
 
@@ -22,18 +30,21 @@ def test_gate_disabled_serves_real_index(monkeypatch):
 
 def test_gate_enabled_no_cookie_serves_gate_page(monkeypatch):
     monkeypatch.setenv("COOKIE_SECRET", "test-secret")
+    monkeypatch.setenv("IP_HASH_SALT", "test-salt")
     resp = main._index(request=_fake_request())
     assert resp.path.name == "gate.html"
 
 
 def test_gate_enabled_invalid_cookie_serves_gate_page(monkeypatch):
     monkeypatch.setenv("COOKIE_SECRET", "test-secret")
+    monkeypatch.setenv("IP_HASH_SALT", "test-salt")
     resp = main._index(request=_fake_request(cookie="garbage"))
     assert resp.path.name == "gate.html"
 
 
 def test_gate_enabled_valid_cookie_serves_real_index(monkeypatch, tmp_path):
     monkeypatch.setenv("COOKIE_SECRET", "test-secret")
+    monkeypatch.setenv("IP_HASH_SALT", "test-salt")
     db = tmp_path / "demo.db"
     monkeypatch.setattr(main, "DEMO_DB", db)
     from rulesagent.demo_db import create_code
@@ -44,3 +55,14 @@ def test_gate_enabled_valid_cookie_serves_real_index(monkeypatch, tmp_path):
     resp = main._index(request=_fake_request(cookie=token))
 
     assert resp.path.name == "index.html"
+
+
+def test_gate_enabled_missing_ip_hash_salt_returns_503(monkeypatch):
+    # COOKIE_SECRET alone used to be enough to pass _index()'s old bare
+    # os.environ["COOKIE_SECRET"] read -- that's the exact partial-config
+    # split-brain the fix-round-1 review flagged. Must refuse closed now.
+    monkeypatch.setenv("COOKIE_SECRET", "test-secret")
+    monkeypatch.delenv("IP_HASH_SALT", raising=False)
+    with pytest.raises(HTTPException) as exc:
+        main._index(request=_fake_request())
+    assert exc.value.status_code == 503
