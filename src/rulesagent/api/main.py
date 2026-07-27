@@ -31,13 +31,15 @@ from pathlib import Path
 from typing import Literal
 
 import httpx
-from fastapi import BackgroundTasks, FastAPI, Header, HTTPException
+from fastapi import BackgroundTasks, Cookie, FastAPI, Form, Header, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from rulesagent.cache import DEFAULT_DB
+from rulesagent.demo_auth import COOKIE_MAX_AGE_S, hash_ip, sign_session, verify_session
+from rulesagent.demo_db import DEFAULT_DEMO_DB, get_code_by_value, log_event
 from rulesagent.generate.answer import GEN_EFFORT, PROMPT_VERSION, RulesAgent
 from rulesagent.index.store import VectorStore
 
@@ -62,6 +64,66 @@ _lock = threading.Lock()
 # It stays to guard the `agent.last_*` recorder reads made right after
 # answer() -- another concurrent request could overwrite those attributes
 # between the call and the reads.
+
+# --- Slice 4: gated demo (docs/superpowers/plans/2026-07-27-gated-demo.md) -
+COOKIE_NAME = "rulemancer_demo"
+DEMO_DB = DEFAULT_DEMO_DB
+# Module-level so tests can monkeypatch.setattr(main, "DEMO_DB", tmp_db) the
+# same way _state is monkeypatched elsewhere in this file's test suite.
+
+
+def _gate_enabled() -> bool:
+    """Gating is OFF unless COOKIE_SECRET is configured. Local dev (`python
+    run.py`) and the existing test suite never set it, so this whole slice
+    is inert there -- only the Fly deployment sets it and becomes gated."""
+    return bool(os.environ.get("COOKIE_SECRET"))
+
+
+def _client_ip(request: Request) -> str:
+    """Fly terminates TLS and proxies -- the socket peer is Fly's edge, not
+    the visitor, so the real IP comes from Fly-Client-IP (or the first hop
+    of X-Forwarded-For as a fallback) when present."""
+    fly_ip = request.headers.get("fly-client-ip")
+    if fly_ip:
+        return fly_ip
+    xff = request.headers.get("x-forwarded-for")
+    if xff:
+        return xff.split(",")[0].strip()
+    return request.client.host if request.client else "unknown"
+
+
+def _friendly_html(title: str, message: str, status_code: int = 200) -> HTMLResponse:
+    """Every guard failure renders through this -- dark mode, WCAG AA
+    contrast, no raw error, never a 500 for an expected condition."""
+    html = f"""<!doctype html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{title} — Rulemancer</title>
+<style>
+body {{ background:#14161a; color:#e8e8ea; font-family:system-ui,-apple-system,sans-serif;
+        display:flex; align-items:center; justify-content:center; min-height:100vh; margin:0; padding:24px; }}
+.card {{ max-width:480px; text-align:center; }}
+h1 {{ font-size:1.4rem; margin-bottom:0.75rem; color:#f4f4f5; }}
+p {{ color:#c4c4c9; line-height:1.5; }}
+</style></head>
+<body><div class="card"><h1>{title}</h1><p>{message}</p></div></body></html>"""
+    return HTMLResponse(content=html, status_code=status_code)
+
+
+def _require_demo_config() -> tuple[str, str]:
+    """Fail-closed guard for /unlock, same shape as _require_admin_token
+    below: if COOKIE_SECRET or IP_HASH_SALT isn't configured, refuse with
+    503 rather than passing None into demo_auth's crypto functions or
+    silently coercing a missing salt to "" (Task 2 review finding -- an
+    empty-salt IP hash is a hash of nothing, i.e. no real hashing at all)."""
+    cookie_secret = os.environ.get("COOKIE_SECRET")
+    ip_salt = os.environ.get("IP_HASH_SALT")
+    if not cookie_secret or not ip_salt:
+        raise HTTPException(
+            status_code=503,
+            detail="demo gating not configured (COOKIE_SECRET/IP_HASH_SALT)",
+        )
+    return cookie_secret, ip_salt
+
 
 _SCRYFALL_REFRESH_IDLE = {
     "status": "idle", "started_at": None, "finished_at": None,
@@ -285,6 +347,33 @@ def feedback(fb: FeedbackIn) -> dict:
     return {"ok": True}
 
 
+@app.post("/unlock", tags=["answers"], summary="Unlock the demo with an access code")
+def unlock(code: str = Form(...), request: Request = None):
+    """Validates an access code and mints a session cookie. Fails closed
+    (503) if COOKIE_SECRET/IP_HASH_SALT aren't configured -- see
+    _require_demo_config. A wrong/revoked/quota-exhausted code all look
+    identical from the outside (generic 403 + a `denied` event): the
+    endpoint must never reveal WHY a code failed. issued_at is never taken
+    from the request -- sign_session's default is the server clock, so
+    there's no way for a caller to future-date a session and dodge expiry."""
+    cookie_secret, ip_salt = _require_demo_config()
+    ip_hash = hash_ip(_client_ip(request), ip_salt)
+    row = get_code_by_value(DEMO_DB, code.strip())
+    if row is None or row["revoked_at"] is not None:
+        log_event(DEMO_DB, code_id=None, kind="denied", ip_hash=ip_hash)
+        return _friendly_html(
+            "Code not recognized",
+            "That access code doesn't work. Double-check it, or ask Jon for a fresh one.",
+            status_code=403,
+        )
+    log_event(DEMO_DB, code_id=row["id"], kind="unlock", ip_hash=ip_hash)
+    token = sign_session(row["id"], cookie_secret)
+    resp = JSONResponse({"ok": True})
+    resp.set_cookie(COOKIE_NAME, token, max_age=COOKIE_MAX_AGE_S, httponly=True,
+                     samesite="lax", secure=True)
+    return resp
+
+
 @app.get("/health", tags=["ops"], summary="Liveness / readiness")
 def health() -> dict:
     """`ready` is true once the vector store has loaded at startup."""
@@ -497,7 +586,14 @@ if _frontend_dir.is_dir():
     # mount, so these explicit routes win the "/" match.
     @app.get("/", include_in_schema=False)
     @app.get("/index.html", include_in_schema=False)
-    def _index() -> FileResponse:
+    def _index(request: Request) -> FileResponse:
+        # _gate_enabled() is the only truthy-COOKIE_SECRET check needed here
+        # -- if it's True, os.environ["COOKIE_SECRET"] below can't KeyError.
+        if _gate_enabled():
+            session = request.cookies.get(COOKIE_NAME)
+            code_id = verify_session(session, os.environ["COOKIE_SECRET"])
+            if code_id is None:
+                return FileResponse(_frontend_dir / "gate.html", headers={"Cache-Control": "no-cache"})
         return FileResponse(_frontend_dir / "index.html",
                             headers={"Cache-Control": "no-cache"})
 

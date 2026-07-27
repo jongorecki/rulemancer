@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Rulemancer — enter your access code</title>
+<link rel="icon" href="assets/rulemancer-mark.svg" />
+<link rel="stylesheet" href="colors_and_type.css?v=3" />
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; height: 100%; }
+  body {
+    display: flex; align-items: center; justify-content: center;
+    min-height: 100vh; padding: 24px; font-family: var(--font-sans);
+  }
+  .rm-gate-card {
+    max-width: 420px; width: 100%; background: var(--bg-card);
+    border: 1px solid var(--border-default); border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg); padding: var(--space-6) var(--space-5);
+    text-align: center;
+  }
+  .rm-gate-mark { width: 44px; height: 44px; display: block; margin: 0 auto var(--space-3); }
+  h1 {
+    font-family: var(--font-wordmark); font-size: var(--fs-3xl); font-weight: var(--fw-semibold);
+    color: var(--fg-primary); margin: 0 0 var(--space-2);
+  }
+  .rm-gate-sub {
+    color: var(--fg-secondary); font-size: var(--fs-base); line-height: var(--lh-base);
+    margin: 0 0 var(--space-5);
+  }
+  form { display: flex; flex-direction: column; gap: var(--space-3); }
+  label {
+    text-align: left; font-size: var(--fs-sm); font-weight: var(--fw-medium);
+    color: var(--fg-secondary);
+  }
+  input[type=text] {
+    width: 100%; padding: 0.75rem 1rem; font-size: var(--fs-base); font-family: var(--font-mono);
+    background: var(--bg-elevated); border: 1px solid var(--border-default);
+    border-radius: var(--radius-md); color: var(--fg-primary);
+  }
+  input[type=text]::placeholder { color: var(--fg-subtle); }
+  input[type=text]:focus-visible {
+    outline: 2px solid var(--accent); outline-offset: 2px; border-color: var(--accent);
+  }
+  input[aria-invalid="true"] { border-color: var(--status-red); }
+  button {
+    width: 100%; padding: 0.75rem 1rem; font-size: var(--fs-base); font-weight: var(--fw-semibold);
+    font-family: var(--font-sans); background: var(--accent); color: var(--fg-on-garnet, #fff);
+    border: none; border-radius: var(--radius-md); cursor: pointer;
+    transition: background var(--t-fast);
+  }
+  button:hover:not(:disabled) { background: var(--accent-hover); }
+  button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  button:disabled { background: var(--bg-muted); color: var(--fg-subtle); cursor: not-allowed; }
+  #msg {
+    margin-top: var(--space-3); font-size: var(--fs-sm); min-height: 1.2em;
+    color: var(--status-red);
+  }
+  .rm-gate-footer {
+    margin-top: var(--space-5); font-size: var(--fs-xs); color: var(--fg-subtle);
+  }
+</style>
+</head>
+<body data-surface="dark">
+<div class="rm-gate-card">
+  <img class="rm-gate-mark" src="assets/rulemancer-mark.svg" alt="" />
+  <h1>Rulemancer</h1>
+  <p class="rm-gate-sub">This demo is access-code gated. If you don't have a code, ask Jon Gorecki for one.</p>
+  <form id="gate-form" novalidate>
+    <label for="code">Access code</label>
+    <input type="text" id="code" name="code" placeholder="e.g. osprey-sycamore-peregrine-23"
+           autocomplete="off" autocapitalize="off" spellcheck="false" autofocus />
+    <button type="submit" id="submit-btn">Unlock</button>
+  </form>
+  <div id="msg" role="status" aria-live="polite"></div>
+  <p class="rm-gate-footer">Rulemancer is a personal project by Jon Gorecki.</p>
+</div>
+<script>
+  document.getElementById("gate-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById("submit-btn");
+    const input = document.getElementById("code");
+    const msg = document.getElementById("msg");
+    const code = input.value.trim();
+    if (!code) {
+      input.setAttribute("aria-invalid", "true");
+      msg.textContent = "Enter a code first.";
+      return;
+    }
+    btn.disabled = true;
+    btn.textContent = "Checking…";
+    msg.textContent = "";
+    input.removeAttribute("aria-invalid");
+    try {
+      const resp = await fetch("/unlock", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: "code=" + encodeURIComponent(code),
+      });
+      if (resp.ok) {
+        window.location.reload();
+        return;
+      }
+      input.setAttribute("aria-invalid", "true");
+      msg.textContent = "That code didn't work. Check it and try again.";
+    } catch (err) {
+      msg.textContent = "Something went wrong. Try again in a moment.";
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "Unlock";
+    }
+  });
+</script>
+</body>
+</html>
