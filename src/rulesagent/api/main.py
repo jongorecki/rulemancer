@@ -122,6 +122,67 @@ def _client_ip(request: Request) -> str:
     return request.client.host if request.client else "unknown"
 
 
+UNLOCK_RATE_LIMIT = 5
+UNLOCK_RATE_WINDOW_S = 900  # 15 minutes
+_UNLOCK_RL_MAX_KEYS = 10_000
+# In-memory sliding window is safe here because Fly is deployed always-on,
+# single shared-cpu-1x machine, no autoscaling (Task 14) -- one process
+# holds all the state there is. It resets on redeploy or restart, and it
+# does not span machines; that's an accepted trade for not adding a second
+# datastore for a demo this size.
+#
+# Keyed by ip_hash, the same hashed value _client_ip()/hash_ip() already
+# produce for event logging. _client_ip() prefers Fly-Client-IP (set by
+# Fly's edge, not attacker-controlled) and only falls back to
+# X-Forwarded-For -- which a caller can forge -- when Fly-Client-IP is
+# absent. In the real Fly deployment that fallback never triggers, so the
+# rate limit key is trustworthy there. If this ever runs somewhere
+# Fly-Client-IP isn't set, the limit is bypassable by varying
+# X-Forwarded-For per request; this code does not change _client_ip's
+# fallback chain (it's correct for logging) or claim protection it doesn't
+# have in that configuration.
+_unlock_attempts: dict[str, list[float]] = {}
+_unlock_rl_lock = threading.Lock()
+
+
+def _prune_unlock_attempts(now: float) -> None:
+    """Bound the table's memory. Called while holding _unlock_rl_lock, only
+    once _unlock_attempts has grown past _UNLOCK_RL_MAX_KEYS -- an attacker
+    who forges a fresh IP header on every request can't be rate limited by
+    key (see the fallback-chain note above), but they also can't grow this
+    dict without bound: expired entries are dropped first, and if the table
+    is still oversized (all keys still within the window), the
+    least-recently-active keys are evicted until back under the cap."""
+    for k in [k for k, v in _unlock_attempts.items()
+              if not [t for t in v if now - t < UNLOCK_RATE_WINDOW_S]]:
+        del _unlock_attempts[k]
+    if len(_unlock_attempts) > _UNLOCK_RL_MAX_KEYS:
+        by_recency = sorted(_unlock_attempts.items(), key=lambda kv: max(kv[1]))
+        for k, _ in by_recency[: len(_unlock_attempts) - _UNLOCK_RL_MAX_KEYS]:
+            del _unlock_attempts[k]
+
+
+def _check_unlock_rate_limit(ip_hash: str, now: float | None = None) -> bool:
+    """True if this attempt is allowed (and records it), False if the
+    15-minute sliding window is already full. Counts EVERY call -- success
+    or failure alike, since the check runs before /unlock knows whether the
+    code was right -- so a legitimate person who unlocks on their first try
+    is never punished, but a fumbled second or third try still counts
+    toward the same 5-per-15-minutes budget as a scripted guesser would
+    burn through."""
+    now = now if now is not None else time.time()
+    with _unlock_rl_lock:
+        attempts = [t for t in _unlock_attempts.get(ip_hash, []) if now - t < UNLOCK_RATE_WINDOW_S]
+        if len(attempts) >= UNLOCK_RATE_LIMIT:
+            _unlock_attempts[ip_hash] = attempts
+            return False
+        attempts.append(now)
+        _unlock_attempts[ip_hash] = attempts
+        if len(_unlock_attempts) > _UNLOCK_RL_MAX_KEYS:
+            _prune_unlock_attempts(now)
+        return True
+
+
 def _friendly_html(title: str, message: str, status_code: int = 200) -> HTMLResponse:
     """Every guard failure renders through this -- dark mode, WCAG AA
     contrast, no raw error, never a 500 for an expected condition."""
@@ -413,6 +474,13 @@ def unlock(code: str = Form(...), request: Request = None):
     there's no way for a caller to future-date a session and dodge expiry."""
     cookie_secret, ip_salt = _require_demo_config()
     ip_hash = hash_ip(_client_ip(request), ip_salt)
+    if not _check_unlock_rate_limit(ip_hash):
+        log_event(DEMO_DB, code_id=None, kind="denied", ip_hash=ip_hash)
+        return _friendly_html(
+            "Too many attempts",
+            "Too many tries too fast. Wait 15 minutes and try again, or ask Jon for help.",
+            status_code=429,
+        )
     row = get_code_by_value(DEMO_DB, code.strip())
     if row is None or row["revoked_at"] is not None:
         log_event(DEMO_DB, code_id=None, kind="denied", ip_hash=ip_hash)
