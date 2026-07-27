@@ -770,6 +770,39 @@ INFO_RANK = {
 }
 
 ROADMAP: list[dict] = [
+    {
+        "id": "gated-demo",
+        "title": "Gated public demo on Fly.io (per-person access codes + spend guards)",
+        "one_line": "Put Rulemancer in front of hiring managers behind per-person access codes, "
+                    "with three layers of spend control so a leaked code cannot drain the "
+                    "Anthropic balance. Shipped 2026-07-27 at rulemancer.fly.dev.",
+        "status": "shipped", "action": "build", "info": 3,
+        "info_why": "The demo spends real credits per query on a publicly reachable URL, so the "
+                    "guards are the product decision, not the chat UI. Cost per serve was measured "
+                    "(mean $0.0485, max $0.0648) rather than extrapolated, because the batched "
+                    "eval rate does not transfer to live serving.",
+        "tells_us": "All four guards were verified against the deployed URL, not just in tests: "
+                    "per-code cap refuses before the model call (2 events recorded, not 3), a "
+                    "revoked code invalidates an already-issued session, unlock is rate-limited at "
+                    "5 attempts per 15 minutes per IP (~123 years to walk the 21.6M code space), "
+                    "and the daily budget breaker refuses with zero added spend.",
+        "evidence": [
+            {"kind": "doc", "ref": "docs/superpowers/plans/2026-07-27-gated-demo.md",
+             "note": "the 15-task implementation plan this shipped from"},
+            {"kind": "doc", "ref": "docs/superpowers/specs/2026-07-27-public-launch-design.md",
+             "note": "the approved design: access codes over one shared passphrase, evidence "
+                     "surface split from the live app"},
+        ],
+        "cost": {"kind": "hosting", "why": "Fly shared-cpu-1x always-on, ~$5/mo, plus $0.55 of "
+                                        "Anthropic credit spent measuring real cost per serve"},
+        "metric": {"name": "cost per serve", "dir": "down", "basis": "measured",
+                   "cite": "docs/superpowers/plans/2026-07-27-gated-demo.md",
+                   "detail": "mean $0.0485 and max $0.0648 over 8 real queries; the $0.06 "
+                             "figure extrapolated from the batched eval rate was 19% high on the "
+                             "mean but 8% LOW on the max, so it was not a safe bound for sizing "
+                             "a spend guard"},
+        "deps": [],
+    },
     # ---------------------------------------------------------------- ready --
     {
         "id": "l0-arm",
