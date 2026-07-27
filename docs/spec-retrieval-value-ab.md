@@ -54,9 +54,35 @@ fixed seed, derangement-checked so no row keeps its own block.
 Both answer live questions, both reuse the same rows and the same judging run, so
 the marginal cost is only the generation.
 
-**Arm C — layers tool off.** Jon: *"with opus, I'm curious how well things go
-without the layers tool. I don't remember if the layers tool actually helps at
-all."* Nobody knows, and the reason is structural: **every layers-off arm on disk
+> ## ⚠️ ARM C IS CANCELLED — it cannot work as specified
+>
+> Found while building the harness, 2026-07-26, before any spend.
+> `--prompts-cache` routes generation through `_answer_from_frozen_prompt()`,
+> which is a single `client.messages.parse()` with **no `tools=` argument at
+> all** ("There is no tool loop here at all" — its own docstring).
+> `--layers-tool` / `--no-layers-tool` only stamps a field onto the output row.
+> **Arms A and C would send byte-identical requests**, so arm C would have cost
+> ~$6 to measure nothing but run-to-run noise.
+>
+> Two consequences beyond the cancellation:
+> 1. **Arms A, B and D have no tools either.** Arm A is therefore NOT the
+>    shipped pipeline. The A−B contrast stays clean (the absence is held
+>    constant across both), but absolute accuracy on these arms is not the
+>    product's.
+> 2. **`derivability_B_goldonly` — the 91.3% "oracle ceiling" — records
+>    `layers_tool: True` and ran entirely through the frozen path**, so it never
+>    had the tool. Same for `derivability_C_failures`. A third recorded config
+>    field that is a claim rather than a fact.
+>
+> **To answer the layers question properly** it needs its own two-arm experiment
+> on the **live** path (`RulesAgent.answer()`), layers on vs off, same rows, same
+> model — not a prompts-cache arm. Roughly $2 for a 15-row pilot. Specced
+> separately; not folded in here, because bundling it back in is the same
+> multi-variable mistake this document exists to prevent.
+
+**Arm C — layers tool off (CANCELLED, see above).** Jon: *"with opus, I'm curious
+how well things go without the layers tool. I don't remember if the layers tool
+actually helps at all."* Nobody knows, and the reason is structural: **every layers-off arm on disk
 is `claude-sonnet-5` (`layers_slice0_base_layers_r1/r2/r3`) and every layers-on
 arm is `claude-opus-5`.** The tool has never been toggled against a fixed model.
 Arm C is arm A with `layers_tool=False` and nothing else changed.
@@ -146,8 +172,34 @@ generation (all four arms)      $36.36
 judging (480 answers, gpt-5-mini)  ~$1.50
 ------------------------------------------
 estimate                        ~$38
-requested ceiling               $45
+originally requested ceiling    $45
 ```
+
+### REVISED PLAN — the account balance is ~$40 (Jon, 2026-07-26)
+
+**The original four-arm plan is off the table.** At ~$38 estimated against a ~$40
+balance, a single under-estimate kills the run partway through and we pay for
+half an experiment, which is worth nothing. Output-token estimates for arms B and
+D are the least certain numbers here, and they are the expensive side.
+
+Staged plan, each stage gated on the last:
+
+| stage | what | cost | balance after |
+|---|---|---|---|
+| 1 | pilot: 15 rows (5/level) x all 4 arms | ~$4.55 | ~$35 |
+| 2 | arms A + B out to the full 120 rows (reusing the pilot's rows) | ~$15.40 | ~$20 |
+| 3 | decide on arms C and D with real per-arm cost data in hand | ~$18.70 | ~$1 |
+
+**Stage 1 is the only one authorized now.** It buys the two things that matter
+most: real per-arm cost (killing the estimate risk) and a first read on whether
+arm B degrades at all. Stage 2 answers the core question and still leaves ~$20 of
+headroom. Stage 3 gets re-quoted from stage 1's measured numbers, never from the
+estimates in the table above — the standing lesson is that an arm's cost model
+does not transfer across arm kinds.
+
+If stage 1 shows arm B or D materially more expensive than estimated, **arms C and
+D get dropped and the money goes to A vs B**, which is the comparison the roadmap
+actually depends on.
 
 **Pilot checkpoint, mandatory.** Run **15 rows** (5 per level) through all four
 arms first — about **$4.55**. Then stop and report: actual $/question per arm,

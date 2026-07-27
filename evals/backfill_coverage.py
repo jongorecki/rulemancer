@@ -138,7 +138,21 @@ def row_prompt_supplied_ids(row: dict) -> list[str]:
     system_version = row.get("system_version")
     if system_version is None:
         return []
-    layers_tool = bool(row.get("layers_tool"))
+    # `layers_tool: True` is NOT sufficient. A row generated via
+    # --prompts-cache went through _answer_from_frozen_prompt(), which is a
+    # single client.messages.parse() with no `tools=` argument at all ("There
+    # is no tool loop here at all" -- its own docstring). On those rows the
+    # flag is stamped onto the output record but no tool schema ever reached
+    # the model, so RESOLVE_LAYERS_TOOL's quotations of 613.6 / 613.8a were
+    # never in front of it and must not be credited as coverage.
+    #
+    # Affects derivability_B_goldonly (the 91.3% "oracle ceiling"),
+    # derivability_C_failures and _smoke_derivB -- all record layers_tool=True
+    # with prompts_cache set on every row. Found 2026-07-26 while building the
+    # retrieval A/B, which nearly bought a layers-off arm that would have sent
+    # byte-identical requests to the layers-on arm.
+    frozen = bool(row.get("prompts_cache"))
+    layers_tool = bool(row.get("layers_tool")) and not frozen
     return sorted(prompt_supplied_rule_ids(system_version, layers_tool))
 
 

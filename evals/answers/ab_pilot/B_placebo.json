@@ -1,0 +1,851 @@
+[
+  {
+    "id": "rg1651",
+    "question": "Alec controls [Elspeth Conquers Death] and puts the third lore counter it. With the triggered ability, they target [Eternal Witness] in their graveyard. When Eternal Witness returns to the battlefield, can it target Elspeth Conquers Death with its trigger?",
+    "match": "any",
+    "kind": "other",
+    "show_rewrite": false,
+    "rewrite_version": "none",
+    "ruling_query_mode": "union",
+    "condition": "B",
+    "run": null,
+    "model": "claude-opus-5",
+    "prompts_cache": "evals\\answers\\_prompts_ab_placebo.json",
+    "prompts_cache_sha256": "de596eebb57f6fc1e1ca3b60fb08e3b9a0ce61059d06c9725c693aa0b882467f",
+    "answered": true,
+    "answer": "Yes. Elspeth Conquers Death is sacrificed as soon as its chapter III ability leaves the stack (i.e., right after it finishes resolving and returns Eternal Witness), and that sacrifice is a state-based action that doesn't use the stack [Elspeth Conquers Death ruling #11]. Eternal Witness's enter trigger isn't put on the stack (and its target isn't chosen) until the next time a player would receive priority, which is after that sacrifice has already happened. So by the time you choose a target, Elspeth Conquers Death is a card in your graveyard and is a legal target for \"return target card from your graveyard to your hand.\"\n\nThis mirrors the note that Eternal Witness's ability can target a card that reached your graveyard as the spell/ability putting Eternal Witness onto the battlefield was resolving [Eternal Witness ruling #0].\n\nTiming note: if instead something caused Elspeth Conquers Death to remain on the battlefield (for example, its lore counters were removed before the chapter ability left the stack [Elspeth Conquers Death ruling #5]), it would not be in the graveyard and could not be targeted. Nothing here differs between a two-player and a multiplayer game.\n\nCard data from Scryfall (scryfall.com).",
+    "citations": [
+      "Elspeth Conquers Death ruling #11",
+      "Elspeth Conquers Death ruling #5",
+      "Eternal Witness ruling #0"
+    ],
+    "gold": [
+      "603.3",
+      "704.5s",
+      "714.4"
+    ],
+    "gold_text": {
+      "603.3": "Once an ability has triggered, its controller puts it on the stack as an object that’s not a card the next time a player would receive priority. See rule 117, “Timing and Priority.” The ability becomes the topmost object on the stack. It has the text of the ability that created it, and no other characteristics. It remains on the stack until it’s countered, it resolves, a rule causes it to be removed from the stack, or an effect moves it elsewhere.",
+      "704.5s": "The state-based actions are as follows: If the number of lore counters on a Saga permanent with one or more chapter abilities is greater than or equal to its final chapter number and it isn’t the source of a chapter ability that has triggered but not yet left the stack, that Saga’s controller sacrifices it. See rule 714, “Saga Cards.”",
+      "714.4": "If the number of lore counters on a Saga permanent with one or more chapter abilities is greater than or equal to its final chapter number, and it isn’t the source of a chapter ability that has triggered but not yet left the stack, that Saga’s controller sacrifices it. This state-based action doesn’t use the stack."
+    },
+    "cited_text": {},
+    "rewrite_queries": [],
+    "clarification": null,
+    "retrieved_rule_ids": [],
+    "prompt_supplied_rule_ids": [
+      "613.6",
+      "613.8a"
+    ],
+    "stop_reason": "end_turn",
+    "tool_calls": null,
+    "tool_rounds": null,
+    "usage": {
+      "input_tokens": 5783,
+      "output_tokens": 974,
+      "cache_read_input_tokens": 0,
+      "cache_creation_input_tokens": 0
+    },
+    "system_version": 3,
+    "layers_tool": true,
+    "max_tokens": 32768,
+    "effort": "low",
+    "answer_gold": "Yes.\n\nWhen the final chapter ability resolves, Eternal Witness is returned to the battlefield. However, its triggered ability is not put onto the stack until after state based actions are checked. When state based actions are checked, Elspeth Conquers Death is sacrificed because is has a number of lore counters greater than or equal to its final chapter number. After this, triggers are placed onto the stack, and Elspeth Conquers Death is in the graveyard able to be the target of Eternal Witness's triggered ability."
+  },
+  {
+    "id": "rg1652",
+    "question": "Autumn attacks with [Robber of the Rich], exiling [Light Up the Stage] from Nehemiah's library. Can Autumn pay Light Up the Stage's Spectacle cost with only {C}?",
+    "match": "any",
+    "kind": "other",
+    "show_rewrite": false,
+    "rewrite_version": "none",
+    "ruling_query_mode": "union",
+    "condition": "B",
+    "run": null,
+    "model": "claude-opus-5",
+    "prompts_cache": "evals\\answers\\_prompts_ab_placebo.json",
+    "prompts_cache_sha256": "de596eebb57f6fc1e1ca3b60fb08e3b9a0ce61059d06c9725c693aa0b882467f",
+    "answered": true,
+    "answer": "Yes — Autumn can pay Light Up the Stage's spectacle cost of {R} using colorless mana, because Robber of the Rich says \"During any turn you attacked with a Rogue, you may cast that card and you may spend mana as though it were mana of any color to cast that spell.\" That permission lets Autumn spend {C} as though it were red mana, so a single {C} satisfies the {R} spectacle cost. This card text overrides the general principle that {C} is never interchangeable with a colored symbol.\n\nConditions that still must be met:\n- Autumn attacked with a Rogue this turn. Robber of the Rich is itself a Human Archer Rogue, so attacking with it satisfies that, and the permission works even if Robber of the Rich has since left combat or the battlefield [Robber of the Rich ruling #3][Robber of the Rich ruling #5].\n- Spectacle requires that an opponent lost life this turn; it only cares that life was lost, not that the total is still lower [Light Up the Stage ruling #6][Light Up the Stage ruling #7]. Note it's an alternative cost, and any cost increases/reductions apply on top of it [Light Up the Stage ruling #5].\n- Neither Robber of the Rich nor spectacle changes when the spell can be cast. Light Up the Stage is a sorcery, so Autumn can only cast it during their own main phase with an empty stack [Robber of the Rich ruling #6][Light Up the Stage ruling #8].\n- Casting it removes it from exile; it can't be cast again [Robber of the Rich ruling #8].\n\nMultiplayer note: the answer is the same with more than two players. Nehemiah is simply whoever was the defending player when Robber of the Rich attacked (the planeswalker's controller if it attacked a planeswalker) [Robber of the Rich ruling #9]. Spectacle can even be enabled by an opponent who lost life and later left the game [Light Up the Stage ruling #3], but if Autumn leaves the game, cards Autumn controls via Robber of the Rich's effect are exiled [Robber of the Rich ruling #0].\n\nCard data from Scryfall (scryfall.com).",
+    "citations": [
+      "Robber of the Rich",
+      "Light Up the Stage",
+      "Robber of the Rich ruling #0",
+      "Robber of the Rich ruling #3",
+      "Robber of the Rich ruling #5",
+      "Robber of the Rich ruling #6",
+      "Robber of the Rich ruling #8",
+      "Robber of the Rich ruling #9",
+      "Light Up the Stage ruling #3",
+      "Light Up the Stage ruling #5",
+      "Light Up the Stage ruling #6",
+      "Light Up the Stage ruling #7",
+      "Light Up the Stage ruling #8"
+    ],
+    "gold": [
+      "118.9a",
+      "609.4b",
+      "702.137a"
+    ],
+    "gold_text": {
+      "118.9a": "Some spells have alternative costs. An alternative cost is a cost listed in a spell’s text, or applied to it from another effect, that its controller may pay rather than paying the spell’s mana cost. Alternative costs are usually phrased, “You may [action] rather than pay [this object’s] mana cost,” or “You may cast [this object] without paying its mana cost.” Note that some alternative costs are listed in keywords; see rule 702. Only one alternative cost can be applied to any one spell as it’s being cast. The controller of the spell announces their intentions to pay that cost as described in rule 601.2b.",
+      "609.4b": "Some effects state that a player may do something “as though” some condition were true or a creature can do something “as though” some condition were true. This applies only to the stated effect. For purposes of that effect, treat the game exactly as if the stated condition were true. For all other purposes, treat the game normally. If an effect allows a player to spend mana “as though it were mana of any [type or color],” this affects only how the player may pay a cost. It doesn’t change that cost, and it doesn’t change what mana was actually spent to pay that cost. The same is true for effects that say “mana of any type can be spent.”",
+      "702.137a": "Spectacle Spectacle is a static ability that functions on the stack. “Spectacle [cost]” means “You may pay [cost] rather than pay this spell’s mana cost if an opponent lost life this turn.” Casting a spell for its spectacle cost follows the rules for paying alternative costs in rules 601.2b and 601.2f–h."
+    },
+    "cited_text": {},
+    "rewrite_queries": [],
+    "clarification": null,
+    "retrieved_rule_ids": [],
+    "prompt_supplied_rule_ids": [
+      "613.6",
+      "613.8a"
+    ],
+    "stop_reason": "end_turn",
+    "tool_calls": null,
+    "tool_rounds": null,
+    "usage": {
+      "input_tokens": 9074,
+      "output_tokens": 1353,
+      "cache_read_input_tokens": 0,
+      "cache_creation_input_tokens": 0
+    },
+    "system_version": 3,
+    "layers_tool": true,
+    "max_tokens": 32768,
+    "effort": "low",
+    "answer_gold": "Yes.\n\nRobber of the Rich allows Autumn to cast the card and \"may spend mana as though it were mana of any color to cast that spell.\" This changes how the player may pay a cost, and they can do so with any mana, regardless of color. \n\n\"Spectacle\" is an alternative cost ([702.137a]), and can only be used if no other alternative cost is being paid. Luckily, Robber of the Rich does not create an alternative cost, it just changes how mana may be spent."
+  },
+  {
+    "id": "rg4023",
+    "question": "Nico controls [Urza's Saga] with two lore counters on it. Alexzander uses [Jinx] to change its land type. What happens?",
+    "match": "any",
+    "kind": "other",
+    "show_rewrite": false,
+    "rewrite_version": "none",
+    "ruling_query_mode": "union",
+    "condition": "B",
+    "run": null,
+    "model": "claude-opus-5",
+    "prompts_cache": "evals\\answers\\_prompts_ab_placebo.json",
+    "prompts_cache_sha256": "de596eebb57f6fc1e1ca3b60fb08e3b9a0ce61059d06c9725c693aa0b882467f",
+    "answered": true,
+    "answer": "Short answer: Urza's Saga becomes the basic land type Alexzander chooses (e.g., an Island) until end of turn. Because it's no longer a Saga while Jinx's effect applies, the \"sacrifice after the final chapter\" rule doesn't kick in, so Urza's Saga isn't sacrificed — Nico keeps the permanent, and the two lore counters stay on it (nothing removes counters). When Jinx's effect wears off at end of turn, it's an Urza's Saga again with two lore counters, and it will get its third lore counter after Nico's next draw step, at which point chapter III resolves and it's then sacrificed.\n\nDetails and caveats:\n- Jinx's effect is a type-changing effect applied in layer 4 (see [613.6] for how layers apply). Changing a land to a basic land type replaces its subtypes, which is why the Urza's Saga subtype — and with it the chapter abilities — is gone for the turn.\n- [Urza's Saga ruling #1] is the key comparison: a Saga that loses all its chapter abilities but is still a Saga is immediately sacrificed. Here it isn't a Saga at all during Jinx's effect, so that doesn't apply. [Urza's Saga ruling #4] confirms sacrifice happens only after the last chapter ability resolves.\n- Abilities Urza's Saga already gained from chapters I and II ({T}: Add {C}, and {2}, {T}: create the Construct token) are retained for as long as it's on the battlefield per [Urza's Saga ruling #5]; those were granted by resolved abilities, not by its subtype.\n- Not covered by the rules text you gave me: the exact rule for basic-land-type changes overwriting subtypes and intrinsic abilities (the 305.7 area), and the state-trigger rule for sacrificing a Saga with lore counters ≥ its final chapter number. Those specifics come from the rulings above rather than numbered rules in this context, so treat the \"loses chapter abilities, keeps gained abilities\" part as grounded in the rulings.\n- Nothing here depends on the number of players: the answer is the same in a two-player game or at a multiplayer table.\n\nCard data from Scryfall (scryfall.com).",
+    "citations": [
+      "613.6",
+      "Urza's Saga ruling #1",
+      "Urza's Saga ruling #4",
+      "Urza's Saga ruling #5",
+      "Urza's Saga",
+      "Jinx"
+    ],
+    "gold": [
+      "205.1a",
+      "305.7",
+      "505.4",
+      "611.2c",
+      "613.1d",
+      "613.1f",
+      "703.4f",
+      "704.5s",
+      "714.3b",
+      "714.4"
+    ],
+    "gold_text": {
+      "205.1a": "The type line is printed directly below the illustration. It contains the card’s card type(s). It also contains the card’s subtype(s) and supertype(s), if applicable. Some effects set an object’s card type. In most such cases, the new card type(s) replaces any existing card types. However, an object with either the instant or sorcery card type retains that type. Counters, stickers, effects, and damage marked on the object remain with it, even if they are meaningless to the new card type. Similarly, when an effect sets one or more of an object’s subtypes, the new subtype(s) replaces any existing subtypes from the appropriate set (creature types, land types, artifact types, enchantment types, planeswalker types, or spell types). If an object’s card type is removed, the subtypes correlated with that card type will remain if they are also the subtypes of a card type the object currently has; otherwise, they are also removed for the entire time the object’s card type is removed. Removing an object’s subtype doesn’t affect its card types at all.",
+      "305.7": "If an effect sets a land’s subtype to one or more of the basic land types, the land no longer has its old land type. It loses all abilities generated from its rules text, its old land types, and any copiable effects affecting that land, and it gains the appropriate mana ability for each new basic land type. Note that this doesn’t remove any abilities that were granted to the land by other effects. Setting a land’s subtype doesn’t add or remove any card types (such as creature) or supertypes (such as basic, legendary, and snow) the land may have. If a land gains one or more land types in addition to its own, it keeps its land types and rules text, and it gains the new land types and mana abilities.",
+      "505.4": "Second, if the active player controls one or more Saga enchantments and it’s the active player’s precombat main phase, the active player puts a lore counter on each Saga they control with one or more chapter abilities. (See rule 714, “Saga Cards.”) This turn-based action doesn’t use the stack.",
+      "611.2c": "A continuous effect may be generated by the resolution of a spell or ability. If a continuous effect generated by the resolution of a spell or ability modifies the characteristics or changes the controller of any objects, the set of objects it affects is determined when that continuous effect begins. After that point, the set won’t change. (Note that this works differently than a continuous effect from a static ability.) A continuous effect generated by the resolution of a spell or ability that doesn’t modify the characteristics or change the controller of any objects modifies the rules of the game, so it can affect objects that weren’t affected when that continuous effect began. If a single continuous effect has parts that modify the characteristics or changes the controller of any objects and other parts that don’t, the set of objects each part applies to is determined independently. An effect that reads “All white creatures get +1/+1 until end of turn” gives the bonus to all permanents that are white creatures when the spell or ability resolves—even if they change color later—and doesn’t affect those that enter the battlefield or turn white afterward. An effect that reads “Prevent all damage creatures would deal this turn” doesn’t modify any object’s characteristics, so it’s modifying the rules of the game. That means the effect will apply even to damage from creatures that weren’t on the battlefield when the continuous effect began. It also affects damage from permanents that become creatures later in the turn.",
+      "613.1d": "The values of an object’s characteristics are determined by starting with the actual object. For a card, that means the values of the characteristics printed on that card. For a token or a copy of a spell or card, that means the values of the characteristics defined by the effect that created it. Then all applicable continuous effects are applied in a series of layers in the following order: Layer 4: Type-changing effects are applied. These include effects that change an object’s card type, subtype, and/or supertype.",
+      "613.1f": "The values of an object’s characteristics are determined by starting with the actual object. For a card, that means the values of the characteristics printed on that card. For a token or a copy of a spell or card, that means the values of the characteristics defined by the effect that created it. Then all applicable continuous effects are applied in a series of layers in the following order: Layer 6: Ability-adding effects, keyword counters, ability-removing effects, and effects that say an object can’t have an ability are applied.",
+      "703.4f": "The turn-based actions are as follows: Immediately after a player’s precombat main phase begins, that player puts a lore counter on each Saga enchantment they control with one or more chapter abilities. In an Archenemy game, this happens after the archenemy’s scheme action. See rule 714, “Saga Cards.”",
+      "704.5s": "The state-based actions are as follows: If the number of lore counters on a Saga permanent with one or more chapter abilities is greater than or equal to its final chapter number and it isn’t the source of a chapter ability that has triggered but not yet left the stack, that Saga’s controller sacrifices it. See rule 714, “Saga Cards.”",
+      "714.3b": "Sagas use lore counters to track their progress. Each Saga with read ahead has the intrinsic abilities “As this Saga enters, choose a number between one and this Saga’s final chapter number” and “This Saga enters with the chosen number of lore counters on it.” (See rule 702.155, “Read Ahead.”) These abilities create replacement effects (see rule 614.1c).",
+      "714.4": "If the number of lore counters on a Saga permanent with one or more chapter abilities is greater than or equal to its final chapter number, and it isn’t the source of a chapter ability that has triggered but not yet left the stack, that Saga’s controller sacrifices it. This state-based action doesn’t use the stack."
+    },
+    "cited_text": {
+      "613.6": "If an effect should be applied in different layers and/or sublayers, the parts of the effect each apply in their appropriate ones. If an effect starts to apply in one layer and/or sublayer, it will continue to be applied to the same set of objects in each other applicable layer and/or sublayer, even if the ability generating the effect is removed during this process. An effect that reads “This creature gets +1/+1 and becomes the color of your choice until end of turn” is both a power- and toughness-changing effect and a color-changing effect. The “becomes the color of your choice” part is applied in layer 5, and then the “gets +1/+1” part is applied in layer 7c. Act of Treason has an effect that reads “Gain control of target creature until end of turn. Untap that creature. It gains haste until end of turn.” This is both a control-changing effect and an effect that adds an ability to an object. The “gain control” part is applied in layer 2, and then the “it gains haste” part is applied in layer 6. An effect that reads “All noncreature artifacts become 2/2 artifact creatures until end of turn” is both a type-changing effect and a power- and toughness-setting effect. The type-changing effect is applied to all noncreature artifacts in layer 4 and the power- and toughness-setting effect is applied to those same permanents in layer 7b, even though those permanents aren’t noncreature artifacts by then. Svogthos, the Restless Tomb, is on the battlefield. An effect that says “Until end of turn, target land becomes a 3/3 creature that’s still a land” is applied to it (layers 4 and 7b). An effect that says “Target creature gets +1/+1 until end of turn” is applied to it (layer 7c), making it a 4/4 land creature. Then while you have ten creature cards in your graveyard, you activate Svogthos’s ability: “Until end of turn, this land becomes a black and green Plant Zombie creature with ‘This creature’s power and toughness are each equal to the number of creature cards in your graveyard.’ It’s still a land.” (layers 4, 5, and 7b). It becomes an 11/11 land creature. If a creature card enters or leaves your graveyard, Svogthos’s power and toughness will be modified accordingly. If the first effect is applied to it again, it will become a 4/4 land creature again."
+    },
+    "rewrite_queries": [],
+    "clarification": null,
+    "retrieved_rule_ids": [],
+    "prompt_supplied_rule_ids": [
+      "613.6",
+      "613.8a"
+    ],
+    "stop_reason": "end_turn",
+    "tool_calls": null,
+    "tool_rounds": null,
+    "usage": {
+      "input_tokens": 6370,
+      "output_tokens": 1434,
+      "cache_read_input_tokens": 0,
+      "cache_creation_input_tokens": 0
+    },
+    "system_version": 3,
+    "layers_tool": true,
+    "max_tokens": 32768,
+    "effort": "low",
+    "answer_gold": "In layer 4, Urza's Saga will have its land type overwritten as well as lose all of its chapter abilities. It will gain the abilities to tap for {C} and to create Construct tokens in layer 6, as those abilities are granted by a continuous effect that was generated when the previous chapter abilities resolved..\n\nBecause Urza's Saga has lost all of its chapter abilities while still being a Saga, it is immediately sacrificed the next time state-based actions are checked, per the Urza's Saga ruling \"If Urza's Saga loses all of its chapter abilities but is still a Saga, perhaps due to a card like Blood Moon, it will immediately be sacrificed\"."
+  },
+  {
+    "id": "rg5671",
+    "question": "Ada controls [Ethersworn Canonist]. They want to suspend [Shade of Trokair] and then cast [Divination]. Can they?",
+    "match": "any",
+    "kind": "other",
+    "show_rewrite": false,
+    "rewrite_version": "none",
+    "ruling_query_mode": "union",
+    "condition": "B",
+    "run": null,
+    "model": "claude-opus-5",
+    "prompts_cache": "evals\\answers\\_prompts_ab_placebo.json",
+    "prompts_cache_sha256": "de596eebb57f6fc1e1ca3b60fb08e3b9a0ce61059d06c9725c693aa0b882467f",
+    "answered": true,
+    "answer": "Yes. Suspending Shade of Trokair is not casting it, so it doesn't use up Ada's one nonartifact spell for the turn, and Divination can then be cast (assuming Ada hasn't cast any other nonartifact spell this turn).\n\nWhy: Exiling a card with suspend isn't casting that card — it doesn't even use the stack and can't be responded to [Shade of Trokair ruling #7]. Ethersworn Canonist only cares about nonartifact spells a player has *cast* (\"Each player who has cast a nonartifact spell this turn can't cast additional nonartifact spells\"), and each player may cast any number of artifact spells plus at most one nonartifact spell per turn [Ethersworn Canonist ruling #1]. Since the suspend action isn't a cast, Ada is still at zero nonartifact spells cast, and Divination (a sorcery, i.e., nonartifact) is that one allowed nonartifact spell.\n\nTwo cautions:\n1. Order matters. You may exile a card with suspend only at a time when you could cast that card, taking into account effects that stop you from casting it [Shade of Trokair ruling #2]. So if Ada cast Divination first, Ethersworn Canonist would then prevent Ada from casting Shade of Trokair, and therefore Ada could no longer suspend it that turn. Suspend first, then cast Divination — exactly the order asked about — works.\n2. Later, when the last time counter is removed and suspend's third ability lets Ada cast Shade of Trokair, that *is* casting a nonartifact spell. If Ethersworn Canonist is still on the battlefield and Ada has already cast a nonartifact spell that turn, Ada can't cast it then; it stays exiled with no time counters and is no longer suspended [Shade of Trokair ruling #5].\n\nThis works the same in two-player and multiplayer games — Ethersworn Canonist's restriction applies per player independently.\n\nCard data from Scryfall (scryfall.com).",
+    "citations": [
+      "Ethersworn Canonist",
+      "Ethersworn Canonist ruling #1",
+      "Shade of Trokair",
+      "Shade of Trokair ruling #7",
+      "Shade of Trokair ruling #2",
+      "Shade of Trokair ruling #5",
+      "Divination"
+    ],
+    "gold": [
+      "702.62a"
+    ],
+    "gold_text": {
+      "702.62a": "Suspend Suspend is a keyword that represents three abilities. The first is a static ability that functions while the card with suspend is in a player’s hand. The second and third are triggered abilities that function in the exile zone. “Suspend N—[cost]” means “If you could begin to cast this card by putting it onto the stack from your hand, you may pay [cost] and exile it with N time counters on it. This action doesn’t use the stack,” and “At the beginning of your upkeep, if this card is suspended, remove a time counter from it,” and “When the last time counter is removed from this card, if it’s exiled, you may play it without paying its mana cost if able. If you don’t, it remains exiled. If you cast a creature spell this way, it gains haste until you lose control of the spell or the permanent it becomes.”"
+    },
+    "cited_text": {},
+    "rewrite_queries": [],
+    "clarification": null,
+    "retrieved_rule_ids": [],
+    "prompt_supplied_rule_ids": [
+      "613.6",
+      "613.8a"
+    ],
+    "stop_reason": "end_turn",
+    "tool_calls": null,
+    "tool_rounds": null,
+    "usage": {
+      "input_tokens": 5566,
+      "output_tokens": 1120,
+      "cache_read_input_tokens": 0,
+      "cache_creation_input_tokens": 0
+    },
+    "system_version": 3,
+    "layers_tool": true,
+    "max_tokens": 32768,
+    "effort": "low",
+    "answer_gold": "Yes. Suspending a card is not casting a spell, so it does not count towards Ethersworn Canonist's restriction."
+  },
+  {
+    "id": "rg65",
+    "question": "Asa controls an [Inventors' Fair], a [Krark-Clan Ironworks], and two [Piston Sledge]. They want to activate the last ability of Inventors' Fair and sacrifice a Piston Sledge to help pay the cost. Is this legal?",
+    "match": "any",
+    "kind": "other",
+    "show_rewrite": false,
+    "rewrite_version": "none",
+    "ruling_query_mode": "union",
+    "condition": "B",
+    "run": null,
+    "model": "claude-opus-5",
+    "prompts_cache": "evals\\answers\\_prompts_ab_placebo.json",
+    "prompts_cache_sha256": "de596eebb57f6fc1e1ca3b60fb08e3b9a0ce61059d06c9725c693aa0b882467f",
+    "answered": true,
+    "answer": "Yes — this works, with one clarification: sacrificing a Piston Sledge is not part of Inventors' Fair's cost. Inventors' Fair's last ability costs {4}, {T}, and Sacrifice Inventors' Fair. The way a Piston Sledge \"helps pay\" is by being sacrificed to Krark-Clan Ironworks (\"Sacrifice an artifact: Add {C}{C}\"), producing {C}{C} that can be applied toward the {4}. The {4} is generic mana, so colorless {C} mana pays it fine (you'd still need two more mana from somewhere for the remaining {2}).\n\nThe activation restriction \"Activate only if you control three or more artifacts\" is satisfied: Inventors' Fair itself is a Legendary Land, not an artifact, but Krark-Clan Ironworks plus the two Piston Sledge are three artifacts. Per [Inventors' Fair ruling #2], the number of artifacts you control is checked only as you activate the ability and is not checked again as it resolves — so dropping to two artifacts by sacrificing a Piston Sledge to Krark-Clan Ironworks while paying costs, or afterward, does not make the ability illegal or cause it to be countered. When it resolves you still search your library for an artifact card, reveal it, put it into your hand, and shuffle.\n\nOne timing note: I'm assuming you announce the Inventors' Fair ability first (locking in the artifact-count check), then activate Krark-Clan Ironworks as a mana ability while paying. If instead you sacrifice Piston Sledge to Krark-Clan Ironworks *before* announcing Inventors' Fair's ability, you'd only control two artifacts at the moment of activation and the ability could not legally be activated at all.\n\nNothing here depends on player count, so the answer is the same in a two-player or multiplayer game.\n\nCard data from Scryfall (scryfall.com).",
+    "citations": [
+      "Inventors' Fair",
+      "Krark-Clan Ironworks",
+      "Piston Sledge",
+      "Inventors' Fair ruling #2"
+    ],
+    "gold": [
+      "601.2",
+      "601.2g",
+      "602.2b"
+    ],
+    "gold_text": {
+      "601.2": "To cast a spell is to take it from where it is (usually the hand), put it on the stack, and pay its costs, so that it will eventually resolve and have its effect. Casting a spell includes proposal of the spell (rules 601.2a–d) and determination and payment of costs (rules 601.2f–h). To cast a spell, a player follows the steps listed below, in order. A player must be legally allowed to cast the spell to begin this process (see rule 601.3). If a player is unable to comply with the requirements of a step listed below while performing that step, the casting of the spell is illegal; the game returns to the moment before the casting of that spell was proposed (see rule 733, “Handling Illegal Actions”).",
+      "601.2g": "To cast a spell is to take it from where it is (usually the hand), put it on the stack, and pay its costs, so that it will eventually resolve and have its effect. Casting a spell includes proposal of the spell (rules 601.2a–d) and determination and payment of costs (rules 601.2f–h). To cast a spell, a player follows the steps listed below, in order. A player must be legally allowed to cast the spell to begin this process (see rule 601.3). If a player is unable to comply with the requirements of a step listed below while performing that step, the casting of the spell is illegal; the game returns to the moment before the casting of that spell was proposed (see rule 733, “Handling Illegal Actions”). If the total cost includes a mana payment, the player then has a chance to activate mana abilities (see rule 605, “Mana Abilities”). Mana abilities must be activated before costs are paid.",
+      "602.2b": "To activate an ability is to put it onto the stack and pay its costs, so that it will eventually resolve and have its effect. Only an object’s controller (or its owner, if it doesn’t have a controller) can activate its activated ability unless the object specifically says otherwise. Activating an ability follows the steps listed below, in order. If, at any point during the activation of an ability, a player is unable to comply with any of those steps, the activation is illegal; the game returns to the moment before that ability started to be activated (see rule 733, “Handling Illegal Actions”). Announcements and payments can’t be altered after they’ve been made. The remainder of the process for activating an ability is identical to the process for casting a spell listed in rules 601.2b–i. Those rules apply to activating an ability just as they apply to casting a spell. An activated ability’s analog to a spell’s mana cost (as referenced in rule 601.2f) is its activation cost."
+    },
+    "cited_text": {},
+    "rewrite_queries": [],
+    "clarification": null,
+    "retrieved_rule_ids": [],
+    "prompt_supplied_rule_ids": [
+      "613.6",
+      "613.8a"
+    ],
+    "stop_reason": "end_turn",
+    "tool_calls": null,
+    "tool_rounds": null,
+    "usage": {
+      "input_tokens": 5457,
+      "output_tokens": 1332,
+      "cache_read_input_tokens": 0,
+      "cache_creation_input_tokens": 0
+    },
+    "system_version": 3,
+    "layers_tool": true,
+    "max_tokens": 32768,
+    "effort": "low",
+    "answer_gold": "Yes. The process for activating an ability is the same as the process for casting a spell. It must be legal to activate the ability in order to put it onto the stack. Mana abilities are only activated after the legality of activating the original ability has been checked."
+  },
+  {
+    "id": "rg1012",
+    "question": "Amare controls [Psychogenic Probe] and casts [Pain], targeting Nico. They discard a [Progenitus]. Does Psychogenic Probe trigger?",
+    "match": "any",
+    "kind": "other",
+    "show_rewrite": false,
+    "rewrite_version": "none",
+    "ruling_query_mode": "union",
+    "condition": "B",
+    "run": null,
+    "model": "claude-opus-5",
+    "prompts_cache": "evals\\answers\\_prompts_ab_placebo.json",
+    "prompts_cache_sha256": "de596eebb57f6fc1e1ca3b60fb08e3b9a0ce61059d06c9725c693aa0b882467f",
+    "answered": true,
+    "answer": "Yes — Psychogenic Probe triggers, and it deals 2 damage to the player who shuffled, i.e. Nico (assuming Nico is the owner of the discarded Progenitus, since Progenitus goes into its owner's library).\n\nWhy: Pain makes Nico discard a card. Progenitus's own ability says \"If Progenitus would be put into a graveyard from anywhere, reveal Progenitus and shuffle it into its owner's library instead.\" So instead of going to the graveyard, Progenitus is revealed and shuffled into its owner's library. That shuffle is caused by an ability (Progenitus's replacement ability), which is exactly what Psychogenic Probe watches for: \"Whenever a spell or ability causes a player to shuffle their library, this artifact deals 2 damage to that player.\" The damage goes to the player who shuffled, not to Amare, even though Amare controls Psychogenic Probe. Note that Progenitus's protection from everything doesn't matter here — Psychogenic Probe damages a player, not Progenitus, and Pain targets a player rather than Progenitus.\n\nAlso worth noting: Psychogenic Probe's trigger doesn't depend on the library's contents — it triggers even if the shuffling player's library is empty. If instead Nico discarded a card that was not Progenitus (or a different owner's Progenitus were involved), the 2 damage would go to whoever actually shuffled. This works the same in two-player and multiplayer games; the trigger simply hits whichever player performed the shuffle.\n\nCard data from Scryfall (scryfall.com).",
+    "citations": [
+      "Psychogenic Probe",
+      "Psychogenic Probe ruling #0",
+      "Progenitus",
+      "Progenitus ruling #0",
+      "Pain // Suffering",
+      "Pain // Suffering ruling #0"
+    ],
+    "gold": [
+      "614.6"
+    ],
+    "gold_text": {
+      "614.6": "If an event is replaced, it never happens. A modified event occurs instead, which may in turn trigger abilities. Note that the modified event may contain instructions that can’t be carried out, in which case the impossible instruction is simply ignored."
+    },
+    "cited_text": {},
+    "rewrite_queries": [],
+    "clarification": null,
+    "retrieved_rule_ids": [],
+    "prompt_supplied_rule_ids": [
+      "613.6",
+      "613.8a"
+    ],
+    "stop_reason": "end_turn",
+    "tool_calls": null,
+    "tool_rounds": null,
+    "usage": {
+      "input_tokens": 5650,
+      "output_tokens": 939,
+      "cache_read_input_tokens": 0,
+      "cache_creation_input_tokens": 0
+    },
+    "system_version": 3,
+    "layers_tool": true,
+    "max_tokens": 32768,
+    "effort": "low",
+    "answer_gold": "Yes. Progenitus's replacement effect changes the effect of Pain from \"Nico discards a card, putting it into their graveyard\" to \"Nico reveals a card and shuffles it into their library\". Pain still caused the shuffle, so Psychogenic Probe triggers."
+  },
+  {
+    "id": "rg1705",
+    "question": "Albert controls [Doubling Season] and [Pir, Imaginative Rascal] and activates the +1 ability of [Ajani, Mentor of Heroes]. How many loyalty counters does it gain?",
+    "match": "any",
+    "kind": "other",
+    "show_rewrite": false,
+    "rewrite_version": "none",
+    "ruling_query_mode": "union",
+    "condition": "B",
+    "run": null,
+    "model": "claude-opus-5",
+    "prompts_cache": "evals\\answers\\_prompts_ab_placebo.json",
+    "prompts_cache_sha256": "de596eebb57f6fc1e1ca3b60fb08e3b9a0ce61059d06c9725c693aa0b882467f",
+    "answered": true,
+    "answer": "Ajani, Mentor of Heroes gains exactly 1 loyalty counter — neither Doubling Season nor Pir, Imaginative Rascal increases it.\n\nWhy: the \"+1\" in a planeswalker's ability is a cost you pay as you activate the ability, not something an effect does. Doubling Season's ruling states this explicitly: \"if you activate an ability whose cost has you put loyalty counters on a planeswalker, the number you put on isn't doubled. This is because those counters are put on as a cost, not as an effect\" [Doubling Season ruling #4]. Doubling Season only replaces counters an *effect* would put on a permanent you control, and Pir, Imaginative Rascal likewise replaces counters that \"would be put on a permanent your team controls\" by an effect — the rulings for Pir, Imaginative Rascal describe it applying to counter-placing instructions from effects and to permanents entering with counters [Pir, Imaginative Rascal ruling #4] [Pir, Imaginative Rascal ruling #5], not to cost payments.\n\nSecondary note (the part that *is* boosted): when the first +1 ability of Ajani, Mentor of Heroes resolves, the three +1/+1 counters it distributes are placed by an effect, so both Doubling Season and Pir, Imaginative Rascal apply to the counters going on each target creature. You still announce the distribution of the three counters (each target getting at least one) when activating [Ajani, Mentor of Heroes ruling #1].\n\nThis interaction doesn't depend on the number of players; it's the same in a two-player or multiplayer game.\n\nCard data from Scryfall (scryfall.com).",
+    "citations": [
+      "Doubling Season ruling #4",
+      "Pir, Imaginative Rascal ruling #4",
+      "Pir, Imaginative Rascal ruling #5",
+      "Ajani, Mentor of Heroes ruling #1",
+      "Doubling Season",
+      "Pir, Imaginative Rascal",
+      "Ajani, Mentor of Heroes"
+    ],
+    "gold": [
+      "606.4",
+      "609.1",
+      "614.16"
+    ],
+    "gold_text": {
+      "606.4": "The cost to activate a loyalty ability of a permanent is to put on or remove from that permanent a certain number of loyalty counters, as shown by the loyalty symbol in the ability’s cost. This cost may be modified by other effects.",
+      "609.1": "An effect is something that happens in the game as a result of a spell or ability. When a spell, activated ability, or triggered ability resolves, it may create one or more one-shot or continuous effects. Static abilities may create one or more continuous effects. Text itself is never an effect.",
+      "614.16": "Some replacement effects apply “if an effect would create one or more tokens” or “if an effect would put one or more counters on a permanent.” These replacement effects apply if the effect of a resolving spell or ability creates a token or puts a counter on a permanent, and they also apply if another replacement or prevention effect does so, even if the original event being modified wasn’t itself an effect."
+    },
+    "cited_text": {},
+    "rewrite_queries": [],
+    "clarification": null,
+    "retrieved_rule_ids": [],
+    "prompt_supplied_rule_ids": [
+      "613.6",
+      "613.8a"
+    ],
+    "stop_reason": "end_turn",
+    "tool_calls": null,
+    "tool_rounds": null,
+    "usage": {
+      "input_tokens": 6018,
+      "output_tokens": 1117,
+      "cache_read_input_tokens": 0,
+      "cache_creation_input_tokens": 0
+    },
+    "system_version": 3,
+    "layers_tool": true,
+    "max_tokens": 32768,
+    "effort": "low",
+    "answer_gold": "Four.\n\nActivating a planeswalker ability includes paying the loyalty cost, which in this case means adding one loyalty counter. Doubling Season only replaces effects, which are the result of a spell or ability. However Pir, Imaginative Rascal replaces the original one loyalty counter with two, which Doubling Season can then replace with doubling the additional loyalty counters, resulting in a total of four."
+  },
+  {
+    "id": "rg69",
+    "question": "Aminah casts a [Show and Tell]. As it resolves, Aminah chooses to put a [Haru-Onna] onto the battlefield and Nico chooses to put a [Domestication] onto the battlefield enchanting Haru-Onna. Who controls the enters-the-battlefield ability of Haru-Onna?",
+    "match": "any",
+    "kind": "other",
+    "show_rewrite": false,
+    "rewrite_version": "none",
+    "ruling_query_mode": "union",
+    "condition": "B",
+    "run": null,
+    "model": "claude-opus-5",
+    "prompts_cache": "evals\\answers\\_prompts_ab_placebo.json",
+    "prompts_cache_sha256": "de596eebb57f6fc1e1ca3b60fb08e3b9a0ce61059d06c9725c693aa0b882467f",
+    "answered": true,
+    "answer": "Nico controls Haru-Onna's enters-the-battlefield trigger, so Nico draws the card.\n\nWhy: with Show and Tell, all chosen cards are put onto the battlefield simultaneously (Aminah, as the player resolving/active player, chooses first, then Nico), and any choices those cards require — such as what Domestication enchants — are made after all players have chosen their card [Show and Tell ruling #0] [Show and Tell ruling #2]. So Haru-Onna and Domestication (already attached to Haru-Onna) hit the battlefield at the same moment.\n\nDomestication's static ability says \"You control enchanted creature,\" and that continuous effect is in place from the instant it enters. When the game looks at the resulting state to put Haru-Onna's \"When this creature enters, draw a card\" trigger on the stack, Nico is Haru-Onna's controller, so the trigger is controlled by Nico and Nico is the one who draws. Note Domestication's own end-step sacrifice trigger checks Haru-Onna's power (2), so it won't even trigger at 3 or less [Domestication ruling #0].\n\nAssumption on timing: I'm assuming both cards were put onto the battlefield by the same Show and Tell resolution, which is what makes them simultaneous. If instead Domestication somehow arrived after Haru-Onna was already on the battlefield, Aminah would have controlled the enters trigger and drawn the card, and only afterward would Nico gain control of Haru-Onna.\n\nMultiplayer: the same result holds regardless of table size; if there are more players, each other player chooses their card in turn order after Aminah, and each ETB trigger is controlled by whoever controls that permanent once all the cards (and Auras' attachments) are in place [Show and Tell ruling #2].\n\nCaveat: the numbered rules supplied here don't include the general trigger-controller or control-change rules; the conclusion rests on Domestication's printed \"You control enchanted creature\" plus the Show and Tell rulings on simultaneity.\n\nCard data from Scryfall (scryfall.com).",
+    "citations": [
+      "Show and Tell ruling #0",
+      "Show and Tell ruling #2",
+      "Domestication ruling #0",
+      "Show and Tell",
+      "Domestication",
+      "Haru-Onna"
+    ],
+    "gold": [
+      "303.4f"
+    ],
+    "gold_text": {
+      "303.4f": "Some enchantments have the subtype “Aura.” An Aura enters the battlefield attached to an object or player. What an Aura can be attached to is defined by its enchant keyword ability (see rule 702.5, “Enchant”). Other effects can limit what a permanent can be enchanted by. If an Aura is entering the battlefield under a player’s control by any means other than by resolving as an Aura spell, and the effect putting it onto the battlefield doesn’t specify the object or player the Aura will enchant, that player chooses what it will enchant as the Aura enters the battlefield. The player must choose a legal object or player according to the Aura’s enchant ability and any other applicable effects."
+    },
+    "cited_text": {},
+    "rewrite_queries": [],
+    "clarification": null,
+    "retrieved_rule_ids": [],
+    "prompt_supplied_rule_ids": [
+      "613.6",
+      "613.8a"
+    ],
+    "stop_reason": "end_turn",
+    "tool_calls": null,
+    "tool_rounds": null,
+    "usage": {
+      "input_tokens": 4251,
+      "output_tokens": 1266,
+      "cache_read_input_tokens": 0,
+      "cache_creation_input_tokens": 0
+    },
+    "system_version": 3,
+    "layers_tool": true,
+    "max_tokens": 32768,
+    "effort": "low",
+    "answer_gold": "This can't happen as described. Nico must choose a permanent that is already on the battlefield for the Domestication to enchant. They can't choose a permanent that is entering at the same time."
+  },
+  {
+    "id": "rg6968",
+    "question": "Amani controls a [Founding the Third Path], and its third ability is resolving. Amani chooses to cast a [Fatal Push] from their graveyard. Amani currently does not have Revolt.\nCan Amani choose to target [Skyhunter Patrol] with Fatal Push? Will Skyhunter Patrol be destroyed by Fatal Push?",
+    "match": "any",
+    "kind": "other",
+    "show_rewrite": false,
+    "rewrite_version": "none",
+    "ruling_query_mode": "union",
+    "condition": "B",
+    "run": null,
+    "model": "claude-opus-5",
+    "prompts_cache": "evals\\answers\\_prompts_ab_placebo.json",
+    "prompts_cache_sha256": "de596eebb57f6fc1e1ca3b60fb08e3b9a0ce61059d06c9725c693aa0b882467f",
+    "answered": true,
+    "answer": "Yes, Amani can target Skyhunter Patrol, and by the time the Fatal Push copy resolves Skyhunter Patrol will most likely be destroyed — because Founding the Third Path gets sacrificed in between, which turns on revolt.\n\nTargeting: Fatal Push may target any creature regardless of mana value; its mana value is checked only on resolution [Fatal Push ruling #3]. Skyhunter Patrol is a legal target even though its mana value is 4.\n\nCasting: Founding the Third Path's chapter III exiles the instant or sorcery card from the graveyard, copies it, and lets Amani cast the copy — but Amani must pay all costs for that copy, here {B} (one black mana), and must cast it immediately as the ability resolves [Founding the Third Path ruling #2].\n\nWhy Skyhunter Patrol dies: Founding the Third Path's read ahead text says \"Sacrifice after III.\" So once the chapter III ability finishes resolving, Founding the Third Path is sacrificed and leaves the battlefield under Amani's control. That happens before the newly cast Fatal Push copy resolves (the copy is put on the stack during chapter III's resolution and resolves later). Revolt only asks whether a permanent left the battlefield under your control this turn — it doesn't care why, who caused it, or where it went, and a sacrificed permanent counts [Fatal Push ruling #2]. So when Fatal Push resolves, revolt is satisfied and it destroys Skyhunter Patrol because its mana value (4) is 4 or less.\n\nTiming assumption: I'm assuming the standard sequence — chapter III resolves, Fatal Push is cast during that resolution, Founding the Third Path is then sacrificed, and Fatal Push resolves afterward. If instead you evaluate the moment Fatal Push is cast (or if some effect kept Founding the Third Path on the battlefield, e.g. its chapter number was such that it isn't sacrificed, or another effect saved it), revolt would not be satisfied and Fatal Push would do nothing to Skyhunter Patrol, since 4 is greater than 2. Note that revolt is checked only on resolution, not on casting.\n\nPlayer count doesn't matter here; nothing in this interaction depends on the number of opponents, and the provided rules include no multiplayer-specific wrinkle for it.\n\nCard data from Scryfall (scryfall.com).",
+    "citations": [
+      "Fatal Push",
+      "Fatal Push ruling #2",
+      "Fatal Push ruling #3",
+      "Founding the Third Path",
+      "Founding the Third Path ruling #2",
+      "Skyhunter Patrol"
+    ],
+    "gold": [
+      "714.4"
+    ],
+    "gold_text": {
+      "714.4": "If the number of lore counters on a Saga permanent with one or more chapter abilities is greater than or equal to its final chapter number, and it isn’t the source of a chapter ability that has triggered but not yet left the stack, that Saga’s controller sacrifices it. This state-based action doesn’t use the stack."
+    },
+    "cited_text": {},
+    "rewrite_queries": [],
+    "clarification": null,
+    "retrieved_rule_ids": [],
+    "prompt_supplied_rule_ids": [
+      "613.6",
+      "613.8a"
+    ],
+    "stop_reason": "end_turn",
+    "tool_calls": null,
+    "tool_rounds": null,
+    "usage": {
+      "input_tokens": 5114,
+      "output_tokens": 1546,
+      "cache_read_input_tokens": 0,
+      "cache_creation_input_tokens": 0
+    },
+    "system_version": 3,
+    "layers_tool": true,
+    "max_tokens": 32768,
+    "effort": "low",
+    "answer_gold": "Yes Amani can target Skyhunter Patrol, and it will be destroyed by Fatal Push.\n\nFatal Push does not check for the target's mana value when put on the stack, so Amani is allowed to target Skyhunter Patrol.\n\nAmani will put Fatal Push on the stack as part of the resolution of Founding the Third Path's third chapter. Once the ability is done resolving, SBAs are checked and the saga is sacrificed. In particular this means that Amani will have Revolt when Fatal Push resolves, thus Skyhunter Patrol will get destroyed.\n"
+  },
+  {
+    "id": "rg783",
+    "question": "Ari controls [Bludgeon Brawl] and [Soldevi Digger]. They cast [Titania's Song]. Once it resolves, what are the characteristics of Soldevi Digger?",
+    "match": "any",
+    "kind": "other",
+    "show_rewrite": false,
+    "rewrite_version": "none",
+    "ruling_query_mode": "union",
+    "condition": "B",
+    "run": null,
+    "model": "claude-opus-5",
+    "prompts_cache": "evals\\answers\\_prompts_ab_placebo.json",
+    "prompts_cache_sha256": "de596eebb57f6fc1e1ca3b60fb08e3b9a0ce61059d06c9725c693aa0b882467f",
+    "answered": true,
+    "answer": "Soldevi Digger becomes a 2/2 artifact creature named Soldevi Digger with no abilities, and it is no longer an Equipment.\n\nWhy:\n- Titania's Song reads \"Each noncreature artifact loses all abilities and becomes an artifact creature with power and toughness each equal to its mana value.\" Soldevi Digger is a noncreature artifact when Titania's Song resolves, so it becomes an artifact creature, and its mana value is {2} (mana value 2), making it 2/2. It loses its \"{2}: Put the top card of your graveyard on the bottom of your library\" ability.\n- Bludgeon Brawl only affects \"each noncreature, non-Equipment artifact.\" Once Soldevi Digger is a creature, Bludgeon Brawl's effect no longer applies to it: it stops being an Equipment and loses the granted equip {X} and \"Equipped creature gets +X/+0\" ability, and it becomes unattached from any creature it was attached to while remaining on the battlefield [Bludgeon Brawl ruling #2]. (Consistently, an Equipment that's also a creature can't be equipped to anything [Bludgeon Brawl ruling #3].)\n- So the final characteristics: name Soldevi Digger, card types Artifact Creature, no subtypes granted by Bludgeon Brawl, no abilities, power and toughness 2/2, mana cost {2} (colorless), mana value 2.\n\nTwo practical notes: Soldevi Digger can attack or use {T} abilities only if Ari has continuously controlled it since the beginning of their most recent turn, regardless of how long it has been a creature [Titania's Song ruling #0] — though here it has no abilities left to tap for. And if Titania's Song later leaves the battlefield, its own text says the effect continues until end of turn; only after that does Soldevi Digger stop being a creature and again fall under Bludgeon Brawl as an Equipment.\n\nThis interaction doesn't depend on player count, so the answer is the same in a two-player game or at a multiplayer table.\n\nCard data from Scryfall (scryfall.com).",
+    "citations": [
+      "Bludgeon Brawl ruling #2",
+      "Bludgeon Brawl ruling #3",
+      "Titania's Song ruling #0"
+    ],
+    "gold": [
+      "613.8a"
+    ],
+    "gold_text": {
+      "613.8a": "Within a layer or sublayer, determining which order effects are applied in is sometimes done using a dependency system. If a dependency exists, it will override the timestamp system. An effect is said to “depend on” another if (a) it’s applied in the same layer (and, if applicable, sublayer) as the other effect; (b) applying the other would change the text or the existence of the first effect, what it applies to, or what it does to any of the things it applies to; and (c) neither effect is from a characteristic-defining ability or both effects are from characteristic-defining abilities. Otherwise, the effect is considered to be independent of the other effect."
+    },
+    "cited_text": {},
+    "rewrite_queries": [],
+    "clarification": null,
+    "retrieved_rule_ids": [],
+    "prompt_supplied_rule_ids": [
+      "613.6",
+      "613.8a"
+    ],
+    "stop_reason": "end_turn",
+    "tool_calls": null,
+    "tool_rounds": null,
+    "usage": {
+      "input_tokens": 4580,
+      "output_tokens": 1142,
+      "cache_read_input_tokens": 0,
+      "cache_creation_input_tokens": 0
+    },
+    "system_version": 3,
+    "layers_tool": true,
+    "max_tokens": 32768,
+    "effort": "low",
+    "answer_gold": "It's a 2/2 artifact creature with no abilities. Applying Titania's Song would cause Bludgeon Brawl to no longer apply (since Soldevi Digger would be a creature). However, applying Bludgeon Brawl would not change how Titania's Song's effect is applied, so Bludgeon Brawl is dependent on Titania's Song. Titania's Song applies first, and then Bludgeon Brawl won't affect Soldevi Digger since it's a creature."
+  },
+  {
+    "id": "rg279",
+    "question": "Audrey casts [Enlarge] targeting [Goblin Piker], and then attacks with the Goblin Piker. Nico blocks it with a [Baron Sengir], which has gained infect due to their [Grafted Exoskeleton] and indestructible due to their [Withstand Death]. What happens at the end of the turn?",
+    "match": "any",
+    "kind": "other",
+    "show_rewrite": false,
+    "rewrite_version": "none",
+    "ruling_query_mode": "union",
+    "condition": "B",
+    "run": null,
+    "model": "claude-opus-5",
+    "prompts_cache": "evals\\answers\\_prompts_ab_placebo.json",
+    "prompts_cache_sha256": "de596eebb57f6fc1e1ca3b60fb08e3b9a0ce61059d06c9725c693aa0b882467f",
+    "answered": true,
+    "answer": "At end of turn Goblin Piker dies, and Baron Sengir survives and grows.\n\nStep by step, assuming combat damage was dealt normally in the combat damage step:\n\n1. Enlarge makes Goblin Piker 9/8 with trample until end of turn. Grafted Exoskeleton makes Baron Sengir 7/7 with infect, and Withstand Death makes Baron Sengir indestructible until end of turn.\n2. Goblin Piker (9/8 trample) assigns lethal damage to Baron Sengir (7) and may assign the remaining 2 to Nico via trample. Indestructible doesn't change how much damage counts as lethal for assignment. That 7 damage is marked on Baron Sengir but Withstand Death's indestructible means damage won't destroy it, so Baron Sengir survives.\n3. Baron Sengir deals 7 damage to Goblin Piker, but because of Grafted Exoskeleton's infect, that damage is dealt as seven -1/-1 counters instead. Infect damage is still damage in all respects [Grafted Exoskeleton ruling #2]. Goblin Piker is 9/8, so with seven -1/-1 counters it's a 2/1 and survives combat. Those -1/-1 counters stay on it permanently — they don't wear off at end of turn [Grafted Exoskeleton ruling #6].\n4. When the turn ends, Enlarge's \"+7/+7 until end of turn\" wears off in the cleanup step. Goblin Piker goes back to base 2/1 but still has the seven -1/-1 counters, making it -5/-6. Its toughness is 0 or less, so it dies immediately as a state-based action (indestructible wouldn't have saved it either, per Withstand Death's own reminder text about 0-or-less toughness).\n5. Goblin Piker was dealt damage by Baron Sengir this turn (infect damage is damage), so Baron Sengir's triggered ability triggers when Goblin Piker dies, and a +2/+2 counter is put on Baron Sengir. Baron Sengir's marked damage also wears off during that cleanup step, and Withstand Death's indestructible ends, but Baron Sengir has no damage left on it and remains on the battlefield, now larger.\n\nTiming note: I assumed damage was dealt in the normal combat damage step with all three effects (Enlarge, Grafted Exoskeleton, Withstand Death) already applying. If Withstand Death had been cast after combat damage, Baron Sengir would have been destroyed by 7 damage before end of turn instead, and only Goblin Piker's end-of-turn death would remain (with no Baron Sengir around to get a counter). Nothing here depends on the player count: with more than two players the only difference is that the trample damage goes to whichever player or planeswalker Goblin Piker was attacking.\n\nCard data from Scryfall (scryfall.com).",
+    "citations": [
+      "Enlarge",
+      "Goblin Piker",
+      "Baron Sengir",
+      "Grafted Exoskeleton",
+      "Withstand Death",
+      "Grafted Exoskeleton ruling #2",
+      "Grafted Exoskeleton ruling #6"
+    ],
+    "gold": [
+      "514.2",
+      "514.3a",
+      "704.5f"
+    ],
+    "gold_text": {
+      "514.2": "Second, the following actions happen simultaneously: all damage marked on permanents (including phased-out permanents) is removed and all “until end of turn” and “this turn” effects end. This turn-based action doesn’t use the stack.",
+      "514.3a": "Normally, no player receives priority during the cleanup step, so no spells can be cast and no abilities can be activated. However, this rule is subject to the following exception: At this point, the game checks to see if any state-based actions would be performed and/or any triggered abilities are waiting to be put onto the stack (including those that trigger “at the beginning of the next cleanup step”). If so, those state-based actions are performed, then those triggered abilities are put on the stack, then the active player gets priority. Players may cast spells and activate abilities. Once the stack is empty and all players pass in succession, another cleanup step begins.",
+      "704.5f": "The state-based actions are as follows: If a creature has toughness 0 or less, it’s put into its owner’s graveyard. Regeneration can’t replace this event."
+    },
+    "cited_text": {},
+    "rewrite_queries": [],
+    "clarification": null,
+    "retrieved_rule_ids": [],
+    "prompt_supplied_rule_ids": [
+      "613.6",
+      "613.8a"
+    ],
+    "stop_reason": "end_turn",
+    "tool_calls": null,
+    "tool_rounds": null,
+    "usage": {
+      "input_tokens": 6515,
+      "output_tokens": 1957,
+      "cache_read_input_tokens": 0,
+      "cache_creation_input_tokens": 0
+    },
+    "system_version": 3,
+    "layers_tool": true,
+    "max_tokens": 32768,
+    "effort": "low",
+    "answer_gold": "The effect from Enlarge wears off, but the -1/-1 counters on Goblin Piker remain. Goblin Piker dies. It was dealt damage that turn by Baron Sengir, so Baron Sengir triggers."
+  },
+  {
+    "id": "rg497",
+    "question": "Niko has a [Skullbriar, the Walking Grave] in their graveyard with 2 +1/+1 counters on it. Ashley controls [Containment Priest], and casts [Ghastly Conscription], targeting Niko. What happens?",
+    "match": "any",
+    "kind": "other",
+    "show_rewrite": false,
+    "rewrite_version": "none",
+    "ruling_query_mode": "union",
+    "condition": "B",
+    "run": null,
+    "model": "claude-opus-5",
+    "prompts_cache": "evals\\answers\\_prompts_ab_placebo.json",
+    "prompts_cache_sha256": "de596eebb57f6fc1e1ca3b60fb08e3b9a0ce61059d06c9725c693aa0b882467f",
+    "answered": true,
+    "answer": "Ashley's Ghastly Conscription resolves, but every card it would manifest ends up exiled by Containment Priest instead — including Niko's Skullbriar, the Walking Grave. Nothing enters the battlefield for Ashley.\n\nStep by step:\n\n1. Ghastly Conscription exiles all creature cards from Niko's graveyard in a face-down pile, shuffles that pile, then manifests those cards — Ashley would put them onto the battlefield face down as 2/2 creatures under Ashley's control.\n2. A manifested permanent is a 2/2 creature with no name, mana cost, creature types, or abilities [Ghastly Conscription ruling #8]. So each card is a nontoken creature that would enter the battlefield without having been cast — exactly what Containment Priest replaces: \"If a nontoken creature would enter and it wasn't cast, exile it instead.\" Manifesting is not casting, so Containment Priest applies. (Compare [Containment Priest ruling #3]: what matters is whether the object is a creature as it enters, which a manifested card is.)\n3. Therefore Skullbriar, the Walking Grave and every other creature card from Niko's graveyard are exiled rather than put onto the battlefield. Skullbriar, the Walking Grave never becomes a face-down 2/2 on the battlefield, so Ashley never gets the option to turn it face up for its mana cost {B}{G} [Ghastly Conscription ruling #2].\n4. Counters: Skullbriar, the Walking Grave's third ability (\"Counters remain on Skullbriar as it moves to any zone other than a player's hand or library\") works only if it has that ability in the zone it's moving from [Skullbriar, the Walking Grave ruling #1], and it applies to all counter kinds [Skullbriar, the Walking Grave ruling #5]. It had that ability in Niko's graveyard, so the 2 +1/+1 counters stay with it as it goes to exile, and it's a 2/2 in exile [Skullbriar, the Walking Grave ruling #2]. Note that once it left the graveyard it became a new object with no relation to its previous existence [Skullbriar, the Walking Grave ruling #3]; while face down it has no abilities, so the counters won't survive a further zone change unless it has the ability in the zone it next moves from.\n5. Ownership is unchanged: Skullbriar, the Walking Grave sits in exile as a card Niko owns.\n\nTiming assumption: I'm assuming Containment Priest is already on the battlefield when Ghastly Conscription resolves (as stated). If Containment Priest instead entered or was flashed in after the manifest had already happened, the manifested creatures would already be on the battlefield and would not be exiled — Containment Priest only replaces entry events that occur while it's on the battlefield.\n\nPlayer count doesn't matter here: Ghastly Conscription targets one player (Niko), and Containment Priest's replacement effect applies to any nontoken creature entering. The provided rules add nothing that changes this between a two-player game and a larger table.\n\nCard data from Scryfall (scryfall.com).",
+    "citations": [
+      "Ghastly Conscription ruling #8",
+      "Ghastly Conscription ruling #2",
+      "Containment Priest ruling #3",
+      "Skullbriar, the Walking Grave ruling #1",
+      "Skullbriar, the Walking Grave ruling #2",
+      "Skullbriar, the Walking Grave ruling #3",
+      "Skullbriar, the Walking Grave ruling #5",
+      "Containment Priest",
+      "Ghastly Conscription",
+      "Skullbriar, the Walking Grave"
+    ],
+    "gold": [
+      "122.2",
+      "406.7",
+      "701.40a"
+    ],
+    "gold_text": {
+      "122.2": "Counters on an object are not retained if that object moves from one zone to another. The counters are not “removed”; they simply cease to exist. See rule 400.7.",
+      "406.7": "If an object in the exile zone becomes exiled, it doesn’t change zones, but it becomes a new object that has just been exiled.",
+      "701.40a": "Manifest To manifest a card, turn it face down. It becomes a 2/2 face-down creature card with no text, no name, no subtypes, and no mana cost. Put that card onto the battlefield face down. That permanent is a manifested permanent for as long as it remains face down. The effect defining its characteristics works while the card is face down and ends when it’s turned face up."
+    },
+    "cited_text": {},
+    "rewrite_queries": [],
+    "clarification": null,
+    "retrieved_rule_ids": [],
+    "prompt_supplied_rule_ids": [
+      "613.6",
+      "613.8a"
+    ],
+    "stop_reason": "end_turn",
+    "tool_calls": null,
+    "tool_rounds": null,
+    "usage": {
+      "input_tokens": 7129,
+      "output_tokens": 1879,
+      "cache_read_input_tokens": 0,
+      "cache_creation_input_tokens": 0
+    },
+    "system_version": 3,
+    "layers_tool": true,
+    "max_tokens": 32768,
+    "effort": "low",
+    "answer_gold": "In order for counters to remain on Skullbriar, the Walking Grave, it needs to have that ability immediately before it changes zones. It did have that ability in the graveyard, so it is exiled face down with the +1/+1 counters remaining on it during that change. It then attempts to enter the battlefield, but remains in exile instead due to Containment Priest. Since it becomes a new object, it will be face-up in exile. However it didn't change zones, so the counters will remain on it in exile."
+  },
+  {
+    "id": "rg557",
+    "question": "Ashley controls [Skill Borrower] and [Sensei's Divining Top]. The top card of their library is a [Putrid Leech]. Ashley activates Skill Borrower's ability, then activates Sensei's Divining Top's first ability, choosing to put Putrid Leech second from the top. Then they activate Sensei's Divining Top again, putting Putrid Leech back on top. Can Ashley activate Skill Borrower's ability again?",
+    "match": "any",
+    "kind": "other",
+    "show_rewrite": false,
+    "rewrite_version": "none",
+    "ruling_query_mode": "union",
+    "condition": "B",
+    "run": null,
+    "model": "claude-opus-5",
+    "prompts_cache": "evals\\answers\\_prompts_ab_placebo.json",
+    "prompts_cache_sha256": "de596eebb57f6fc1e1ca3b60fb08e3b9a0ce61059d06c9725c693aa0b882467f",
+    "answered": true,
+    "answer": "No — Ashley can't activate the Putrid Leech ability a second time this turn. Putrid Leech's own text says \"Pay 2 life: This creature gets +2/+2 until end of turn. Activate only once each turn.\" That restriction is part of the ability Skill Borrower gains, so it limits Skill Borrower to one activation of that ability per turn; shuffling Putrid Leech off the top and back on top doesn't reset it, because the limit is on activating the ability during the turn, not on how long Skill Borrower has had it. Printed card text like \"Activate only once each turn\" governs here.\n\nDetails and assumptions:\n- Skill Borrower has all activated abilities of the top card of Ashley's library while that card is an artifact or creature card, so with Putrid Leech on top it has \"Pay 2 life: This creature gets +2/+2 until end of turn. Activate only once each turn\" (paying 2 life is a cost, and the colon marks it as an activated ability) [Skill Borrower ruling #2].\n- The first activation resolved (or at least was activated) legally. Note that if the top card had changed while Ashley was in the middle of activating it, the ability would still be activated and resolve normally even though Skill Borrower lost it [Skill Borrower ruling #4] — so the activation still \"counts\" for the once-per-turn limit.\n- The +2/+2 is a modification, not a set value, so it applies in layer 7c and makes Skill Borrower 3/5 until end of turn [613.4c].\n- Sensei's Divining Top's first ability ({1}: look at top three, put back in any order) only rearranges the library; it doesn't reset any activation limits [Sensei's Divining Top ruling #0].\n- Timing note: I'm assuming Ashley activated the Putrid Leech ability via Skill Borrower before manipulating the library. If instead Ashley never actually activated it (e.g., only intended to), then once Putrid Leech is back on top Ashley may activate it for the first time this turn normally.\n- Nothing here depends on player count; the answer is the same in two-player and multiplayer games.\n\nCard data from Scryfall (scryfall.com).",
+    "citations": [
+      "Skill Borrower ruling #2",
+      "Skill Borrower ruling #4",
+      "Sensei's Divining Top ruling #0",
+      "613.4c"
+    ],
+    "gold": [
+      "401.6",
+      "602.5c"
+    ],
+    "gold_text": {
+      "401.6": "If an effect causes a player to play with the top card of their library revealed, and that particular card stops being revealed for any length of time before being revealed again, it becomes a new object.",
+      "602.5c": "A player can’t begin to activate an ability that’s prohibited from being activated. If an object acquires an activated ability with a restriction on its use from another object, that restriction applies only to that ability as acquired from that object. It doesn’t apply to other, identically worded abilities."
+    },
+    "cited_text": {
+      "613.4c": "Within layer 7, apply effects in a series of sublayers in the order described below. Within each sublayer, apply effects in timestamp order. (See rule 613.7.) Note that dependency may alter the order in which effects are applied within a sublayer. (See rule 613.8.) Layer 7c: Effects and counters that modify power and/or toughness (but don’t set power and/or toughness to a specific number or value) are applied."
+    },
+    "rewrite_queries": [],
+    "clarification": null,
+    "retrieved_rule_ids": [],
+    "prompt_supplied_rule_ids": [
+      "613.6",
+      "613.8a"
+    ],
+    "stop_reason": "end_turn",
+    "tool_calls": null,
+    "tool_rounds": null,
+    "usage": {
+      "input_tokens": 5892,
+      "output_tokens": 1290,
+      "cache_read_input_tokens": 0,
+      "cache_creation_input_tokens": 0
+    },
+    "system_version": 3,
+    "layers_tool": true,
+    "max_tokens": 32768,
+    "effort": "low",
+    "answer_gold": "Yes. Putrid Leech stopped being revealed for a time, so it is no longer the same object that it was before. Skill Borrower has a new ability that just has the same text as the ability that was activated earlier."
+  },
+  {
+    "id": "rg62",
+    "question": "Noah controls a [Mons's Goblin Raiders] enchanted with a [Spider Umbra]. Alexandra casts [Yamabushi's Flame], targeting Mons's Goblin Raiders. What happens?",
+    "match": "any",
+    "kind": "other",
+    "show_rewrite": false,
+    "rewrite_version": "none",
+    "ruling_query_mode": "union",
+    "condition": "B",
+    "run": null,
+    "model": "claude-opus-5",
+    "prompts_cache": "evals\\answers\\_prompts_ab_placebo.json",
+    "prompts_cache_sha256": "de596eebb57f6fc1e1ca3b60fb08e3b9a0ce61059d06c9725c693aa0b882467f",
+    "answered": true,
+    "answer": "Mons's Goblin Raiders survives. Spider Umbra is destroyed instead, and Mons's Goblin Raiders is not exiled.\n\nDetails:\n- With Spider Umbra attached, Mons's Goblin Raiders is a 2/2 (1/1 plus +1/+1). Yamabushi's Flame deals 3 damage to it, which is lethal damage, so Mons's Goblin Raiders would be destroyed.\n- Umbra armor (the ability on Spider Umbra) is a mandatory replacement: instead of Mons's Goblin Raiders being destroyed, all damage is removed from Mons's Goblin Raiders and Spider Umbra is destroyed [Spider Umbra ruling #4], [Spider Umbra ruling #6]. Here it's the game's lethal-damage rules, not Yamabushi's Flame itself, that cause Spider Umbra to be destroyed [Spider Umbra ruling #0].\n- Because Mons's Goblin Raiders never dies, Yamabushi's Flame's exile clause (\"If a creature dealt damage this way would die this turn, exile it instead\") never applies to it. Note that clause remains active for the rest of the turn: if Mons's Goblin Raiders would die later this turn (and no other umbra armor Aura saves it), it is exiled instead.\n- Afterward Mons's Goblin Raiders is back to 1/1 with no damage marked on it, since umbra armor removed all damage. Umbra armor is not regeneration, so Mons's Goblin Raiders is not tapped and isn't removed from combat [Spider Umbra ruling #3].\n- If Mons's Goblin Raiders somehow had indestructible, umbra armor would do nothing because the damage simply wouldn't destroy it, and Spider Umbra would stay [Spider Umbra ruling #2].\n\nNothing here depends on the number of players, so the answer is the same in a two-player game or a multiplayer game.\n\nCard data from Scryfall (scryfall.com).",
+    "citations": [
+      "Spider Umbra ruling #0",
+      "Spider Umbra ruling #2",
+      "Spider Umbra ruling #3",
+      "Spider Umbra ruling #4",
+      "Spider Umbra ruling #6",
+      "Yamabushi's Flame",
+      "Spider Umbra",
+      "Mons's Goblin Raiders"
+    ],
+    "gold": [
+      "616.1g",
+      "701.8a",
+      "702.89a"
+    ],
+    "gold_text": {
+      "616.1g": "If two or more replacement and/or prevention effects are attempting to modify the way an event affects an object or player, the affected object’s controller (or its owner if it has no controller) or the affected player chooses one to apply, following the steps listed below. If two or more players have to make these choices at the same time, choices are made in APNAP order (see rule 101.4). While following the steps in 616.1a–f, one replacement or prevention effect may apply to an event, and another may apply to an event contained within the first event. In this case, the second effect can’t be chosen until after the first effect has been chosen. A player is instructed to create a token that’s a copy of Voice of All, which has the ability “As this creature enters, choose a color.” Doubling Season has an ability that reads “If an effect would create one or more tokens under your control, it creates twice that many of those tokens instead.” Because entering the battlefield is an event contained within the event of creating a token, the effect of Doubling Season must be applied first, and then the effects of the two Voice of All tokens may be applied in either order.",
+      "701.8a": "Destroy To destroy a permanent, move it from the battlefield to its owner’s graveyard.",
+      "702.89a": "Umbra Armor Umbra armor is a static ability that appears on some Auras. “Umbra armor” means “If enchanted permanent would be destroyed, instead remove all damage marked on it and destroy this Aura.”"
+    },
+    "cited_text": {},
+    "rewrite_queries": [],
+    "clarification": null,
+    "retrieved_rule_ids": [],
+    "prompt_supplied_rule_ids": [
+      "613.6",
+      "613.8a"
+    ],
+    "stop_reason": "end_turn",
+    "tool_calls": null,
+    "tool_rounds": null,
+    "usage": {
+      "input_tokens": 5723,
+      "output_tokens": 1160,
+      "cache_read_input_tokens": 0,
+      "cache_creation_input_tokens": 0
+    },
+    "system_version": 3,
+    "layers_tool": true,
+    "max_tokens": 32768,
+    "effort": "low",
+    "answer_gold": "Spider Umbra is destroyed and Mons's Goblin Raiders remains on the battlefield.\n\nThere are two replacement effects trying to apply to the same event. Umbra armor is attempting to replace the destruction of the creature, while Yamabushi's Flame's effect is attempting to replace where the creature moves to. The \"move to the graveyard\" event is a part of the \"destroy\" event, so the umbra armor replacement effect must apply first. Once that effect has been applied, the creature is no longer about to die, so there are no more effects to apply.\n\nIf the Mons's Goblin Raiders would die later in the turn, the Yamabushi's Flame's replacement effect will apply at that time and cause it to move to exile instead of the graveyard."
+  },
+  {
+    "id": "rg6556",
+    "question": "At the beginning of the game, Alex announced [Kaheera, the Orphanguard] as their companion. During the game, Alex cast [Carrion Grub] from their sideboard with [Wish]. Later, Alex restarts the game with [Karn Liberated]. What happens?",
+    "match": "any",
+    "kind": "other",
+    "show_rewrite": false,
+    "rewrite_version": "none",
+    "ruling_query_mode": "union",
+    "condition": "B",
+    "run": null,
+    "model": "claude-opus-5",
+    "prompts_cache": "evals\\answers\\_prompts_ab_placebo.json",
+    "prompts_cache_sha256": "de596eebb57f6fc1e1ca3b60fb08e3b9a0ce61059d06c9725c693aa0b882467f",
+    "answered": true,
+    "answer": "Short answer: the restart begins a brand-new game, so Alex gets to go through the pregame procedure again — including revealing Kaheera, the Orphanguard as a companion once more — and the {3} companion special action is available again because it's \"once per game\" and this is a new game. Carrion Grub, which Alex brought in from outside the game with Wish, is not one of the cards that stays in exile, so it doesn't come back onto the battlefield with Karn Liberated's ability.\n\nDetails:\n\n1. Restarting ends the old game entirely. Karn Liberated's −14 immediately ends the preceding game with no winner or loser, and the players immediately begin a new one [Karn Liberated ruling #12]. Nothing that happened in the old game carries over [Karn Liberated ruling #1]. Each player shuffles their deck, resets to the starting life total, draws seven, and may mulligan; Karn Liberated's controller (Alex) is the starting player [Karn Liberated ruling #9]. Players may not move cards between deck and sideboard before the new game [Karn Liberated ruling #5].\n\n2. Kaheera, the Orphanguard can be announced again. Companions are revealed as part of the pregame procedure, before shuffling, with the starting player revealing first and then in turn order [Kaheera, the Orphanguard ruling #0, Kaheera, the Orphanguard ruling #3]. Since the new game has its own pregame procedure, Alex may again reveal Kaheera, the Orphanguard from outside the game, and the once-per-game {3} special action to put it into hand is likewise fresh [Kaheera, the Orphanguard ruling #14, Kaheera, the Orphanguard ruling #5]. Note the companion requirement checks only Alex's starting deck, not the sideboard [Kaheera, the Orphanguard ruling #2] — so Carrion Grub (an Insect) sitting in the sideboard never broke the requirement and doesn't now.\n\n3. Carrion Grub. Only non-Aura permanent cards that were exiled by Karn Liberated's +4 or −3 abilities stay in exile and are put onto the battlefield under Alex's control after the restart; those pairs of abilities are linked [Karn Liberated ruling #6, Karn Liberated ruling #4]. Carrion Grub was cast off Wish, not exiled with Karn Liberated, so it isn't among those cards and gets no special treatment. Once played from outside the game it was simply a card in the game like any other [Kaheera, the Orphanguard ruling #11, Wish ruling #0], and the new game is set up fresh with each player's deck and sideboard as they were, since cards can't be shifted between them [Karn Liberated ruling #5]. The provided material doesn't spell out the exact zone Carrion Grub ends up in for the new game beyond that; if Alex still wants it, Alex would need another Wish-style effect. (If, alternatively, Karn Liberated had exiled Carrion Grub with +4 or −3 before the restart, it would remain in exile and be put onto the battlefield under Alex's control, having been continuously controlled since the start of Alex's first turn — able to attack and use {T} abilities [Karn Liberated ruling #2].)\n\n4. Table size: with exactly two players, the above is all that applies. At a multiplayer table, any player who had already left the game before the restart is not part of the new game [Karn Liberated ruling #11], and companion reveals proceed from the starting player in turn order [Kaheera, the Orphanguard ruling #3].\n\nCard data from Scryfall (scryfall.com).",
+    "citations": [
+      "Karn Liberated ruling #12",
+      "Karn Liberated ruling #1",
+      "Karn Liberated ruling #9",
+      "Karn Liberated ruling #5",
+      "Karn Liberated ruling #4",
+      "Karn Liberated ruling #6",
+      "Karn Liberated ruling #2",
+      "Karn Liberated ruling #11",
+      "Kaheera, the Orphanguard ruling #0",
+      "Kaheera, the Orphanguard ruling #2",
+      "Kaheera, the Orphanguard ruling #3",
+      "Kaheera, the Orphanguard ruling #5",
+      "Kaheera, the Orphanguard ruling #11",
+      "Kaheera, the Orphanguard ruling #14",
+      "Wish ruling #0"
+    ],
+    "gold": [
+      "103.2b",
+      "726.2"
+    ],
+    "gold_text": {
+      "103.2b": "Some games require additional steps that are taken after the starting player has been determined. Perform the actions listed in 103.2a–e in order, as applicable. If any players wish to reveal a card with a companion ability that they own from outside the game, they may do so. A player may reveal no more than one card this way, and they may do so only if their deck fulfills the condition of that card’s companion ability. The revealed card remains outside the game. (See rule 702.139, “Companion.”)",
+      "726.2": "There are three inherent triggered abilities associated with having the initiative. These triggered abilities have no source and are controlled by the player who had the initiative at the time the abilities triggered. This is an exception to rule 113.8. The full text of these abilities are “At the beginning of the upkeep of the player who has the initiative, that player ventures into Undercity,” “Whenever one or more creatures a player controls deal combat damage to the player who has the initiative, the controller of those creatures takes the initiative,” and “Whenever a player takes the initiative, that player ventures into Undercity.” See rule 701.49, “Venture into the Dungeon.”"
+    },
+    "cited_text": {},
+    "rewrite_queries": [],
+    "clarification": null,
+    "retrieved_rule_ids": [],
+    "prompt_supplied_rule_ids": [
+      "613.6",
+      "613.8a"
+    ],
+    "stop_reason": "end_turn",
+    "tool_calls": null,
+    "tool_rounds": null,
+    "usage": {
+      "input_tokens": 7922,
+      "output_tokens": 2173,
+      "cache_read_input_tokens": 0,
+      "cache_creation_input_tokens": 0
+    },
+    "system_version": 3,
+    "layers_tool": true,
+    "max_tokens": 32768,
+    "effort": "low",
+    "answer_gold": "Carrion Grub will be shuffled into Alex's library along with the rest of the cards in the game. Because Carrion Grub violates Kaheera, the Orphanguard's companion restriction, Alex can't announce it as their companion for the restarted game."
+  }
+]
