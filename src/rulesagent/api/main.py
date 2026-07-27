@@ -44,8 +44,8 @@ from rulesagent.demo_auth import (
     COOKIE_MAX_AGE_S, hash_ip, ip_hash_salt, session_secret, sign_session, verify_session,
 )
 from rulesagent.demo_db import (
-    DEFAULT_DEMO_DB, code_stats, count_queries, daily_spend, events_for_code, get_code_by_id,
-    get_code_by_value, list_codes, log_event,
+    DEFAULT_DEMO_DB, code_stats, count_queries, create_code, daily_spend, events_for_code,
+    generate_code, get_code_by_id, get_code_by_value, list_codes, log_event, revoke_code,
 )
 from rulesagent.generate.answer import GEN_EFFORT, PROMPT_VERSION, RulesAgent
 from rulesagent.index.store import VectorStore
@@ -64,6 +64,24 @@ DAILY_BUDGET_USD_DEFAULT = 5.0
 # sets DAILY_BUDGET_USD as a Fly secret from that number before the demo
 # goes live -- read here at request time (os.environ.get, not a
 # module-load-time constant), so changing it needs no redeploy.
+
+MEASURED_MEAN_COST_PER_QUERY_USD = 0.0485
+# Task 12's real-pipeline measurement (mean $/query). This is an ESTIMATE for
+# budget-planning display on the mint form, not a guarantee -- individual
+# queries vary (Task 12 also measured a max of MEASURED_MAX_COST_PER_QUERY_USD
+# below). Never used to enforce anything; the daily breaker enforces off
+# actual cost_usd.
+MEASURED_MAX_COST_PER_QUERY_USD = 0.0648
+# Task 12's real-pipeline measurement (max $/query seen). Informs
+# MAX_QUERIES_CEILING's rationale below, not itself enforced.
+
+MAX_QUERIES_CEILING = 500
+# At $0.0485/query (measured mean), a fat-fingered 2500 instead of 250 is
+# roughly $121 of exposure on a single code. The daily budget breaker would
+# eventually stop it, but only by taking the WHOLE demo offline for the rest
+# of the UTC day -- a bad way to discover a typo. 500 queries is about $24 at
+# the measured mean, a defensible ceiling for a single demo code; mint a
+# second code if more capacity is genuinely needed.
 
 UNPRICED_QUERY_ESTIMATE_USD = 0.15
 # Fix round 1: an upper-bound STAND-IN for one query whose cost_usd came
@@ -949,6 +967,53 @@ def _verify_admin_session(token: str | None, secret: str) -> bool:
     return code_id == ADMIN_SESSION_MARKER
 
 
+def _admin_authed(authorization: str | None, admin_session: str | None) -> bool:
+    """The exact same either-Bearer-or-cookie check admin_demo_view already
+    does, factored out so the mint/revoke POST routes below gate identically
+    -- one auth decision, not a second copy that could drift out of sync.
+    A demo visitor's own signed session cookie fails this the same way it
+    fails admin_demo_view (test_demo_visitor_session_cookie_does_not_grant_admin):
+    it verifies fine as a *visitor* session but never as ADMIN_SESSION_MARKER."""
+    if _admin_bearer_ok(authorization):
+        return True
+    secret = session_secret()
+    cookie_val = admin_session if isinstance(admin_session, str) else None
+    return bool(secret and _verify_admin_session(cookie_val, secret))
+
+
+def _validate_label(label: str) -> str | None:
+    """Same rule scripts/codes.py's _cmd_new already applies: non-empty
+    after stripping. Returns an error message, or None if valid."""
+    if not label or not label.strip():
+        return "Label can't be empty -- Jon needs to know who holds this code."
+    return None
+
+
+def _validate_max_queries(raw: str) -> tuple[int | None, str | None]:
+    """Parses and validates the query cap from the mint form. Returns
+    (value, error) -- exactly one is None. Rejects non-integers (including
+    things like "25.5" that Python's int() would also reject), zero,
+    negatives, and anything over MAX_QUERIES_CEILING (see that constant's
+    comment for why the ceiling exists). Deliberately NOT `max_queries: int
+    = Form(...)` on the route -- FastAPI's own int-coercion 422 is a bare
+    JSON error, not the friendly re-rendered form with a clear message this
+    needs."""
+    try:
+        value = int(str(raw).strip())
+    except (TypeError, ValueError):
+        return None, "Max queries must be a whole number."
+    if value <= 0:
+        return None, "Max queries must be greater than zero."
+    if value > MAX_QUERIES_CEILING:
+        est = MAX_QUERIES_CEILING * MEASURED_MEAN_COST_PER_QUERY_USD
+        return None, (
+            f"Max queries can't exceed {MAX_QUERIES_CEILING} (about ${est:.2f} "
+            "at the measured mean cost per query). Mint a second code if you "
+            "need more capacity."
+        )
+    return value, None
+
+
 def _require_admin_login_config() -> tuple[str, str]:
     """Fail-closed guard for POST /admin/login, same shape as
     _require_admin_token / _require_demo_config: refuse with 503 rather than
@@ -1304,17 +1369,28 @@ def admin_demo_view(
     # login form. Neither branch below (nor _admin_login_page) ever touches
     # list_codes/code_stats/events_for_code, so no code, label, question, or
     # count can leak into an unauthenticated response.
-    if not _admin_bearer_ok(authorization):
-        secret = session_secret()
-        # Same DI-vs-direct-call guard as answer()'s `session` param above
-        # (main.py:690): FastAPI injects a real str|None when this route
-        # runs through the app, but the test suite calls admin_demo_view()
-        # directly without ever passing admin_session, leaving it as the
-        # Cookie(...) field-info sentinel rather than None.
-        cookie_val = admin_session if isinstance(admin_session, str) else None
-        if not (secret and _verify_admin_session(cookie_val, secret)):
-            return _admin_login_page()
+    # Same DI-vs-direct-call guard as answer()'s `session` param above
+    # (main.py:690): FastAPI injects a real str|None when this route runs
+    # through the app, but the test suite calls admin_demo_view() directly
+    # without ever passing admin_session, leaving it as the Cookie(...)
+    # field-info sentinel rather than None -- _admin_authed handles that.
+    if not _admin_authed(authorization, admin_session):
+        return _admin_login_page()
 
+    return HTMLResponse(content=_admin_page_html())
+
+
+def _admin_page_html(minted: dict | None = None, error: str | None = None) -> str:
+    """Builds the /admin dashboard body -- codes table, per-code question
+    detail, and (Task: admin mint/revoke) the mint form and per-row revoke
+    control. Shared by admin_demo_view (plain GET) and the mint/revoke POST
+    handlers below, so there is exactly one page template, not three
+    near-copies that could drift. `minted` is the just-created code dict
+    (shown once, prominently) after a successful mint; `error` is a
+    validation message re-rendered after a rejected mint. Neither parameter
+    ever carries anything that wasn't already going to be in the page --
+    this function still never touches list_codes/code_stats/events_for_code
+    until the caller has already confirmed auth."""
     today = datetime.now(timezone.utc).date().isoformat()
     budget = float(os.environ.get("DAILY_BUDGET_USD", DAILY_BUDGET_USD_DEFAULT))
     # Same function the /answer breaker calls (_todays_spend, defined above)
@@ -1338,6 +1414,18 @@ def admin_demo_view(
         # code_stats() never raises on that, and first/last seen fall back to
         # the "–" placeholder from _fmt_ts. The row renders, it doesn't
         # vanish.
+        # Revoke control: a tiny same-origin POST form per row, gated by the
+        # exact same admin auth (_admin_authed) as every other admin action
+        # -- the button carries no privilege of its own, the cookie/bearer
+        # check on the route does. Disabled once already revoked so a
+        # double-click can't matter either way (revoke_code's own WHERE
+        # revoked_at IS NULL already makes a second revoke a no-op).
+        revoke_btn = (
+            '<span class="already-revoked">revoked</span>' if status == "revoked" else
+            f'<form method="post" action="/admin/codes/revoke" class="revoke-form">'
+            f'<input type="hidden" name="code_id" value="{code["id"]}" />'
+            f'<button type="submit" class="btn-revoke">Revoke</button></form>'
+        )
         summary_rows.append(f"""
         <tr>
           <td>{label}</td>
@@ -1349,6 +1437,7 @@ def admin_demo_view(
           <td>${stats["total_cost"]:.2f}</td>
           <td>{_fmt_ts(stats["first_seen"])}</td>
           <td>{_fmt_ts(stats["last_seen"])}</td>
+          <td>{revoke_btn}</td>
         </tr>""")
 
         events = events_for_code(DEMO_DB, code["id"])
@@ -1372,13 +1461,43 @@ def admin_demo_view(
 
     if not codes:
         table_body = (
-            '<tr><td colspan="9" class="empty-row">No codes minted yet. '
-            'Run <code>scripts/codes.py</code> to create one.</td></tr>'
+            '<tr><td colspan="10" class="empty-row">No codes minted yet. '
+            'Mint one below.</td></tr>'
         )
         details_html = ""
     else:
         table_body = "".join(summary_rows)
         details_html = "\n".join(detail_sections)
+
+    # Mint-form pieces (Task: admin mint/revoke). default_est is the
+    # no-JS-fallback estimate for the form's default cap (25); the <script>
+    # below recomputes it live as the operator edits the number field, using
+    # the SAME MEASURED_MEAN_COST_PER_QUERY_USD constant so the two numbers
+    # can never disagree.
+    default_cap = 25
+    default_est = default_cap * MEASURED_MEAN_COST_PER_QUERY_USD
+    ceiling_est = MAX_QUERIES_CEILING * MEASURED_MEAN_COST_PER_QUERY_USD
+
+    minted_html = ""
+    if minted is not None:
+        # Shown once -- this response is the only place the plaintext code
+        # is ever displayed after creation; list_codes/admin table rows only
+        # ever show it again as the same already-minted value, ie it isn't
+        # "secret" past this point in the sense of being unguessable, but
+        # there's no second reveal-it-big moment. Monospace, large, high
+        # contrast, and set apart from the table so Jon can read it aloud or
+        # paste it into an email without misreading a character.
+        m_code = _html.escape(minted["code"])
+        m_label = _html.escape(minted["label"])
+        minted_html = f"""
+        <div class="minted-banner" role="status">
+          <p>New code minted for <strong>{m_label}</strong> -- copy it now, it won't be shown this large again:</p>
+          <p class="minted-code">{m_code}</p>
+        </div>"""
+
+    error_html = ""
+    if error:
+        error_html = f'<p class="form-error" role="alert">{_html.escape(error)}</p>'
 
     body = f"""<!doctype html>
 <html lang="en">
@@ -1436,9 +1555,48 @@ def admin_demo_view(
   .questions .q-cost {{ color: var(--sigil); font-size: var(--fs-xs); flex-shrink: 0; }}
   .questions .q-text {{ color: var(--fg-primary); font-size: var(--fs-sm); }}
   .questions .empty {{ color: var(--fg-subtle); font-style: italic; }}
+  .btn-revoke {{ padding: 0.35rem 0.75rem; font-size: var(--fs-xs); font-weight: var(--fw-medium);
+                 font-family: var(--font-sans); background: transparent; color: var(--status-red);
+                 border: 1px solid var(--status-red); border-radius: var(--radius-md);
+                 cursor: pointer; transition: background var(--t-fast); white-space: nowrap; }}
+  .btn-revoke:hover {{ background: rgba(224,80,80,0.12); }}
+  .btn-revoke:focus-visible {{ outline: 2px solid var(--accent); outline-offset: 2px; }}
+  .already-revoked {{ color: var(--fg-subtle); font-size: var(--fs-xs); font-style: italic; }}
+  .revoke-form {{ margin: 0; }}
+  .mint-card {{ background: var(--bg-card); border: 1px solid var(--border-default);
+                border-radius: var(--radius-lg); padding: var(--space-4) var(--space-5);
+                margin-bottom: var(--space-5); }}
+  .mint-form {{ display: flex; gap: var(--space-4); align-items: flex-end; flex-wrap: wrap; }}
+  .mint-field {{ display: flex; flex-direction: column; gap: var(--space-1); }}
+  .mint-field label {{ font-size: var(--fs-sm); font-weight: var(--fw-medium); color: var(--fg-secondary); }}
+  .mint-field input {{ padding: 0.6rem 0.85rem; font-size: var(--fs-base); font-family: var(--font-mono);
+                        background: var(--bg-elevated); border: 1px solid var(--border-default);
+                        border-radius: var(--radius-md); color: var(--fg-primary); min-width: 0; }}
+  #mint-label {{ font-family: var(--font-sans); min-width: 220px; }}
+  #mint-cap {{ width: 8ch; }}
+  .mint-field input:focus-visible {{ outline: 2px solid var(--accent); outline-offset: 2px;
+                                      border-color: var(--accent); }}
+  .cap-estimate {{ color: var(--fg-secondary); font-size: var(--fs-xs); align-self: center; }}
+  .mint-submit {{ padding: 0.65rem 1.1rem; font-size: var(--fs-base); font-weight: var(--fw-semibold);
+                  font-family: var(--font-sans); background: var(--plum-500); color: var(--fg-on-garnet, #fff);
+                  border: none; border-radius: var(--radius-md); cursor: pointer;
+                  transition: background var(--t-fast); }}
+  .mint-submit:hover {{ background: var(--plum-600); }}
+  .mint-submit:focus-visible {{ outline: 2px solid var(--accent); outline-offset: 2px; }}
+  .form-error {{ margin: var(--space-3) 0 0; font-size: var(--fs-sm);
+                 color: color-mix(in srgb, var(--status-red) 80%, white); }}
+  .minted-banner {{ background: var(--bg-card); border: 2px solid var(--sigil);
+                     border-radius: var(--radius-lg); padding: var(--space-4) var(--space-5);
+                     margin-bottom: var(--space-5); }}
+  .minted-banner p {{ margin: 0 0 var(--space-2); color: var(--fg-secondary); font-size: var(--fs-sm); }}
+  .minted-code {{ font-family: var(--font-mono); font-size: var(--fs-2xl); font-weight: var(--fw-semibold);
+                  color: var(--fg-primary); background: var(--bg-muted); border-radius: var(--radius-md);
+                  padding: var(--space-3) var(--space-4); user-select: all; letter-spacing: var(--ls-wide);
+                  word-break: break-all; }}
   @media (max-width: 600px) {{
     body {{ padding: var(--space-3); }}
     h1 {{ font-size: var(--fs-xl); }}
+    .mint-form {{ flex-direction: column; align-items: stretch; }}
   }}
 </style>
 </head>
@@ -1452,12 +1610,53 @@ def admin_demo_view(
     <div class="meter"><div class="meter-fill" style="width:{pct * 100:.1f}%"></div></div>
   </div>
 
+  {minted_html}
+
+  <h2>Mint a code</h2>
+  <div class="mint-card">
+    <form method="post" action="/admin/codes/mint" class="mint-form">
+      <div class="mint-field">
+        <label for="mint-label">Label</label>
+        <input type="text" id="mint-label" name="label" placeholder="Cribl -- Jane R."
+               autocomplete="off" required />
+      </div>
+      <div class="mint-field">
+        <label for="mint-cap">Max queries (1-{MAX_QUERIES_CEILING}, ceiling is about ${ceiling_est:.2f})</label>
+        <input type="number" id="mint-cap" name="max_queries" value="{default_cap}"
+               min="1" max="{MAX_QUERIES_CEILING}" step="1" required />
+      </div>
+      <span class="cap-estimate" id="cap-estimate">about ${default_est:.2f} at ${MEASURED_MEAN_COST_PER_QUERY_USD}/query (measured mean)</span>
+      <button type="submit" class="mint-submit">Mint code</button>
+    </form>
+    {error_html}
+  </div>
+  <script>
+    (function () {{
+      var MEAN_COST = {MEASURED_MEAN_COST_PER_QUERY_USD};
+      var CEILING = {MAX_QUERIES_CEILING};
+      var input = document.getElementById('mint-cap');
+      var out = document.getElementById('cap-estimate');
+      function update() {{
+        var n = parseInt(input.value, 10);
+        if (!isFinite(n) || n <= 0) {{
+          out.textContent = 'enter a whole number from 1 to ' + CEILING;
+          return;
+        }}
+        var est = (n * MEAN_COST).toFixed(2);
+        out.textContent = 'about $' + est + ' at $' + MEAN_COST + '/query (measured mean)'
+          + (n > CEILING ? ' -- exceeds the ' + CEILING + '-query ceiling (about $' + (CEILING * MEAN_COST).toFixed(2) + ')' : '');
+      }}
+      input.addEventListener('input', update);
+      update();
+    }})();
+  </script>
+
   <h2>Codes</h2>
   <div class="table-scroll">
     <table>
       <thead><tr>
         <th>Label</th><th>Code</th><th>Status</th><th>Unlocks</th><th>Queries</th>
-        <th>Remaining</th><th>Total cost</th><th>First seen</th><th>Last seen</th>
+        <th>Remaining</th><th>Total cost</th><th>First seen</th><th>Last seen</th><th>Actions</th>
       </tr></thead>
       <tbody>{table_body}</tbody>
     </table>
@@ -1466,7 +1665,69 @@ def admin_demo_view(
   <h2>Questions by code</h2>
   {details_html or '<p class="empty-row">Nothing to show yet.</p>'}
 </body></html>"""
-    return HTMLResponse(content=body)
+    return body
+
+
+@app.post(
+    "/admin/codes/mint", tags=["ops"], summary="Mint a new demo access code",
+    description="Admin-gated (Bearer or admin session cookie, same as GET /admin). Generates "
+    "a code via the shared word-triplet generator, validates label and max_queries, and "
+    "re-renders the admin page -- 200 with the new code shown once on success, 400 with a "
+    "validation message on rejection, or the login form (401) with nothing minted if "
+    "unauthenticated.",
+    include_in_schema=False,
+)
+def admin_mint_code(
+    label: str = Form(...),
+    max_queries: str = Form(...),
+    authorization: str | None = Header(default=None),
+    admin_session: str | None = Cookie(default=None, alias=ADMIN_COOKIE_NAME),
+) -> HTMLResponse:
+    # Auth first, before touching the DB or even parsing the form fields
+    # further -- an unauthenticated POST must mint nothing (mirrors GET
+    # /admin's ordering, and test_demo_visitor_session_cookie_does_not_grant_admin's
+    # coverage that a visitor's own signed cookie fails this the same way).
+    if not _admin_authed(authorization, admin_session):
+        return _admin_login_page()
+
+    label_error = _validate_label(label)
+    cap_value, cap_error = _validate_max_queries(max_queries)
+    error = label_error or cap_error
+    if error:
+        return HTMLResponse(content=_admin_page_html(error=error), status_code=400)
+
+    # Same collision-avoidance the CLI uses (scripts/codes.py _cmd_new):
+    # check against every code that already exists before generating.
+    existing = {row["code"] for row in list_codes(DEMO_DB)}
+    code = generate_code(existing=existing)
+    clean_label = label.strip()
+    create_code(DEMO_DB, code, clean_label, max_queries=cap_value)
+    minted = {"code": code, "label": clean_label}
+    return HTMLResponse(content=_admin_page_html(minted=minted))
+
+
+@app.post(
+    "/admin/codes/revoke", tags=["ops"], summary="Revoke a demo access code",
+    description="Admin-gated (Bearer or admin session cookie, same as GET /admin). Revokes "
+    "exactly the one code_id posted -- demo_db.revoke_code's own WHERE id = ? scoping means "
+    "no other code is ever touched. Unauthenticated POST revokes nothing.",
+    include_in_schema=False,
+)
+def admin_revoke_code(
+    code_id: str = Form(...),
+    authorization: str | None = Header(default=None),
+    admin_session: str | None = Cookie(default=None, alias=ADMIN_COOKIE_NAME),
+) -> HTMLResponse:
+    if not _admin_authed(authorization, admin_session):
+        return _admin_login_page()
+
+    try:
+        cid = int(code_id)
+    except (TypeError, ValueError):
+        return HTMLResponse(content=_admin_page_html(error="Invalid code."), status_code=400)
+
+    revoke_code(DEMO_DB, cid)
+    return HTMLResponse(content=_admin_page_html())
 
 
 # JSON API routes -- the frontend's own fetch() calls hit these without ever

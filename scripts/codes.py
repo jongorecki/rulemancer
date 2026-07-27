@@ -6,51 +6,27 @@
     python scripts/codes.py revoke <code>
 
 Codes are "word-word-word-NN" -- three short words plus a two-digit number,
-e.g. "beech-falcon-quill-85" (the design spec's prose: "three readable words
-+ digits"). With 60 words this is 60 x 60 x 60 x 100 = 21,600,000 possible
-codes, vs. 360,000 for the two-word shape -- 60x harder to guess, which
-matters because every guessed code costs Jon real API credits, and still
-short enough to read aloud or type off a phone.
+e.g. "beech-falcon-quill-85". generate_code()/WORDLIST live in
+rulesagent.demo_db now (task-admin-mint-report.md), so this CLI and the
+/admin mint form share the exact same generator and collision handling --
+never two generators that could drift.
 """
 from __future__ import annotations
 
 import argparse
-import secrets
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from rulesagent.demo_db import (  # noqa: E402
     DEFAULT_DEMO_DB,
+    WORDLIST,
     create_code,
+    generate_code,
     get_code_by_value,
     list_codes,
     revoke_code,
 )
-
-WORDLIST = [
-    "raptor", "quill", "cedar", "otter", "birch", "heron", "maple", "finch",
-    "elm", "osprey", "fir", "lark", "pine", "swift", "yew", "plover", "ash",
-    "crane", "willow", "vole", "spruce", "wren", "alder", "kite", "hazel",
-    "falcon", "poplar", "grouse", "beech", "sparrow", "aspen", "raven",
-    "hemlock", "condor", "juniper", "harrier", "cypress", "kestrel", "linden",
-    "merlin", "walnut", "peregrine", "hickory", "gannet", "sycamore", "ibis",
-    "dogwood", "puffin", "chestnut", "curlew", "magnolia", "tern", "rowan",
-    "grebe", "sequoia", "shrike", "larch", "warbler",
-]
-
-
-def generate_code(existing: set[str] | None = None) -> str:
-    existing = existing or set()
-    for _ in range(50):
-        word1 = secrets.choice(WORDLIST)
-        word2 = secrets.choice(WORDLIST)
-        word3 = secrets.choice(WORDLIST)
-        digits = f"{secrets.randbelow(100):02d}"
-        code = f"{word1}-{word2}-{word3}-{digits}"
-        if code not in existing:
-            return code
-    raise RuntimeError("could not generate a unique code after 50 attempts")
 
 
 def _cmd_new(args: argparse.Namespace) -> int:

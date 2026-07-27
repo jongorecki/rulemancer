@@ -9,6 +9,7 @@ because the admin view and the guards need to filter/aggregate on code_id,
 ts, and kind.
 """
 import os
+import secrets
 import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
@@ -61,6 +62,47 @@ def _connect(db_path: Path) -> sqlite3.Connection:
 
 def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
+
+
+# Code generation (moved here from scripts/codes.py -- Task: admin mint/
+# revoke UI, .superpowers/sdd/2026-07-27-gated-demo/task-admin-mint-report.md.
+# The CLI (scripts/codes.py) and the /admin mint form both need to mint a
+# code; this is the ONE generator both import, so they can never drift into
+# two different code shapes or two different collision-handling strategies.
+#
+# Codes are "word-word-word-NN" -- three short words plus a two-digit number,
+# e.g. "beech-falcon-quill-85" (the design spec's prose: "three readable
+# words + digits"). With 60 words this is 60 x 60 x 60 x 100 = 21,600,000
+# possible codes, vs. 360,000 for the two-word shape -- 60x harder to guess,
+# which matters because every guessed code costs Jon real API credits, and
+# still short enough to read aloud or type off a phone.
+WORDLIST = [
+    "raptor", "quill", "cedar", "otter", "birch", "heron", "maple", "finch",
+    "elm", "osprey", "fir", "lark", "pine", "swift", "yew", "plover", "ash",
+    "crane", "willow", "vole", "spruce", "wren", "alder", "kite", "hazel",
+    "falcon", "poplar", "grouse", "beech", "sparrow", "aspen", "raven",
+    "hemlock", "condor", "juniper", "harrier", "cypress", "kestrel", "linden",
+    "merlin", "walnut", "peregrine", "hickory", "gannet", "sycamore", "ibis",
+    "dogwood", "puffin", "chestnut", "curlew", "magnolia", "tern", "rowan",
+    "grebe", "sequoia", "shrike", "larch", "warbler",
+]
+
+
+def generate_code(existing: set[str] | None = None) -> str:
+    """Mint a random word-word-word-NN code, retrying on collision against
+    `existing` (the caller passes the current set of minted codes -- this
+    function never touches the database itself, same separation as the rest
+    of this module's plain functions)."""
+    existing = existing or set()
+    for _ in range(50):
+        word1 = secrets.choice(WORDLIST)
+        word2 = secrets.choice(WORDLIST)
+        word3 = secrets.choice(WORDLIST)
+        digits = f"{secrets.randbelow(100):02d}"
+        code = f"{word1}-{word2}-{word3}-{digits}"
+        if code not in existing:
+            return code
+    raise RuntimeError("could not generate a unique code after 50 attempts")
 
 
 def create_code(db_path: Path, code: str, label: str, max_queries: int | None = 25,
