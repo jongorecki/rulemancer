@@ -2,6 +2,10 @@ __pycache__/
 *.pyc
 .venv/
 .env
+# every .env variant is secret-bearing EXCEPT the checked-in template.
+# .env.fly records the Fly demo secrets and must never be committed.
+.env.*
+!.env.example
 
 # CR text and derived data — fetch/parse at build time, don't commit
 data/raw/
