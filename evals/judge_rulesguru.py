@@ -36,6 +36,7 @@ import os
 import re
 import sys
 import time
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import httpx
@@ -128,6 +129,35 @@ def judge_with_reason(question: str, reference: str, candidate: str) -> tuple[st
     return "error", "judge call failed"
 
 
+def judge_row_votes(question: str, reference: str, candidate: str, votes: int) -> dict:
+    """Judge one row `votes` times independently and return the majority
+    verdict plus every individual vote.
+
+    Each call is a fresh, independent POST to judge_with_reason -- the
+    request already pins temperature=0, so repeat calls measure PROVIDER-SIDE
+    nondeterminism (routing to different backends/quantizations under the
+    OpenRouter slug, cache effects, etc.), not sampling variance. Majority
+    voting can smooth that out; it cannot fix a judge that is consistently
+    wrong (systematic bias), because all N votes would agree on the same
+    wrong answer.
+
+    Returns every vote (not just the winner) plus a tally and an
+    `unanimous` flag, because the per-row spread is the evidence a re-run
+    is stable, and throwing individual votes away destroys that evidence.
+    """
+    results = [judge_with_reason(question, reference, candidate) for _ in range(votes)]
+    tally: dict[str, int] = {}
+    for verdict, _reason in results:
+        tally[verdict] = tally.get(verdict, 0) + 1
+    majority_verdict = max(tally.items(), key=lambda kv: kv[1])[0]
+    return {
+        "votes": [{"verdict": v, "reason": r} for v, r in results],
+        "tally": tally,
+        "majority_verdict": majority_verdict,
+        "unanimous": len(tally) == 1,
+    }
+
+
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--answers", type=Path, default=DEFAULT_ANSWERS,
@@ -135,6 +165,12 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--questions", type=Path, default=DEFAULT_QUESTIONS,
                     help=f"source rulesguru jsonl, for level/complexity lookup (default: {DEFAULT_QUESTIONS})")
     p.add_argument("--out", type=Path, default=DEFAULT_OUT, help=f"output path (default: {DEFAULT_OUT})")
+    p.add_argument("--votes", type=int, default=1,
+                    help="judge each row this many times and take the majority verdict "
+                         "(default: 1, i.e. existing single-pass behaviour unchanged). "
+                         "Every vote is recorded per row, not just the majority.")
+    p.add_argument("--workers", type=int, default=6,
+                    help="parallel judge calls when --votes > 1 (default: 6)")
     return p.parse_args()
 
 
@@ -147,22 +183,50 @@ def main() -> None:
               "run run_answer_eval.py --questions evals/rulesguru.jsonl first")
         return
 
-    print(f"Judging {len(rows)} RulesGuru answers with {JUDGE_SLUG}\n")
     entries = []
-    for i, r in enumerate(rows, 1):
-        m = meta.get(r["id"], {"level": "", "complexity": ""})
-        verdict, reason = judge_with_reason(r["question"], r["answer_gold"], r["answer"])
-        entries.append({
-            "id": r["id"],
-            "question": r["question"],
-            "level": m["level"],
-            "complexity": m["complexity"],
-            "verdict": verdict,
-            "reason": reason,
-            "answer": r["answer"],
-            "answer_gold": r["answer_gold"],
-        })
-        print(f"  [{i}/{len(rows)}] {r['id']} (level={m['level']}, complexity={m['complexity']}) -> {verdict}")
+    if args.votes > 1:
+        print(f"Judging {len(rows)} RulesGuru answers with {JUDGE_SLUG}, "
+              f"{args.votes} votes/row ({args.workers} workers)\n")
+
+        def judge_one(r: dict) -> dict:
+            m = meta.get(r["id"], {"level": "", "complexity": ""})
+            vote_info = judge_row_votes(r["question"], r["answer_gold"], r["answer"], args.votes)
+            return {
+                "id": r["id"],
+                "question": r["question"],
+                "level": m["level"],
+                "complexity": m["complexity"],
+                "verdict": vote_info["majority_verdict"],
+                "votes": vote_info["votes"],
+                "tally": vote_info["tally"],
+                "unanimous": vote_info["unanimous"],
+                "reason": vote_info["votes"][0]["reason"],
+                "answer": r["answer"],
+                "answer_gold": r["answer_gold"],
+            }
+
+        with ThreadPoolExecutor(max_workers=args.workers) as ex:
+            entries = list(ex.map(judge_one, rows))
+        entries.sort(key=lambda e: e["id"])
+        for i, e in enumerate(entries, 1):
+            tag = "unanimous" if e["unanimous"] else f"SPLIT {e['tally']}"
+            print(f"  [{i}/{len(entries)}] {e['id']} (level={e['level']}) -> {e['verdict']} ({tag})")
+    else:
+        print(f"Judging {len(rows)} RulesGuru answers with {JUDGE_SLUG}\n")
+        for i, r in enumerate(rows, 1):
+            m = meta.get(r["id"], {"level": "", "complexity": ""})
+            verdict, reason = judge_with_reason(r["question"], r["answer_gold"], r["answer"])
+            entries.append({
+                "id": r["id"],
+                "question": r["question"],
+                "level": m["level"],
+                "complexity": m["complexity"],
+                "verdict": verdict,
+                "reason": reason,
+                "answer": r["answer"],
+                "answer_gold": r["answer_gold"],
+            })
+            print(f"  [{i}/{len(rows)}] {r['id']} (level={m['level']}, complexity={m['complexity']}) -> {verdict}")
 
     judged = [e for e in entries if e["verdict"] in ("same", "different")]
     n = len(judged) or 1
@@ -201,7 +265,15 @@ def main() -> None:
         "by_level_counts": by_level,
         "unparsed_or_error": unparsed,
         "disagreements": disagreements,
+        "votes_per_row": args.votes,
     }
+    if args.votes > 1:
+        unanimous = [e for e in entries if e.get("unanimous")]
+        split = [e for e in entries if not e.get("unanimous")]
+        summary["unanimous_count"] = len(unanimous)
+        summary["split_count"] = len(split)
+        summary["split_pct"] = len(split) / len(entries) if entries else 0.0
+        summary["split_ids"] = [e["id"] for e in split]
 
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(json.dumps({"entries": entries, "summary": summary}, indent=2, ensure_ascii=False),
@@ -216,6 +288,9 @@ def main() -> None:
     if unparsed:
         print(f"  unparsed/error: {unparsed}")
     print(f"  disagreements (spot-check these): {disagreements}")
+    if args.votes > 1:
+        print(f"  votes/row: {args.votes} -- unanimous {summary['unanimous_count']}/{len(entries)}, "
+              f"split {summary['split_count']}/{len(entries)} ({summary['split_pct']:.1%})")
     print(f"  judge: {JUDGE_SLUG} prompt={summary['judge_prompt_sha256']}")
 
 

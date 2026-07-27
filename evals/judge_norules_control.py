@@ -23,11 +23,12 @@ import argparse
 import hashlib
 import json
 import sys
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 from ablate_gold import JUDGE_SYS  # noqa: E402
-from judge_rulesguru import JUDGE_SLUG, judge_with_reason  # noqa: E402
+from judge_rulesguru import JUDGE_SLUG, judge_row_votes, judge_with_reason  # noqa: E402
 
 REPO = Path(__file__).parent.parent
 DEFAULT_ANSWERS = REPO / "evals" / "answers" / "norules_control.json"
@@ -57,6 +58,12 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--answers", type=Path, default=DEFAULT_ANSWERS)
     p.add_argument("--questions", type=Path, default=DEFAULT_QUESTIONS)
     p.add_argument("--out", type=Path, default=DEFAULT_OUT)
+    p.add_argument("--votes", type=int, default=1,
+                    help="judge each row this many times and take the majority verdict "
+                         "(default: 1, i.e. existing single-pass behaviour unchanged). "
+                         "Every vote is recorded per row, not just the majority.")
+    p.add_argument("--workers", type=int, default=6,
+                    help="parallel judge calls when --votes > 1 (default: 6)")
     return p.parse_args()
 
 
@@ -69,22 +76,50 @@ def main() -> None:
         print(f"[ERROR] no answer_gold-carrying rows in {args.answers}")
         return
 
-    print(f"Judging {len(rows)} norules_control answers with {JUDGE_SLUG}\n")
     entries = []
-    for i, r in enumerate(rows, 1):
-        m = meta.get(r["id"], {"level": "", "complexity": ""})
-        verdict, reason = judge_with_reason(r["question"], r["answer_gold"], r["answer"])
-        entries.append({
-            "id": r["id"],
-            "question": r["question"],
-            "level": m["level"],
-            "complexity": m["complexity"],
-            "verdict": verdict,
-            "reason": reason,
-            "answer": r["answer"],
-            "answer_gold": r["answer_gold"],
-        })
-        print(f"  [{i}/{len(rows)}] {r['id']} (level={m['level']}) -> {verdict}")
+    if args.votes > 1:
+        print(f"Judging {len(rows)} norules_control answers with {JUDGE_SLUG}, "
+              f"{args.votes} votes/row ({args.workers} workers)\n")
+
+        def judge_one(r: dict) -> dict:
+            m = meta.get(r["id"], {"level": "", "complexity": ""})
+            vote_info = judge_row_votes(r["question"], r["answer_gold"], r["answer"], args.votes)
+            return {
+                "id": r["id"],
+                "question": r["question"],
+                "level": m["level"],
+                "complexity": m["complexity"],
+                "verdict": vote_info["majority_verdict"],
+                "votes": vote_info["votes"],
+                "tally": vote_info["tally"],
+                "unanimous": vote_info["unanimous"],
+                "reason": vote_info["votes"][0]["reason"],
+                "answer": r["answer"],
+                "answer_gold": r["answer_gold"],
+            }
+
+        with ThreadPoolExecutor(max_workers=args.workers) as ex:
+            entries = list(ex.map(judge_one, rows))
+        entries.sort(key=lambda e: e["id"])
+        for i, e in enumerate(entries, 1):
+            tag = "unanimous" if e["unanimous"] else f"SPLIT {e['tally']}"
+            print(f"  [{i}/{len(entries)}] {e['id']} (level={e['level']}) -> {e['verdict']} ({tag})")
+    else:
+        print(f"Judging {len(rows)} norules_control answers with {JUDGE_SLUG}\n")
+        for i, r in enumerate(rows, 1):
+            m = meta.get(r["id"], {"level": "", "complexity": ""})
+            verdict, reason = judge_with_reason(r["question"], r["answer_gold"], r["answer"])
+            entries.append({
+                "id": r["id"],
+                "question": r["question"],
+                "level": m["level"],
+                "complexity": m["complexity"],
+                "verdict": verdict,
+                "reason": reason,
+                "answer": r["answer"],
+                "answer_gold": r["answer_gold"],
+            })
+            print(f"  [{i}/{len(rows)}] {r['id']} (level={m['level']}) -> {verdict}")
 
     judged = [e for e in entries if e["verdict"] in ("same", "different")]
     n = len(judged) or 1
@@ -111,7 +146,15 @@ def main() -> None:
         "by_level_counts": by_level,
         "unparsed_or_error": unparsed,
         "disagreements": disagreements,
+        "votes_per_row": args.votes,
     }
+    if args.votes > 1:
+        unanimous = [e for e in entries if e.get("unanimous")]
+        split = [e for e in entries if not e.get("unanimous")]
+        summary["unanimous_count"] = len(unanimous)
+        summary["split_count"] = len(split)
+        summary["split_pct"] = len(split) / len(entries) if entries else 0.0
+        summary["split_ids"] = [e["id"] for e in split]
 
     args.out.write_text(
         json.dumps({"entries": entries, "summary": summary}, indent=2, ensure_ascii=False),
