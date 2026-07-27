@@ -1,0 +1,629 @@
+[
+  {
+    "id": "pr001",
+    "question": "A permanent is an enchantment with a static ability saying it isn't a creature as long as your devotion to its color is less than five, and your devotion is currently two. A second enchantment then resolves whose static ability says every non-Aura enchantment you control is a creature with power and toughness each equal to its mana value. Is the first permanent a creature, and if so what are its power and toughness?",
+    "match": "any",
+    "kind": "other",
+    "show_rewrite": false,
+    "rewrite_version": "none",
+    "ruling_query_mode": "union",
+    "condition": "purerules_placebo",
+    "run": null,
+    "model": "claude-opus-5",
+    "prompts_cache": "evals\\answers\\_prompts_purerules_placebo.json",
+    "prompts_cache_sha256": "6d0a1e3d983cbcde09668f92c23e953f75e49d42ed3fdefddb1e9f6edec0b5f8",
+    "answered": false,
+    "answer": "I can't settle this with the rules provided. The question turns on layer 4 (type-changing effects), layer 7b (power/toughness–setting effects), timestamp order, and dependency among continuous effects — and the only layer rule in the context is [613.1f], which describes layer 6 (ability-adding, keyword counters, ability-removing, and \"can't have an ability\" effects). Nothing here tells me how two competing type-setting effects (\"isn't a creature as long as your devotion is less than five\" versus \"every non-Aura enchantment you control is a creature\") are ordered, nor how a characteristic-defining power/toughness value equal to mana value is applied.\n\nOne thing the context does establish: an effect that says a permanent \"is\" or \"isn't\" a certain characteristic value is not granting or removing an ability — it's setting/stating a characteristic ([113.12]). So neither of these two static abilities is an ability-adding or ability-removing effect, which means [613.1f]'s layer 6 and the add/remove rules [113.10], [113.10b], [113.10c], [113.11] don't govern the clash. Also, [101.2a] explicitly does not make the \"isn't a creature\" wording win as a blanket \"can't\" effect in the ability sense.\n\nTo answer properly I'd need the rules on layer 4, layer 7b, timestamps ([613.6]-style), and dependency ([613.8]-style), none of which are in the context.",
+    "citations": [
+      "113.12",
+      "613.1f",
+      "101.2a",
+      "113.10",
+      "113.10b",
+      "113.10c",
+      "113.11"
+    ],
+    "gold": [
+      "613.1d",
+      "613.4b",
+      "613.7"
+    ],
+    "gold_text": {
+      "613.1d": "The values of an object’s characteristics are determined by starting with the actual object. For a card, that means the values of the characteristics printed on that card. For a token or a copy of a spell or card, that means the values of the characteristics defined by the effect that created it. Then all applicable continuous effects are applied in a series of layers in the following order: Layer 4: Type-changing effects are applied. These include effects that change an object’s card type, subtype, and/or supertype.",
+      "613.4b": "Within layer 7, apply effects in a series of sublayers in the order described below. Within each sublayer, apply effects in timestamp order. (See rule 613.7.) Note that dependency may alter the order in which effects are applied within a sublayer. (See rule 613.8.) Layer 7b: Effects that set power and/or toughness to a specific number or value are applied. Effects that refer to the base power and/or toughness of a creature apply in this layer.",
+      "613.7": "Within a layer or sublayer, determining which order effects are applied in is usually done using a timestamp system. An effect with an earlier timestamp is applied before an effect with a later timestamp."
+    },
+    "cited_text": {
+      "113.12": "An effect that sets an object’s characteristic, or simply states a quality of that object, is different from an ability granted by an effect. When an object “gains” or “has” an ability, that ability can be removed by another effect. If an effect defines a characteristic of the object (“[permanent] is [characteristic value]”), it’s not granting an ability. (See rule 604.3.) Similarly, if an effect states a quality of that object (“[creature] can’t be blocked,” for example), it’s neither granting an ability nor setting a characteristic. Muraganda Petroglyphs reads, “Creatures with no abilities get +2/+2.” A Runeclaw Bear (a creature with no abilities) enchanted by an Aura that says “Enchanted creature has flying” would not get +2/+2. A Runeclaw Bear enchanted by an Aura that says “Enchanted creature is red” or “Enchanted creature can’t be blocked” would get +2/+2.",
+      "613.1f": "The values of an object’s characteristics are determined by starting with the actual object. For a card, that means the values of the characteristics printed on that card. For a token or a copy of a spell or card, that means the values of the characteristics defined by the effect that created it. Then all applicable continuous effects are applied in a series of layers in the following order: Layer 6: Ability-adding effects, keyword counters, ability-removing effects, and effects that say an object can’t have an ability are applied.",
+      "101.2a": "When a rule or effect allows or directs something to happen, and another effect states that it can’t happen, the “can’t” effect takes precedence. Adding abilities to objects and removing abilities from objects don’t fall under this rule. (See rule 113.10.)",
+      "113.10": "Effects can add or remove abilities of objects. An effect that adds an ability will state that the object “gains” or “has” that ability, or similar. An effect that removes an ability will state that the object “loses” that ability.",
+      "113.10b": "Effects can add or remove abilities of objects. An effect that adds an ability will state that the object “gains” or “has” that ability, or similar. An effect that removes an ability will state that the object “loses” that ability. Effects that remove an ability remove all instances of it.",
+      "113.10c": "Effects can add or remove abilities of objects. An effect that adds an ability will state that the object “gains” or “has” that ability, or similar. An effect that removes an ability will state that the object “loses” that ability. If two or more effects add and remove the same ability, in general the most recent one prevails. See rule 613 for more information about the interaction of continuous effects.",
+      "113.11": "Effects can stop an object from having a specified ability. These effects say that the object “can’t have” that ability. If the object has that ability, it loses it. It’s also impossible for an effect or keyword counter to add that ability to the object. If a resolving spell or ability creates a continuous effect that would add the specified ability to such an object, that part of that continuous effect does not apply; however, other parts of that continuous effect will still apply, and that resolving spell or ability can still create other continuous effects. Continuous effects created by static abilities that would add the specified ability won’t apply to that object."
+    },
+    "rewrite_queries": [],
+    "clarification": null,
+    "retrieved_rule_ids": [],
+    "prompt_supplied_rule_ids": [
+      "613.6",
+      "613.8a"
+    ],
+    "stop_reason": "end_turn",
+    "tool_calls": null,
+    "tool_rounds": null,
+    "usage": {
+      "input_tokens": 4247,
+      "output_tokens": 965,
+      "cache_read_input_tokens": 0,
+      "cache_creation_input_tokens": 0
+    },
+    "system_version": 3,
+    "layers_tool": true,
+    "max_tokens": 32768,
+    "effort": "low",
+    "reground": false,
+    "regrounded": false,
+    "cr_citations_before": 7,
+    "cr_citations_after": null,
+    "batch": true,
+    "cites_cr_rule": true,
+    "citation_sources": {
+      "labels": [
+        "cr_rule",
+        "cr_rule",
+        "cr_rule",
+        "cr_rule",
+        "cr_rule",
+        "cr_rule",
+        "cr_rule"
+      ],
+      "cr_rule": 7,
+      "ruling": 0,
+      "card": 0,
+      "glossary": 0,
+      "unresolved": 0,
+      "category": "cr_reliant"
+    },
+    "answer_gold": "Yes, it is a creature, and its power and toughness are each equal to its mana value. Both type-changing effects apply in layer 4 and neither depends on the other, so they are applied in timestamp order (CR 613.1d, 613.7): the permanent's own effect removes the creature type first, then the later effect makes it a creature. The power/toughness-setting effect applies in layer 7b (CR 613.4b), after the type has already been settled."
+  },
+  {
+    "id": "pr002",
+    "question": "You control a 2/2 creature with no abilities, and a permanent whose static ability says creatures with no abilities get +2/+2. A spell resolves giving that creature +1/+0 and first strike until end of turn. An opponent then resolves a permanent whose static ability says creatures they control have first strike and creatures you control can't have first strike. What are your creature's final power and toughness?",
+    "match": "any",
+    "kind": "other",
+    "show_rewrite": false,
+    "rewrite_version": "none",
+    "ruling_query_mode": "union",
+    "condition": "purerules_placebo",
+    "run": null,
+    "model": "claude-opus-5",
+    "prompts_cache": "evals\\answers\\_prompts_purerules_placebo.json",
+    "prompts_cache_sha256": "6d0a1e3d983cbcde09668f92c23e953f75e49d42ed3fdefddb1e9f6edec0b5f8",
+    "answered": true,
+    "answer": "Your creature ends up 5/4.\n\nWhy: characteristics are computed by starting with the printed values and then applying all applicable continuous effects in a series of layers [613.1]. Ability-adding and ability-removing effects are sorted out before power/toughness values are calculated, and among effects that don't depend on each other the later timestamp wins [613.9]. The spell granted first strike; the opponent's later permanent says creatures you control can't have first strike, and because it has the later timestamp (and a \"can't have\" effect overrides a \"has\" effect) your creature does not have first strike [613.9].\n\nSo when the game checks abilities, your creature has none — it never keeps the granted first strike. That means the static ability \"creatures with no abilities get +2/+2\" applies, giving 2/2 → 4/4, and the spell's +1/+0 makes it 5/4. Note the +1/+0 from the spell is a power/toughness modification only; it isn't an ability, so it doesn't stop your creature from qualifying as having no abilities.\n\nTiming assumption: I'm assuming the spell granting +1/+0 and first strike resolved before the opponent's permanent entered, as stated. If the opponent's permanent had been on the battlefield first and the spell resolved afterward, the later-timestamp spell would grant first strike successfully — your creature would then have an ability, the +2/+2 wouldn't apply, and it would be 3/2 with first strike.\n\nThe provided rules are framed generically, not specifically for two players; nothing here changes based on player count, since the opponent's permanent affects \"creatures you control\" regardless of table size. If your table's version of that card says \"each opponent,\" more opponents wouldn't change this creature's result.",
+    "citations": [
+      "613.1",
+      "613.9"
+    ],
+    "gold": [
+      "113.11",
+      "113.12",
+      "613.1f",
+      "613.8a"
+    ],
+    "gold_text": {
+      "113.11": "Effects can stop an object from having a specified ability. These effects say that the object “can’t have” that ability. If the object has that ability, it loses it. It’s also impossible for an effect or keyword counter to add that ability to the object. If a resolving spell or ability creates a continuous effect that would add the specified ability to such an object, that part of that continuous effect does not apply; however, other parts of that continuous effect will still apply, and that resolving spell or ability can still create other continuous effects. Continuous effects created by static abilities that would add the specified ability won’t apply to that object.",
+      "113.12": "An effect that sets an object’s characteristic, or simply states a quality of that object, is different from an ability granted by an effect. When an object “gains” or “has” an ability, that ability can be removed by another effect. If an effect defines a characteristic of the object (“[permanent] is [characteristic value]”), it’s not granting an ability. (See rule 604.3.) Similarly, if an effect states a quality of that object (“[creature] can’t be blocked,” for example), it’s neither granting an ability nor setting a characteristic. Muraganda Petroglyphs reads, “Creatures with no abilities get +2/+2.” A Runeclaw Bear (a creature with no abilities) enchanted by an Aura that says “Enchanted creature has flying” would not get +2/+2. A Runeclaw Bear enchanted by an Aura that says “Enchanted creature is red” or “Enchanted creature can’t be blocked” would get +2/+2.",
+      "613.1f": "The values of an object’s characteristics are determined by starting with the actual object. For a card, that means the values of the characteristics printed on that card. For a token or a copy of a spell or card, that means the values of the characteristics defined by the effect that created it. Then all applicable continuous effects are applied in a series of layers in the following order: Layer 6: Ability-adding effects, keyword counters, ability-removing effects, and effects that say an object can’t have an ability are applied.",
+      "613.8a": "Within a layer or sublayer, determining which order effects are applied in is sometimes done using a dependency system. If a dependency exists, it will override the timestamp system. An effect is said to “depend on” another if (a) it’s applied in the same layer (and, if applicable, sublayer) as the other effect; (b) applying the other would change the text or the existence of the first effect, what it applies to, or what it does to any of the things it applies to; and (c) neither effect is from a characteristic-defining ability or both effects are from characteristic-defining abilities. Otherwise, the effect is considered to be independent of the other effect."
+    },
+    "cited_text": {
+      "613.1": "The values of an object’s characteristics are determined by starting with the actual object. For a card, that means the values of the characteristics printed on that card. For a token or a copy of a spell or card, that means the values of the characteristics defined by the effect that created it. Then all applicable continuous effects are applied in a series of layers in the following order:",
+      "613.9": "One continuous effect can override another. Sometimes the results of one effect determine whether another effect applies or what another effect does. Two effects are affecting the same creature: one from an Aura that says “Enchanted creature has flying” and one from an Aura that says “Enchanted creature loses flying.” Neither of these depends on the other, since nothing changes what they affect or what they’re doing to it. Applying them in timestamp order means the one that was generated last “wins.” The same process would be followed, and the same result reached, if either of the effects had a duration (such as “Target creature loses flying until end of turn”) or came from a non-Aura source (such as “All creatures lose flying”). One effect reads, “White creatures get +1/+1,” and another reads, “Enchanted creature is white.” The enchanted creature gets +1/+1 from the first effect, regardless of its previous color."
+    },
+    "rewrite_queries": [],
+    "clarification": null,
+    "retrieved_rule_ids": [],
+    "prompt_supplied_rule_ids": [
+      "613.6",
+      "613.8a"
+    ],
+    "stop_reason": "end_turn",
+    "tool_calls": null,
+    "tool_rounds": null,
+    "usage": {
+      "input_tokens": 4628,
+      "output_tokens": 1045,
+      "cache_read_input_tokens": 0,
+      "cache_creation_input_tokens": 0
+    },
+    "system_version": 3,
+    "layers_tool": true,
+    "max_tokens": 32768,
+    "effort": "low",
+    "reground": false,
+    "regrounded": false,
+    "cr_citations_before": 2,
+    "cr_citations_after": null,
+    "batch": true,
+    "cites_cr_rule": true,
+    "citation_sources": {
+      "labels": [
+        "cr_rule",
+        "cr_rule"
+      ],
+      "cr_rule": 2,
+      "ruling": 0,
+      "card": 0,
+      "glossary": 0,
+      "unresolved": 0,
+      "category": "cr_reliant"
+    },
+    "answer_gold": "5/4. In layer 6, the opponent's can't-have-first-strike effect prevents the spell from granting first strike to your creature (CR 613.1f), and the opponent's permanent grants your creature nothing, so your creature ends layer 6 with no abilities. In layer 7c it therefore receives +2/+2 from the no-abilities effect, and it still receives +1/+0 from the spell, because that spell's power/toughness part applies in layer 7c independently of whether its ability-granting part took effect."
+  },
+  {
+    "id": "pr003",
+    "question": "You control a permanent that is both a land with a basic land type and a creature. An opponent resolves an effect saying creatures you control lose all abilities and have base power and toughness 1/1. Can you still tap that permanent for mana of the color its basic land type produces?",
+    "match": "any",
+    "kind": "other",
+    "show_rewrite": false,
+    "rewrite_version": "none",
+    "ruling_query_mode": "union",
+    "condition": "purerules_placebo",
+    "run": null,
+    "model": "claude-opus-5",
+    "prompts_cache": "evals\\answers\\_prompts_purerules_placebo.json",
+    "prompts_cache_sha256": "6d0a1e3d983cbcde09668f92c23e953f75e49d42ed3fdefddb1e9f6edec0b5f8",
+    "answered": true,
+    "answer": "Short answer: No — you can't tap it for that colored mana while the \"lose all abilities\" effect applies (assuming that effect's timestamp/layer application is later than whatever made the permanent a creature). The mana ability a basic land type provides is an ability, so an effect that makes your creatures lose all abilities strips it away; the permanent still has the basic land type, but it no longer has the intrinsic mana ability that type would give it.\n\nWhy:\n- A nontoken permanent's characteristics are its printed ones as modified by continuous effects, applied in the layer system [110.3], [613.6]. The opponent's effect does two things in different layers: removing abilities (layer 6) and setting base power and toughness to 1/1 (layer 7b, the sublayer for effects that set power/toughness to a specific value) [613.4b], [613.6]. The 1/1 part is a genuine setting effect, which is what \"base power and toughness\" refers to [208.4b].\n- Ability removal actually removes abilities; that's different from an effect that merely defines a characteristic or states a quality, which grants no ability at all [113.12]. Since the land's colored-mana production comes from an ability tied to its basic land type, and not from a mere characteristic, the removal effect turns it off.\n\nImportant caveat about grounding: the specific rule stating that a basic land type gives the permanent the intrinsic mana ability (\"{T}: Add [color]\") is not among the rules provided to me, so I'm relying on the general principle that mana production is an ability and \"loses all abilities\" removes abilities. If your table wants the citation for basic land types granting intrinsic mana abilities, look it up separately.\n\nTiming/order note: I'm assuming the opponent's effect has a later timestamp than the effect that turned your land into a creature, so it applies to it. If your permanent only became a creature *after* the opponent's ability-removal effect was created (for example, you animate the land later), the removal effect generally won't apply to it and it keeps its mana ability and its own power/toughness [613.6].\n\nPlayer count: nothing here depends on the number of players; the answer is the same in a two-player game and at a multiplayer table.",
+    "citations": [
+      "110.3",
+      "613.6",
+      "613.4b",
+      "208.4b",
+      "113.12"
+    ],
+    "gold": [
+      "305.6",
+      "613.1f"
+    ],
+    "gold_text": {
+      "305.6": "The basic land types are Plains, Island, Swamp, Mountain, and Forest. If an object uses the words “basic land type,” it’s referring to one of these subtypes. An object with the land card type and a basic land type has the intrinsic ability “{T}: Add [mana symbol],” even if the text box doesn’t actually contain that text or the object has no text box. For Plains, [mana symbol] is {W}; for Islands, {U}; for Swamps, {B}; for Mountains, {R}; and for Forests, {G}. See rule 107.4a. See also rule 605, “Mana Abilities.”",
+      "613.1f": "The values of an object’s characteristics are determined by starting with the actual object. For a card, that means the values of the characteristics printed on that card. For a token or a copy of a spell or card, that means the values of the characteristics defined by the effect that created it. Then all applicable continuous effects are applied in a series of layers in the following order: Layer 6: Ability-adding effects, keyword counters, ability-removing effects, and effects that say an object can’t have an ability are applied."
+    },
+    "cited_text": {
+      "110.3": "A nontoken permanent’s characteristics are the same as those printed on its card, as modified by any continuous effects. See rule 613, “Interaction of Continuous Effects.”",
+      "613.6": "If an effect should be applied in different layers and/or sublayers, the parts of the effect each apply in their appropriate ones. If an effect starts to apply in one layer and/or sublayer, it will continue to be applied to the same set of objects in each other applicable layer and/or sublayer, even if the ability generating the effect is removed during this process. An effect that reads “This creature gets +1/+1 and becomes the color of your choice until end of turn” is both a power- and toughness-changing effect and a color-changing effect. The “becomes the color of your choice” part is applied in layer 5, and then the “gets +1/+1” part is applied in layer 7c. Act of Treason has an effect that reads “Gain control of target creature until end of turn. Untap that creature. It gains haste until end of turn.” This is both a control-changing effect and an effect that adds an ability to an object. The “gain control” part is applied in layer 2, and then the “it gains haste” part is applied in layer 6. An effect that reads “All noncreature artifacts become 2/2 artifact creatures until end of turn” is both a type-changing effect and a power- and toughness-setting effect. The type-changing effect is applied to all noncreature artifacts in layer 4 and the power- and toughness-setting effect is applied to those same permanents in layer 7b, even though those permanents aren’t noncreature artifacts by then. Svogthos, the Restless Tomb, is on the battlefield. An effect that says “Until end of turn, target land becomes a 3/3 creature that’s still a land” is applied to it (layers 4 and 7b). An effect that says “Target creature gets +1/+1 until end of turn” is applied to it (layer 7c), making it a 4/4 land creature. Then while you have ten creature cards in your graveyard, you activate Svogthos’s ability: “Until end of turn, this land becomes a black and green Plant Zombie creature with ‘This creature’s power and toughness are each equal to the number of creature cards in your graveyard.’ It’s still a land.” (layers 4, 5, and 7b). It becomes an 11/11 land creature. If a creature card enters or leaves your graveyard, Svogthos’s power and toughness will be modified accordingly. If the first effect is applied to it again, it will become a 4/4 land creature again.",
+      "613.4b": "Within layer 7, apply effects in a series of sublayers in the order described below. Within each sublayer, apply effects in timestamp order. (See rule 613.7.) Note that dependency may alter the order in which effects are applied within a sublayer. (See rule 613.8.) Layer 7b: Effects that set power and/or toughness to a specific number or value are applied. Effects that refer to the base power and/or toughness of a creature apply in this layer.",
+      "208.4b": "Some effects refer to a creature’s “base power,” “base toughness,” or “base power and toughness.” Some effects check a creature’s base power and/or toughness. These effects see that creature’s characteristics after applying any characteristic-defining abilities and abilities that set power and/or toughness, ignoring any effects and counters that modify power and/or toughness without setting them. See rule 613, “Interaction of Continuous Effects.”",
+      "113.12": "An effect that sets an object’s characteristic, or simply states a quality of that object, is different from an ability granted by an effect. When an object “gains” or “has” an ability, that ability can be removed by another effect. If an effect defines a characteristic of the object (“[permanent] is [characteristic value]”), it’s not granting an ability. (See rule 604.3.) Similarly, if an effect states a quality of that object (“[creature] can’t be blocked,” for example), it’s neither granting an ability nor setting a characteristic. Muraganda Petroglyphs reads, “Creatures with no abilities get +2/+2.” A Runeclaw Bear (a creature with no abilities) enchanted by an Aura that says “Enchanted creature has flying” would not get +2/+2. A Runeclaw Bear enchanted by an Aura that says “Enchanted creature is red” or “Enchanted creature can’t be blocked” would get +2/+2."
+    },
+    "rewrite_queries": [],
+    "clarification": null,
+    "retrieved_rule_ids": [],
+    "prompt_supplied_rule_ids": [
+      "613.6",
+      "613.8a"
+    ],
+    "stop_reason": "end_turn",
+    "tool_calls": null,
+    "tool_rounds": null,
+    "usage": {
+      "input_tokens": 5744,
+      "output_tokens": 1275,
+      "cache_read_input_tokens": 0,
+      "cache_creation_input_tokens": 0
+    },
+    "system_version": 3,
+    "layers_tool": true,
+    "max_tokens": 32768,
+    "effort": "low",
+    "reground": false,
+    "regrounded": false,
+    "cr_citations_before": 5,
+    "cr_citations_after": null,
+    "batch": true,
+    "cites_cr_rule": true,
+    "citation_sources": {
+      "labels": [
+        "cr_rule",
+        "cr_rule",
+        "cr_rule",
+        "cr_rule",
+        "cr_rule"
+      ],
+      "cr_rule": 5,
+      "ruling": 0,
+      "card": 0,
+      "glossary": 0,
+      "unresolved": 0,
+      "category": "cr_reliant"
+    },
+    "answer_gold": "No. The mana ability is intrinsic to the basic land type rather than printed on the permanent (CR 305.6), but it is still an ability, so the lose-all-abilities effect removes it in layer 6 (CR 613.1f)."
+  },
+  {
+    "id": "pr004",
+    "question": "A continuous effect from a static ability says all nonland permanents are legendary. An effect then creates a token that is a copy of a legendary creature on the battlefield, and that copy effect specifies the token is not legendary. Once the token is on the battlefield, is it legendary?",
+    "match": "any",
+    "kind": "other",
+    "show_rewrite": false,
+    "rewrite_version": "none",
+    "ruling_query_mode": "union",
+    "condition": "purerules_placebo",
+    "run": null,
+    "model": "claude-opus-5",
+    "prompts_cache": "evals\\answers\\_prompts_purerules_placebo.json",
+    "prompts_cache_sha256": "6d0a1e3d983cbcde09668f92c23e953f75e49d42ed3fdefddb1e9f6edec0b5f8",
+    "answered": true,
+    "answer": "Yes — the token is legendary once it's on the battlefield.\n\nThe copy effect determines what the token's copiable values are as it's created (it copies the legendary creature but with \"not legendary\" as part of the copy definition), so the token starts out without the legendary supertype. But the static ability's continuous effect \"all nonland permanents are legendary\" is applied on top of that. The game continually and automatically applies continuous effects to an object's characteristics, starting from the object's own values and then layering applicable effects on (rules 613.5 and 613.1f). Since the token is a nonland permanent, the static ability applies to it and it ends up legendary.\n\nThis is the ordinary \"one continuous effect overrides another\" situation described in rule 613.9: an effect that sets or grants a quality can override what the object would otherwise be, and the copy effect's exception only shapes what the token is before the blanket static effect is applied — it doesn't say the token \"can't be\" legendary. (Compare rule 113.11, which covers effects that stop an object from *having* a specified ability; a copy effect saying the token isn't legendary is not such an effect, and supertypes aren't abilities anyway.)\n\nPractical consequence: with the static ability in place, if you control another legendary permanent with the same name, the \"legend rule\" would apply to the token.\n\nTwo caveats on grounding: the context provided doesn't include the specific layer rules for copy effects (layer 1) or type/supertype-changing effects (layer 4), so I'm relying on the general principles in 613.5, 613.1f, and 613.9. The answer doesn't change based on the number of players — nothing here is player-count dependent — and none of the cited rules are two-player-only.",
+    "citations": [
+      "613.5",
+      "613.1f",
+      "613.9",
+      "113.11"
+    ],
+    "gold": [
+      "613.1d",
+      "707.9b"
+    ],
+    "gold_text": {
+      "613.1d": "The values of an object’s characteristics are determined by starting with the actual object. For a card, that means the values of the characteristics printed on that card. For a token or a copy of a spell or card, that means the values of the characteristics defined by the effect that created it. Then all applicable continuous effects are applied in a series of layers in the following order: Layer 4: Type-changing effects are applied. These include effects that change an object’s card type, subtype, and/or supertype.",
+      "707.9b": "Copy effects may include modifications or exceptions to the copying process. Some copy effects modify a characteristic as part of the copying process. The final set of values for that characteristic becomes part of the copiable values of the copy. Copy Artifact is an enchantment that reads, “You may have this enchantment enter as a copy of any artifact on the battlefield, except it’s an enchantment in addition to its other types.” It enters the battlefield as a copy of Juggernaut. The copiable values of the Copy Artifact now match those of Juggernaut with one modification: its types are now artifact, creature, and enchantment."
+    },
+    "cited_text": {
+      "613.5": "The application of continuous effects as described by the layer system is continually and automatically performed by the game. All resulting changes to an object’s characteristics are instantaneous. Honor of the Pure is an enchantment that reads “White creatures you control get +1/+1.” Honor of the Pure and a 2/2 black creature are on the battlefield under your control. If an effect then turns the creature white (layer 5), it gets +1/+1 from Honor of the Pure (layer 7c), becoming 3/3. If the creature’s color is later changed to red (layer 5), Honor of the Pure’s effect stops applying to it, and it will return to being 2/2. Gray Ogre, a 2/2 creature, is on the battlefield. An effect puts a +1/+1 counter on it (layer 7c), making it 3/3. A spell targeting it that says “Target creature gets +4/+4 until end of turn” resolves (layer 7c), making it 7/7. An enchantment that says “Creatures you control get +0/+2” enters the battlefield (layer 7c), making it 7/9. An effect that says “Target creature becomes 0/1 until end of turn” is applied to it (layer 7b), making it 5/8 (0/1, with +4/+4 from the resolved spell, +0/+2 from the enchantment, and +1/+1 from the counter).",
+      "613.1f": "The values of an object’s characteristics are determined by starting with the actual object. For a card, that means the values of the characteristics printed on that card. For a token or a copy of a spell or card, that means the values of the characteristics defined by the effect that created it. Then all applicable continuous effects are applied in a series of layers in the following order: Layer 6: Ability-adding effects, keyword counters, ability-removing effects, and effects that say an object can’t have an ability are applied.",
+      "613.9": "One continuous effect can override another. Sometimes the results of one effect determine whether another effect applies or what another effect does. Two effects are affecting the same creature: one from an Aura that says “Enchanted creature has flying” and one from an Aura that says “Enchanted creature loses flying.” Neither of these depends on the other, since nothing changes what they affect or what they’re doing to it. Applying them in timestamp order means the one that was generated last “wins.” The same process would be followed, and the same result reached, if either of the effects had a duration (such as “Target creature loses flying until end of turn”) or came from a non-Aura source (such as “All creatures lose flying”). One effect reads, “White creatures get +1/+1,” and another reads, “Enchanted creature is white.” The enchanted creature gets +1/+1 from the first effect, regardless of its previous color.",
+      "113.11": "Effects can stop an object from having a specified ability. These effects say that the object “can’t have” that ability. If the object has that ability, it loses it. It’s also impossible for an effect or keyword counter to add that ability to the object. If a resolving spell or ability creates a continuous effect that would add the specified ability to such an object, that part of that continuous effect does not apply; however, other parts of that continuous effect will still apply, and that resolving spell or ability can still create other continuous effects. Continuous effects created by static abilities that would add the specified ability won’t apply to that object."
+    },
+    "rewrite_queries": [],
+    "clarification": null,
+    "retrieved_rule_ids": [],
+    "prompt_supplied_rule_ids": [
+      "613.6",
+      "613.8a"
+    ],
+    "stop_reason": "end_turn",
+    "tool_calls": null,
+    "tool_rounds": null,
+    "usage": {
+      "input_tokens": 5529,
+      "output_tokens": 969,
+      "cache_read_input_tokens": 0,
+      "cache_creation_input_tokens": 0
+    },
+    "system_version": 3,
+    "layers_tool": true,
+    "max_tokens": 32768,
+    "effort": "low",
+    "reground": false,
+    "regrounded": false,
+    "cr_citations_before": 4,
+    "cr_citations_after": null,
+    "batch": true,
+    "cites_cr_rule": true,
+    "citation_sources": {
+      "labels": [
+        "cr_rule",
+        "cr_rule",
+        "cr_rule",
+        "cr_rule"
+      ],
+      "cr_rule": 4,
+      "ruling": 0,
+      "card": 0,
+      "glossary": 0,
+      "unresolved": 0,
+      "category": "cr_reliant"
+    },
+    "answer_gold": "Yes. The copy effect determines the token's copiable values, so the token is created without the legendary supertype. But the 'all nonland permanents are legendary' effect applies in layer 4 to every applicable object on the battlefield regardless of when that object entered (CR 613.1d), so it is applied on top of the copiable values and makes the token legendary."
+  },
+  {
+    "id": "pr005",
+    "question": "A creature receives a flying counter. Later, an ability resolves that makes it lose flying for as long as that effect lasts. Later still, the creature receives a second flying counter. Then one of the two flying counters is removed from it. Does the creature have flying?",
+    "match": "any",
+    "kind": "other",
+    "show_rewrite": false,
+    "rewrite_version": "none",
+    "ruling_query_mode": "union",
+    "condition": "purerules_placebo",
+    "run": null,
+    "model": "claude-opus-5",
+    "prompts_cache": "evals\\answers\\_prompts_purerules_placebo.json",
+    "prompts_cache_sha256": "6d0a1e3d983cbcde09668f92c23e953f75e49d42ed3fdefddb1e9f6edec0b5f8",
+    "answered": true,
+    "answer": "Yes — the creature has flying.\n\nWhy: flying counters and the \"loses flying\" effect all operate in layer 6, the layer for ability-adding effects, keyword counters, and ability-removing effects [613.1f]. Within that layer these are applied in timestamp order, and the latest-applied effect wins, exactly as in the example of one Aura granting flying and another removing it [613.9].\n\nSequence, by timestamp:\n1. First flying counter (earliest) — grants flying.\n2. Ability-removing effect — removes flying; at this point the creature has no flying.\n3. Second flying counter (latest) — applied after the removal effect, so flying is granted again and the creature has flying.\n\nRemoving one of the two flying counters doesn't change this. Flying counters are indistinguishable from one another, so the counter that remains is still a flying counter on the permanent, and the creature still has one flying counter whose grant is applied in layer 6 after the removal effect. Note also that multiple instances of the same keyword are simply redundant — the same principle stated for shadow and fear [702.28c][702.36c] — so having had two counters never gave it \"double flying\"; the question is only whether at least one counter's grant applies after the removal effect, and it does.\n\nAssumption about timing: I'm reading the events in the order given (counter, then the lose-flying effect, then a second counter, then a counter removed), and I'm assuming the lose-flying effect's duration is still running. If instead the second flying counter had been placed *before* the lose-flying effect resolved, then every counter would predate the removal effect and the creature would not have flying while that effect lasts. If the removal effect has expired, the creature has flying regardless.\n\nOne gap to flag: the context here doesn't include the specific rule that assigns a timestamp to a counter or that governs which counter is \"removed\" when several identical ones are present, so the last step rests on counters of the same kind being interchangeable rather than on a quoted rule.\n\nNothing here depends on the number of players; the answer is the same in a two-player game and at a multiplayer table.",
+    "citations": [
+      "613.1f",
+      "613.9",
+      "702.28c",
+      "702.36c"
+    ],
+    "gold": [
+      "613.1f",
+      "613.7c"
+    ],
+    "gold_text": {
+      "613.1f": "The values of an object’s characteristics are determined by starting with the actual object. For a card, that means the values of the characteristics printed on that card. For a token or a copy of a spell or card, that means the values of the characteristics defined by the effect that created it. Then all applicable continuous effects are applied in a series of layers in the following order: Layer 6: Ability-adding effects, keyword counters, ability-removing effects, and effects that say an object can’t have an ability are applied.",
+      "613.7c": "Within a layer or sublayer, determining which order effects are applied in is usually done using a timestamp system. An effect with an earlier timestamp is applied before an effect with a later timestamp. Each counter receives a timestamp as it’s put on an object or player. If that object or player already has a counter of that kind on it, each counter of that kind receives a new timestamp identical to that of the new counter."
+    },
+    "cited_text": {
+      "613.1f": "The values of an object’s characteristics are determined by starting with the actual object. For a card, that means the values of the characteristics printed on that card. For a token or a copy of a spell or card, that means the values of the characteristics defined by the effect that created it. Then all applicable continuous effects are applied in a series of layers in the following order: Layer 6: Ability-adding effects, keyword counters, ability-removing effects, and effects that say an object can’t have an ability are applied.",
+      "613.9": "One continuous effect can override another. Sometimes the results of one effect determine whether another effect applies or what another effect does. Two effects are affecting the same creature: one from an Aura that says “Enchanted creature has flying” and one from an Aura that says “Enchanted creature loses flying.” Neither of these depends on the other, since nothing changes what they affect or what they’re doing to it. Applying them in timestamp order means the one that was generated last “wins.” The same process would be followed, and the same result reached, if either of the effects had a duration (such as “Target creature loses flying until end of turn”) or came from a non-Aura source (such as “All creatures lose flying”). One effect reads, “White creatures get +1/+1,” and another reads, “Enchanted creature is white.” The enchanted creature gets +1/+1 from the first effect, regardless of its previous color.",
+      "702.28c": "Shadow Multiple instances of shadow on the same creature are redundant.",
+      "702.36c": "Fear Multiple instances of fear on the same creature are redundant."
+    },
+    "rewrite_queries": [],
+    "clarification": null,
+    "retrieved_rule_ids": [],
+    "prompt_supplied_rule_ids": [
+      "613.6",
+      "613.8a"
+    ],
+    "stop_reason": "end_turn",
+    "tool_calls": null,
+    "tool_rounds": null,
+    "usage": {
+      "input_tokens": 4734,
+      "output_tokens": 1204,
+      "cache_read_input_tokens": 0,
+      "cache_creation_input_tokens": 0
+    },
+    "system_version": 3,
+    "layers_tool": true,
+    "max_tokens": 32768,
+    "effort": "low",
+    "reground": false,
+    "regrounded": false,
+    "cr_citations_before": 4,
+    "cr_citations_after": null,
+    "batch": true,
+    "cites_cr_rule": true,
+    "citation_sources": {
+      "labels": [
+        "cr_rule",
+        "cr_rule",
+        "cr_rule",
+        "cr_rule"
+      ],
+      "cr_rule": 4,
+      "ruling": 0,
+      "card": 0,
+      "glossary": 0,
+      "unresolved": 0,
+      "category": "cr_reliant"
+    },
+    "answer_gold": "Yes. Keyword counters and ability-removing effects both apply in layer 6 and are applied in timestamp order (CR 613.1f). When the second flying counter was put on the creature, every flying counter already on it received a new timestamp identical to the new counter's (CR 613.7c), so the one remaining counter has a later timestamp than the lose-flying effect and is applied after it."
+  },
+  {
+    "id": "pr006",
+    "question": "An Equipment is attached to a creature, and its static ability says the equipped creature loses flying. An Aura is then attached to that same creature, and its static ability says the enchanted creature has flying. Does the creature have flying?",
+    "match": "any",
+    "kind": "other",
+    "show_rewrite": false,
+    "rewrite_version": "none",
+    "ruling_query_mode": "union",
+    "condition": "purerules_placebo",
+    "run": null,
+    "model": "claude-opus-5",
+    "prompts_cache": "evals\\answers\\_prompts_purerules_placebo.json",
+    "prompts_cache_sha256": "6d0a1e3d983cbcde09668f92c23e953f75e49d42ed3fdefddb1e9f6edec0b5f8",
+    "answered": true,
+    "answer": "Yes — the creature has flying, assuming the Aura's effect has the later timestamp (it was attached after the Equipment).\n\nBoth effects are ability-adding/removing continuous effects, and effects in the same layer are applied in timestamp order (the timestamp-order principle is referenced in rule 613.4d and rule 613.7). Applying the Equipment's effect first removes flying; then applying the Aura's later-timestamped effect grants flying. The end result, which the game recalculates continuously and instantaneously (rule 613.5), is that the creature has flying. If instead the Equipment were attached last (later timestamp), the removal would apply after the grant and the creature would not have flying.\n\nNote that both of these are genuinely 'granting'/'removing' an ability, not merely setting a characteristic or stating a quality — rule 113.12 distinguishes these, and an ability a creature 'has' from one effect can be removed by another effect.\n\nCaveat on grounding: the numbered rule that defines the ability-adding/removing layer (layer 6) and the full text of the timestamp rule 613.7 were not included in the context provided to me; the layer list I was given (rule 613.1g) only quotes layer 7. So the layer-by-layer citation here rests on the timestamp-order principle as quoted in rule 613.4d rather than on the layer 6 text itself.\n\nThis analysis doesn't depend on the number of players — it's the same in a two-player game or a multiplayer game.",
+    "citations": [
+      "613.4d",
+      "613.5",
+      "113.12",
+      "613.1g"
+    ],
+    "gold": [
+      "613.3",
+      "613.7e"
+    ],
+    "gold_text": {
+      "613.3": "Within layers 2–6, apply effects from characteristic-defining abilities first (see rule 604.3), then all other effects in timestamp order (see rule 613.7). Note that dependency may alter the order in which effects are applied within a layer. (See rule 613.8.)",
+      "613.7e": "Within a layer or sublayer, determining which order effects are applied in is usually done using a timestamp system. An effect with an earlier timestamp is applied before an effect with a later timestamp. An Aura, Equipment, or Fortification receives a new timestamp each time it becomes attached to an object or player."
+    },
+    "cited_text": {
+      "613.4d": "Within layer 7, apply effects in a series of sublayers in the order described below. Within each sublayer, apply effects in timestamp order. (See rule 613.7.) Note that dependency may alter the order in which effects are applied within a sublayer. (See rule 613.8.) Layer 7d: Effects that switch a creature’s power and toughness are applied. Such effects take the value of power and apply it to the creature’s toughness, and take the value of toughness and apply it to the creature’s power. A 1/3 creature is given +0/+1 by an effect. Then another effect switches the creature’s power and toughness. Its new power and toughness is 4/1. A new effect gives the creature +5/+0. Its “unswitched” power and toughness would be 6/4, so its actual power and toughness is 4/6. A 1/3 creature is given +0/+1 by an effect. Then another effect switches the creature’s power and toughness. Its new power and toughness is 4/1. If the +0/+1 effect ends before the switch effect ends, the creature becomes 3/1. A 1/3 creature is given +0/+1 by an effect. Then another effect switches the creature’s power and toughness. Then another effect switches its power and toughness again. The two switches essentially cancel each other, and the creature becomes 1/4.",
+      "613.5": "The application of continuous effects as described by the layer system is continually and automatically performed by the game. All resulting changes to an object’s characteristics are instantaneous. Honor of the Pure is an enchantment that reads “White creatures you control get +1/+1.” Honor of the Pure and a 2/2 black creature are on the battlefield under your control. If an effect then turns the creature white (layer 5), it gets +1/+1 from Honor of the Pure (layer 7c), becoming 3/3. If the creature’s color is later changed to red (layer 5), Honor of the Pure’s effect stops applying to it, and it will return to being 2/2. Gray Ogre, a 2/2 creature, is on the battlefield. An effect puts a +1/+1 counter on it (layer 7c), making it 3/3. A spell targeting it that says “Target creature gets +4/+4 until end of turn” resolves (layer 7c), making it 7/7. An enchantment that says “Creatures you control get +0/+2” enters the battlefield (layer 7c), making it 7/9. An effect that says “Target creature becomes 0/1 until end of turn” is applied to it (layer 7b), making it 5/8 (0/1, with +4/+4 from the resolved spell, +0/+2 from the enchantment, and +1/+1 from the counter).",
+      "113.12": "An effect that sets an object’s characteristic, or simply states a quality of that object, is different from an ability granted by an effect. When an object “gains” or “has” an ability, that ability can be removed by another effect. If an effect defines a characteristic of the object (“[permanent] is [characteristic value]”), it’s not granting an ability. (See rule 604.3.) Similarly, if an effect states a quality of that object (“[creature] can’t be blocked,” for example), it’s neither granting an ability nor setting a characteristic. Muraganda Petroglyphs reads, “Creatures with no abilities get +2/+2.” A Runeclaw Bear (a creature with no abilities) enchanted by an Aura that says “Enchanted creature has flying” would not get +2/+2. A Runeclaw Bear enchanted by an Aura that says “Enchanted creature is red” or “Enchanted creature can’t be blocked” would get +2/+2.",
+      "613.1g": "The values of an object’s characteristics are determined by starting with the actual object. For a card, that means the values of the characteristics printed on that card. For a token or a copy of a spell or card, that means the values of the characteristics defined by the effect that created it. Then all applicable continuous effects are applied in a series of layers in the following order: Layer 7: Power- and/or toughness-changing effects are applied."
+    },
+    "rewrite_queries": [],
+    "clarification": null,
+    "retrieved_rule_ids": [],
+    "prompt_supplied_rule_ids": [
+      "613.6",
+      "613.8a"
+    ],
+    "stop_reason": "end_turn",
+    "tool_calls": null,
+    "tool_rounds": null,
+    "usage": {
+      "input_tokens": 4937,
+      "output_tokens": 890,
+      "cache_read_input_tokens": 0,
+      "cache_creation_input_tokens": 0
+    },
+    "system_version": 3,
+    "layers_tool": true,
+    "max_tokens": 32768,
+    "effort": "low",
+    "reground": false,
+    "regrounded": false,
+    "cr_citations_before": 4,
+    "cr_citations_after": null,
+    "batch": true,
+    "cites_cr_rule": true,
+    "citation_sources": {
+      "labels": [
+        "cr_rule",
+        "cr_rule",
+        "cr_rule",
+        "cr_rule"
+      ],
+      "cr_rule": 4,
+      "ruling": 0,
+      "card": 0,
+      "glossary": 0,
+      "unresolved": 0,
+      "category": "cr_reliant"
+    },
+    "answer_gold": "Yes. Both effects apply in layer 6, and neither changes what the other applies to or does, so there is no dependency and they are applied in timestamp order (CR 613.3, 613.7). An Aura or Equipment receives a new timestamp each time it becomes attached (CR 613.7e), and the Aura was attached later, so its effect is applied last and wins."
+  },
+  {
+    "id": "pr007",
+    "question": "A permanent's static ability says all creatures lose all abilities and have base power and toughness 1/1. A spell then resolves that puts a creature onto the battlefield and gives that creature haste until end of turn. Does that creature have haste?",
+    "match": "any",
+    "kind": "other",
+    "show_rewrite": false,
+    "rewrite_version": "none",
+    "ruling_query_mode": "union",
+    "condition": "purerules_placebo",
+    "run": null,
+    "model": "claude-opus-5",
+    "prompts_cache": "evals\\answers\\_prompts_purerules_placebo.json",
+    "prompts_cache_sha256": "6d0a1e3d983cbcde09668f92c23e953f75e49d42ed3fdefddb1e9f6edec0b5f8",
+    "answered": true,
+    "answer": "Yes — the creature has haste.\n\nBoth effects operate in layer 6 (the layer for adding and removing abilities): the permanent's static \"all creatures lose all abilities\" effect, and the spell's \"gains haste until end of turn\" effect. Within a layer, effects apply in timestamp order, and the haste-granting effect has the later timestamp because it was created when the spell resolved, after the static ability was already generating its effect. So the ability-removal applies first, stripping the creature's printed abilities, and then the haste grant applies on top of it, adding haste back. Note that the rules text quoted in your context doesn't itself spell out the timestamp-ordering rule (613.7); the layer framework is in [613.6], which confirms that different parts of an effect apply in their own layers and that an effect keeps applying even as other effects change the object.\n\nTwo related points:\n\n- The creature is still 1/1. The base power/toughness setting from the static ability applies in layer 7b and is not an ability the creature has, so removing abilities doesn't undo it — compare the Svogthos example in [613.6], where type-changing and P/T-setting parts of one effect apply in separate layers to the same object.\n- Anything the creature would have done on entering is gone. Per [603.6b], a continuous effect saying \"all creatures lose all abilities\" applies the moment the permanent is on the battlefield, so an enters-the-battlefield triggered ability printed on the creature never triggers — the creature is never on the battlefield with its unmodified characteristics. Haste granted afterward doesn't retroactively restore that trigger.\n\nThis analysis doesn't depend on the number of players; it's the same in a two-player game or a multiplayer game.",
+    "citations": [
+      "613.6",
+      "603.6b"
+    ],
+    "gold": [
+      "613.1f",
+      "613.7"
+    ],
+    "gold_text": {
+      "613.1f": "The values of an object’s characteristics are determined by starting with the actual object. For a card, that means the values of the characteristics printed on that card. For a token or a copy of a spell or card, that means the values of the characteristics defined by the effect that created it. Then all applicable continuous effects are applied in a series of layers in the following order: Layer 6: Ability-adding effects, keyword counters, ability-removing effects, and effects that say an object can’t have an ability are applied.",
+      "613.7": "Within a layer or sublayer, determining which order effects are applied in is usually done using a timestamp system. An effect with an earlier timestamp is applied before an effect with a later timestamp."
+    },
+    "cited_text": {
+      "613.6": "If an effect should be applied in different layers and/or sublayers, the parts of the effect each apply in their appropriate ones. If an effect starts to apply in one layer and/or sublayer, it will continue to be applied to the same set of objects in each other applicable layer and/or sublayer, even if the ability generating the effect is removed during this process. An effect that reads “This creature gets +1/+1 and becomes the color of your choice until end of turn” is both a power- and toughness-changing effect and a color-changing effect. The “becomes the color of your choice” part is applied in layer 5, and then the “gets +1/+1” part is applied in layer 7c. Act of Treason has an effect that reads “Gain control of target creature until end of turn. Untap that creature. It gains haste until end of turn.” This is both a control-changing effect and an effect that adds an ability to an object. The “gain control” part is applied in layer 2, and then the “it gains haste” part is applied in layer 6. An effect that reads “All noncreature artifacts become 2/2 artifact creatures until end of turn” is both a type-changing effect and a power- and toughness-setting effect. The type-changing effect is applied to all noncreature artifacts in layer 4 and the power- and toughness-setting effect is applied to those same permanents in layer 7b, even though those permanents aren’t noncreature artifacts by then. Svogthos, the Restless Tomb, is on the battlefield. An effect that says “Until end of turn, target land becomes a 3/3 creature that’s still a land” is applied to it (layers 4 and 7b). An effect that says “Target creature gets +1/+1 until end of turn” is applied to it (layer 7c), making it a 4/4 land creature. Then while you have ten creature cards in your graveyard, you activate Svogthos’s ability: “Until end of turn, this land becomes a black and green Plant Zombie creature with ‘This creature’s power and toughness are each equal to the number of creature cards in your graveyard.’ It’s still a land.” (layers 4, 5, and 7b). It becomes an 11/11 land creature. If a creature card enters or leaves your graveyard, Svogthos’s power and toughness will be modified accordingly. If the first effect is applied to it again, it will become a 4/4 land creature again.",
+      "603.6b": "Trigger events that involve objects changing zones are called “zone-change triggers.” Many abilities with zone-change triggers attempt to do something to that object after it changes zones. During resolution, these abilities look for the object in the zone that it moved to. If the object is unable to be found in the zone it went to, the part of the ability attempting to do something to the object will fail to do anything. The ability could be unable to find the object because the object never entered the specified zone, because it left the zone before the ability resolved, or because it is in a zone that is hidden from a player, such as a library or an opponent’s hand. (This rule applies even if the object leaves the zone and returns again before the ability resolves.) The most common zone-change triggers are enters-the-battlefield triggers and leaves-the-battlefield triggers. Continuous effects that modify characteristics of a permanent do so the moment the permanent is on the battlefield (and not before then). The permanent is never on the battlefield with its unmodified characteristics. Continuous effects don’t apply before the permanent is on the battlefield, however (see rule 603.6d). If an effect reads “All lands are creatures” and a land card is played, the effect makes the land card into a creature the moment it enters the battlefield, so it would trigger abilities that trigger when a creature enters the battlefield. Conversely, if an effect reads “All creatures lose all abilities” and a creature card with an enters-the-battlefield triggered ability enters the battlefield, that effect will cause it to lose its abilities the moment it enters the battlefield, so the enters-the-battlefield ability won’t trigger."
+    },
+    "rewrite_queries": [],
+    "clarification": null,
+    "retrieved_rule_ids": [],
+    "prompt_supplied_rule_ids": [
+      "613.6",
+      "613.8a"
+    ],
+    "stop_reason": "end_turn",
+    "tool_calls": null,
+    "tool_rounds": null,
+    "usage": {
+      "input_tokens": 5656,
+      "output_tokens": 985,
+      "cache_read_input_tokens": 0,
+      "cache_creation_input_tokens": 0
+    },
+    "system_version": 3,
+    "layers_tool": true,
+    "max_tokens": 32768,
+    "effort": "low",
+    "reground": false,
+    "regrounded": false,
+    "cr_citations_before": 2,
+    "cr_citations_after": null,
+    "batch": true,
+    "cites_cr_rule": true,
+    "citation_sources": {
+      "labels": [
+        "cr_rule",
+        "cr_rule"
+      ],
+      "cr_rule": 2,
+      "ruling": 0,
+      "card": 0,
+      "glossary": 0,
+      "unresolved": 0,
+      "category": "cr_reliant"
+    },
+    "answer_gold": "Yes. Both effects apply in layer 6 and are applied in timestamp order (CR 613.1f, 613.7). The spell's effect was created when it resolved, so it has the later timestamp and is applied after the lose-all-abilities effect, which means the granted haste is not stripped."
+  },
+  {
+    "id": "pr008",
+    "question": "A creature has a static ability making all cards and permanents a single chosen color. An opponent then resolves an enchantment whose static ability says all creatures lose all abilities. What color is the creature, and what color is the opponent's enchantment?",
+    "match": "any",
+    "kind": "other",
+    "show_rewrite": false,
+    "rewrite_version": "none",
+    "ruling_query_mode": "union",
+    "condition": "purerules_placebo",
+    "run": null,
+    "model": "claude-opus-5",
+    "prompts_cache": "evals\\answers\\_prompts_purerules_placebo.json",
+    "prompts_cache_sha256": "6d0a1e3d983cbcde09668f92c23e953f75e49d42ed3fdefddb1e9f6edec0b5f8",
+    "answered": false,
+    "answer": "The provided rules don't contain enough to settle this. The whole question turns on the layer system — specifically the ordering rule that puts color-changing effects (layer 5) and ability-adding/removing effects (layer 6) in a fixed sequence, and the rules for how an effect that removes an ability interacts with a continuous effect generated by that very ability. Rules 613.1 and 613.3 (the list of layers) are not in the context I was given, so I can't responsibly tell you whether the creature's color-setting effect still applies once the opponent's enchantment strips its abilities.\n\nWhat the provided rules do establish:\n\n- A continuous effect from a static ability isn't 'locked in'; it applies at any given moment to whatever its text indicates [611.3a]. So if the ability truly stops existing, its effect stops applying — but that only tells you the outcome once you know the layer ordering, which isn't in context.\n- An effect that removes an ability says the object 'loses' that ability, and when add/remove effects conflict the most recent generally prevails, with rule 613 governing the details [113.10c].\n- Setting a color ('[permanent] is [color]') is defining a characteristic, not granting an ability, so the color-setting effect itself is not something the 'loses all abilities' enchantment removes directly — it can only be shut off by removing the source ability that generates it [113.12].\n- Within a single layer, ordering uses timestamps [613.7a], and dependency can override timestamps only when both effects are applied in the same layer [613.8a]. Since color-setting and ability-removal are in different layers, the dependency system in [613.8a] does not resolve this for you.\n- Note also that the enchantment says 'all creatures lose all abilities'; it does not remove its own abilities, so the enchantment keeps its ability regardless.\n\nI'm treating the timing as: the color-setting creature's static ability was already applying when the enchantment resolved. That timing doesn't actually change the analysis, since neither effect is locked in [611.3a] — both are recomputed continuously.\n\nThis reasoning is not multiplayer-specific; nothing in the provided context makes the answer differ between a two-player game and a larger table.\n\nTo answer definitively I'd need the layer rules (613.1/613.3) and the rule on effects that remove the ability generating another effect.",
+    "citations": [
+      "611.3a",
+      "113.10c",
+      "113.12",
+      "613.7a",
+      "613.8a"
+    ],
+    "gold": [
+      "613.1",
+      "613.1e",
+      "613.1f"
+    ],
+    "gold_text": {
+      "613.1": "The values of an object’s characteristics are determined by starting with the actual object. For a card, that means the values of the characteristics printed on that card. For a token or a copy of a spell or card, that means the values of the characteristics defined by the effect that created it. Then all applicable continuous effects are applied in a series of layers in the following order:",
+      "613.1e": "The values of an object’s characteristics are determined by starting with the actual object. For a card, that means the values of the characteristics printed on that card. For a token or a copy of a spell or card, that means the values of the characteristics defined by the effect that created it. Then all applicable continuous effects are applied in a series of layers in the following order: Layer 5: Color-changing effects are applied.",
+      "613.1f": "The values of an object’s characteristics are determined by starting with the actual object. For a card, that means the values of the characteristics printed on that card. For a token or a copy of a spell or card, that means the values of the characteristics defined by the effect that created it. Then all applicable continuous effects are applied in a series of layers in the following order: Layer 6: Ability-adding effects, keyword counters, ability-removing effects, and effects that say an object can’t have an ability are applied."
+    },
+    "cited_text": {
+      "611.3a": "A continuous effect may be generated by the static ability of an object. A continuous effect generated by a static ability isn’t “locked in”; it applies at any given moment to whatever its text indicates.",
+      "113.10c": "Effects can add or remove abilities of objects. An effect that adds an ability will state that the object “gains” or “has” that ability, or similar. An effect that removes an ability will state that the object “loses” that ability. If two or more effects add and remove the same ability, in general the most recent one prevails. See rule 613 for more information about the interaction of continuous effects.",
+      "113.12": "An effect that sets an object’s characteristic, or simply states a quality of that object, is different from an ability granted by an effect. When an object “gains” or “has” an ability, that ability can be removed by another effect. If an effect defines a characteristic of the object (“[permanent] is [characteristic value]”), it’s not granting an ability. (See rule 604.3.) Similarly, if an effect states a quality of that object (“[creature] can’t be blocked,” for example), it’s neither granting an ability nor setting a characteristic. Muraganda Petroglyphs reads, “Creatures with no abilities get +2/+2.” A Runeclaw Bear (a creature with no abilities) enchanted by an Aura that says “Enchanted creature has flying” would not get +2/+2. A Runeclaw Bear enchanted by an Aura that says “Enchanted creature is red” or “Enchanted creature can’t be blocked” would get +2/+2.",
+      "613.7a": "Within a layer or sublayer, determining which order effects are applied in is usually done using a timestamp system. An effect with an earlier timestamp is applied before an effect with a later timestamp. A continuous effect generated by a static ability has the same timestamp as the object the static ability is on, or the timestamp of the effect that created the ability, whichever is later. If the effect that created the ability has the later timestamp and the object the ability is on receives a new timestamp, each continuous effect generated by static abilities of that object receives a new timestamp as well, but the relative order of those timestamps remains the same. Rune of Flight is an Aura that grants enchanted Equipment “Equipped creature has flying.” A player attaches Rune of Flight to Colossus Hammer, an Equipment with “Equipped creature gets +10/+10 and loses flying.” The ability granted by Rune of Flight shares Rune of Flight’s timestamp because it is later than Colossus Hammer’s timestamp. If Colossus Hammer becomes attached to a creature, both of its abilities receive new timestamps (see rule 613.7e), but the relative order of those timestamps remains the same.",
+      "613.8a": "Within a layer or sublayer, determining which order effects are applied in is sometimes done using a dependency system. If a dependency exists, it will override the timestamp system. An effect is said to “depend on” another if (a) it’s applied in the same layer (and, if applicable, sublayer) as the other effect; (b) applying the other would change the text or the existence of the first effect, what it applies to, or what it does to any of the things it applies to; and (c) neither effect is from a characteristic-defining ability or both effects are from characteristic-defining abilities. Otherwise, the effect is considered to be independent of the other effect."
+    },
+    "rewrite_queries": [],
+    "clarification": null,
+    "retrieved_rule_ids": [],
+    "prompt_supplied_rule_ids": [
+      "613.6",
+      "613.8a"
+    ],
+    "stop_reason": "end_turn",
+    "tool_calls": null,
+    "tool_rounds": null,
+    "usage": {
+      "input_tokens": 4931,
+      "output_tokens": 1572,
+      "cache_read_input_tokens": 0,
+      "cache_creation_input_tokens": 0
+    },
+    "system_version": 3,
+    "layers_tool": true,
+    "max_tokens": 32768,
+    "effort": "low",
+    "reground": false,
+    "regrounded": false,
+    "cr_citations_before": 5,
+    "cr_citations_after": null,
+    "batch": true,
+    "cites_cr_rule": true,
+    "citation_sources": {
+      "labels": [
+        "cr_rule",
+        "cr_rule",
+        "cr_rule",
+        "cr_rule",
+        "cr_rule"
+      ],
+      "cr_rule": 5,
+      "ruling": 0,
+      "card": 0,
+      "glossary": 0,
+      "unresolved": 0,
+      "category": "cr_reliant"
+    },
+    "answer_gold": "Both are the chosen color. The color-changing effect applies in layer 5 and the ability-removing effect applies in layer 6 (CR 613.1e, 613.1f). Because layer 5 is applied before layer 6, the color-changing effect has already been applied by the time the ability generating it is removed, and it continues to apply. The effect applies to all permanents, so the opponent's enchantment is that color too."
+  }
+]
