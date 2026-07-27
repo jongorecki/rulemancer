@@ -1,7 +1,8 @@
 # Spec — semantic search over card oracle text ("find me something like this, but...")
 
-**Status: DESIGN ONLY, decisions RULED. Rule 0 — nothing gets built until Jon
-approves this document as a whole.** Written 2026-07-26 after
+**Status: DESIGN ONLY, decisions RULED, and now split into a $0 phase 0 that gates
+the embedding build. Rule 0 — nothing gets built until Jon approves this document
+as a whole.** Written 2026-07-26 after
 `docs/results-channel-ablation.md` established that card oracle text is the
 load-bearing channel and CR-rule retrieval is ~inert. Revised the same day with
 Jon's five rulings and with every corpus claim re-measured against
@@ -196,6 +197,58 @@ written-down partial order:
   and must never be its ground truth. Using them as gold would make the eval
   non-reproducible.
 
+## Scryfall oracle tags — and why they force a phase 0
+
+Jon flagged that Scryfall added tag data. Verified against the live API rather
+than from memory: `oracle_tags` (17.4 MB) and `art_tags` (38.9 MB) are their own
+bulk-data types, refreshed daily. **Tags are NOT fields on the card object** and
+are absent from `oracle_cards` / `default_cards` / `all_cards`; oracle tags join
+to cards on `oracle_id`, art tags on `illustration_id`. Search syntax exposes them
+as `otag:` / `oracletag:` / `function:`. Slugs and labels are explicitly not
+stable — track the tag `id` UUID.
+
+Measured against our indexable corpus:
+
+- **4,499 oracle tags**, of which 3,578 have a parent — a hierarchy, not a flat
+  keyword list.
+- **99.4% coverage** (34,073 of 34,280 indexable cards), median 6 tags per card,
+  mean 6.6, max 46.
+- **The `weight` field is unusable:** 229,303 taggings are `median`, 600
+  `very_strong`, 1 `strong`. Do not design around it.
+- Largest tags are functional: `activated ability` 9,041, `triggered ability`
+  7,906, `spot removal` 4,991, `evasion` 4,577, `removal-destroy` 1,712.
+
+**This is human-curated ground truth, which makes it both valuable and an
+experiment subject.** Scryfall moderates Tagger data but states plainly it cannot
+guarantee freedom from error or abuse, and recommends downstream apps be able to
+disable individual tags. So tags may be used as a gold *source* and as a baseline,
+but any number derived from them needs the same validation pass we would give any
+other instrument — the standing lesson applies.
+
+**The finding that changes the build order.** The `extra turn` tag contains exactly
+**64 cards** — the same 64 a plain regex scan finds, with the same 2 golgari.
+Which means test case 3 is answered *exactly* by a tag filter plus a colour
+filter, with no embeddings involved. Generalising:
+
+| capability | cheapest mechanism that actually works |
+|---|---|
+| functional comps | text equality — no embeddings |
+| "all extra turn effects in golgari" | tag filter + colour filter — no embeddings |
+| dominance / upgrade finding | metadata relation — no embeddings |
+| "cards that do `<arbitrary description>`" | **embeddings** |
+
+**PHASE 0, therefore, and it is mandatory: build the cheap baselines first and make
+the embedding index earn its place.** Tag filtering, text equality and BM25 are all
+local and cost nothing, so this is measurable before any indexing spend. If
+embeddings only beat the baselines on free-text description search, that is still a
+real reason to build them — but it is a far smaller claim than "we need a vector
+index," and finding it out first is exactly what the channel ablation would have
+saved months by doing.
+
+Phase 0 deliverable: recall@k for tag-filter, text-equality and BM25 retrieval
+against the same computed gold, on the same stratification. Phase 1 (the embedding
+index) is justified by that table or it is not built.
+
 ## Retrieval modes — two, not one
 
 **Mode A: top-k similarity.** "Cards like `<card>`" or "cards that
@@ -242,9 +295,13 @@ asymmetry governs here, so normalisation is the load-bearing code:
    each card's vector swapped for another's. Recall must collapse to chance. If it
    does not, the metric is measuring something other than semantic similarity, and
    day one is when we want to find that out. It costs nothing: retrieval is local.
-3. **BM25 baseline.** If lexical search over oracle text matches the embeddings,
-   the embeddings are not earning their cost. `BM25Index`
-   (`rulesagent/index/bm25.py:22`) already exists — reuse it.
+3. **Three baselines, not one** — all local, all free, all run in phase 0 before
+   any embedding exists: **BM25** over oracle text (`BM25Index`,
+   `rulesagent/index/bm25.py:22`, already built), **text equality** on the
+   normalised key, and **tag filtering** on the 4,499-tag oracle taxonomy. If any
+   of them matches the embeddings on a capability, the embeddings are not earning
+   their cost for that capability, and the spec says so in the writeup rather than
+   reporting the embedding number alone.
 4. **Noise floor is zero.** Embedding search is deterministic, so unlike every
    arm measured during the ablation, small differences here are real. State it
    explicitly.
@@ -284,13 +341,25 @@ Concrete, checkable, and drawn from real corpus rows:
 
 **How it could improve the answer path (LATER, and gated on measurement):**
 
-- **The expensive failure mode is card mis-resolution**, worth 31 points. Card
-  refs today are bracket-delimited and resolve exact → face-name → rapidfuzz at
-  threshold 90, refusing on ambiguity (`scryfall_store.py:277`). A card index adds
-  a path for *described* rather than named cards ("the blue aura that taps a
-  creature"), turning some unresolved refs into resolved ones. Note honestly: this
-  helps descriptions, not misspellings — name matching is a string problem and
-  rapidfuzz already owns it.
+- **Resolution failure is NOT a live problem on the eval corpus, and this was
+  measured after the rest of this section was drafted.** Across
+  `evals/rulesguru_full_v2.jsonl`: 1,399 of 1,409 rows carry a bracket ref,
+  **3,597 refs total, zero unresolved** — 95.83% on exact name, 4.17% on face name,
+  and the rapidfuzz tier never fires. So "a card index would rescue unresolved
+  refs" is worth approximately nothing here, and the earlier draft of this bullet
+  claiming otherwise was wrong.
+  **What that does and does not mean.** The corpus is RulesGuru-derived, so its
+  questions name cards exactly, in brackets, by construction. It cannot measure
+  what a real user typing a misspelled or described card does. The honest position
+  is that there is *no evidence* resolution failure is a live defect, not that it
+  cannot happen in production. It also reframes the 31-point card channel: that
+  number measures how much the answer *depends* on correct card data, not a defect
+  that is currently firing.
+  Two consequences worth carrying: the 150 face-name resolutions (4.17%) mean the
+  DFC/split path is genuinely exercised and earns its keep, and roadmap item 3b
+  ("harden card resolution") is insurance against a production failure mode that
+  the current instruments cannot see — still defensible, but its value is
+  unmeasured rather than demonstrated.
 - **"Is there a cheaper version of this card"** becomes answerable at all. Today
   the bot cannot answer it, because card data is pre-assembled from the refs in
   the question (`answer.py:1501`) and there is no mechanism to look sideways.
@@ -323,6 +392,14 @@ does something worth repeating"), then semantic-search for text describing that.
 The index is the substrate; the intelligence sits in generating the complement
 query. That is a legitimate and cheap division of labour — one model call to write
 a query, then local retrieval.
+
+**Tags do not solve this either, and it is worth knowing before anyone assumes
+otherwise.** There are 272 `synergy-*` oracle tags, but they are thematic
+categories rather than two-card interactions: `synergy-flying` (116 cards),
+`synergy-token-creature` (111), `synergy-mountain` (90). **Zero tags contain
+"combo".** So tags substantially improve *thematic* synergy search — "cards that
+make flying better" becomes a lookup — and leave two-card combo discovery exactly
+where it was.
 
 **Part of it is mechanically derivable.** Many combos are produce/consume pairs
 over predicates already present in the text:
@@ -379,10 +456,15 @@ has been validated before it is trusted.
 
 ## Scope
 
-**In (v1):** index build and refresh (per face, stripped text, non-cards
-excluded), card-anchored and text-anchored search, both retrieval modes with
-pre-filtering, structured filters, all four dominance shapes with tiers and an
-incomparable verdict, the computed-gold eval harness with placebo and BM25, and a
+**Phase 0 (first, $0, gates phase 1):** oracle-tag ingest (daily bulk file, joined
+on `oracle_id`), the computed-gold sets for all four dominance shapes, and
+recall@k for the three cheap baselines — text equality, tag filter, BM25 — on the
+agreed stratification.
+
+**Phase 1 / v1 (only if phase 0 justifies it):** embedding index build and refresh
+(per face, stripped text, non-cards excluded), card-anchored and text-anchored
+search, both retrieval modes with pre-filtering, structured filters, all four
+dominance shapes with tiers and an incomparable verdict, the placebo control, and a
 CLI.
 
 **Out (v1):** price filters, a UI, any change to the answer path, ruling-text

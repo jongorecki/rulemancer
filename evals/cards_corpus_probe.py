@@ -14,17 +14,26 @@ import json
 import re
 import sqlite3
 import statistics
+import sys
 from collections import Counter, defaultdict
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
+from rulesagent.tools.scryfall_store import NON_PLAYABLE_LAYOUTS  # noqa: E402
 
 DB = Path(__file__).resolve().parents[1] / "data" / "scryfall.db"
 
 # Layouts that are not real cards. "Find me a card like this" must never return
 # an art-series print or a token.
-NON_CARD = {
-    "art_series", "token", "double_faced_token", "emblem",
-    "vanguard", "scheme", "planar", "augment", "host",
-}
+#
+# Reuse the store's set rather than maintaining a second definition of "not a
+# real card" -- they had already drifted apart once. `augment` (14 cards) and
+# `host` (20) are the extra exclusions the CARD INDEX wants and card RESOLUTION
+# does not: resolution should still find an Unstable host card by name if a
+# question names one, but neither belongs in a similarity index. The delta is
+# declared here, in one place, on purpose.
+INDEX_ONLY_EXCLUSIONS = frozenset({"augment", "host"})
+NON_CARD = frozenset(NON_PLAYABLE_LAYOUTS) | INDEX_ONLY_EXCLUSIONS
 
 REMINDER = re.compile(r"\((?:[^()]|\([^()]*\))*\)")
 WS = re.compile(r"\s+")
