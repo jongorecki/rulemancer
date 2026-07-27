@@ -1,0 +1,44 @@
+# Rulemancer gated demo (docs/superpowers/plans/2026-07-27-gated-demo.md
+# Task 14). Always-on, no scale-to-zero -- spec: "A 10-20s cold start is the
+# first impression on a link clicked once."
+#
+# App name is "rulemancer" (already claimed via `fly apps create` before
+# this task ran) -- NOT "rulemancer-demo" as task-14-brief.md's boilerplate
+# says; the live app name overrides that stale draft.
+app = "rulemancer"
+primary_region = "ord"  # Chicago -- nearest to US-central per the spec
+
+[build]
+
+[env]
+  DEMO_DB_PATH = "/app/data/demo.db"
+
+[[mounts]]
+  source = "rulemancer_data"
+  destination = "/app/data"
+
+[[services]]
+  internal_port = 8000
+  protocol = "tcp"
+  auto_stop_machines = false
+  auto_start_machines = true
+  min_machines_running = 1
+
+  [[services.ports]]
+    handlers = ["tls", "http"]
+    port = 443
+
+  [[services.ports]]
+    handlers = ["http"]
+    port = 80
+    force_https = true
+
+  [[services.http_checks]]
+    path = "/health"
+    interval = "15s"
+    timeout = "5s"
+    grace_period = "30s"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"  # bump if the 17MB vector pickle + model client OOM it
