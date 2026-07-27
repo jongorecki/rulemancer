@@ -17,96 +17,56 @@
   }
 
   /* -----------------------------------------------------------------------
-   * The sigil: an arcane summoning circle that is literally this system's
-   * retrieval architecture, drawn as inline SVG (no external requests).
-   * Reading it from the outside in:
-   *   outer ring + entry mark  -> the question enters
-   *   dashed rotating ring     -> the Haiku rewriter, rephrasing it
-   *   tick ring                -> the Comprehensive Rules corpus (64 ticks
-   *                                drawn as a representative sample of the
-   *                                real 3,619 indexed chunks -- not a literal
-   *                                count)
-   *   inward rays (x15)        -> vector search pulling the top 15 chunks in
-   *   branch to the lower node -> a [Card Name] reference resolving via
-   *                                Scryfall, then its rulings passing
-   *                                through a relevance filter (most threads
-   *                                drop before reaching the core)
-   *   core                     -> claude-opus-5, where both routes converge
-   *   the bright southbound stroke -> the cited rule leaving the circle
-   * Decoration only: aria-hidden, not focusable, and every animation is
-   * killed under prefers-reduced-motion. It sits behind the opaque gate
-   * card (position: fixed, z-index: 0), so it never touches the contrast of
-   * any text -- the card's solid background does that job on its own.
+   * The sigil: a summoning-circle ornament, drawn as inline SVG (no external
+   * requests, no font glyphs -- every mark below is a hand-built <path>).
+   * Pure decoration: nested rings and two interlocking star polygons in
+   * plum for the static geometry, with teal energy that travels around the
+   * rings and star edges as soft glowing pulses. It does not encode this
+   * system's architecture, pipeline, or any real count -- it is ornament,
+   * not a diagram.
+   * aria-hidden, not focusable, and every animation is killed under
+   * prefers-reduced-motion. It sits behind the opaque gate card (position:
+   * fixed, z-index: 0), so it never touches the contrast of any text -- the
+   * card's solid background does that job on its own.
    * ------------------------------------------------------------------- */
   .rm-sigil {
     position: fixed; inset: 0; width: 100%; height: 100%;
-    z-index: 0; pointer-events: none; opacity: .55;
+    z-index: 0; pointer-events: none; opacity: .6;
   }
-  .rm-sigil .rm-ring-outer,
-  .rm-sigil .rm-ring-rewrite,
-  .rm-sigil .rm-ring-retrieved,
-  .rm-sigil .rm-ticks line { opacity: .5; }
-  .rm-sigil .rm-entry { opacity: .7; }
-  .rm-sigil .rm-entry-mark { fill: var(--plum-300); opacity: .7; }
+  .rm-sigil .rm-static { opacity: .55; }
+  .rm-sigil .rm-static-faint { opacity: .35; }
+  .rm-sigil .rm-node { fill: var(--plum-300); opacity: .6; }
 
-  .rm-sigil .rm-ring-rewrite {
-    transform-origin: 240px 240px;
-    animation: rm-rotate 60s linear infinite;
-  }
+  .rm-sigil .rm-grp-outer  { transform-origin: 240px 240px; animation: rm-spin-cw  220s linear infinite; }
+  .rm-sigil .rm-grp-glyphs { transform-origin: 240px 240px; animation: rm-spin-ccw 150s linear infinite; }
+  .rm-sigil .rm-grp-dashed { transform-origin: 240px 240px; animation: rm-spin-cw   95s linear infinite; }
+  .rm-sigil .rm-grp-double { transform-origin: 240px 240px; animation: rm-spin-ccw 130s linear infinite; }
+  .rm-sigil .rm-grp-star9  { transform-origin: 240px 240px; animation: rm-spin-cw  190s linear infinite; }
+  .rm-sigil .rm-grp-star7  { transform-origin: 240px 240px; animation: rm-spin-ccw 105s linear infinite; }
+  .rm-sigil .rm-grp-inner  { transform-origin: 240px 240px; animation: rm-spin-cw   65s linear infinite; }
 
-  .rm-sigil .rm-route-rules {
-    filter: drop-shadow(0 0 3px rgba(148, 105, 180, .55));
-    animation: rm-alt-rules 9s ease-in-out infinite;
-  }
-  .rm-sigil .rm-route-rules line {
-    stroke-dasharray: 5 9;
-    animation: rm-trace 3.2s linear infinite;
-  }
-  .rm-sigil .rm-route-card {
-    filter: drop-shadow(0 0 3px rgba(48, 155, 140, .55));
-    animation: rm-alt-card 9s ease-in-out infinite;
-  }
-  .rm-sigil .rm-route-card line,
-  .rm-sigil .rm-route-card path.rm-branch-in,
-  .rm-sigil .rm-route-card line.rm-branch-out {
-    stroke-dasharray: 5 9;
-    animation: rm-trace 3.2s linear infinite;
-  }
-  .rm-sigil .rm-thread-drop { opacity: .45; stroke-dasharray: 3 6; }
-  .rm-sigil .rm-thread-reach { opacity: .9; }
+  @keyframes rm-spin-cw  { to { transform: rotate(360deg); } }
+  @keyframes rm-spin-ccw { to { transform: rotate(-360deg); } }
 
-  .rm-sigil .rm-core {
-    filter: drop-shadow(0 0 6px rgba(48, 155, 140, .55));
-    animation: rm-core-pulse 4s ease-in-out infinite;
-  }
+  /* Teal pulses: pathLength="100" on every pulse element normalizes stroke
+     length regardless of true geometry, so "one lap" is always dashoffset
+     -100/100 -- a clean, seamless loop with no visible reset. Each pulse
+     sits inside the same rotating group as the ring/star it traces, so it
+     also drifts with the slow counter-rotation above it. */
+  .rm-sigil .rm-pulse { fill: none; stroke: var(--teal-300); filter: url(#rm-glow); }
+  .rm-sigil .rm-pulse-a    { stroke-dasharray: 14 86; animation: rm-travel     11s linear infinite, rm-flicker 3.4s ease-in-out infinite; }
+  .rm-sigil .rm-pulse-b    { stroke-dasharray: 9 91;  animation: rm-travel-rev 16s linear infinite, rm-flicker 4.6s ease-in-out infinite .6s; }
+  .rm-sigil .rm-pulse-c    { stroke-dasharray: 20 80; animation: rm-travel     13s linear infinite, rm-flicker 3.9s ease-in-out infinite 1.1s; }
+  .rm-sigil .rm-pulse-d    { stroke-dasharray: 11 89; animation: rm-travel-rev  9s linear infinite, rm-flicker 3.1s ease-in-out infinite .3s; }
+  .rm-sigil .rm-pulse-e    { stroke-dasharray: 16 84; animation: rm-travel     18s linear infinite, rm-flicker 5.2s ease-in-out infinite 1.7s; }
+  .rm-sigil .rm-pulse-f    { stroke-dasharray: 8 92;  animation: rm-travel-rev 14s linear infinite, rm-flicker 4.1s ease-in-out infinite .9s; }
+  .rm-sigil .rm-pulse-core { stroke-dasharray: 30 70; stroke-width: 2; animation: rm-travel 22s linear infinite, rm-flicker 5.8s ease-in-out infinite; }
 
-  .rm-sigil .rm-exit {
-    stroke-dasharray: 14 18;
-    filter: drop-shadow(0 0 4px rgba(126, 207, 194, .75));
-    animation: rm-exit-pulse 3.4s linear infinite;
-  }
-  .rm-sigil .rm-exit-arrow { fill: var(--teal-300); opacity: .85; }
-
-  @keyframes rm-rotate { to { transform: rotate(360deg); } }
-  @keyframes rm-trace { to { stroke-dashoffset: -140; } }
-  @keyframes rm-alt-rules {
-    0%, 42% { opacity: 1; }
-    50%, 92% { opacity: .25; }
-    100% { opacity: 1; }
-  }
-  @keyframes rm-alt-card {
-    0%, 42% { opacity: .25; }
-    50%, 92% { opacity: 1; }
-    100% { opacity: .25; }
-  }
-  @keyframes rm-core-pulse {
-    0%, 100% { filter: drop-shadow(0 0 6px rgba(48, 155, 140, .5)); }
-    50% { filter: drop-shadow(0 0 13px rgba(48, 155, 140, .9)); }
-  }
-  @keyframes rm-exit-pulse {
-    0% { stroke-dashoffset: 0; opacity: .5; }
+  @keyframes rm-travel     { to { stroke-dashoffset: -100; } }
+  @keyframes rm-travel-rev { to { stroke-dashoffset: 100; } }
+  @keyframes rm-flicker {
+    0%, 100% { opacity: .3; }
     50% { opacity: 1; }
-    100% { stroke-dashoffset: -256; opacity: .5; }
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -171,57 +131,110 @@
 <body data-surface="dark">
 <svg class="rm-sigil" viewBox="0 0 480 480" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false" role="presentation">
   <defs>
-    <linearGradient id="rm-exit-grad" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="var(--teal-300)" />
-      <stop offset="100%" stop-color="var(--plum-300)" />
-    </linearGradient>
+    <filter id="rm-glow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="5" result="blur-wide" />
+      <feGaussianBlur in="SourceGraphic" stdDeviation="1.6" result="blur-tight" />
+      <feMerge>
+        <feMergeNode in="blur-wide" />
+        <feMergeNode in="blur-tight" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+    <!-- runic glyphs: abstract marks built as paths, never text/fonts. Not
+         real script from any language -- invented marks, kept simple so
+         they don't accidentally read as letters. -->
+    <path id="rm-glyph-1" d="M234,44 L240,36 L246,44" />
+    <path id="rm-glyph-2" d="M234,40 L238,48 L242,40 L246,48" />
+    <path id="rm-glyph-3" d="M240,35 L240,51 M234,35 L246,35" />
+    <path id="rm-glyph-4" d="M244,36 Q249,44 240,50" />
+    <path id="rm-glyph-5" d="M240,34 L246,44 L240,54 L234,44 Z" />
+    <path id="rm-glyph-6" d="M236,40 L244,48 M244,40 L236,48" />
   </defs>
-  <g fill="none">
-    <!-- the question enters -->
-    <line class="rm-entry" x1="240" y1="30" x2="240" y2="10" stroke="var(--plum-300)" stroke-width="1.4" />
-    <path class="rm-entry-mark" d="M240 4 L246 14 L240 24 L234 14 Z" />
-    <circle class="rm-ring-outer" cx="240" cy="240" r="210" stroke="var(--plum-400)" stroke-width="1" />
+  <g fill="none" stroke="var(--plum-400)">
 
-    <!-- the Haiku rewriter: a slow-turning dashed ring -->
-    <circle class="rm-ring-rewrite" cx="240" cy="240" r="185" stroke="var(--teal-300)" stroke-width="1" stroke-dasharray="2 7" />
-
-    <!-- 64 ticks representing the Comprehensive Rules corpus (3,619 chunks
-         indexed in production; 64 drawn here as a legible representative
-         sample, not a literal count) -->
-    <g class="rm-ticks" stroke="var(--plum-400)" stroke-width="1">
-      <line x1="240.0" y1="90.0" x2="240.0" y2="77.0"/><line x1="254.7" y1="90.7" x2="256.0" y2="77.8"/><line x1="269.3" y1="92.9" x2="271.8" y2="80.1"/><line x1="283.5" y1="96.5" x2="287.3" y2="84.0"/><line x1="297.4" y1="101.4" x2="302.4" y2="89.4"/><line x1="310.7" y1="107.7" x2="316.8" y2="96.2"/><line x1="323.3" y1="115.3" x2="330.6" y2="104.5"/><line x1="335.2" y1="124.0" x2="343.4" y2="114.0"/><line x1="346.1" y1="133.9" x2="355.3" y2="124.7"/><line x1="356.0" y1="144.8" x2="366.0" y2="136.6"/><line x1="364.7" y1="156.7" x2="375.5" y2="149.4"/><line x1="372.3" y1="169.3" x2="383.8" y2="163.2"/><line x1="378.6" y1="182.6" x2="390.6" y2="177.6"/><line x1="383.5" y1="196.5" x2="396.0" y2="192.7"/><line x1="387.1" y1="210.7" x2="399.9" y2="208.2"/><line x1="389.3" y1="225.3" x2="402.2" y2="224.0"/><line x1="390.0" y1="240.0" x2="403.0" y2="240.0"/><line x1="389.3" y1="254.7" x2="402.2" y2="256.0"/><line x1="387.1" y1="269.3" x2="399.9" y2="271.8"/><line x1="383.5" y1="283.5" x2="396.0" y2="287.3"/><line x1="378.6" y1="297.4" x2="390.6" y2="302.4"/><line x1="372.3" y1="310.7" x2="383.8" y2="316.8"/><line x1="364.7" y1="323.3" x2="375.5" y2="330.6"/><line x1="356.0" y1="335.2" x2="366.0" y2="343.4"/><line x1="346.1" y1="346.1" x2="355.3" y2="355.3"/><line x1="335.2" y1="356.0" x2="343.4" y2="366.0"/><line x1="323.3" y1="364.7" x2="330.6" y2="375.5"/><line x1="310.7" y1="372.3" x2="316.8" y2="383.8"/><line x1="297.4" y1="378.6" x2="302.4" y2="390.6"/><line x1="283.5" y1="383.5" x2="287.3" y2="396.0"/><line x1="269.3" y1="387.1" x2="271.8" y2="399.9"/><line x1="254.7" y1="389.3" x2="256.0" y2="402.2"/><line x1="240.0" y1="390.0" x2="240.0" y2="403.0"/><line x1="225.3" y1="389.3" x2="224.0" y2="402.2"/><line x1="210.7" y1="387.1" x2="208.2" y2="399.9"/><line x1="196.5" y1="383.5" x2="192.7" y2="396.0"/><line x1="182.6" y1="378.6" x2="177.6" y2="390.6"/><line x1="169.3" y1="372.3" x2="163.2" y2="383.8"/><line x1="156.7" y1="364.7" x2="149.4" y2="375.5"/><line x1="144.8" y1="356.0" x2="136.6" y2="366.0"/><line x1="133.9" y1="346.1" x2="124.7" y2="355.3"/><line x1="124.0" y1="335.2" x2="114.0" y2="343.4"/><line x1="115.3" y1="323.3" x2="104.5" y2="330.6"/><line x1="107.7" y1="310.7" x2="96.2" y2="316.8"/><line x1="101.4" y1="297.4" x2="89.4" y2="302.4"/><line x1="96.5" y1="283.5" x2="84.0" y2="287.3"/><line x1="92.9" y1="269.3" x2="80.1" y2="271.8"/><line x1="90.7" y1="254.7" x2="77.8" y2="256.0"/><line x1="90.0" y1="240.0" x2="77.0" y2="240.0"/><line x1="90.7" y1="225.3" x2="77.8" y2="224.0"/><line x1="92.9" y1="210.7" x2="80.1" y2="208.2"/><line x1="96.5" y1="196.5" x2="84.0" y2="192.7"/><line x1="101.4" y1="182.6" x2="89.4" y2="177.6"/><line x1="107.7" y1="169.3" x2="96.2" y2="163.2"/><line x1="115.3" y1="156.7" x2="104.5" y2="149.4"/><line x1="124.0" y1="144.8" x2="114.0" y2="136.6"/><line x1="133.9" y1="133.9" x2="124.7" y2="124.7"/><line x1="144.8" y1="124.0" x2="136.6" y2="114.0"/><line x1="156.7" y1="115.3" x2="149.4" y2="104.5"/><line x1="169.3" y1="107.7" x2="163.2" y2="96.2"/><line x1="182.6" y1="101.4" x2="177.6" y2="89.4"/><line x1="196.5" y1="96.5" x2="192.7" y2="84.0"/><line x1="210.7" y1="92.9" x2="208.2" y2="80.1"/><line x1="225.3" y1="90.7" x2="224.0" y2="77.8"/>
+    <!-- outer ring: solid hairline -->
+    <g class="rm-grp-outer">
+      <circle class="rm-static" cx="240" cy="240" r="210" stroke-width=".9" />
+      <circle class="rm-pulse rm-pulse-a" cx="240" cy="240" r="210" pathLength="100" stroke-width="1.6" />
     </g>
 
-    <!-- vector search pulls the top 15 chunks inward -->
-    <circle class="rm-ring-retrieved" cx="240" cy="240" r="96" stroke="var(--plum-300)" stroke-width="1" />
-    <g class="rm-route-rules" stroke="var(--plum-300)" stroke-width="1.4">
-      <line x1="240.0" y1="90.0" x2="240.0" y2="144.0"/><line x1="297.4" y1="101.4" x2="276.7" y2="151.3"/><line x1="356.0" y1="144.8" x2="314.2" y2="179.1"/><line x1="383.5" y1="196.5" x2="331.9" y2="212.1"/><line x1="389.3" y1="254.7" x2="335.5" y2="249.4"/><line x1="372.3" y1="310.7" x2="324.7" y2="285.3"/><line x1="323.3" y1="364.7" x2="293.3" y2="319.8"/><line x1="269.3" y1="387.1" x2="258.7" y2="334.2"/><line x1="210.7" y1="387.1" x2="221.3" y2="334.2"/><line x1="156.7" y1="364.7" x2="186.7" y2="319.8"/><line x1="107.7" y1="310.7" x2="155.3" y2="285.3"/><line x1="90.7" y1="254.7" x2="144.5" y2="249.4"/><line x1="96.5" y1="196.5" x2="148.1" y2="212.1"/><line x1="124.0" y1="144.8" x2="165.8" y2="179.1"/><line x1="182.6" y1="101.4" x2="203.3" y2="151.3"/>
+    <!-- band of runic glyphs -->
+    <g class="rm-grp-glyphs rm-static-faint" stroke="var(--plum-300)" stroke-width="1.1" stroke-linecap="round">
+      <use href="#rm-glyph-1" transform="rotate(0 240 240)" />
+      <use href="#rm-glyph-2" transform="rotate(18 240 240)" />
+      <use href="#rm-glyph-3" transform="rotate(36 240 240)" />
+      <use href="#rm-glyph-4" transform="rotate(54 240 240)" />
+      <use href="#rm-glyph-5" transform="rotate(72 240 240)" />
+      <use href="#rm-glyph-6" transform="rotate(90 240 240)" />
+      <use href="#rm-glyph-1" transform="rotate(108 240 240)" />
+      <use href="#rm-glyph-2" transform="rotate(126 240 240)" />
+      <use href="#rm-glyph-3" transform="rotate(144 240 240)" />
+      <use href="#rm-glyph-4" transform="rotate(162 240 240)" />
+      <use href="#rm-glyph-5" transform="rotate(180 240 240)" />
+      <use href="#rm-glyph-6" transform="rotate(198 240 240)" />
+      <use href="#rm-glyph-1" transform="rotate(216 240 240)" />
+      <use href="#rm-glyph-2" transform="rotate(234 240 240)" />
+      <use href="#rm-glyph-3" transform="rotate(252 240 240)" />
+      <use href="#rm-glyph-4" transform="rotate(270 240 240)" />
+      <use href="#rm-glyph-5" transform="rotate(288 240 240)" />
+      <use href="#rm-glyph-6" transform="rotate(306 240 240)" />
+      <use href="#rm-glyph-1" transform="rotate(324 240 240)" />
+      <use href="#rm-glyph-2" transform="rotate(342 240 240)" />
     </g>
 
-    <!-- named-card branch: Scryfall resolution, then rulings through a
-         relevance filter (most threads dropped before reaching the core) -->
-    <g class="rm-route-card" stroke="var(--teal-300)">
-      <line class="rm-branch-out" x1="151.3" y1="430.3" x2="139.4" y2="455.7" stroke-width="1.3" />
-      <polygon class="rm-node-scryfall" points="139.4,443.7 150.8,450.2 150.8,463.2 139.4,469.7 128.0,463.2 128.0,450.2" stroke-width="1.2" opacity=".85" />
-      <path class="rm-branch-in" d="M139.4 455.7 L190.1 346.9" stroke-width="1.3" />
-      <path class="rm-node-filter" d="M175 333 L205 333 L193 355 L193 368 L187 368 L187 355 Z" stroke-width="1.2" opacity=".85" />
-      <line class="rm-thread-drop" x1="190.1" y1="346.9" x2="225.1" y2="316.6" stroke-width="1" />
-      <line class="rm-thread-drop" x1="190.1" y1="346.9" x2="215.9" y2="314.2" stroke-width="1" />
-      <line class="rm-thread-reach" x1="190.1" y1="346.9" x2="223.6" y2="278.7" stroke-width="1.4" />
-      <line class="rm-thread-reach" x1="190.1" y1="346.9" x2="220.9" y2="277.4" stroke-width="1.4" />
-      <line class="rm-thread-drop" x1="190.1" y1="346.9" x2="198.7" y2="306.1" stroke-width="1" />
-      <line class="rm-thread-drop" x1="190.1" y1="346.9" x2="190.9" y2="300.6" stroke-width="1" />
+    <!-- dashed ring -->
+    <g class="rm-grp-dashed">
+      <circle class="rm-static" cx="240" cy="240" r="185" stroke-width="1" stroke-dasharray="3 8" />
+      <circle class="rm-pulse rm-pulse-b" cx="240" cy="240" r="185" pathLength="100" stroke-width="1.6" />
     </g>
 
-    <!-- both routes converge: claude-opus-5 -->
-    <g class="rm-core">
-      <circle cx="240" cy="240" r="34" fill="var(--bg-page)" stroke="var(--teal-500)" stroke-width="2" />
-      <path d="M240 216 L258 240 L240 264 L222 240 Z" stroke="var(--teal-300)" stroke-width="1.2" />
+    <!-- doubled ring, narrow gap -->
+    <g class="rm-grp-double">
+      <circle class="rm-static" cx="240" cy="240" r="160" stroke-width=".7" />
+      <circle class="rm-static" cx="240" cy="240" r="156" stroke-width=".7" />
+      <circle class="rm-pulse rm-pulse-c" cx="240" cy="240" r="158" pathLength="100" stroke-width="1.4" />
     </g>
 
-    <!-- one brighter stroke leaves the circle, carrying the cited rule -->
-    <line class="rm-exit" x1="240" y1="280" x2="240" y2="474" stroke="url(#rm-exit-grad)" stroke-width="2.2" />
-    <path class="rm-exit-arrow" d="M240 474 L234 462 L246 462 Z" />
+    <!-- nine-pointed star {9/4} -->
+    <g class="rm-grp-star9">
+      <polygon class="rm-static" stroke="var(--plum-300)" stroke-width="1"
+               points="240,90 291.3,380.96 143.58,125.1 369.9,315 92.28,213.96 387.72,213.96 110.1,315 336.42,125.1 188.7,380.96" />
+      <path class="rm-pulse rm-pulse-d" pathLength="100" stroke-width="1.5"
+            d="M240,90 L291.3,380.96 L143.58,125.1 L369.9,315 L92.28,213.96 L387.72,213.96 L110.1,315 L336.42,125.1 L188.7,380.96 Z" />
+      <g class="rm-node">
+        <circle cx="240" cy="90" r="2.2" /><circle cx="336.42" cy="125.1" r="2.2" />
+        <circle cx="387.72" cy="213.96" r="2.2" /><circle cx="369.9" cy="315" r="2.2" />
+        <circle cx="291.3" cy="380.96" r="2.2" /><circle cx="188.7" cy="380.96" r="2.2" />
+        <circle cx="110.1" cy="315" r="2.2" /><circle cx="92.28" cy="213.96" r="2.2" />
+        <circle cx="143.58" cy="125.1" r="2.2" />
+      </g>
+    </g>
+
+    <!-- seven-pointed star {7/3}, interfering with the nine-pointed star above -->
+    <g class="rm-grp-star7">
+      <polygon class="rm-static" stroke="var(--plum-300)" stroke-width="1"
+               points="240,122 291.2,346.3 147.75,166.44 355.07,266.26 124.93,266.26 332.25,166.44 188.8,346.3" />
+      <path class="rm-pulse rm-pulse-e" pathLength="100" stroke-width="1.5"
+            d="M240,122 L291.2,346.3 L147.75,166.44 L355.07,266.26 L124.93,266.26 L332.25,166.44 L188.8,346.3 Z" />
+      <g class="rm-node">
+        <circle cx="240" cy="122" r="2" /><circle cx="332.25" cy="166.44" r="2" />
+        <circle cx="355.07" cy="266.26" r="2" /><circle cx="291.2" cy="346.3" r="2" />
+        <circle cx="188.8" cy="346.3" r="2" /><circle cx="124.93" cy="266.26" r="2" />
+        <circle cx="147.75" cy="166.44" r="2" />
+      </g>
+    </g>
+
+    <!-- inner dashed ring -->
+    <g class="rm-grp-inner">
+      <circle class="rm-static" cx="240" cy="240" r="96" stroke-width="1" stroke-dasharray="2 6" />
+      <circle class="rm-pulse rm-pulse-f" cx="240" cy="240" r="96" pathLength="100" stroke-width="1.4" />
+    </g>
+
+    <!-- still center: a small circle and crossed hairlines, no rotation -->
+    <circle class="rm-static" cx="240" cy="240" r="34" stroke-width="1.2" />
+    <path class="rm-static-faint" stroke="var(--plum-300)" stroke-width="1"
+          d="M240,214 L240,266 M214,240 L266,240 M221,221 L259,259 M259,221 L221,259" />
+    <circle class="rm-pulse rm-pulse-core" cx="240" cy="240" r="34" pathLength="100" stroke-width="2" />
   </g>
 </svg>
 <div class="rm-gate-card">
