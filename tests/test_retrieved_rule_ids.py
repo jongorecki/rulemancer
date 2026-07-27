@@ -209,6 +209,13 @@ def test_run_answer_eval_schema_additive(tmp_path):
         # guard compares it -- an effort arm and a default-effort arm are
         # different experiments, exactly like max_tokens.
         "effort",
+        # prompt_supplied_rule_ids (coverage-metric measurement-bug fix):
+        # ids that reached the model outside retrieval this run, via the
+        # system prompt/tool schemas -- see
+        # rulesagent.generate.answer.prompt_supplied_rule_ids(). Additive,
+        # derived from system_version/layers_tool, always a list (possibly
+        # empty), never absent.
+        "prompt_supplied_rule_ids",
     }
     assert pre_existing_keys <= row.keys()
     assert row.keys() - pre_existing_keys == new_keys

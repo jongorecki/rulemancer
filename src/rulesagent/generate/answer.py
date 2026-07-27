@@ -1108,6 +1108,128 @@ LAYERS_TRIGGER_SENTENCE = (
     "timestamped) rather than working out the layer interaction yourself."
 )
 
+# --- Prompt-supplied rule ids --------------------------------------------
+#
+# Some CR rule text reaches the model on every call regardless of whether
+# retrieval ever surfaced it or the tool was ever invoked -- via tool-schema
+# descriptions (attached whenever that tool's trigger fires this call) and
+# via the system prompt (attached on every call, for whichever SYSTEM_
+# VERSIONS entry the run selected). The retrieval coverage metric (evals/
+# run_eval.py's coverage_at/coverage_from_ids) was scoring those ids as
+# retrieval misses even though the model demonstrably had them in context.
+# This is the curated, single source of truth for which ids that applies to.
+#
+# THE STANDARD (Jon's correction, 2026-07-26, after checking the first pass
+# against the actual strings): an id counts as prompt-supplied ONLY if the
+# prompt/schema carries the rule's TEXT or its substance -- a bare rule-
+# number citation (e.g. "computes cost per CR 601.2f", or the citation-
+# format example "e.g. [104.3a]") hands the model a label with no content,
+# and crediting that as coverage would be wrong. Checked against every
+# occurrence in this file:
+#   - RESOLVE_LAYERS_TOOL quotes 613.6 verbatim and paraphrases 613.8a with
+#     its full (a)/(b)/(c) criteria -- KEPT. Its is_cda field says only
+#     "Feeds CR 613.3/613.4a ordering (CDAs first)" for 613.3/613.4a -- a
+#     two-word gloss, not the rule -- EXCLUDED.
+#   - CALCULATE_COST_TOOL never quotes 601.2f, only cites it -- EXCLUDED.
+#   - SYSTEM_V3/V4/V4NL's only appearance of 104.3a is the citation-format
+#     example "e.g. [104.3a]" -- EXCLUDED; none of the three supply any rule
+#     content, so their contribution is the empty set.
+#   - LAYERS_CR_BULLET (v3+613 only) pastes 613.6 and 611.3a verbatim from
+#     the CR text file -- both KEPT.
+# Excluded ids are tracked explicitly in _REFERENCED_NOT_QUOTED below, with
+# the reason, so the drift guard can tell "a new bare reference showed up,
+# expected" apart from "a new id needs a real look."
+#
+# Deliberately EXPLICIT constants, not a runtime regex over the prompt
+# strings: applying "text-or-substance vs. bare reference" is a judgment
+# call a regex cannot make, and a regex-only test would either mis-credit
+# bare references or need to reproduce this same judgment anyway. tests/
+# test_coverage_metric.py's drift guard instead regexes the actual strings
+# for every CR-rule-number-shaped candidate and asserts each one lands in
+# EITHER this file's constants OR _REFERENCED_NOT_QUOTED -- so a prompt edit
+# that adds or removes an id still trips a loud, specific failure, but the
+# text-vs-reference distinction is encoded rather than ignored.
+
+# CALCULATE_COST_TOOL never quotes 601.2f's text -- only cites it ("per CR
+# 601.2f"). Contributes nothing.
+_COST_TOOL_PROMPT_IDS: frozenset[str] = frozenset()
+
+# RESOLVE_LAYERS_TOOL is gated by the run-level layers_tool switch
+# (RulesAgent(layers_tool=...) / run_answer_eval.py's --layers-tool). When a
+# run has that switch off, this schema never reaches any call in the run, so
+# none of its ids count as prompt-supplied for that run's rows. Only 613.6
+# (verbatim) and 613.8a (paraphrased with full criteria) carry real
+# substance -- 613.3/613.4a are a bare "(CDAs first)" gloss, excluded.
+_LAYERS_TOOL_PROMPT_IDS: frozenset[str] = frozenset({"613.6", "613.8a"})
+
+# Ids embedded directly in a SYSTEM_VERSIONS prompt string, independent of
+# any tool switch -- present on every call built with that system_version.
+# 3/4/v4nl supply no rule content (their only rule-number token is the
+# citation-format example "e.g. [104.3a]"), so each maps to the empty set.
+_SYSTEM_PROMPT_IDS: dict[int | str, frozenset[str]] = {
+    3: frozenset(),
+    4: frozenset(),
+    "v4nl": frozenset(),
+    # v3+613 = SYSTEM_V3 + LAYERS_CR_BULLET, which pastes 613.6 and 611.3a
+    # VERBATIM from the CR text file (see LAYERS_CR_BULLET above) -- both
+    # real rule text, both kept. SYSTEM_V3's own contribution is still empty
+    # (same as plain v3 above).
+    "v3+613": frozenset({"611.3a", "613.6"}),
+}
+
+# Candidate ids the drift-guard regex WILL find in the schema/prompt
+# strings, that are deliberately excluded above because they're a bare
+# rule-number reference, not the rule's text or substance. Each entry names
+# exactly where it was checked and why it failed the standard, so the next
+# person to touch a prompt can re-verify the call rather than take it on
+# faith.
+_REFERENCED_NOT_QUOTED: dict[str, str] = {
+    "104.3a": (
+        "SYSTEM_V3/V4/V4NL's only occurrence is the citation-format "
+        "example 'Rules are labeled with their number in brackets, e.g. "
+        "[104.3a].' -- a formatting instruction, not rule content."
+    ),
+    "601.2f": (
+        "CALCULATE_COST_TOOL's description says only 'computes the exact "
+        "resulting cost per CR 601.2f' -- a citation, the rule's text is "
+        "never quoted."
+    ),
+    "613.3": (
+        "RESOLVE_LAYERS_TOOL's is_cda field description is 'Feeds CR "
+        "613.3/613.4a ordering (CDAs first)' -- a two-word gloss, not the "
+        "rule's substance."
+    ),
+    "613.4a": (
+        "Same field as 613.3 above -- bare reference, not quoted."
+    ),
+}
+
+
+def prompt_supplied_rule_ids(system_version: int | str, layers_tool: bool) -> frozenset[str]:
+    """The set of gold rule ids that reach the model for free on every call
+    of a run built with this (system_version, layers_tool) configuration --
+    via the system prompt always, and via RESOLVE_LAYERS_TOOL schema text
+    whenever that tool can be attached (CALCULATE_COST_TOOL contributes
+    nothing -- see _COST_TOOL_PROMPT_IDS above). Used to correct the
+    retrieval coverage metric: a gold id in this set was in front of the
+    model even on a row where retrieval never surfaced it, so it should not
+    be scored as a retrieval miss. Only ids backed by real rule text/
+    substance are ever in this set -- see the module comment above for the
+    text-vs-reference standard and how each id was checked against it.
+
+    Unknown system_version keys contribute no system-prompt ids (rather
+    than raising) so a future SYSTEM_VERSIONS entry added without updating
+    this table degrades to "layers ids only (if enabled)," not a crash --
+    the drift-guard test below still forces anyone touching prompt text to
+    reconcile the two.
+    """
+    ids = set(_SYSTEM_PROMPT_IDS.get(system_version, frozenset()))
+    ids |= _COST_TOOL_PROMPT_IDS
+    if layers_tool:
+        ids |= _LAYERS_TOOL_PROMPT_IDS
+    return frozenset(ids)
+
+
 TOOL_ROUND_CAP = 4
 # Guard against a confused model looping (plan Sec 3d / spike Sec 3): round
 # trips = tool calls + 1, and the spike observed clean 2-3-round convergence

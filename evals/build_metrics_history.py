@@ -261,6 +261,105 @@ def cost_of(rows: list[dict], model: str) -> dict:
     return out
 
 
+# Config axes read for the "arm config matrix" -- every field that can silently
+# make two arms different experiments, plus the derived `retrieval` column.
+# `model`/`effort`/`system_version`/`ruling_query_mode`/`rewrite_version` overlap
+# CONFIG_FIELDS above (used for timeline step/delta bookkeeping); this list is
+# wider on purpose, because the matrix's job is to expose every axis a review
+# might miss, not just the ones a delta chain already accounts for.
+ARM_CONFIG_MATRIX_FIELDS = [
+    ("model", "Model"), ("system_version", "System ver"), ("effort", "Effort"),
+    ("max_tokens", "Max tokens"), ("ruling_query_mode", "Ruling mode"),
+    ("layers_tool", "Layers tool"), ("show_rewrite", "Show rewrite"),
+    ("rewrite_version", "Rewrite ver"), ("retrieval", "Retrieval"),
+]
+
+
+def _field_summary(rows: list[dict], field: str) -> dict:
+    """One config field's shape across an arm's rows.
+
+    Constant -> {value, mixed:False}. Not constant -> {mixed:True, breakdown},
+    breakdown sorted by frequency. An arm that isn't constant on a field it
+    should be constant on is itself a finding -- this is what lets the page
+    show it rather than silently reporting the first row's value.
+    """
+    if not rows:
+        return {"value": None, "mixed": False, "breakdown": None}
+    counts: dict[str, int] = {}
+    reprs: dict[str, object] = {}
+    for r in rows:
+        v = r.get(field)
+        key = repr(v)
+        counts[key] = counts.get(key, 0) + 1
+        reprs[key] = v
+    if len(counts) <= 1:
+        return {"value": rows[0].get(field), "mixed": False, "breakdown": None}
+    breakdown = sorted(({"value": reprs[k], "n": n} for k, n in counts.items()),
+                       key=lambda b: (-b["n"], str(b["value"])))
+    return {"value": None, "mixed": True, "breakdown": breakdown}
+
+
+def _retrieval_summary(rows: list[dict]) -> dict:
+    """Derived retrieval column: off (nothing retrieved, e.g. an oracle arm
+    handed gold directly) vs on (retrieval ran, with the mean rule-id count),
+    vs mixed (some rows retrieved, some didn't -- worth flagging on its own)."""
+    if not rows:
+        return {"value": None, "mixed": False, "breakdown": None}
+    ns = [len(r.get("retrieved_rule_ids") or []) for r in rows]
+    on = [n for n in ns if n > 0]
+    off_n = len(ns) - len(on)
+    if not off_n:
+        return {"value": f"on (mean {sum(on) / len(on):.1f} ids)", "mixed": False, "breakdown": None}
+    if not on:
+        return {"value": "off (0 rows retrieved)", "mixed": False, "breakdown": None}
+    return {"value": None, "mixed": True,
+            "breakdown": [{"value": f"on (mean {sum(on) / len(on):.1f} ids)", "n": len(on)},
+                          {"value": "off (0 ids)", "n": off_n}]}
+
+
+def build_arm_config_matrix(arms: list[dict]) -> dict:
+    """Every recorded config axis, per arm, side by side -- with the axes arms
+    disagree on named explicitly.
+
+    Built 2026-07-26 after an adversarial review found published comparisons
+    (e.g. the derivability-B oracle ceiling vs the shipped-pipeline projection)
+    attributing a gap to retrieval when the arms also differed on `effort` and
+    other axes nothing on the page surfaced. This never decides which axis
+    *caused* a gap -- it only makes "these arms differ on N things" impossible
+    to miss, which is the fact the review was missing.
+    """
+    rows = []
+    for a in arms:
+        axes = a.get("config_axes") or {}
+        recorded = bool(axes)
+        values = {f: (axes.get(f) or {"value": None, "mixed": False, "breakdown": None})
+                  for f, _ in ARM_CONFIG_MATRIX_FIELDS}
+        rows.append({"arm": a["arm"], "qset": a["qset"], "kind": a["kind"],
+                     "config_recorded": recorded, "values": values})
+
+    differs, same = [], []
+    for f, _ in ARM_CONFIG_MATRIX_FIELDS:
+        # An internally-mixed arm never counts as "agreeing" with anything --
+        # it gets its own sentinel signature rather than its (nonexistent)
+        # constant value, so a mixed arm always shows up as a disagreement.
+        sigs = {("<mixed>" if r["values"][f]["mixed"] else json.dumps(r["values"][f]["value"]))
+                for r in rows if r["config_recorded"]}
+        (differs if len(sigs) > 1 else same).append(f)
+
+    inconsistent_arms = [
+        {"arm": r["arm"], "fields": [f for f, _ in ARM_CONFIG_MATRIX_FIELDS if r["values"][f]["mixed"]]}
+        for r in rows if any(r["values"][f]["mixed"] for f, _ in ARM_CONFIG_MATRIX_FIELDS)
+    ]
+
+    return {
+        "fields": [{"key": f, "label": lab} for f, lab in ARM_CONFIG_MATRIX_FIELDS],
+        "rows": rows,
+        "differs": differs,
+        "same": same,
+        "inconsistent_arms": inconsistent_arms,
+    }
+
+
 def collect() -> dict:
     arms, skipped = [], []
     for vpath in sorted(list(EVALS.glob("*verdicts*.json"))):
@@ -296,7 +395,7 @@ def collect() -> dict:
             continue
 
         apath, join = resolve_answers(stem, frozenset(ids))
-        cfg, cost = {}, {}
+        cfg, cost, axes = {}, {}, {}
         kind, kind_why = "unknown", ("no answers file could be joined to this verdict file, so "
                                      "nothing records how the arm ran")
         if apath is not None:
@@ -317,6 +416,12 @@ def collect() -> dict:
             }
             cost = cost_of(rows, first.get("model") or "")
             kind, kind_why = classify_arm(rows)
+            # Full config-axis view for the arm config matrix -- unlike `cfg`
+            # above (first row only), this checks every row so an arm that
+            # isn't actually constant on a field shows up as mixed rather
+            # than silently reporting whatever row 0 happened to record.
+            axes = {f: _field_summary(rows, f) for f, _ in ARM_CONFIG_MATRIX_FIELDS if f != "retrieval"}
+            axes["retrieval"] = _retrieval_summary(rows)
 
         arms.append({
             "arm": stem,
@@ -338,6 +443,7 @@ def collect() -> dict:
             "judge_model": summary.get("judge_model"),
             "judge_digest": summary.get("judge_prompt_sha256"),
             "config": cfg,
+            "config_axes": axes,
             "cost": cost,
             # THREE separate events, never collapsed into one "Run" column.
             "generation": {
@@ -653,6 +759,44 @@ ROADMAP: list[dict] = [
         "deps": [],
     },
     {
+        "id": "retrieval-value-ab",
+        "title": "Measure what retrieval is actually worth (single-variable A/B)",
+        "one_line": "Hold the entire pipeline fixed and swap only WHICH rules go in the context "
+                    "block — real retrieval vs another question's retrieval — so the difference "
+                    "is retrieval's contribution and nothing else.",
+        "status": "open", "action": "build", "info": 3,
+        "info_why": "No arm on disk isolates retrieval. Every published comparison changes two or "
+                    "more variables at once, so the 82.8% -> 91.3% gap that motivates the entire "
+                    "retrieval roadmap cannot currently be attributed to retrieval.",
+        "tells_us": "Whether the retrieved rules improve the answers at all, at the difficulty "
+                    "levels where they could. Also decomposes how much of the oracle gap is "
+                    "reasoning effort (arm B runs effort=high, the shipped pipeline effort=low) "
+                    "and whether the layers tool earns its complexity.",
+        "docs": ["docs/spec-retrieval-value-ab.md"],
+        "evidence": [
+            {"kind": "doc", "ref": "docs/results-adversarial-review.md",
+             "note": "the review that found it: citations are 99.2% grounded, but retrieval "
+                     "supplies zero gold on 55.6% of scored rows and those rows still score "
+                     "89.4%; correlation between coverage and correctness is r=+0.06"},
+            {"kind": "doc", "ref": "docs/results-norules-control.md",
+             "note": "the control this design replaces as the primary instrument — it is matched "
+                     "to arm B (effort=high), not to the shipped pipeline (effort=low), so it "
+                     "cannot measure the shipped product's dependence on retrieval"},
+        ],
+        "metric": {"name": "accuracy delta, real vs placebo context", "dir": "up",
+                   "basis": "predicted", "cite": "docs/spec-retrieval-value-ab.md",
+                   "detail": "no prior estimate exists — that is the point. Decision thresholds "
+                             "are pre-registered in the spec against a measured 7-10% run-to-run "
+                             "noise floor."},
+        "cost": {"kind": "api_stated", "lo": 4.55, "hi": 45.0,
+                 "cite": "docs/spec-retrieval-value-ab.md",
+                 "why": "$4.55 for the mandatory 15-row pilot across all four arms; ~$38 for the "
+                        "full 120-row four-arm run, ceiling $45. Arms A+B alone answer the core "
+                        "question for ~$19. Output-token estimates are deliberately pessimistic "
+                        "because an arm's cost model does not transfer across arm kinds."},
+        "deps": [],
+    },
+    {
         "id": "cosine-floor",
         "title": "Spec the cosine floor",
         "one_line": "Re-introduce a calibrated similarity floor on the fused multi-query result, "
@@ -919,7 +1063,7 @@ ROADMAP: list[dict] = [
         "title": "CR update checker (scripts/check_cr_update.py)",
         "one_line": "Detect when a new Comprehensive Rules release silently drops or renumbers a "
                     "rule, and fix the gold automatically where the fix is provably safe.",
-        "status": "open", "action": "build", "info": 1,
+        "status": "shipped", "action": "build", "info": 1,
         "info_why": "It protects the corpus rather than moving a metric, but two rules (606.5, "
                     "119.1d) were missing for the life of the project before anyone noticed.",
         "tells_us": "Nothing new — it stops a class of silent corruption.",
@@ -928,9 +1072,11 @@ ROADMAP: list[dict] = [
              "note": "\"Record Jon's rulings: CR-update checker approved\" — approved, so this is "
                      "not awaiting a ruling"},
             {"kind": "doc", "ref": "docs/spec-cr-update-check.md", "note": "the spec"},
-            {"kind": "path_absent", "ref": "scripts/check_cr_update.py",
-             "note": "the script the spec names does not exist — this is the evidence that it "
-                     "was approved but never built"},
+            {"kind": "path", "ref": "scripts/check_cr_update.py",
+             "note": "built 2026-07-26 with 40 tests. Classifies rules unchanged/renumbered/"
+                     "edited/deleted/ambiguous by content fingerprint and auto-fixes only "
+                     "renumbered ids, and only with --apply. Self-test on the current CR: "
+                     "unchanged=3153, remaps=0, flags=0, exit 0"},
         ],
         "metric": {"name": "silent rule drops", "dir": "down", "basis": "measured",
                    "cite": "docs/spec-cr-update-check.md",
@@ -951,9 +1097,10 @@ ROADMAP: list[dict] = [
         "evidence": [
             {"kind": "commit", "ref": "08e5ff0", "note": "MIT license, SVG wordmark, uv.lock, one name"},
             {"kind": "commit", "ref": "4f68819", "note": "branding assets, real Makefile targets"},
-            {"kind": "path_absent", "ref": "README.md",
-             "note": "a README.md exists in the working tree but is NOT tracked by git — so the "
-                     "README half of this plan has not landed"},
+            {"kind": "path", "ref": "README.md",
+             "note": "landed and tracked as of 2026-07-26 — the architecture diagram was "
+                     "corrected to claude-opus-5 at effort=low (it had claimed claude-sonnet-5) "
+                     "and the quickstart was verified by actually running it"},
             {"kind": "doc", "ref": "docs/plan-packaging.md", "note": "the plan"},
         ],
         "metric": {"name": "none", "dir": "none", "basis": "unknown",
@@ -2822,6 +2969,14 @@ tbody tr:last-child td{border-bottom:none}
 .note{color:var(--ink2);font-size:.85rem;max-width:74ch}
 .empty{padding:var(--s6);text-align:center;color:var(--muted)}
 
+/* --- arm config matrix ---------------------------------------------------
+   Columns arms disagree on are the finding, so they get the accent tint;
+   columns every arm agrees on fall back to the ordinary muted `.dim` look
+   already used everywhere else on the page -- no new "de-emphasis" language
+   to learn, just less contrast where there's nothing to see. */
+th.acm-diff,td.acm-diff{background:color-mix(in oklab,var(--accent) 12%,transparent)}
+th.acm-diff{color:var(--accent-t)}
+
 /* --- timeline ------------------------------------------------------------ */
 .controls{display:flex;flex-wrap:wrap;gap:var(--s2);align-items:center;
  margin:var(--s2) 0 var(--s4)}
@@ -3073,8 +3228,11 @@ const joinBadge = j => {
 };
 
 const C = D.comparisons || {};
+const ACM = D.arm_config_matrix || {fields:[], rows:[], differs:[], same:[], inconsistent_arms:[]};
 const RC = D.retrieval_coverage || {arms:[], worklist:[], worklist_n_total:0,
-  worklist_n_above_threshold:0, gap_threshold:0.5, skipped:[]};
+  worklist_n_above_threshold:0, gap_threshold:0.5, skipped:[],
+  gold_size_stratification:{strata:[]}, gold_size_stratification_shipped:{strata:[]},
+  shipped_arms:[]};
 // RC is the GRADED coverage backfill (docs/spec-coverage-metric.md), not to be
 // confused with RM.coverage below (that's plan/spec DOC coverage -- how many
 // roadmap docs are accounted for -- an unrelated meaning of the same word).
@@ -3486,6 +3644,60 @@ function matrixHTML(){
     </section>`;
 }
 
+/* ======================= ARM CONFIG MATRIX ===================================
+   Every config axis recorded on an arm's answer rows, side by side, per arm --
+   not per model/effort cell like the coverage matrix above. Built so that "these
+   two arms differ on N things" is visible without reading four JSON files. See
+   build_arm_config_matrix() for why this exists (2026-07-26 review). */
+function fmtAxis(x){
+  if(x===null||x===undefined) return '—';
+  if(typeof x==='boolean') return x?'true':'false';
+  return String(x);
+}
+function acmCell(v){
+  if(!v) return '<span class="dim">—</span>';
+  if(v.mixed){
+    const detail = v.breakdown.map(b=>`${b.n} ${esc(fmtAxis(b.value))}`).join(' / ');
+    const maj = fmtAxis(v.breakdown[0].value);
+    return `${esc(maj)} <span class="badge b-warn" title="not constant across this arm's rows">mixed: ${detail}</span>`;
+  }
+  return esc(fmtAxis(v.value));
+}
+function armConfigMatrixHTML(){
+  if(!ACM.rows.length) return '';
+  const diffSet = new Set(ACM.differs);
+  const head = `<th>Arm</th><th>Kind</th>` + ACM.fields.map(f=>
+    `<th class="${diffSet.has(f.key)?'acm-diff':'dim'}">${esc(f.label)}</th>`).join('');
+  const body = ACM.rows.map(r=>{
+    const cells = ACM.fields.map(f=>{
+      const cls = diffSet.has(f.key) ? 'acm-diff' : 'dim';
+      const content = r.config_recorded
+        ? acmCell(r.values[f.key])
+        : '<span class="badge b-crit">no answers file</span>';
+      return `<td class="${cls}">${content}</td>`;
+    }).join('');
+    return `<tr><td>${esc(r.arm)}<br><span class="dim" style="font-size:.7rem">qset ${esc(r.qset)}</span></td>
+      <td>${kindBadge(r.kind)}</td>${cells}</tr>`;
+  }).join('');
+  const diffLabels = ACM.differs.map(f=>esc((ACM.fields.find(x=>x.key===f)||{}).label||f));
+  const inc = ACM.inconsistent_arms.length
+    ? `<p class="lede"><span class="badge b-warn">${ACM.inconsistent_arms.length} arm${ACM.inconsistent_arms.length>1?'s':''} internally inconsistent</span> —
+       ${ACM.inconsistent_arms.map(i=>`<code>${esc(i.arm)}</code> (${i.fields.map(f=>esc((ACM.fields.find(x=>x.key===f)||{}).label||f)).join(', ')})`).join('; ')}.
+       A field that isn't constant within one arm's own rows is a finding about that arm, not noise to average away.</p>`
+    : '';
+  return `<section class="sec" id="arm-config"><h2>Arm config matrix</h2>
+    ${tk('arm-config')}
+    <p class="lede">Every config axis recorded on each arm's answer rows, one row per arm.
+    Columns every arm agrees on are muted; columns arms <strong>disagree</strong> on are
+    highlighted, because attributing an accuracy gap to one axis when the arms also differ
+    on a highlighted column is comparing more than one thing at once.</p>
+    <p class="lede">${diffSet.size} of ${ACM.fields.length} axes differ across arms${diffLabels.length?': '+diffLabels.join(', '):''}.</p>
+    ${inc}
+    <div class="scroll"><table aria-label="Arm configuration matrix"><thead><tr>${head}</tr></thead>
+      <tbody>${body}</tbody></table></div>
+    </section>`;
+}
+
 /* ======================= RETRIEVAL COVERAGE (graded) ========================
    docs/spec-coverage-metric.md. RC is the backfilled coverage data
    (evals/backfill_coverage.py -> evals/coverage_backfill.json), NOT the same
@@ -3540,7 +3752,63 @@ function retrievalCoverageHTML(){
       <thead><tr><th>#</th><th>Arm</th><th>Question id</th><th>Match</th><th>Gold size</th>
         <th>Coverage</th><th>Gap</th><th>Question</th></tr></thead>
       <tbody>${wlRows}</tbody></table></div>
+    ${goldSizeStratHTML()}
     </section>`;
+}
+
+/* ---- subsection: coverage stratified by gold-set size ----
+   THE TRAP this exists to block: a question with exactly one gold rule can
+   never score "partial" coverage -- it's 0/1 or 1/1, nothing between. So an
+   unstratified zero/partial/full split puts only multi-rule questions in
+   "partial", which are harder by construction, and any accuracy comparison
+   across buckets is really comparing gold-set size, not retrieval quality.
+   See evals/backfill_coverage.py: stratify_by_gold_size(). */
+function stratTable(strat, caption){
+  const strata = strat.strata || [];
+  if(!strata.length) return '';
+  const rows = strata.map(s=>{
+    const cells = ['zero','partial','full'].map(b=>{
+      const bd = s.buckets[b];
+      if(b==='partial' && s.structurally_no_partial){
+        return `<td class="num dim" title="A gold-set of size 1 is all-or-nothing (0/1 or 1/1) -- there is no fraction between, so this bucket is structurally empty, not a data gap.">n/a — structural</td>`;
+      }
+      const acc = bd.accuracy==null
+        ? `<span class="dim">${bd.n_accuracy_scored===0 && bd.n>0 ? 'no verdicts' : '—'}</span>`
+        : `<strong>${pct(bd.accuracy)}</strong>`;
+      const title = bd.arms_without_verdicts && bd.arms_without_verdicts.length
+        ? ` title="no verdict file for: ${esc(bd.arms_without_verdicts.join(', '))}"` : '';
+      return `<td class="num"${title}>${bd.n} <span class="dim">rows</span> · ${acc}</td>`;
+    }).join('');
+    return `<tr><td>${esc(s.stratum)}</td><td class="num">${s.n}</td>
+      <td class="num">${pct(s.mean_coverage)}</td>${cells}</tr>`;
+  }).join('');
+  return `<div class="scroll"><table aria-label="${esc(caption)}">
+    <caption style="text-align:left;caption-side:top;padding-bottom:var(--s2);color:var(--muted)">${esc(caption)}</caption>
+    <thead><tr><th>Gold-set size</th><th>n</th><th>Mean coverage</th>
+      <th>Zero coverage (n · accuracy)</th><th>Partial coverage (n · accuracy)</th>
+      <th>Full coverage (n · accuracy)</th></tr></thead>
+    <tbody>${rows}</tbody></table></div>`;
+}
+
+function goldSizeStratHTML(){
+  const pipe = RC.gold_size_stratification || {strata:[]};
+  const ship = RC.gold_size_stratification_shipped || {strata:[]};
+  if(!(pipe.strata||[]).length && !(ship.strata||[]).length) return '';
+  const shipped = RC.shipped_arms || [];
+  return `<h3 style="margin:var(--s4) 0 var(--s2);font-size:1rem;letter-spacing:-.01em">
+      Stratified by gold-set size — the fix for the trap above</h3>
+    <p class="lede">Coverage bucket alone is confounded with how many rules a question cites: a
+      1-gold-rule question is all-or-nothing, so it can only land in "zero" or "full" — never
+      "partial". Splitting by gold-set size first (1 / 2 / 3 / 4+) before looking at
+      zero/partial/full keeps that structural fact from masquerading as a retrieval-quality
+      finding. Accuracy per cell is joined from <code>evals/verdicts_*.json</code> by question id
+      where a verdict file exists for that arm; cells backed by an arm with no verdict file show
+      "no verdicts" rather than a guessed number.</p>
+    ${stratTable(pipe, `All pipeline arms (excludes debug fixtures and retrieval-off oracle arms)`)}
+    ${shipped.length ? `<p class="note" style="margin-top:var(--s3)"><strong>Six shipped-config
+      arms only</strong> (${shipped.map(a=>`<code>${esc(a)}</code>`).join(', ')}) — the set the
+      motivating numbers for this section were computed against:</p>
+      ${stratTable(ship, `Six shipped-config arms`)}` : ''}`;
 }
 
 /* ======================= REPRODUCIBILITY ==================================== */
@@ -4246,7 +4514,8 @@ function render(){
   let html = `<nav class="nav" aria-label="Sections">
     ${[['#exec','Summary'],['#decisions','Decisions'],['#roadmap','Roadmap'],
        ['#decision','The numbers behind it'],['#h2h','Head to head'],['#frontier','Cost vs accuracy'],
-       ['#levels','Per level'],['#matrix','Config matrix'],['#retrieval-coverage','Retrieval coverage'],
+       ['#levels','Per level'],['#matrix','Config matrix'],['#arm-config','Arm config matrix'],
+       ['#retrieval-coverage','Retrieval coverage'],
        ['#repro','Reproducibility'],
        ['#tl','Timeline'],['#arms','Every arm']]
       .map(([href,label])=>`<a href="${href}">${label}</a>`).join('')}</nav>`;
@@ -4266,6 +4535,7 @@ function render(){
   html += frontierHTML();
   html += levelsHTML();
   html += matrixHTML();
+  html += armConfigMatrixHTML();
   html += retrievalCoverageHTML();
   html += reproHTML();
 
@@ -4377,7 +4647,10 @@ def load_retrieval_coverage() -> dict:
     path = REPO / "evals" / "coverage_backfill.json"
     if not path.exists():
         return {"arms": [], "worklist": [], "worklist_n_total": 0,
-                "worklist_n_above_threshold": 0, "gap_threshold": 0.5, "skipped": []}
+                "worklist_n_above_threshold": 0, "gap_threshold": 0.5, "skipped": [],
+                "gold_size_stratification": {"strata": []},
+                "gold_size_stratification_shipped": {"strata": []},
+                "shipped_arms": []}
     return json.loads(path.read_text(encoding="utf-8"))
 
 
@@ -4395,6 +4668,7 @@ def main() -> None:
     data["roadmap"] = build_roadmap(data["comparisons"], data["current_config"])
     data["summary"] = build_summary(data)
     data["retrieval_coverage"] = load_retrieval_coverage()
+    data["arm_config_matrix"] = build_arm_config_matrix(data["arms"])
     for s in data["timeline"]["sets"]:   # working data, not a result
         for st in s["steps"]:
             st.pop("_arms", None)

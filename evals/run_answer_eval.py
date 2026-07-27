@@ -41,6 +41,7 @@ from rulesagent.generate.answer import (  # noqa: E402
     RulesAgent,
     _cacheable_system,
     _degenerate,
+    prompt_supplied_rule_ids,
 )
 from rulesagent.index.store import VectorStore  # noqa: E402
 from rulesagent.ingest.chunker import chunk_rules  # noqa: E402
@@ -536,6 +537,17 @@ def main() -> None:
                 # rewrite_queries/clarification just above.
                 retrieved_rule_ids = ([r.chunk.source_id for r in agent.last_retrieved]
                                       if agent.last_retrieved is not None else [])
+                # What reached the model outside retrieval this run, via the
+                # system prompt (always) and tool-schema descriptions (when
+                # the run's layers_tool switch is on -- see
+                # rulesagent.generate.answer.prompt_supplied_rule_ids).
+                # Recorded per row (not just derivable from system_version/
+                # layers_tool below) so the corrected coverage metric is
+                # self-describing even if a future arm mixes configs within
+                # one output file.
+                prompt_supplied_ids = sorted(
+                    prompt_supplied_rule_ids(system_version, args.layers_tool)
+                )
 
                 gold_text = {g: chunk_map[g].text for g in q.gold if g in chunk_map}
                 cited_text = {c: chunk_map[c].text for c in ans.citations if c in chunk_map}
@@ -578,6 +590,10 @@ def main() -> None:
                     # NOT rule_id (Chunk has no such field). Additive only: every
                     # field above is unchanged in name/shape/value.
                     "retrieved_rule_ids": retrieved_rule_ids,
+                    # New: ids the model had in context regardless of
+                    # retrieval, for the corrected coverage metric (see
+                    # prompt_supplied_ids comment above). Additive only.
+                    "prompt_supplied_rule_ids": prompt_supplied_ids,
                     # Slice 0 harness telemetry (docs/spec-slice0-harness.md
                     # Task 3). stop_reason makes rg3391-class max_tokens
                     # truncation visible instead of silently scoring as an

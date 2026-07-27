@@ -15,6 +15,7 @@ import argparse
 import json
 import pickle
 from pathlib import Path
+from typing import Iterable
 
 from rulesagent.cache import KVCache
 from rulesagent.contracts import (
@@ -177,30 +178,64 @@ def hit_at(q: EvalQuestion, ranking: list[Retrieved], k: int) -> bool:
                for group in gold_groups(q))
 
 
-def coverage_at(q: EvalQuestion, ranking: list[Retrieved], k: int) -> float | None:
+def coverage_at(q: EvalQuestion, ranking: list[Retrieved], k: int,
+                 prompt_supplied: Iterable[str] | None = None) -> float | None:
     """Fraction of q.gold present in ranking[:k]. None for empty gold (excluded
     from any mean, same convention as group_coverage() in
     run_retrieval_diversity.py). Flat over q.gold -- does not call
     gold_groups() -- so it applies identically regardless of match mode.
 
+    `prompt_supplied` (optional): rule ids that reached the model outside
+    retrieval -- via tool-schema descriptions or the system prompt, see
+    rulesagent.generate.answer.prompt_supplied_rule_ids(). A gold id in this
+    set counts as covered even when absent from ranking[:k]. Omitted (the
+    default) reproduces today's behaviour byte-for-byte -- no caller that
+    doesn't pass it changes at all.
+
     See docs/spec-coverage-metric.md #1: this is a graded generalization of
     hit_at(), reported ALONGSIDE it, never in place of it. hit_at() and
-    gold_groups() above are unchanged."""
+    gold_groups() above are unchanged.
+
+    DO NOT compare this value across coverage buckets (zero/partial/full)
+    without first stratifying by gold-set size (evals/backfill_coverage.py's
+    stratify_by_gold_size()). A question with exactly one gold rule cannot
+    ever score "partial" -- 1/1 or 0/1, nothing between -- so an unstratified
+    "partial" bucket contains only multi-rule questions, which are harder by
+    construction. That entangles "coverage bucket" with "gold-set size" and
+    makes a flat comparison across buckets look like a retrieval-quality
+    finding when it may just be reporting that single-rule questions are
+    easier. See stratify_by_gold_size()'s module docstring for the worked
+    numbers this produced."""
     if not q.gold:
         return None
     topk = {normalize_source_id(r.chunk.source_id) for r in ranking[:k]}
+    if prompt_supplied:
+        topk |= {normalize_source_id(x) for x in prompt_supplied}
     hit = sum(1 for g in q.gold if normalize_source_id(g) in topk)
     return hit / len(q.gold)
 
 
-def coverage_from_ids(gold: list[str], retrieved_ids: list[str]) -> float | None:
+def coverage_from_ids(gold: list[str], retrieved_ids: list[str],
+                       prompt_supplied: Iterable[str] | None = None) -> float | None:
     """Same formula as coverage_at, operating on plain id lists -- lets
     coverage be recomputed from evals/answers/*.json's recorded
     retrieved_rule_ids without re-running retrieval (docs/spec-coverage-metric.md
-    #6). None for empty gold, same convention as coverage_at."""
+    #6). None for empty gold, same convention as coverage_at.
+
+    `prompt_supplied` (optional): see coverage_at's docstring -- a gold id
+    present here counts as covered whether or not it's in retrieved_ids.
+    Omitted (the default) is byte-identical to today's behaviour.
+
+    DO NOT compare this value across coverage buckets (zero/partial/full)
+    without stratifying by gold-set size first -- see coverage_at()'s
+    docstring for why (the one-gold-rule argument) and
+    evals/backfill_coverage.py's stratify_by_gold_size() for the helper
+    that does it correctly."""
     if not gold:
         return None
     retrieved = {normalize_source_id(x) for x in retrieved_ids}
+    if prompt_supplied:
+        retrieved |= {normalize_source_id(x) for x in prompt_supplied}
     hit = sum(1 for g in gold if normalize_source_id(g) in retrieved)
     return hit / len(gold)
 
