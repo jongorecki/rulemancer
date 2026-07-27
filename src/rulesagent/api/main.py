@@ -42,7 +42,7 @@ from rulesagent.demo_auth import (
     COOKIE_MAX_AGE_S, hash_ip, ip_hash_salt, session_secret, sign_session, verify_session,
 )
 from rulesagent.demo_db import (
-    DEFAULT_DEMO_DB, count_queries, get_code_by_id, get_code_by_value, log_event,
+    DEFAULT_DEMO_DB, count_queries, daily_spend, get_code_by_id, get_code_by_value, log_event,
 )
 from rulesagent.generate.answer import GEN_EFFORT, PROMPT_VERSION, RulesAgent
 from rulesagent.index.store import VectorStore
@@ -55,6 +55,12 @@ VECTOR_MODEL = "voyage-4-large"
 SCRYFALL_AUTOCOMPLETE = "https://api.scryfall.com/cards/autocomplete"
 SCRYFALL_HEADERS = {"User-Agent": "mtg-rules-bot/0.1 (learning project)", "Accept": "application/json"}
 DEFAULT_MAX_QUERIES = 25  # used only when a code's max_queries column is NULL
+
+DAILY_BUDGET_USD_DEFAULT = 5.0
+# Conservative starting point. Task 12 measures the real $/serve and Jon
+# sets DAILY_BUDGET_USD as a Fly secret from that number before the demo
+# goes live -- read here at request time (os.environ.get, not a
+# module-load-time constant), so changing it needs no redeploy.
 
 # scripts/ isn't a package under src/ -- same sys.path-insertion convention
 # tests/test_watch_runs.py already uses for evals/watch_runs.py. The admin
@@ -460,6 +466,33 @@ def _record_query_event(code_row: dict, question: str, ans, agent, usage: dict,
         logger.warning("query event: log_event insert failed: %r", e)
 
 
+def _unpriced_query_count(db_path: Path, day: str) -> int:
+    """Count today's `query` events with cost_usd IS NULL -- rows where
+    _record_query_event's cost-calculation step failed (docstring above:
+    "an unknown cost/token figure stays None/0 and is visible as a gap, not
+    papered over"). `daily_spend`'s SUM(cost_usd) *silently skips* NULL
+    rows (SQL SUM ignores NULLs, and COALESCE only kicks in when there are
+    zero rows at all) -- so real, already-spent money can be sitting in the
+    table and never show up in the budget total. Rather than invent a
+    dollar estimate for spend we genuinely don't know the size of -- which
+    would be inconsistent with _record_query_event's own "never a
+    fabricated estimate" stance -- this counts the gap directly so the
+    breaker can fail closed on it instead of quietly under-counting.
+    A tiny direct query, not routed through demo_db.py: daily_spend's
+    signature is a committed Task-1 interface and isn't extended here.
+    """
+    conn = sqlite3.connect(db_path, timeout=5)
+    try:
+        row = conn.execute(
+            "SELECT COUNT(*) FROM events WHERE kind = 'query' AND cost_usd IS NULL "
+            "AND ts LIKE ?",
+            (f"{day}%",),
+        ).fetchone()
+    finally:
+        conn.close()
+    return row[0]
+
+
 @app.post(
     "/answer",
     tags=["answers"],
@@ -553,6 +586,40 @@ def answer(req: AnswerRequest, request: Request = None,
                     "This demo code is used up",
                     "You've used all your questions on this code. Ask Jon for another.",
                     status_code=402,
+                )
+            # Task 7: the global daily USD budget breaker. Read INSIDE the
+            # same `with _lock:` critical section as the cap check and
+            # `agent.answer()` call, for the identical race reason spelled
+            # out in the Task 6 note above -- without the lock, two
+            # concurrent requests across *any* codes could both read
+            # yesterday's-fine total, both pass, and both call the model,
+            # pushing spend past budget by however much the model call
+            # costs. Folding it into the same critical section as the
+            # per-code cap costs nothing extra: the lock is already held
+            # for the model call, and this is one more cheap read before it.
+            budget = float(os.environ.get("DAILY_BUDGET_USD", DAILY_BUDGET_USD_DEFAULT))
+            today = datetime.now(timezone.utc).date().isoformat()
+            # UTC day boundary throughout: demo_db._now() stamps every
+            # event's `ts` as a UTC isoformat string (see demo_db.py), and
+            # `daily_spend`/`_unpriced_query_count` both LIKE-match against
+            # a UTC date string here -- write and read agree on the same
+            # calendar day, so there's no local-vs-UTC skew at midnight.
+            spent = daily_spend(DEMO_DB, today)
+            # NULL-cost rows (a cost-calculation failure in a prior
+            # request) are never invisible spend here -- see
+            # _unpriced_query_count's docstring. Any such gap trips the
+            # breaker even if the summed known cost is still under budget:
+            # we can't prove we're under budget without knowing what those
+            # rows actually cost, so fail closed rather than risk an
+            # under-counted total serving past the real limit.
+            if spent >= budget or _unpriced_query_count(DEMO_DB, today) > 0:
+                ip_hash = hash_ip(_client_ip(request), ip_salt)
+                log_event(DEMO_DB, code_id=code_row["id"], kind="denied", ip_hash=ip_hash)
+                return _friendly_html(
+                    "The demo is resting for today",
+                    "This demo hit its daily budget. It'll be back tomorrow -- "
+                    "or ping Jon directly.",
+                    status_code=503,
                 )
         ans = agent.answer(req.question, history=history)
         usage_snapshot = dict(getattr(agent, "last_usage", None) or {})

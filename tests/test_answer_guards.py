@@ -336,3 +336,118 @@ def test_concurrent_requests_at_cap_only_one_gets_through(monkeypatch, tmp_path)
     # reserved atomically with the check, not double-spent.
     query_events = events_for_code(db, code_id)
     assert len(query_events) == 1
+
+
+# --- Task 7 ---------------------------------------------------------------
+# Global daily USD budget breaker. Checked BEFORE agent.answer() is called,
+# same as the per-code cap, but summed across every code -- once the day's
+# logged spend hits DAILY_BUDGET_USD, every code is refused until UTC
+# midnight rolls the day over.
+
+
+def test_over_daily_budget_returns_friendly_503_and_does_not_call_agent(monkeypatch, tmp_path):
+    monkeypatch.setenv("COOKIE_SECRET", "test-secret")
+    monkeypatch.setenv("IP_HASH_SALT", "test-salt")
+    monkeypatch.setenv("DAILY_BUDGET_USD", "1.00")
+    db = tmp_path / "demo.db"
+    monkeypatch.setattr(main, "DEMO_DB", db)
+    code_id = create_code(db, "raptor-quill-42", "Test", max_queries=100)
+    from rulesagent.demo_auth import sign_session
+    from rulesagent.demo_db import log_event
+    from datetime import datetime, timezone
+    token = sign_session(code_id, "test-secret")
+    today = datetime.now(timezone.utc).date().isoformat()
+    log_event(db, code_id=code_id, kind="query", ip_hash="h", question="q1", cost_usd=1.50)
+
+    calls = []
+    monkeypatch.setattr(main._state["agent"], "answer",
+                         lambda *a, **k: calls.append(1) or pytest.fail("agent must not be called over budget"))
+    req = main.AnswerRequest(question="q2")
+
+    resp = main.answer(req, request=_fake_request(cookie=token))
+
+    assert resp.status_code == 503
+    assert calls == []
+
+
+def test_under_daily_budget_still_works(monkeypatch, tmp_path):
+    monkeypatch.setenv("COOKIE_SECRET", "test-secret")
+    monkeypatch.setenv("IP_HASH_SALT", "test-salt")
+    monkeypatch.setenv("DAILY_BUDGET_USD", "10.00")
+    db = tmp_path / "demo.db"
+    monkeypatch.setattr(main, "DEMO_DB", db)
+    code_id = create_code(db, "raptor-quill-42", "Test", max_queries=100)
+    from rulesagent.demo_auth import sign_session
+    from rulesagent.demo_db import log_event
+    token = sign_session(code_id, "test-secret")
+    log_event(db, code_id=code_id, kind="query", ip_hash="h", question="q1", cost_usd=0.05)
+    req = main.AnswerRequest(question="q2")
+
+    resp = main.answer(req, request=_fake_request(cookie=token))
+
+    assert resp.answered is True
+
+
+def test_missing_daily_budget_env_uses_conservative_default(monkeypatch, tmp_path):
+    monkeypatch.setenv("COOKIE_SECRET", "test-secret")
+    monkeypatch.delenv("DAILY_BUDGET_USD", raising=False)
+    assert main.DAILY_BUDGET_USD_DEFAULT == 5.0
+
+
+def test_null_cost_rows_trip_the_breaker_even_under_the_dollar_total(monkeypatch, tmp_path):
+    """A NULL cost_usd row (a prior cost-calculation failure) must not
+    silently vanish from SUM(cost_usd) and let spend look lower than it
+    really is. Even with a tiny summed total, an unpriced query event
+    today must trip the breaker rather than being ignored."""
+    monkeypatch.setenv("COOKIE_SECRET", "test-secret")
+    monkeypatch.setenv("IP_HASH_SALT", "test-salt")
+    monkeypatch.setenv("DAILY_BUDGET_USD", "10.00")
+    db = tmp_path / "demo.db"
+    monkeypatch.setattr(main, "DEMO_DB", db)
+    code_id = create_code(db, "raptor-quill-42", "Test", max_queries=100)
+    from rulesagent.demo_auth import sign_session
+    from rulesagent.demo_db import log_event
+    token = sign_session(code_id, "test-secret")
+    log_event(db, code_id=code_id, kind="query", ip_hash="h", question="q1", cost_usd=None)
+
+    calls = []
+    monkeypatch.setattr(main._state["agent"], "answer",
+                         lambda *a, **k: calls.append(1) or pytest.fail("agent must not be called with unpriced spend outstanding"))
+    req = main.AnswerRequest(question="q2")
+
+    resp = main.answer(req, request=_fake_request(cookie=token))
+
+    assert resp.status_code == 503
+    assert calls == []
+
+
+def test_daily_budget_reads_utc_day_boundary_not_yesterdays_spend(monkeypatch, tmp_path):
+    """A row stamped for yesterday (UTC) must not count toward today's
+    budget -- otherwise the breaker never resets and the demo stays down
+    forever after one busy day."""
+    monkeypatch.setenv("COOKIE_SECRET", "test-secret")
+    monkeypatch.setenv("IP_HASH_SALT", "test-salt")
+    monkeypatch.setenv("DAILY_BUDGET_USD", "1.00")
+    db = tmp_path / "demo.db"
+    monkeypatch.setattr(main, "DEMO_DB", db)
+    code_id = create_code(db, "raptor-quill-42", "Test", max_queries=100)
+    from rulesagent.demo_auth import sign_session
+    import sqlite3
+    from datetime import datetime, timedelta, timezone
+    token = sign_session(code_id, "test-secret")
+
+    yesterday = (datetime.now(timezone.utc) - timedelta(days=1)).isoformat()
+    conn = sqlite3.connect(db)
+    conn.execute(
+        "INSERT INTO events (code_id, ts, kind, ip_hash, question, answered, "
+        "input_tokens, output_tokens, cost_usd, latency_ms) "
+        "VALUES (?, ?, 'query', 'h', 'q0', 1, 10, 10, 1.50, 100)",
+        (code_id, yesterday),
+    )
+    conn.commit()
+    conn.close()
+
+    req = main.AnswerRequest(question="q1")
+    resp = main.answer(req, request=_fake_request(cookie=token))
+
+    assert resp.answered is True
