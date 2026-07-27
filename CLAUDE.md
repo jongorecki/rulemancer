@@ -99,7 +99,7 @@ the first two are already done serially.
   everything. Stratify or step through the file.
 - Python is `.venv/Scripts/python.exe`, `PYTHONIOENCODING=utf-8`. Open JSON with
   `encoding="utf-8"` — the Windows cp1252 default fails on these files. Suite is
-  `uv run pytest` (**929 passing** as of 2026-07-26). Commit per slice on master
+  `uv run pytest` (**1124 passing** as of 2026-07-26 late session). Commit per slice on master
   with the `Co-Authored-By: Claude Opus 5` trailer.
 - Never pipe a long run through `| tail`; PowerShell `*>` buffers until exit, so
   a running job's log looks dead — check the output artifact instead.
