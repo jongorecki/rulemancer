@@ -24,7 +24,6 @@ from rulesagent.retrieve.crossrefs import expand_crossrefs
 from rulesagent.retrieve.hybrid import rrf_fuse
 from rulesagent.retrieve.rewrite import rewrite_query
 from rulesagent.tools.cost_calculator import calculate_cost
-from rulesagent.tools.layer_resolver import resolve_layers
 from rulesagent.tools.ruling_retrieval import ruling_id, select_rulings, select_rulings_union
 from rulesagent.tools.scryfall import ATTRIBUTION, get_card, parse_card_refs, pop_fuzzy_fallbacks
 
@@ -945,170 +944,6 @@ TOOL_TRIGGER_SENTENCE = (
     "arithmetic yourself."
 )
 
-# --- resolve_layers tool (docs/plan-layer-system-tool.md Sec 3a/9, Slice 4) -
-#
-# The model-facing schema for the layer-system resolver engine
-# (tools/layer_resolver.py, Slices 1-3). Same discipline as CALCULATE_COST_
-# TOOL above: this tool never decides which layer an effect belongs to,
-# never assigns a timestamp, and never decides whether a dependency exists
-# (CR 613.8a) -- those stay the model's job (plan Sec 2/4). The description
-# quotes CR 613.6 and 613.8a verbatim, per the plan's own reasoning (Sec 4,
-# last paragraph): putting the rule text in the tool description guarantees
-# it's in context exactly when a layers question is being answered, which is
-# the retrieval gap rg633 exposed.
-RESOLVE_LAYERS_TOOL = {
-    "name": "resolve_layers",
-    "description": (
-        "Given an object's base characteristics (its copiable values, post-"
-        "layer-1) and a list of continuous-effect parts you have already "
-        "identified from the rules and card text -- each already assigned "
-        "to a CR 613 layer/sublayer, grouped under the ability (source_id) "
-        "that produces it, and given a relative timestamp -- applies them "
-        "in CR 613 order and returns the resulting characteristics plus a "
-        "per-step trace. This tool does NOT read oracle text, does NOT "
-        "decide which layer an effect belongs to, does NOT assign "
-        "timestamps, and does NOT decide whether a dependency exists "
-        "between two effects -- identify all of that from the provided "
-        "rules/card data first, then call this only for the ordering "
-        "bookkeeping. "
-        "CR 613.6: 'If an effect starts to apply in one layer and/or "
-        "sublayer, it will continue to be applied to the same set of "
-        "objects in each other applicable layer and/or sublayer, even if "
-        "the ability generating the effect is removed during this "
-        "process.' "
-        "CR 613.8a: an effect depends on another if (a) it's applied in "
-        "the same layer (and sublayer) as the other effect; (b) applying "
-        "the other would change the text or existence of the first "
-        "effect, what it applies to, or what it does to any of the "
-        "things it applies to; and (c) neither effect is from a "
-        "characteristic-defining ability or both effects are from "
-        "characteristic-defining abilities. Declare a dependency only "
-        "when this test is actually met, and say why in "
-        "dependency_reason -- do not assert an ordering as a shortcut."
-    ),
-    "input_schema": {
-        "type": "object",
-        "properties": {
-            "base": {
-                "type": ["object", "null"],
-                "description": "The object's copiable values, post-layer-1.",
-                "properties": {
-                    "name": {"type": "string"},
-                    "card_types": {"type": "array", "items": {"type": "string"}},
-                    "supertypes": {"type": "array", "items": {"type": "string"}},
-                    "subtypes": {"type": "array", "items": {"type": "string"}},
-                    "colors": {
-                        "type": "array",
-                        "items": {"type": "string", "enum": ["W", "U", "B", "R", "G"]},
-                    },
-                    "abilities": {"type": "array", "items": {"type": "string"}},
-                    "power": {"type": ["integer", "null"]},
-                    "toughness": {"type": ["integer", "null"]},
-                    "controller": {"type": ["string", "null"]},
-                },
-                "required": ["card_types", "supertypes", "subtypes", "colors", "abilities"],
-            },
-            "effects": {
-                "type": "array",
-                "description": (
-                    "Flat list of effect parts. Parts sharing a source_id "
-                    "are one ability split across layers (CR 613.6)."
-                ),
-                "items": {
-                    "type": "object",
-                    "properties": {
-                        "id": {"type": "string", "description": "Unique part id, e.g. 'e1c'."},
-                        "source_id": {
-                            "type": "string",
-                            "description": "The ability this part comes from.",
-                        },
-                        "layer": {
-                            "type": "string",
-                            "enum": ["2", "4", "5", "6", "7a", "7b", "7c", "7d"],
-                        },
-                        "timestamp": {
-                            "type": "integer",
-                            "minimum": 0,
-                            "description": "Relative order only.",
-                        },
-                        "is_cda": {
-                            "type": "boolean",
-                            "description": "Feeds CR 613.3/613.4a ordering (CDAs first).",
-                        },
-                        "source_on_this_object": {
-                            "type": "boolean",
-                            "description": (
-                                "True if this part's source_id is itself an "
-                                "ability of the object being resolved (so a "
-                                "later remove_abilities part can strip it, "
-                                "per CR 613.6) -- false for an ability that "
-                                "lives on a different object, e.g. Muraganda "
-                                "Petroglyphs affecting a creature."
-                            ),
-                        },
-                        "depends_on": {
-                            "type": ["array", "null"],
-                            "items": {"type": "string"},
-                            "description": "Part ids this part depends on, per CR 613.8a.",
-                        },
-                        "dependency_reason": {
-                            "type": ["string", "null"],
-                            "description": "Required whenever depends_on is non-empty.",
-                        },
-                        "operation": {
-                            "type": "object",
-                            "description": (
-                                "A closed union, one shape per layer: layer "
-                                "2 {kind:set_controller,value}; layer 4 "
-                                "{kind:set_types|add_types|remove_types,"
-                                "card_types,subtypes,supertypes}; layer 5 "
-                                "{kind:set_colors|add_colors,value}; layer 6 "
-                                "{kind:add_abilities|remove_abilities|"
-                                "remove_all_abilities|cant_have_abilities,"
-                                "value}; layer 7a {kind:cda_pt,power,"
-                                "toughness}; layer 7b {kind:set_pt,power,"
-                                "toughness}; layer 7c {kind:modify_pt,power,"
-                                "toughness} (signed; counters use this); "
-                                "layer 7d {kind:switch_pt}."
-                            ),
-                        },
-                        "applies_if": {
-                            "type": ["object", "null"],
-                            "description": (
-                                "Optional conditional applicability -- "
-                                "exactly one of: has_no_abilities (bool), "
-                                "has_ability (string), has_color (one of "
-                                "W/U/B/R/G), has_type (string), has_subtype "
-                                "(string), power_gte (integer), evaluated "
-                                "against live state at the moment of "
-                                "application. Plus an optional 'expect' "
-                                "boolean -- what you expect it to evaluate "
-                                "to; a mismatch comes back as a warning, "
-                                "not a refusal."
-                            ),
-                        },
-                        "cite": {"type": "string", "description": "CR/oracle cite."},
-                    },
-                    "required": ["id", "source_id", "layer", "timestamp", "operation"],
-                },
-            },
-        },
-        "required": ["base", "effects"],
-        "additionalProperties": False,
-    },
-}
-
-LAYERS_TRIGGER_SENTENCE = (
-    "- When a question asks what an object's characteristics (power/"
-    "toughness, colors, types, subtypes, or abilities) end up being, and "
-    "more than one continuous effect from the layer system (CR 613) could "
-    "be interacting on it -- especially CR 613.6 (an effect that already "
-    "started applying keeps applying even if the ability generating it is "
-    "later removed) -- call resolve_layers with the effect parts you've "
-    "identified (grouped by source ability, assigned to a layer, and "
-    "timestamped) rather than working out the layer interaction yourself."
-)
-
 # --- Prompt-supplied rule ids --------------------------------------------
 #
 # Some CR rule text reaches the model on every call regardless of whether
@@ -1298,73 +1133,6 @@ def _needs_cost_tool(question: str, cards: list[Card]) -> bool:
     return not _is_mana_production_question(question)
 
 
-# --- resolve_layers trigger (docs/plan-layer-system-tool.md Sec 3c, plus the
-# "CALIBRATION RESULT" subsection that supersedes the section's original
-# proposal) ------------------------------------------------------------------
-#
-# Two conjuncts, mirroring _needs_cost_tool's own shape. Rules vocabulary
-# ("layer", "timestamp", "depends") is essentially ABSENT from real layers
-# questions (measured: 0-1 of 51 bucket-A rows), so conjunct 1 looks for the
-# CHARACTERISTIC-READOUT shape a layers question actually takes ("what are
-# its power and toughness", "does X have flying") -- which is far too wide on
-# its own, since that is also just an ordinary Magic question shape. Conjunct
-# 2 is what makes this a layers detector rather than a bare "characteristics"
-# detector: at least one loaded card's oracle text (ALL faces -- see
-# _oracle_all_faces) has to carry continuous-effect-shaped text.
-#
-# Copied VERBATIM from the plan's shipped (calibrated) version -- measured at
-# 77.8% bucket-A recall / 5.1% non-layers firing over the full corpus. Do NOT
-# retune here; the plan is the source of truth for these patterns.
-_LAYERS_READOUT_RE = re.compile(
-    r"\bcharacteristics\b"
-    r"|\b(?:power and toughness|p/t)\b"
-    r"|\bis\b.{0,40}?\ba creature\b"
-    r"|\b(?:does|do|will)\b.{0,40}?\bhave\b"
-    r"|\bwhat\b.{0,20}?\b(?:land )?(?:types?|subtypes?|colou?rs?)\b"
-    r"|\bcolou?r\(s\)\b"
-    r"|\btap\b.{0,25}?\bfor\b"
-    r"|\blook like\b"
-    r"|\bbe legendary\b",
-    re.IGNORECASE | re.DOTALL,
-)
-
-# Conjunct 2: at least ONE loaded card carries continuous-effect-shaped
-# static text. (Threshold was >= 2 as originally proposed; RULED down to
-# >= 1 by Jon 2026-07-24 after calibration -- see the plan's "CALIBRATION
-# RESULT" subsection.)
-_CONTINUOUS_EFFECT_RE = re.compile(
-    r"gets?\s*[+-]\d+/[+-]\d+"
-    r"|\b(?:base power and toughness|loses? all abilities|can't have)\b"
-    r"|\b(?:becomes?|are|is)\b.{0,30}?\b(?:creature|land|artifact|enchantment)s?\b"
-    r"|\bhave\b.{0,20}?\bbase\b"
-    r"|\b(?:are|becomes?|is)\b.{0,30}?\b(?:Mountains?|Islands?|Swamps?|Forests?|Plains)\b",
-    re.IGNORECASE | re.DOTALL,
-)
-
-
-def _oracle_all_faces(c: Card) -> str:
-    """Newline-joined union of every face's oracle text. Plan Sec 3c's
-    Slice-4 note: the trigger's pseudocode reads `_oracle_all_faces(c)`, not
-    `c.oracle_text` -- oracle text on this project's Card contract is
-    per-face (`Card.faces[i].oracle_text`); the top-level `oracle_text`
-    field happens to carry a joined value today (tools/scryfall.py), but the
-    faces union is the contract-correct read and is what the plan's
-    calibration measured against."""
-    return "\n".join(f.oracle_text for f in c.faces if f.oracle_text)
-
-
-def _needs_layers_tool(question: str, cards: list[Card]) -> bool:
-    """Calibrated two-conjunct trigger, copied verbatim from
-    docs/plan-layer-system-tool.md Sec 3c CALIBRATION RESULT. Conjunct 1: the
-    question asks for a characteristic readout. Conjunct 2: at least one
-    loaded card's oracle text (all faces) carries continuous-effect-shaped
-    static text. Both conjuncts required -- see the module comment above."""
-    if not _LAYERS_READOUT_RE.search(question):
-        return False
-    hits = sum(1 for c in cards if _CONTINUOUS_EFFECT_RE.search(_oracle_all_faces(c)))
-    return hits >= 1
-
-
 def _run_calculate_cost(input_: dict) -> dict:
     """Dispatch one calculate_cost tool_use block. calculate_cost() itself
     never raises on malformed input (returns {"ok": False, "error": ...});
@@ -1383,28 +1151,6 @@ def _run_calculate_cost(input_: dict) -> dict:
         return {"ok": False, "error": f"calculate_cost failed on malformed input: {e!r}"}
 
 
-def _run_resolve_layers(input_: dict) -> dict:
-    """Dispatch one resolve_layers tool_use block. resolve_layers() itself
-    never raises on malformed input -- it returns {"ok": False, "error":
-    ...} for every refusal (plan Sec 3b: duplicate part ids, an illegal
-    operation.kind for its layer, a non-integer timestamp, an unresolvable
-    timestamp tie, a malformed applies_if, a depends_on with no
-    dependency_reason, etc.), and this dispatcher passes that dict straight
-    through UNCHANGED -- it never adds a second layer of error handling that
-    reinterprets or swallows an engine refusal. The try/except below only
-    guards the one case the engine itself cannot: a tool_use block whose
-    `input` doesn't even have the expected top-level shape (e.g. `input_`
-    isn't a dict at all), the same defensive posture as _run_calculate_cost
-    above."""
-    try:
-        return resolve_layers(
-            base=input_.get("base"),
-            effects=input_.get("effects") or [],
-        )
-    except Exception as e:  # pragma: no cover - defensive
-        return {"ok": False, "error": f"resolve_layers failed on malformed input: {e!r}"}
-
-
 # Name-routed tool dispatch (docs/plan-layer-system-tool.md Sec 3d must-fix
 # 4): the dispatch loop below used to call _run_calculate_cost
 # unconditionally on any tool_use block, which was safe only because there
@@ -1414,7 +1160,6 @@ def _run_resolve_layers(input_: dict) -> dict:
 # of silently being fed to the wrong handler.
 _TOOL_DISPATCH = {
     "calculate_cost": _run_calculate_cost,
-    "resolve_layers": _run_resolve_layers,
 }
 
 
@@ -2122,7 +1867,7 @@ class RulesAgent:
                  model: str = GEN_MODEL, k: int = TOP_K, rewrite: bool = True,
                  show_rewrite: bool = False, card_no_refresh: bool = False,
                  ruling_select: bool = True, rewrite_version: str = "v2",
-                 ruling_query_mode: str = "raw", layers_tool: bool = True,
+                 ruling_query_mode: str = "raw",
                  system_version: int | str = PROMPT_VERSION,
                  max_tokens: int = GEN_MAX_TOKENS,
                  request_timeout: float | None = GEN_REQUEST_TIMEOUT,
@@ -2261,16 +2006,6 @@ class RulesAgent:
         # one-query union (just the question) when rewrite=False, which is
         # still a valid select_rulings_union() call.
         self.ruling_query_mode = ruling_query_mode
-        # Slice 0 harness (docs/spec-slice0-harness.md Task 1): master
-        # suppression switch for the resolve_layers tool, independent of
-        # _needs_layers_tool's own calibrated trigger. Default True:
-        # production behaviour is unchanged unless a caller explicitly opts
-        # out (e.g. a Slice 0 control-arm run that must carry no layers
-        # tool at all, so the base/control comparison is meaningful). The
-        # cost tool deliberately has no equivalent switch -- it stays at its
-        # production default in every arm so it's constant and can't
-        # confound the comparison (spec Task 1).
-        self.layers_tool = layers_tool
         # Slice 0 harness Task 2b: selectable system-prompt version,
         # independent of PROMPT_VERSION/SYSTEM (which stay pinned to what
         # production ships -- see the SYSTEM_VERSIONS registry comment).
@@ -2619,34 +2354,18 @@ class RulesAgent:
         # are completely untouched either way, so build_prompt's own output
         # (and every existing test/fixture that checks it) is unaffected.
         use_cost_tool = _needs_cost_tool(question, cards)
-        # resolve_layers tool gate (docs/plan-layer-system-tool.md Sec 3c):
-        # same posture as use_cost_tool -- gated on its own calibrated
-        # trigger, never always-on. Slice 0 harness (docs/spec-slice0-
-        # harness.md Task 1): self.layers_tool is a master suppression
-        # switch OUTSIDE _needs_layers_tool itself -- that trigger is
-        # calibrated and untouched; the switch just decides whether its
-        # firing is honored at all.
-        use_layers_tool = self.layers_tool and _needs_layers_tool(question, cards)
-        # use_any_tool generalises the three round-loop gates below so they
-        # aren't hardcoded to calculate_cost (docs/plan-layer-system-tool.md
-        # Sec 3d must-fixes 1-3). use_cost_tool/use_layers_tool are kept
-        # separate from use_any_tool because each still (and only) controls
-        # whether ITS OWN schema and trigger sentence get attached -- a
-        # layers-only question must not inherit the cost tool's instruction
-        # sentence, and vice versa (§3d: "TOOL_TRIGGER_SENTENCE becomes
-        # per-tool"). `tools` is a built list rather than a hardcoded
-        # single-element list, so either trigger (or both) can extend it
-        # without the other's wiring changing.
-        use_any_tool = use_cost_tool or use_layers_tool
+        # use_any_tool generalises the round-loop gates below so they aren't
+        # hardcoded to calculate_cost (docs/plan-layer-system-tool.md Sec 3d
+        # must-fixes 1-3). `tools` is a built list rather than a hardcoded
+        # single-element list, so a future trigger can extend it without
+        # this wiring changing.
+        use_any_tool = use_cost_tool
         call_system = system
         extra_kwargs: dict = {}
         tools: list = []
         if use_cost_tool:
             call_system = call_system + "\n" + TOOL_TRIGGER_SENTENCE
             tools.append(CALCULATE_COST_TOOL)
-        if use_layers_tool:
-            call_system = call_system + "\n" + LAYERS_TRIGGER_SENTENCE
-            tools.append(RESOLVE_LAYERS_TOOL)
         if tools:
             extra_kwargs["tools"] = tools
         base_msgs: list[dict] = [{"role": "user", "content": user}]

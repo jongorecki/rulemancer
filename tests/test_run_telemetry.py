@@ -1,5 +1,5 @@
 """Per-row run telemetry (docs/spec-slice0-harness.md Task 3): stop_reason,
-tool_calls, tool_rounds, usage, system_version, layers_tool on every row
+tool_calls, tool_rounds, usage, system_version on every row
 evals/run_answer_eval.py writes.
 
 End-to-end via a scripted fake Anthropic client, same pattern as
@@ -119,7 +119,7 @@ def test_row_carries_stop_reason_tool_rounds_usage_and_provenance(tmp_path):
     argv = [
         "run_answer_eval.py", "--model", "fake-model",
         "--questions", str(questions), "--out", str(out),
-        "--no-rewrite", "--system-version", "v4nl", "--no-layers-tool",
+        "--no-rewrite", "--system-version", "v4nl",
     ]
     client_cls = _make_fake_client_class([_FakeResp(parsed_output=_REAL_ANSWER)])
     with patch("sys.argv", argv), \
@@ -137,10 +137,9 @@ def test_row_carries_stop_reason_tool_rounds_usage_and_provenance(tmp_path):
     assert row["tool_rounds"] == 1  # one uneventful round through the loop
     assert row["usage"] == _EXPECTED_USAGE
     assert row["system_version"] == "v4nl"
-    assert row["layers_tool"] is False
 
 
-def test_layers_tool_defaults_true_and_system_version_defaults_to_production(tmp_path):
+def test_system_version_defaults_to_production(tmp_path):
     questions = tmp_path / "q.jsonl"
     _write_questions(questions, ["q001"])
     out = tmp_path / "out.json"
@@ -161,7 +160,6 @@ def test_layers_tool_defaults_true_and_system_version_defaults_to_production(tmp
         rae.main()
 
     row = json.loads(out.read_text(encoding="utf-8"))[0]
-    assert row["layers_tool"] is True
     from rulesagent.generate.answer import PROMPT_VERSION
     assert row["system_version"] == PROMPT_VERSION
 

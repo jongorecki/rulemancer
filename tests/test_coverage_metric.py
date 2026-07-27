@@ -420,6 +420,11 @@ def test_prompt_supplied_rule_ids_drift_guard():
     future prompt edit that adds a new rule-number token -- quoted or bare
     -- still trips this test until someone classifies it into one bucket or
     the other.
+
+    The resolve_layers tool was removed (its schema no longer exists in
+    answer.py), so _LAYERS_TOOL_PROMPT_IDS is no longer checked against a
+    live schema string here -- it now documents historical fact only, for
+    scoring eval rows recorded while the tool still existed.
     """
     rule_id_re = re.compile(r"\b\d{3}\.\d+[a-z]?\b")
 
@@ -428,7 +433,6 @@ def test_prompt_supplied_rule_ids_drift_guard():
         return set(rule_id_re.findall(s))
 
     found_cost = discover(answer_mod.CALCULATE_COST_TOOL)
-    found_layers = discover(answer_mod.RESOLVE_LAYERS_TOOL)
     found_system = {
         3: discover(answer_mod.SYSTEM_V3),
         4: discover(answer_mod.SYSTEM_V4),
@@ -437,7 +441,7 @@ def test_prompt_supplied_rule_ids_drift_guard():
     }
 
     excluded = set(answer_mod._REFERENCED_NOT_QUOTED)
-    all_found: set[str] = found_cost | found_layers | set().union(*found_system.values())
+    all_found: set[str] = found_cost | set().union(*found_system.values())
 
     def check(label: str, found: set[str], quoted: set[str]) -> None:
         unclassified = found - quoted - excluded
@@ -456,15 +460,20 @@ def test_prompt_supplied_rule_ids_drift_guard():
         )
 
     check("CALCULATE_COST_TOOL", found_cost, answer_mod._COST_TOOL_PROMPT_IDS)
-    check("RESOLVE_LAYERS_TOOL", found_layers, answer_mod._LAYERS_TOOL_PROMPT_IDS)
     for version, found in found_system.items():
         check(f"SYSTEM_VERSIONS[{version!r}]", found, answer_mod._SYSTEM_PROMPT_IDS[version])
 
+    # 613.6/613.8a (the removed RESOLVE_LAYERS_TOOL's ids) are expected stale
+    # exclusions/inclusions now -- they no longer appear in any live
+    # schema/prompt string, but _LAYERS_TOOL_PROMPT_IDS and
+    # _REFERENCED_NOT_QUOTED are intentionally left in place for historical
+    # eval-row scoring (see prompt_supplied_rule_ids' module comment).
     stale_exclusions = excluded - all_found
-    assert not stale_exclusions, (
-        f"_REFERENCED_NOT_QUOTED has stale entries {stale_exclusions} no "
-        "longer found anywhere in the schema/prompt strings -- the prompt "
-        "changed; remove the stale exclusion or confirm it moved elsewhere."
+    assert stale_exclusions <= {"613.3", "613.4a"}, (
+        f"_REFERENCED_NOT_QUOTED has unexpected stale entries "
+        f"{stale_exclusions - {'613.3', '613.4a'}} no longer found anywhere "
+        "in the schema/prompt strings -- the prompt changed; remove the "
+        "stale exclusion or confirm it moved elsewhere."
     )
 
 

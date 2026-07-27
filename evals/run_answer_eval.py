@@ -439,9 +439,9 @@ def _load_resumable(out_path: Path, args: argparse.Namespace,
               f"same prompts file and (if it predates this check) start a fresh --out once.")
         sys.exit(1)
 
-    # system_version / layers_tool / max_tokens are in this guard because an
-    # arm is DEFINED by them: BASE and CONTROL differ only in system_version,
-    # and resuming across that difference would silently produce one file
+    # system_version / max_tokens are in this guard because an arm is
+    # DEFINED by them: BASE and CONTROL differ only in system_version, and
+    # resuming across that difference would silently produce one file
     # holding half of each arm. Rows generated before these fields existed
     # read as None and mismatch, which correctly forces a fresh run rather
     # than mixing old rows into a new experiment.
@@ -451,7 +451,6 @@ def _load_resumable(out_path: Path, args: argparse.Namespace,
             or first.get("show_rewrite") != args.show_rewrite
             or first.get("condition") != args.condition
             or first.get("system_version") != system_version_tag
-            or first.get("layers_tool") != args.layers_tool
             or first.get("max_tokens") != args.max_tokens
             # effort defines an arm exactly the way max_tokens does: a low-effort
             # and a default-effort row are different experiments. Rows written
@@ -685,16 +684,6 @@ def parse_args() -> argparse.Namespace:
         "RulesAgent(system_version=...) and recorded in each output row.",
     )
     p.add_argument(
-        "--layers-tool",
-        action=argparse.BooleanOptionalAction,
-        default=True,
-        help="attach the resolve_layers tool when its calibrated trigger fires (default: "
-        "on). --no-layers-tool suppresses it entirely regardless of the trigger -- needed "
-        "for a Slice 0 arm run, where neither arm may carry the layers tool (docs/spec-"
-        "slice0-harness.md Task 1). Passed straight into RulesAgent(layers_tool=...) and "
-        "recorded in each output row for provenance.",
-    )
-    p.add_argument(
         "--max-tokens", type=int, default=GEN_MAX_TOKENS,
         help=f"generation output cap (default: production's {GEN_MAX_TOKENS}). sonnet-5's "
         "max_tokens bounds adaptive thinking AND visible text together, so on hard "
@@ -807,7 +796,7 @@ def main() -> None:
     agent = RulesAgent(
         store, model=args.model, rewrite=args.rewrite, show_rewrite=args.show_rewrite,
         rewrite_version=args.rewrite_version, ruling_query_mode=args.ruling_query_mode,
-        system_version=system_version, layers_tool=args.layers_tool,
+        system_version=system_version,
         max_tokens=args.max_tokens, request_timeout=args.request_timeout,
         effort=args.effort, cache_prompt=args.cache_prompt,
         reground=args.reground,
@@ -865,7 +854,7 @@ def main() -> None:
         f"| rewrite_version={args.rewrite_version} | ruling_query_mode={args.ruling_query_mode} "
         f"| condition={args.condition} | run={args.run} "
         f"| prompts_cache={args.prompts_cache} "
-        f"| system_version={system_version} | layers_tool={args.layers_tool} "
+        f"| system_version={system_version} "
         f"| questions={args.questions.name}\n"
     )
 
@@ -1001,15 +990,15 @@ def main() -> None:
                     )
                 citation_breakdown = citation_source_breakdown(ans.citations, sources)
                 # What reached the model outside retrieval this run, via the
-                # system prompt (always) and tool-schema descriptions (when
-                # the run's layers_tool switch is on -- see
-                # rulesagent.generate.answer.prompt_supplied_rule_ids).
-                # Recorded per row (not just derivable from system_version/
-                # layers_tool below) so the corrected coverage metric is
+                # system prompt (always) -- see
+                # rulesagent.generate.answer.prompt_supplied_rule_ids). The
+                # resolve_layers tool that used to gate the second argument
+                # is gone, so this run never has layers-tool-supplied ids.
+                # Recorded per row so the corrected coverage metric is
                 # self-describing even if a future arm mixes configs within
                 # one output file.
                 prompt_supplied_ids = sorted(
-                    prompt_supplied_rule_ids(system_version, args.layers_tool)
+                    prompt_supplied_rule_ids(system_version, False)
                 )
 
                 gold_text = {g: chunk_map[g].text for g in q.gold if g in chunk_map}
@@ -1062,16 +1051,15 @@ def main() -> None:
                     # truncation visible instead of silently scoring as an
                     # ordinary wrong answer. tool_rounds is None only on the
                     # --prompts-cache path (no tool loop exists there at all
-                    # -- a real absence, never faked as 0/1). system_version/
-                    # layers_tool are constant across the whole run but
-                    # stamped per row for provenance, same reasoning as the
-                    # existing model/rewrite_version fields above.
+                    # -- a real absence, never faked as 0/1). system_version
+                    # is constant across the whole run but stamped per row
+                    # for provenance, same reasoning as the existing
+                    # model/rewrite_version fields above.
                     "stop_reason": stop_reason,
                     "tool_calls": tool_calls,
                     "tool_rounds": tool_rounds,
                     "usage": usage,
                     "system_version": system_version,
-                    "layers_tool": args.layers_tool,
                     # Recorded because _load_resumable() compares it: an arm
                     # generated at a different cap is a different experiment,
                     # and without this field the comparison is None != 32768 on

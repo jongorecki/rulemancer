@@ -761,10 +761,12 @@ ROADMAP: list[dict] = [
     },
     {
         "id": "cards-rag",
-        "title": "Semantic search over card oracle text",
+        "title": "Semantic search over card oracle text -- MOVED to Tutormancer",
         "one_line": "\"Cards like this one, but cheaper / different colours / strictly better\" -- "
-                    "a retrieval problem where retrieval is actually necessary.",
-        "status": "open", "action": "build", "info": 3,
+                    "split out to its own repo (D:\\Job_hunt\\tutormancer) on 2026-07-27, because "
+                    "card resolution never fails here (3,597 refs, zero unresolved), so a card "
+                    "index does nothing for rules answering.",
+        "status": "cut", "action": "none", "info": 3,
         "info_why": "The channel ablation showed card oracle text carries the system (-31 pts "
                     "when scrambled, p=4.3e-07) while CR-rule retrieval is ~inert (-3 pts, "
                     "p=0.50). This points retrieval effort at the channel that matters.",
@@ -772,7 +774,7 @@ ROADMAP: list[dict] = [
                     "and constrained substitutes. Unlike the rules index, its ground truth is "
                     "COMPUTED (functional reprints, strictly-better and colour-shifted pairs are "
                     "derivable from Scryfall), so it needs no hand-labelling and no LLM judge.",
-        "docs": ["docs/spec-cards-rag.md"],
+        "docs": ["docs/spec-cards-rag-MOVED.md"],
         "evidence": [
             {"kind": "doc", "ref": "docs/results-channel-ablation.md",
              "note": "the ablation that motivates it -- oracle text -31 pts, rulings -6, CR "
@@ -782,7 +784,7 @@ ROADMAP: list[dict] = [
                      "type_line, mana_value, colors and faces per card"},
         ],
         "metric": {"name": "recall@k vs computed gold", "dir": "up", "basis": "predicted",
-                   "cite": "docs/spec-cards-rag.md",
+                   "cite": "docs/spec-cards-rag-MOVED.md",
                    "detail": "no prior number -- the eval does not exist yet. The spec mandates a "
                              "deranged-index placebo control and a BM25 baseline before any "
                              "recall figure is believed."},
@@ -1546,8 +1548,7 @@ ROADMAP: list[dict] = [
                   {"kind": "commit", "ref": "4343848", "note": "resolve_layers wired into the dispatch loop"},
                   {"kind": "commit", "ref": "24f2bb9",
                    "note": "trigger calibration FAILED at 20.4%, ruled to threshold 1, now 77.8%"},
-                  {"kind": "path", "ref": "src/rulesagent/tools/cost_calculator.py"},
-                  {"kind": "path", "ref": "src/rulesagent/tools/layer_resolver.py"}],
+                  {"kind": "path", "ref": "src/rulesagent/tools/cost_calculator.py"}],
      "metric": {"name": "accuracy on tool-shaped questions", "dir": "up", "basis": "measured",
                 "cite": "docs/report-costtool-validation.md",
                 "detail": "validated at scale on the 199 cost-tagged questions; the layers trigger "
