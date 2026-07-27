@@ -86,12 +86,17 @@ def load_meta(path: Path) -> dict[str, dict]:
     return out
 
 
-def judge_with_reason(question: str, reference: str, candidate: str) -> tuple[str, str]:
+def judge_with_reason(question: str, reference: str, candidate: str,
+                       judge_slug: str = JUDGE_SLUG) -> tuple[str, str]:
     """(verdict, reason) from the OpenRouter judge. Same request shape as
     judge_bakeoff.or_judge (pinned model, allow_fallbacks=False, one retry
     on transient failure) but asks for a one-line reason alongside the
     verdict, since the deliverable here is spot-check material, not just an
-    agreement percentage."""
+    agreement percentage.
+
+    `judge_slug` defaults to the adopted JUDGE_SLUG (gpt-5-mini) so every
+    existing caller is unaffected; pass a different OpenRouter slug to grade
+    with a different judge model (e.g. for a cross-family read)."""
     user = (
         f"Question: {question}\n\nREFERENCE (correct):\n{reference}\n\n"
         f"CANDIDATE:\n{candidate}\n\n"
@@ -100,7 +105,7 @@ def judge_with_reason(question: str, reference: str, candidate: str) -> tuple[st
         "Reason: <one sentence explaining the verdict>"
     )
     body = {
-        "model": JUDGE_SLUG,
+        "model": judge_slug,
         "messages": [{"role": "system", "content": RULESGURU_JUDGE_SYS},
                      {"role": "user", "content": user}],
         "temperature": 0,
@@ -129,7 +134,8 @@ def judge_with_reason(question: str, reference: str, candidate: str) -> tuple[st
     return "error", "judge call failed"
 
 
-def judge_row_votes(question: str, reference: str, candidate: str, votes: int) -> dict:
+def judge_row_votes(question: str, reference: str, candidate: str, votes: int,
+                     judge_slug: str = JUDGE_SLUG) -> dict:
     """Judge one row `votes` times independently and return the majority
     verdict plus every individual vote.
 
@@ -145,7 +151,7 @@ def judge_row_votes(question: str, reference: str, candidate: str, votes: int) -
     `unanimous` flag, because the per-row spread is the evidence a re-run
     is stable, and throwing individual votes away destroys that evidence.
     """
-    results = [judge_with_reason(question, reference, candidate) for _ in range(votes)]
+    results = [judge_with_reason(question, reference, candidate, judge_slug) for _ in range(votes)]
     tally: dict[str, int] = {}
     for verdict, _reason in results:
         tally[verdict] = tally.get(verdict, 0) + 1
@@ -171,11 +177,16 @@ def parse_args() -> argparse.Namespace:
                          "Every vote is recorded per row, not just the majority.")
     p.add_argument("--workers", type=int, default=6,
                     help="parallel judge calls when --votes > 1 (default: 6)")
+    p.add_argument("--judge", type=str, default=JUDGE_SLUG,
+                    help=f"OpenRouter judge model slug (default: {JUDGE_SLUG}, i.e. existing "
+                         "behaviour unchanged). Recorded in the output's judge_model field so "
+                         "the instrument is never silently ambiguous.")
     return p.parse_args()
 
 
 def main() -> None:
     args = parse_args()
+    judge_slug = args.judge
     rows = load_answered_rows(args.answers)
     meta = load_meta(args.questions)
     if not rows:
@@ -185,12 +196,12 @@ def main() -> None:
 
     entries = []
     if args.votes > 1:
-        print(f"Judging {len(rows)} RulesGuru answers with {JUDGE_SLUG}, "
+        print(f"Judging {len(rows)} RulesGuru answers with {judge_slug}, "
               f"{args.votes} votes/row ({args.workers} workers)\n")
 
         def judge_one(r: dict) -> dict:
             m = meta.get(r["id"], {"level": "", "complexity": ""})
-            vote_info = judge_row_votes(r["question"], r["answer_gold"], r["answer"], args.votes)
+            vote_info = judge_row_votes(r["question"], r["answer_gold"], r["answer"], args.votes, judge_slug)
             return {
                 "id": r["id"],
                 "question": r["question"],
@@ -212,10 +223,10 @@ def main() -> None:
             tag = "unanimous" if e["unanimous"] else f"SPLIT {e['tally']}"
             print(f"  [{i}/{len(entries)}] {e['id']} (level={e['level']}) -> {e['verdict']} ({tag})")
     else:
-        print(f"Judging {len(rows)} RulesGuru answers with {JUDGE_SLUG}\n")
+        print(f"Judging {len(rows)} RulesGuru answers with {judge_slug}\n")
         for i, r in enumerate(rows, 1):
             m = meta.get(r["id"], {"level": "", "complexity": ""})
-            verdict, reason = judge_with_reason(r["question"], r["answer_gold"], r["answer"])
+            verdict, reason = judge_with_reason(r["question"], r["answer_gold"], r["answer"], judge_slug)
             entries.append({
                 "id": r["id"],
                 "question": r["question"],
@@ -254,7 +265,7 @@ def main() -> None:
         # This stamps what ran; it does NOT reword the prompt or change the
         # model. Verdict files written before 2026-07-25 carry no stamp -- read
         # their provenance from git, not from the file.
-        "judge_model": JUDGE_SLUG,
+        "judge_model": judge_slug,
         "judge_prompt_sha256": hashlib.sha256(
             RULESGURU_JUDGE_SYS.encode("utf-8")
         ).hexdigest()[:16],
@@ -291,7 +302,7 @@ def main() -> None:
     if args.votes > 1:
         print(f"  votes/row: {args.votes} -- unanimous {summary['unanimous_count']}/{len(entries)}, "
               f"split {summary['split_count']}/{len(entries)} ({summary['split_pct']:.1%})")
-    print(f"  judge: {JUDGE_SLUG} prompt={summary['judge_prompt_sha256']}")
+    print(f"  judge: {judge_slug} prompt={summary['judge_prompt_sha256']}")
 
 
 if __name__ == "__main__":
