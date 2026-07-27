@@ -36,24 +36,42 @@ property, and it means the accuracy metric conflates "refused" with "wrong."
 false negatives 0/77 with CI [0%, 4.7%] including a census of all 53 hard-level
 passes. Net: the headline is more likely an understatement.
 
+## The cross-model question is SETTLED
+
+`docs/results-crossmodel-fair.md`. Both models read one frozen prompt cache, same
+1,409 questions, only the model varies:
+
+**opus-5 85.88% vs gpt-5-mini 70.05%, +15.8 points**, and opus won under
+gpt-5-mini's OWN family judge — the strong-evidence case. Four judges across three
+families agree within 3.4 points on the gap (15.8 / 16.0 / 17.3 / 19.2). The
+mechanism is refusals: gpt-5-mini sets `answered=False` on 11.1% of rows vs opus's
+0.7%, and a decline scores wrong under every judge.
+
+Also worth carrying: **`openai/gpt-5` is NOT cheaper than opus in practice** —
+$0.0377/row vs $0.031 — because opus ran batched at 50% off and gpt-5's thinking
+tokens bill as output. List price misled here.
+
 ## The first ask
 
-**Finish the fair gpt-5-mini cross-model comparison.** 16 parallel shards were
-generating when the session ended — `evals/answers/gpt5mini_sh0..15.json`, plus 161
-rows in `gpt5mini_fair_1409.json` from an earlier serial attempt. Merge all of it
-into one 1,409-row answers file and judge it:
+**Finish the cheap-model bake-off.** Three arms were generating when the session
+ended, as 18 parallel `--qids` shards over the same 150-row stratified subset:
+`openai/gpt-5`, `deepseek/deepseek-v3.2`, and `openai/gpt-5-mini` with an
+anti-refusal system instruction.
 
-```
-python evals/judge_norules_control.py --answers <merged> \
-  --questions evals/rulesguru_full_v2.jsonl \
-  --out evals/verdicts_gpt5mini_fair_votes3.json --votes 3 --workers 8
-```
+Read the **"RUNNING WHEN THIS SESSION ENDED"** section of
+`docs/HANDOFF-development.md` — it has the file paths, the merge procedure (the
+openrouter path writes `text` not `answer` and never stamps `answer_gold`; the
+merge script already handles both), the judges to use, and the gotchas already paid
+for.
 
-Compare against 85.88%. **This is the comparison the project has never had** —
-every historical cross-model number is confounded (different retrieval configs, or
-a different question set, and in one case gpt-5-mini judging its own family, which
-`report_h2h.py:15-19` admits). This one reads the byte-identical frozen prompt
-cache, so the only variable is the model.
+**The two questions it answers:**
+1. **Does an anti-refusal instruction help?** Report refusal rate AND accuracy
+   change together — fewer refusals with no accuracy gain means the model was
+   declining for good reason. The arithmetic says even perfect refusal removal
+   recovers only ~8-9 points, so it cannot make gpt-5-mini competitive alone.
+2. **Is anything meaningfully cheaper usable?** deepseek was running at
+   **$0.001/row against opus's $0.031** — 30x cheaper, ~10x faster. Its accuracy
+   is the whole question.
 
 Then, in order: three-way verdicts (correct / incorrect / **declined** — `answered`
 is already recorded, so this is nearly free); make the card-free set harder (98.84%

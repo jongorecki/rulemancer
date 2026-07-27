@@ -6,8 +6,10 @@ carries the system and the CR-rules layer is ~inert." The first half held. The
 second half was wrong, and this session proved it for $3.49.**
 
 Suite: **1039 passed** (was 1124 — 85 tests left with the layers engine, see
-below). Spend this session: **~$49.25 Anthropic** of $100, **~$13 OpenRouter** of
-$45. Everything below is committed.
+below). Spend this session: **~$49.25 Anthropic** of $100, and OpenRouter down to
+**~$26 remaining** of $45 (headline judging, the cross-model generation, four judge
+families, and the bake-off). Everything below is committed except the bake-off,
+which was still generating — see "RUNNING WHEN THIS SESSION ENDED".
 
 ---
 
@@ -103,38 +105,97 @@ run's level gradient.
 
 ---
 
-## RUNNING WHEN THIS SESSION ENDED
+## THE FAIR CROSS-MODEL COMPARISON — DONE (`739edf6`)
 
-**The fair cross-model comparison — gpt-5-mini on byte-identical prompts.** This is
-the comparison the project has never had: every historical cross-model number is
-confounded (different retrieval configs, or a different question set, and in one
-case gpt-5-mini judging its own family — `report_h2h.py:15-19` admits it).
+`docs/results-crossmodel-fair.md`. Both models read ONE frozen prompt cache
+(sha256 `61bb33929f734b17…`), same 1,409 questions, same judge prompt digest,
+3-vote majority. **The only variable is the model.**
 
-- 16 parallel shards, `evals/answers/gpt5mini_sh0..15.json`, round-robin id
-  assignment so each shard spans all difficulty levels.
-- Why sharded: `run_openrouter_arm.py` is fully serial — 158 rows took 2h17m
-  (~52s/row). 16 shards brings it to about an hour. It has `--qids`, which is what
-  makes sharding possible.
-- 161 rows already exist in `evals/answers/gpt5mini_fair_1409.json` from the serial
-  attempt; the shards cover only the remaining 1,248.
-- **To finish:** merge the 16 shard files plus the 161-row partial into one
-  1,409-row answers file, then judge with
-  `evals/judge_norules_control.py --answers <merged> --questions
-  evals/rulesguru_full_v2.jsonl --votes 3`. Compare against 85.88%.
-- Cost so far ~$1.31 + ~$8 projected. OpenRouter, not Anthropic.
-- **Gotchas already hit:** `--ruling-query raw` switches the script into a
-  diagnostic report mode instead of generating; the default `--cards` set appends
-  20 rows the prompt cache does not contain (pass an empty cards file); and the
-  output-path guard refuses to mix a run that used a prompts cache with one that
-  did not.
+| judge | family | opus-5 low | gpt-5-mini | gap | rows |
+|---|---|---:|---:|---:|---:|
+| gpt-5-mini, full corpus | favours gpt-5-mini | **85.88%** | **70.05%** | **+15.8** | 1409 |
+| Claude panel | favours opus | 87.3% | 68.1% | +19.2 | 72 |
+| deepseek-v3.2 | neutral | 87.3% | 70.0% | +17.3 | 150 |
+| gemini-2.5-flash-lite | neutral | 75.3% | 59.3% | +16.0 | 150 |
+
+**opus won by 15.8 points under gpt-5-mini's OWN family judge on the full corpus** —
+the pre-committed strong-evidence case. Four judges across three families land
+within 3.4 points of each other on the gap.
+
+**The mechanism is refusals and is judge-independent:** `answered=False` on
+157/1409 gpt-5-mini rows (11.1%) vs opus's 10 (0.7%), both read from the model's own
+structured-output field. A decline scores incorrect under every judge, which is why
+the graders agree.
+
+**Price does not follow list price.** `openai/gpt-5` lists 2.5x cheaper than opus
+($1.25/$10 vs $5/$25) and measures **$0.0377/row against opus's $0.031** — more
+expensive. Opus ran batched at 50% off, and gpt-5's thinking tokens bill as output.
+The genuinely cheap options are an order of magnitude down.
+
+## RUNNING WHEN THIS SESSION ENDED — the cheap-model bake-off
+
+**Three arms on the 150-row stratified subset** (`evals/_crossjudge_subset.json`,
+seed 20260727 — the same ids every judge already used, so results slot straight
+into the table above).
+
+| arm | model | prompts cache | out |
+|---|---|---|---|
+| gpt5 | `openai/gpt-5` | production cache | `evals/answers/bakeoff_gpt5_sh0..5.json` |
+| deepseek | `deepseek/deepseek-v3.2` | production cache | `evals/answers/bakeoff_deepseek_sh0..5.json` |
+| antirefusal | `openai/gpt-5-mini` | **`_prompts_rulesguru_150_antirefusal.json`** | `evals/answers/bakeoff_antirefusal_sh0..5.json` |
+
+18 parallel `--qids` shards (6 per arm). `run_openrouter_arm.py` is serial at
+~25-40s/row, so sharding is the only way these finish in minutes rather than hours.
+**21 gpt-5 rows already exist** in `bakeoff_gpt5_150.json` + `bakeoff_gpt5_pilot10.json`
+from a killed serial run — preserved, and the shards cover only the remainder.
+
+**TO FINISH — do this when the shards are done:**
+
+1. **Merge per arm.** Adapt `evals/merge_gpt5mini_shards.py` (it already does the two
+   things that will otherwise bite you: stamps `answer_gold` from the corpus, which
+   `run_openrouter_arm.py` never does, and copies `text` → `answer`, because the
+   openrouter path writes `text` while the judge reads `answer`). For gpt5, include
+   the two pre-existing partial files.
+2. **Judge each arm** with `evals/judge_norules_control.py --votes 3`, using
+   `openai/gpt-5-mini` (default) and `deepseek/deepseek-v3.2` (via `--judge`) so the
+   numbers are comparable to the table above.
+3. **Append to `docs/results-crossmodel-fair.md`** — do not rewrite it. Include per
+   arm: accuracy + Wilson CI per judge, the `answered=False` rate, and cost/row,
+   alongside opus-5 and gpt-5-mini on the same 150 ids.
+
+**THE TWO QUESTIONS THE BAKE-OFF EXISTS TO ANSWER:**
+
+- **Does an anti-refusal instruction help?** Report the refusal rate AND the accuracy
+  change *together*. Fewer refusals with no accuracy gain means the model was
+  declining for good reason and the instruction merely converted silence into
+  confident errors. That outcome looks like an improvement on a dashboard while
+  making the product worse — say so plainly if it happens.
+  **Arithmetic done in advance:** refusals are ~11% of rows and ~1/3 of
+  gpt-5-mini's losses. Even perfect refusal elimination at its own non-refusal
+  accuracy recovers ~8-9 points, landing near 78% — still ~8 points behind opus. So
+  this cannot make gpt-5-mini competitive on its own.
+- **Is anything meaningfully cheaper actually usable?** deepseek was running at
+  **$0.001/row against opus's $0.031** — 30x cheaper — and ~10x faster. If its
+  accuracy is anywhere near usable that is a real production conversation.
+
+**Note the anti-refusal arm is NOT byte-identical** to the others (its system text
+carries the extra instruction), so it cannot join the "only variable is the model"
+comparison. It is a single-variable test against gpt-5-mini's own baseline.
+
+**Gotchas already paid for:** `--ruling-query raw` switches `run_openrouter_arm.py`
+into a diagnostic report mode instead of generating; the default `--cards` set
+appends ~20 rows the prompt cache lacks (pass an empty cards file); and the
+output-path guard refuses to mix a run that used a prompts cache with one that did
+not. Shard progress lives in `evals/answers/_progress/bakeoff_*.json` with
+`n_done`, `errors` and `cost_so_far` — read that, never the logs, because PowerShell
+buffers `*>` until exit so a running job's log looks dead.
 
 ---
 
 ## NEXT, IN ORDER
 
-1. **Finish and judge the gpt-5-mini comparison** (above). Either outcome is
-   publishable: a large gap justifies opus, a small gap says the expensive model
-   is not earning its cost on this task.
+1. **Finish the bake-off** (merge, judge, append) — see the section above, which
+   has the full procedure and the two questions it answers.
 2. **Three-way verdicts** (correct / incorrect / declined). Cheapest high-value fix
    on the board; `answered` is already recorded.
 3. **Make the card-free set harder.** At 98.84% the real arm is near-ceiling, so it
