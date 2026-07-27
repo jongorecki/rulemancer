@@ -5,10 +5,12 @@
     python scripts/codes.py list
     python scripts/codes.py revoke <code>
 
-Codes are "word-word-NN" -- two short words plus a two-digit number, e.g.
-"raptor-quill-42" (the exact shape from the design spec's example). Chosen
-over three words because it's the format the spec actually showed, and
-shorter survives being typed off a phone screen better.
+Codes are "word-word-word-NN" -- three short words plus a two-digit number,
+e.g. "beech-falcon-quill-85" (the design spec's prose: "three readable words
++ digits"). With 60 words this is 60 x 60 x 60 x 100 = 21,600,000 possible
+codes, vs. 360,000 for the two-word shape -- 60x harder to guess, which
+matters because every guessed code costs Jon real API credits, and still
+short enough to read aloud or type off a phone.
 """
 from __future__ import annotations
 
@@ -43,14 +45,19 @@ def generate_code(existing: set[str] | None = None) -> str:
     for _ in range(50):
         word1 = secrets.choice(WORDLIST)
         word2 = secrets.choice(WORDLIST)
+        word3 = secrets.choice(WORDLIST)
         digits = f"{secrets.randbelow(100):02d}"
-        code = f"{word1}-{word2}-{digits}"
+        code = f"{word1}-{word2}-{word3}-{digits}"
         if code not in existing:
             return code
     raise RuntimeError("could not generate a unique code after 50 attempts")
 
 
 def _cmd_new(args: argparse.Namespace) -> int:
+    if not args.label.strip():
+        print("error: --label cannot be empty (Jon needs to know who holds this code)",
+              file=sys.stderr)
+        return 1
     existing = {row["code"] for row in list_codes(args.db)}
     code = generate_code(existing=existing)
     create_code(args.db, code, args.label, max_queries=args.max_queries, notes=args.notes)

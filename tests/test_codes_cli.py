@@ -14,10 +14,20 @@ from rulesagent.demo_db import get_code_by_value, list_codes  # noqa: E402
 
 def test_generate_code_shape():
     code = codes_cli.generate_code()
-    word1, word2, digits = code.split("-")
+    word1, word2, word3, digits = code.split("-")
     assert word1 in codes_cli.WORDLIST
     assert word2 in codes_cli.WORDLIST
+    assert word3 in codes_cli.WORDLIST
     assert digits.isdigit() and len(digits) == 2
+
+
+def test_generate_code_has_exactly_three_word_segments():
+    code = codes_cli.generate_code()
+    parts = code.split("-")
+    assert len(parts) == 4
+    word_parts, digit_part = parts[:3], parts[3]
+    assert all(word in codes_cli.WORDLIST for word in word_parts)
+    assert digit_part.isdigit() and len(digit_part) == 2
 
 
 def test_generate_code_avoids_collisions():
@@ -81,3 +91,10 @@ def test_revoke_unknown_code_returns_nonzero(tmp_path):
     db = tmp_path / "demo.db"
     rc = codes_cli.main(["--db", str(db), "revoke", "no-such-code-99"])
     assert rc != 0
+
+
+def test_new_command_rejects_empty_label(tmp_path):
+    db = tmp_path / "demo.db"
+    rc = codes_cli.main(["--db", str(db), "new", "--label", "   "])
+    assert rc != 0
+    assert list_codes(db) == []
