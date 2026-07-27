@@ -753,16 +753,21 @@ git rm --cached docs/HANDOFF-PROMPT.md docs/HANDOFF-development.md docs/HANDOFF-
 Then append to `.gitignore`:
 
 ```
-# loose working files that must never reach a public repo
-_*.txt
-_*.py
-sh.exe.stackdump
+# loose working files that must never reach a public repo.
+# ROOT-ANCHORED on purpose: bare _*.txt / _*.py would also shadow tracked,
+# legitimate eval tooling (evals/_easy50.txt, evals/_hard54.txt,
+# evals/_build_gold_b3.py and others). Those ship; these do not.
+/_*.txt
+/_*.py
+/sh.exe.stackdump
 scratch_logs/
 tmp/
 docs/archive/
 docs/HANDOFF-*.md
 docs/OVERNIGHT-STATUS.md
 ```
+
+**Do not un-track anything under `evals/`.** `evals/_metrics_history.json` in particular is tracked and load-bearing: the evidence site generator reads it. Verify with `git ls-files --error-unmatch evals/_metrics_history.json` before and after editing `.gitignore`.
 
 The files stay on disk and stay in history. This drops them from the front door, which is the ruling.
 
