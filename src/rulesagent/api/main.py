@@ -513,30 +513,47 @@ def answer(req: AnswerRequest, request: Request = None,
                 "This access code has been revoked. Ask Jon for a fresh one.",
                 status_code=403,
             )
-        # Task 6: per-code query cap, checked before agent.answer() is ever
-        # called -- a cap enforced after the model call has already spent
-        # the money it was meant to prevent. Counted against committed
-        # `query` events only (count_queries), so a request that never
-        # reached the model (a rejection above) never consumes quota.
-        # Task 7 (daily budget breaker) adds a check here too.
-        cap = code_row["max_queries"] if code_row["max_queries"] is not None else DEFAULT_MAX_QUERIES
-        if count_queries(DEMO_DB, code_row["id"]) >= cap:
-            ip_hash = hash_ip(_client_ip(request), ip_salt)
-            log_event(DEMO_DB, code_id=code_row["id"], kind="denied", ip_hash=ip_hash)
-            return _friendly_html(
-                "This demo code is used up",
-                "You've used all your questions on this code. Ask Jon for another.",
-                status_code=402,
-            )
+        # Task 6, fix round 1 finding 1: the cap check moved from here
+        # (outside any lock) to INSIDE `_lock` below, immediately before
+        # agent.answer() and with the `query` event write also inside the
+        # same `with` block. Reading the count and calling the model were
+        # previously two separate uncoordinated steps, so two concurrent
+        # requests on the same code could both read the same pre-spend
+        # count, both pass, and both call the model -- a race window as
+        # wide as the model's latency (seconds), not a few instructions.
+        # Folding the check + call + event-write into one critical section
+        # makes them atomic with respect to each other: a second request
+        # blocked on `_lock` only gets to re-check the count after the
+        # first request's `query` event is already committed, so it always
+        # sees the up-to-date count. This adds no new contention beyond
+        # what `_lock` already serializes (the model call itself); the
+        # count_queries() read and log_event() write are cheap compared to
+        # the model call already inside the lock, and unrelated codes are
+        # unaffected because this is the same single global `_lock` that
+        # already serialized every /answer call before Task 6.
 
     agent, chunk_map = _state["agent"], _state["chunk_map"]
     # Bound what a thread can cost: last 12 turns, each clipped to 4k chars.
     history = [{"role": t.role, "content": t.content[:4000]} for t in req.history[-12:]]
     request_id = uuid.uuid4().hex
     t0 = time.monotonic()
-    # Hold the lock across answer() AND the reads of its last_* attributes --
-    # another request could overwrite them the moment the lock is released.
+    # Hold the lock across the cap check, answer() call, the reads of its
+    # last_* attributes, AND the `query` event write -- see the Task 6 note
+    # above for why the cap check and event write must be inside this same
+    # critical section (closing the check-then-spend race), and the
+    # pre-existing reason the last_* reads must stay inside it too: another
+    # request could overwrite them the moment the lock is released.
     with _lock:
+        if code_row is not None:
+            cap = code_row["max_queries"] if code_row["max_queries"] is not None else DEFAULT_MAX_QUERIES
+            if count_queries(DEMO_DB, code_row["id"]) >= cap:
+                ip_hash = hash_ip(_client_ip(request), ip_salt)
+                log_event(DEMO_DB, code_id=code_row["id"], kind="denied", ip_hash=ip_hash)
+                return _friendly_html(
+                    "This demo code is used up",
+                    "You've used all your questions on this code. Ask Jon for another.",
+                    status_code=402,
+                )
         ans = agent.answer(req.question, history=history)
         usage_snapshot = dict(getattr(agent, "last_usage", None) or {})
         cards = list(agent.last_cards or [])
@@ -546,19 +563,22 @@ def answer(req: AnswerRequest, request: Request = None,
         unresolved_refs = list(agent.last_unresolved_refs or [])
         uncited_success = bool(getattr(agent, "last_uncited_success", False))
         fuzzy_fallbacks = list(getattr(agent, "last_fuzzy_fallbacks", []) or [])
-    latency_ms = int((time.monotonic() - t0) * 1000)
-
-    if code_row is not None:
-        # Fix round 1 finding 2: the model call above has already cost real
-        # money, so the `query` event must get written NOW, before any of
-        # the enrichment below runs -- citations/cards_out/debug building,
-        # cost calculation, or IP hashing raising must never cost an event
-        # row (Task 7's daily budget breaker reads this table; an
-        # under-counted table trips it late, which is the expensive
-        # failure mode) and must never turn a successful model call into a
-        # 500 for the caller. _record_query_event is fully self-guarding.
-        _record_query_event(code_row, req.question, ans, agent, usage_snapshot,
-                             latency_ms, request, ip_salt)
+        latency_ms = int((time.monotonic() - t0) * 1000)
+        if code_row is not None:
+            # Fix round 1 finding 2 (unchanged): the model call above has
+            # already cost real money, so the `query` event must get
+            # written NOW, before any of the enrichment below runs --
+            # citations/cards_out/debug building, cost calculation, or IP
+            # hashing raising must never cost an event row (Task 7's daily
+            # budget breaker reads this table; an under-counted table
+            # trips it late, which is the expensive failure mode) and must
+            # never turn a successful model call into a 500 for the
+            # caller. _record_query_event is fully self-guarding. It now
+            # also runs inside `_lock` (finding 1) so its commit is
+            # visible to the next request's cap check before that request
+            # can proceed past the lock.
+            _record_query_event(code_row, req.question, ans, agent, usage_snapshot,
+                                 latency_ms, request, ip_salt)
 
     # Labeled rulings shown to the model, for resolving ruling citations:
     # each card ruling string starts with its "[Name ruling #N]" label.

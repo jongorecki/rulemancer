@@ -270,3 +270,69 @@ def test_boundary_25th_query_succeeds_26th_is_refused(monkeypatch, tmp_path):
     resp26 = main.answer(main.AnswerRequest(question="q26"), request=_fake_request(cookie=token))
     assert resp26.status_code == 402
     assert calls == []
+
+
+# --- Task 6, fix round 1 finding 1 --------------------------------------
+# The cap check and the quota-consuming `query` event write must be atomic
+# with respect to each other, or concurrent requests on the same code can
+# all read the same pre-spend count, all pass, and all call the model.
+# This is a genuine race: it needs real threads hitting the sync handler
+# at (approximately) the same instant, not two sequential calls -- a
+# barrier holds every worker thread at the starting line, and the fake
+# agent's answer() sleeps briefly so any requests that got past the check
+# concurrently would actually overlap inside the model call, not just
+# happen to interleave by accident.
+
+
+def test_concurrent_requests_at_cap_only_one_gets_through(monkeypatch, tmp_path):
+    import threading
+    import time as time_mod
+
+    monkeypatch.setenv("COOKIE_SECRET", "test-secret")
+    monkeypatch.setenv("IP_HASH_SALT", "test-salt")
+    db = tmp_path / "demo.db"
+    monkeypatch.setattr(main, "DEMO_DB", db)
+    code_id = create_code(db, "raptor-quill-42", "Test", max_queries=1)
+    from rulesagent.demo_auth import sign_session
+    token = sign_session(code_id, "test-secret")
+    # One query of quota already used -- exactly one slot left. If the
+    # race is open, every thread below can see "0 used, cap 1" at once.
+
+    n_workers = 8
+    start_barrier = threading.Barrier(n_workers)
+    call_lock = threading.Lock()
+    call_count = {"n": 0}
+
+    def _slow_answer(question, history=None):
+        with call_lock:
+            call_count["n"] += 1
+        time_mod.sleep(0.05)  # widen the window a buggy (unlocked) check would race in
+        return Answer(text="An honest answer.", tldr="tldr", citations=[],
+                      answered=True, suggested_followups=[])
+
+    monkeypatch.setattr(main._state["agent"], "answer", _slow_answer)
+
+    results = [None] * n_workers
+
+    def _worker(i):
+        start_barrier.wait()
+        req = main.AnswerRequest(question=f"concurrent-q{i}")
+        results[i] = main.answer(req, request=_fake_request(cookie=token))
+
+    threads = [threading.Thread(target=_worker, args=(i,)) for i in range(n_workers)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+
+    # Exactly one request reached the model; every other request was
+    # refused with the friendly 402 before agent.answer() ran.
+    assert call_count["n"] == 1
+    statuses = [getattr(r, "status_code", 200) for r in results]
+    assert statuses.count(402) == n_workers - 1
+    assert statuses.count(200) == 1
+
+    # Exactly one `query` event exists for this code -- the quota was
+    # reserved atomically with the check, not double-spent.
+    query_events = events_for_code(db, code_id)
+    assert len(query_events) == 1
