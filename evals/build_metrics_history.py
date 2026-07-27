@@ -760,6 +760,40 @@ ROADMAP: list[dict] = [
         "deps": [],
     },
     {
+        "id": "cards-rag",
+        "title": "Semantic search over card oracle text",
+        "one_line": "\"Cards like this one, but cheaper / different colours / strictly better\" -- "
+                    "a retrieval problem where retrieval is actually necessary.",
+        "status": "open", "action": "build", "info": 3,
+        "info_why": "The channel ablation showed card oracle text carries the system (-31 pts "
+                    "when scrambled, p=4.3e-07) while CR-rule retrieval is ~inert (-3 pts, "
+                    "p=0.50). This points retrieval effort at the channel that matters.",
+        "tells_us": "Whether semantic search over 38,336 cards can find functional equivalents "
+                    "and constrained substitutes. Unlike the rules index, its ground truth is "
+                    "COMPUTED (functional reprints, strictly-better and colour-shifted pairs are "
+                    "derivable from Scryfall), so it needs no hand-labelling and no LLM judge.",
+        "docs": ["docs/spec-cards-rag.md"],
+        "evidence": [
+            {"kind": "doc", "ref": "docs/results-channel-ablation.md",
+             "note": "the ablation that motivates it -- oracle text -31 pts, rulings -6, CR "
+                     "rules -3, layers tool 0"},
+            {"kind": "path", "ref": "data/scryfall.db",
+             "note": "38,336 oracle cards and 77,999 rulings already local, with oracle_text, "
+                     "type_line, mana_value, colors and faces per card"},
+        ],
+        "metric": {"name": "recall@k vs computed gold", "dir": "up", "basis": "predicted",
+                   "cite": "docs/spec-cards-rag.md",
+                   "detail": "no prior number -- the eval does not exist yet. The spec mandates a "
+                             "deranged-index placebo control and a BM25 baseline before any "
+                             "recall figure is believed."},
+        "cost": {"kind": "zero",
+                 "why": "query time is a local matmul plus one query embedding -- $0 in Anthropic "
+                        "credits, and evaluation is $0 because gold is computed and retrieval is "
+                        "local. One-time indexing is ~4M Voyage tokens; Voyage pricing is NOT in "
+                        "rulesagent.pricing and must be added before any spend."},
+        "deps": [],
+    },
+    {
         "id": "retrieval-value-ab",
         "title": "Measure what retrieval is actually worth (single-variable A/B)",
         "one_line": "Hold the entire pipeline fixed and swap only WHICH rules go in the context "
