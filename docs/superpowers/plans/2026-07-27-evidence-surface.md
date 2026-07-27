@@ -690,9 +690,18 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[1]
 
+# Require the key-shaped suffix, not just the prefix. A bare prefix (e.g.
+# "sk-or-v1-") also matches this test's own source when a doc quotes these
+# patterns in prose or in a code block -- that happened for real on
+# 2026-07-27: this plan's own embedded copy of the test tripped
+# test_no_key_shaped_strings_in_tracked_files on the regex literal alone, a
+# false positive. Requiring real key-length characters after the prefix makes
+# each pattern self-safe (the character right after the prefix in its own
+# source is "[", which the character class does not match) without weakening
+# detection of an actual leaked key.
 KEY_PATTERNS = [
-    re.compile(r"sk-ant-api[0-9]"),
-    re.compile(r"sk-or-v1-"),
+    re.compile(r"sk-ant-api[0-9]{2}-[A-Za-z0-9_-]{20,}"),
+    re.compile(r"sk-or-v1-[A-Za-z0-9]{20,}"),
     re.compile(r"\bpa-[A-Za-z0-9_-]{30,}"),
 ]
 
