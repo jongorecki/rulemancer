@@ -206,19 +206,84 @@ def _check_unlock_rate_limit(ip_hash: str, now: float | None = None) -> bool:
 
 def _friendly_html(title: str, message: str, status_code: int = 200) -> HTMLResponse:
     """Every guard failure renders through this -- dark mode, WCAG AA
-    contrast, no raw error, never a 500 for an expected condition."""
+    contrast, no raw error, never a 500 for an expected condition.
+
+    Consumes the same design tokens as frontend/gate.html and
+    admin_login_page (colors_and_type.css's plum palette), not the
+    hardcoded greys (#14161a/#e8e8ea) this used to ship -- those made a
+    429/403/503 page look like a different, off-brand product next to the
+    plum gate. tests/test_design_tokens_no_drift.py guards frontend/index.html
+    against redefining --plum-*/--accent inline; this stays consistent with
+    that rule by consuming the tokens via the stylesheet link rather than
+    redeclaring them here. title/message are always static, developer-
+    authored strings (never user input) but are still escaped -- cheap
+    insurance against a future call site changing that."""
+    safe_title = _html.escape(title)
+    safe_message = _html.escape(message)
     html = f"""<!doctype html>
-<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{title} — Rulemancer</title>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{safe_title} — Rulemancer</title>
+<link rel="stylesheet" href="/colors_and_type.css?v=3">
 <style>
-body {{ background:#14161a; color:#e8e8ea; font-family:system-ui,-apple-system,sans-serif;
-        display:flex; align-items:center; justify-content:center; min-height:100vh; margin:0; padding:24px; }}
-.card {{ max-width:480px; text-align:center; }}
-h1 {{ font-size:1.4rem; margin-bottom:0.75rem; color:#f4f4f5; }}
-p {{ color:#c4c4c9; line-height:1.5; }}
+  * {{ box-sizing: border-box; }}
+  html, body {{ margin: 0; padding: 0; height: 100%; }}
+  body {{ background: var(--bg-page); color: var(--fg-primary); font-family: var(--font-sans);
+          display: flex; align-items: center; justify-content: center;
+          min-height: 100vh; padding: var(--space-5); }}
+  .card {{ max-width: 480px; text-align: center; background: var(--bg-card);
+           border: 1px solid var(--border-default); border-radius: var(--radius-lg);
+           box-shadow: var(--shadow-lg); padding: var(--space-6) var(--space-5); }}
+  h1 {{ font-size: var(--fs-xl); margin: 0 0 var(--space-3); color: var(--fg-primary); }}
+  p {{ color: var(--fg-secondary); line-height: var(--lh-base); margin: 0; }}
 </style></head>
-<body><div class="card"><h1>{title}</h1><p>{message}</p></div></body></html>"""
+<body data-surface="dark"><div class="card"><h1>{safe_title}</h1><p>{safe_message}</p></div></body></html>"""
     return HTMLResponse(content=html, status_code=status_code)
+
+
+def _unlock_wants_json(request: Request | None) -> bool:
+    """Content negotiation for /unlock ONLY -- a narrower, opt-in-to-JSON
+    version of _wants_json_error's path-based fallback (defined later in
+    this file; that one is used by the catch-all exception handler across
+    every route and must not change here).
+
+    The bug this exists to fix: gate.html's form had no method/action, so
+    the WHOLE unlock flow depended on an inline script running successfully.
+    Any script failure (extension, CSP, old browser, JS disabled) left the
+    button doing nothing with zero feedback. The fix is a real
+    method="post" action="/unlock" form -- a native browser submit must
+    always land the visitor on the app (redirect) or a readable error page,
+    never raw JSON. So JSON is opt-in here, not the default:
+
+    - Accept: application/json  -> JSON (explicit fetch/XHR signal)
+    - X-Requested-With: XMLHttpRequest -> JSON (gate.html's fetch() sets
+      this itself, rather than relying on a browser's default fetch Accept
+      of '*/*', which is ambiguous and shouldn't decide this)
+    - anything else, including no request object at all (direct/script
+      callers) or a plain browser POST (Accept: text/html,...) -> HTML/303,
+      the safe default for an unknown caller.
+    """
+    if request is None:
+        return False
+    accept = request.headers.get("accept", "")
+    if "application/json" in accept:
+        return True
+    if request.headers.get("x-requested-with", "").lower() == "xmlhttprequest":
+        return True
+    return False
+
+
+def _unlock_failure_response(
+    wants_json: bool, title: str, message: str, status_code: int
+) -> HTMLResponse | JSONResponse:
+    """Shared failure rendering for /unlock's three failure paths (429 rate
+    limit, 403 bad/revoked code -- and anything a future guard adds), so a
+    browser POST always gets the friendly styled page and a fetch/XHR caller
+    always gets JSON it can parse, with the exact same status code either
+    way. Never a raw exception, never unstyled JSON shown to a human."""
+    if wants_json:
+        return JSONResponse({"ok": False, "detail": message}, status_code=status_code)
+    return _friendly_html(title, message, status_code=status_code)
 
 
 def _require_demo_config() -> tuple[str, str]:
@@ -548,12 +613,23 @@ def unlock(code: str = Form(...), request: Request = None):
     identical from the outside (generic 403 + a `denied` event): the
     endpoint must never reveal WHY a code failed. issued_at is never taken
     from the request -- sign_session's default is the server clock, so
-    there's no way for a caller to future-date a session and dodge expiry."""
+    there's no way for a caller to future-date a session and dodge expiry.
+
+    Content-negotiates via _unlock_wants_json (see there for the "why"): a
+    plain browser form POST gets a 303 to "/" on success and the friendly
+    styled page on failure -- it must work with JavaScript disabled or
+    broken, since that's the actual front door of the demo. gate.html's own
+    fetch() call marks itself explicitly (Accept: application/json +
+    X-Requested-With: XMLHttpRequest) and keeps getting JSON either way, so
+    the no-full-navigation enhancement still works when JS runs fine. Status
+    codes (200/303/403/429/503) are unchanged by which branch renders them."""
     cookie_secret, ip_salt = _require_demo_config()
     ip_hash = hash_ip(_client_ip(request), ip_salt)
+    wants_json = _unlock_wants_json(request)
     if not _check_unlock_rate_limit(ip_hash):
         log_event(DEMO_DB, code_id=None, kind="denied", ip_hash=ip_hash)
-        return _friendly_html(
+        return _unlock_failure_response(
+            wants_json,
             "Too many attempts",
             "Too many tries too fast. Wait 15 minutes and try again, or ask Jon for help.",
             status_code=429,
@@ -561,14 +637,21 @@ def unlock(code: str = Form(...), request: Request = None):
     row = get_code_by_value(DEMO_DB, code.strip())
     if row is None or row["revoked_at"] is not None:
         log_event(DEMO_DB, code_id=None, kind="denied", ip_hash=ip_hash)
-        return _friendly_html(
+        return _unlock_failure_response(
+            wants_json,
             "Code not recognized",
             "That access code doesn't work. Double-check it, or ask Jon for a fresh one.",
             status_code=403,
         )
     log_event(DEMO_DB, code_id=row["id"], kind="unlock", ip_hash=ip_hash)
     token = sign_session(row["id"], cookie_secret)
-    resp = JSONResponse({"ok": True})
+    if wants_json:
+        resp = JSONResponse({"ok": True})
+    else:
+        # Native form submit: land the visitor on the app, never show them
+        # raw JSON. 303 (not 302) so a refresh of "/" re-GETs instead of
+        # re-POSTing the code.
+        resp = RedirectResponse(url="/", status_code=303)
     resp.set_cookie(COOKIE_NAME, token, max_age=COOKIE_MAX_AGE_S, httponly=True,
                      samesite="lax", secure=True)
     return resp
