@@ -103,3 +103,52 @@ matter.
 - Judge is one-directionally harsh (7 human corrections across 218 rows, all
   "judge wrong -> human right"), so every arm is biased the same way and the
   *differences* are the robust quantity — which is what is read here.
+
+---
+
+## The layers tool, tested on its home turf — no measurable benefit
+
+Separate experiment, same day. 68 rows: every corpus question whose gold answer
+includes a CR 613 layer rule (holdout excluded). Live path (`RulesAgent.answer()`),
+`--no-rewrite`, `ruling_query_mode=raw`, same model, one variable — the tool on or
+off. This is NOT comparable to the arms above (different row set, different query
+mode); read it only against itself.
+
+This experiment had never been run before. Every layers-off arm on disk was
+`claude-sonnet-5` and every layers-on arm was `claude-opus-5`, so the tool's value
+had never been isolated from the generator.
+
+```
+tool fired on 42/68 rows (62%)   [vs 6.7% on a representative hard set]
+
+  layers ON   70.6%
+  layers OFF  67.6%
+
+  ALL rows      ON only 6 | OFF only 4 | 10 discordant | p = 0.75
+  FIRED rows    ON only 5 | OFF only 3 |  8 discordant | p = 0.73   <- the real test
+  NOT-fired     ON only 1 | OFF only 1 |  2 discordant   (noise, as expected)
+```
+
+**No benefit, even restricted to the rows where the tool actually ran.**
+
+The internal consistency check is what makes this a real null rather than a
+diluted one: rows the tool never touched show 1-1 discordance — exactly the noise
+they should be — while fired rows show 5-3. The signal is not hiding in the fired
+subset; it is not there.
+
+A first attempt at this on a representative hard set was uninformative and is
+recorded because it shows the trap: the arms differed by 6.7 points, which looked
+like a result, but the tool had fired on `rg783` while the single discordant row
+was `rg6556`. Different rows. The apparent effect was run-to-run noise on a row
+the tool never touched. **"Did the intervention touch the rows that moved?" is the
+check that separates a finding from an artifact**, and it is cheap.
+
+### Scoreboard after four single-variable tests
+
+| component | cost when scrambled/removed | verdict |
+|---|---|---|
+| **card oracle text** | **-31 pts, p=4.3e-07** | **carries the system** |
+| card rulings | -6 pts, p=0.19 | minor |
+| CR rules retrieval | -3 pts, p=0.50 | ~inert |
+| layers tool | 0, p=0.73 | ~inert |
+| reasoning effort low->high | 0 (n=15) | no effect |
