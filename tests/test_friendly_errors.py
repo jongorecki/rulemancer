@@ -34,3 +34,43 @@ def test_unhandled_exception_returns_friendly_html_not_a_stack_trace():
 
 def test_handler_is_registered_on_the_app():
     assert Exception in main.app.exception_handlers
+
+
+def test_unexpected_exception_on_json_api_route_returns_json_not_html(monkeypatch):
+    # Fix-round-1: /answer's frontend caller does `await r.json()` -- an HTML
+    # body on an unexpected 500 would throw a parse error there instead of
+    # showing the friendly message. Force a genuinely unexpected exception
+    # (no lifespan means _state["agent"] is unset -> KeyError deep inside the
+    # route, not one of the deliberate guard HTTPExceptions) and confirm the
+    # JSON API path gets a JSON body with no leaked internals.
+    for var in ("COOKIE_SECRET", "IP_HASH_SALT", "DEMO_ORIGIN"):
+        monkeypatch.delenv(var, raising=False)
+    client = TestClient(main.app, raise_server_exceptions=False)
+    resp = client.post("/answer", json={"question": "what is trample"})
+
+    assert resp.status_code == 500
+    assert resp.headers["content-type"].startswith("application/json")
+    body = resp.json()
+    assert "detail" in body
+    assert "KeyError" not in body["detail"]
+    assert "agent" not in body["detail"]
+
+
+def test_unexpected_exception_on_page_route_still_returns_friendly_html(monkeypatch):
+    # A caller that explicitly asks for HTML (a real browser navigation) must
+    # still get the friendly page, not a JSON body -- same unexpected
+    # exception, different Accept header.
+    for var in ("COOKIE_SECRET", "IP_HASH_SALT", "DEMO_ORIGIN"):
+        monkeypatch.delenv(var, raising=False)
+    client = TestClient(main.app, raise_server_exceptions=False)
+    resp = client.post(
+        "/answer",
+        json={"question": "what is trample"},
+        headers={"Accept": "text/html,application/xhtml+xml"},
+    )
+
+    assert resp.status_code == 500
+    assert resp.headers["content-type"].startswith("text/html")
+    body = resp.text
+    assert "KeyError" not in body
+    assert "<html" in body.lower()

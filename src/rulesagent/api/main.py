@@ -308,12 +308,27 @@ def _cors_allow_origins() -> list[str]:
     return [origin] if origin else ["*"]
 
 
+# Fix-round-1 finding: allow_credentials must NEVER be True while origins are
+# wildcarded. Starlette's CORSMiddleware does not send a bare "*" when
+# credentials are allowed -- per starlette/middleware/cors.py, if
+# allow_all_origins and allow_credentials are both true it reflects the
+# caller's own Origin header back verbatim instead
+# (`self.allow_explicit_origin(headers, origin)`), paired with
+# Access-Control-Allow-Credentials: true. That means literally any origin on
+# the internet could make cookie-bearing cross-origin requests -- strictly
+# worse than the pre-Task-9 bare "*" (no credentials flag at all). Credentials
+# are only safe to allow once origins are locked down to the single
+# DEMO_ORIGIN value, so the two settings are derived from the same condition
+# and must stay coupled. Do not re-simplify this back to an unconditional True.
+_cors_origins = _cors_allow_origins()
+_cors_locked = _cors_origins != ["*"]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=_cors_allow_origins(),
+    allow_origins=_cors_origins,
     allow_methods=["*"],
     allow_headers=["*"],
-    allow_credentials=True,  # required for the browser to send the session cookie cross-origin-safe
+    allow_credentials=_cors_locked,  # only once origins are locked to DEMO_ORIGIN -- see comment above
 )
 
 
@@ -908,18 +923,53 @@ def admin_scryfall_status(authorization: str | None = Header(default=None)) -> A
     return AdminStatusResponse(**state)
 
 
-async def _unhandled_exception_handler(request: Request, exc: Exception) -> HTMLResponse:
+# JSON API routes -- the frontend's own fetch() calls hit these without ever
+# setting an explicit Accept header (browsers default fetch to "*/*"), so we
+# can't rely on Accept alone to tell an API call from a page navigation.
+_JSON_API_PATHS = {
+    "/answer", "/unlock", "/feedback", "/cards/autocomplete",
+    "/admin/scryfall/refresh", "/admin/scryfall/status", "/health",
+}
+
+
+def _wants_json_error(request: Request | None) -> bool:
+    """Fix-round-1: the catch-all was returning HTML for every unexpected
+    500, including on JSON API routes like /answer -- a fetch() caller that
+    does `await r.json()` gets a parse error instead of a usable message.
+    Content-negotiate: an explicit `Accept: application/json` always wins;
+    otherwise fall back to path -- known JSON API routes get JSON unless the
+    caller explicitly asked for HTML (a real browser navigation sends
+    `Accept: text/html,...`). Page routes (/, /index.html, static assets)
+    aren't in the set, so they keep getting the friendly HTML page."""
+    if request is None:
+        return False
+    accept = request.headers.get("accept", "")
+    if "application/json" in accept:
+        return True
+    if "text/html" in accept:
+        return False
+    path = request.url.path if getattr(request, "url", None) is not None else ""
+    return path in _JSON_API_PATHS
+
+
+async def _unhandled_exception_handler(
+    request: Request, exc: Exception
+) -> HTMLResponse | JSONResponse:
     """Last-resort net: an uncaught exception anywhere in the app renders as
-    a friendly page, never FastAPI's default raw-JSON 500. The real
-    exception is still logged server-side for debugging -- only the
-    response body is sanitized, not the operator's visibility into it."""
+    a friendly page (or, for JSON API callers, a friendly JSON body), never
+    FastAPI's default raw-JSON stack dump. The real exception is still
+    logged server-side for debugging -- only the response body is
+    sanitized, not the operator's visibility into it. Neither branch's
+    message ever includes the exception text, a file path, an env value, an
+    access code, or a raw IP -- both use the same literal, static string."""
     logger.exception("unhandled exception on %s", getattr(request, "url", "?"))
-    return _friendly_html(
-        "Something went wrong",
+    message = (
         "That request hit an unexpected error on our end. Try again in a "
-        "moment -- if it keeps happening, let Jon know.",
-        status_code=500,
+        "moment -- if it keeps happening, let Jon know."
     )
+    if _wants_json_error(request):
+        return JSONResponse(status_code=500, content={"detail": message})
+    return _friendly_html("Something went wrong", message, status_code=500)
 
 
 app.add_exception_handler(Exception, _unhandled_exception_handler)
