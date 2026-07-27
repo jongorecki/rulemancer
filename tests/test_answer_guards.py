@@ -394,11 +394,47 @@ def test_missing_daily_budget_env_uses_conservative_default(monkeypatch, tmp_pat
     assert main.DAILY_BUDGET_USD_DEFAULT == 5.0
 
 
-def test_null_cost_rows_trip_the_breaker_even_under_the_dollar_total(monkeypatch, tmp_path):
-    """A NULL cost_usd row (a prior cost-calculation failure) must not
-    silently vanish from SUM(cost_usd) and let spend look lower than it
-    really is. Even with a tiny summed total, an unpriced query event
-    today must trip the breaker rather than being ignored."""
+# --- Task 7, fix round 1 -------------------------------------------------
+# NULL cost_usd rows (a prior cost-calculation failure) must not vanish
+# from SUM(cost_usd) -- but tripping the breaker on the mere presence of
+# one NULL row was overruled: it halts the whole demo for the rest of the
+# UTC day over one bounded, small failure. Each unpriced row is now priced
+# at main.UNPRICED_QUERY_ESTIMATE_USD ($0.15, a deliberately-high stand-in
+# for one query) and folded into the running total instead.
+
+
+def test_unpriced_row_is_added_to_total_at_the_conservative_estimate(monkeypatch, tmp_path):
+    """Two priced rows + one unpriced row must total
+    priced_sum + UNPRICED_QUERY_ESTIMATE_USD, not just the priced sum."""
+    monkeypatch.setenv("COOKIE_SECRET", "test-secret")
+    monkeypatch.setenv("IP_HASH_SALT", "test-salt")
+    db = tmp_path / "demo.db"
+    monkeypatch.setattr(main, "DEMO_DB", db)
+    code_id = create_code(db, "raptor-quill-42", "Test", max_queries=100)
+    from rulesagent.demo_db import log_event
+    log_event(db, code_id=code_id, kind="query", ip_hash="h", question="q1", cost_usd=0.10)
+    log_event(db, code_id=code_id, kind="query", ip_hash="h", question="q2", cost_usd=0.20)
+    log_event(db, code_id=code_id, kind="query", ip_hash="h", question="q3", cost_usd=None)
+
+    from datetime import datetime, timezone
+    from rulesagent.demo_db import daily_spend
+    today = datetime.now(timezone.utc).date().isoformat()
+    priced_sum = daily_spend(db, today)
+    unpriced_count = main._unpriced_query_count(db, today)
+    total = priced_sum + unpriced_count * main.UNPRICED_QUERY_ESTIMATE_USD
+
+    assert priced_sum == pytest.approx(0.30)
+    assert unpriced_count == 1
+    assert total == pytest.approx(0.30 + main.UNPRICED_QUERY_ESTIMATE_USD)
+    assert total == pytest.approx(0.45)
+
+
+def test_unpriced_rows_alone_do_not_trip_the_breaker_while_estimate_stays_under_budget(
+    monkeypatch, tmp_path,
+):
+    """The demo must not brick itself over a single unpriced row: with a
+    $10 budget and one NULL-cost row (estimated at $0.15), the next request
+    must still be served."""
     monkeypatch.setenv("COOKIE_SECRET", "test-secret")
     monkeypatch.setenv("IP_HASH_SALT", "test-salt")
     monkeypatch.setenv("DAILY_BUDGET_USD", "10.00")
@@ -410,10 +446,33 @@ def test_null_cost_rows_trip_the_breaker_even_under_the_dollar_total(monkeypatch
     token = sign_session(code_id, "test-secret")
     log_event(db, code_id=code_id, kind="query", ip_hash="h", question="q1", cost_usd=None)
 
+    req = main.AnswerRequest(question="q2")
+    resp = main.answer(req, request=_fake_request(cookie=token))
+
+    assert resp.answered is True
+
+
+def test_enough_unpriced_rows_to_exceed_budget_do_trip_it(monkeypatch, tmp_path):
+    """Estimated spend from unpriced rows alone can still exceed the
+    budget and trip the breaker once there are enough of them."""
+    monkeypatch.setenv("COOKIE_SECRET", "test-secret")
+    monkeypatch.setenv("IP_HASH_SALT", "test-salt")
+    monkeypatch.setenv("DAILY_BUDGET_USD", "1.00")
+    db = tmp_path / "demo.db"
+    monkeypatch.setattr(main, "DEMO_DB", db)
+    code_id = create_code(db, "raptor-quill-42", "Test", max_queries=100)
+    from rulesagent.demo_auth import sign_session
+    from rulesagent.demo_db import log_event
+    token = sign_session(code_id, "test-secret")
+    # 7 unpriced rows * $0.15 = $1.05 >= $1.00 budget.
+    for i in range(7):
+        log_event(db, code_id=code_id, kind="query", ip_hash="h", question=f"q{i}", cost_usd=None)
+
     calls = []
     monkeypatch.setattr(main._state["agent"], "answer",
-                         lambda *a, **k: calls.append(1) or pytest.fail("agent must not be called with unpriced spend outstanding"))
-    req = main.AnswerRequest(question="q2")
+                         lambda *a, **k: calls.append(1) or pytest.fail(
+                             "agent must not be called once estimated unpriced spend exceeds budget"))
+    req = main.AnswerRequest(question="q_final")
 
     resp = main.answer(req, request=_fake_request(cookie=token))
 

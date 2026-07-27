@@ -62,6 +62,18 @@ DAILY_BUDGET_USD_DEFAULT = 5.0
 # goes live -- read here at request time (os.environ.get, not a
 # module-load-time constant), so changing it needs no redeploy.
 
+UNPRICED_QUERY_ESTIMATE_USD = 0.15
+# Fix round 1: an upper-bound STAND-IN for one query whose cost_usd came
+# back NULL (a cost-calculation failure -- see _record_query_event), NOT a
+# measured figure. Roughly 2.5x the expected ~$0.06/query, so pricing an
+# unpriced row at this value errs toward tripping the breaker a little
+# early rather than a little late -- the safe direction. Deliberately NOT
+# "trip on any NULL row": that treated one transient pricing hiccup as
+# grounds to 503 every visitor for the rest of the UTC day, which is far
+# too much availability lost for what is actually a small, bounded amount
+# of unknown spend (one query, not an unknown number of them). Task 12
+# measures the real $/serve and can revisit this constant too.
+
 # scripts/ isn't a package under src/ -- same sys.path-insertion convention
 # tests/test_watch_runs.py already uses for evals/watch_runs.py. The admin
 # refresh endpoint below must call the SAME shared import function the CLI
@@ -473,11 +485,16 @@ def _unpriced_query_count(db_path: Path, day: str) -> int:
     papered over"). `daily_spend`'s SUM(cost_usd) *silently skips* NULL
     rows (SQL SUM ignores NULLs, and COALESCE only kicks in when there are
     zero rows at all) -- so real, already-spent money can be sitting in the
-    table and never show up in the budget total. Rather than invent a
-    dollar estimate for spend we genuinely don't know the size of -- which
-    would be inconsistent with _record_query_event's own "never a
-    fabricated estimate" stance -- this counts the gap directly so the
-    breaker can fail closed on it instead of quietly under-counting.
+    table and never show up in the budget total.
+
+    Fix round 1: the caller no longer trips the breaker on the mere
+    *existence* of a NULL row (that made one transient cost-calc failure
+    503 every visitor for the rest of the UTC day -- too much availability
+    lost for what is a small, bounded amount of unknown spend). Instead the
+    caller prices each NULL row at UNPRICED_QUERY_ESTIMATE_USD, a
+    deliberately-high stand-in, and adds `count * estimate` to the known
+    SUM(cost_usd) total -- conservative without being fatal.
+
     A tiny direct query, not routed through demo_db.py: daily_spend's
     signature is a committed Task-1 interface and isn't extended here.
     """
@@ -604,15 +621,19 @@ def answer(req: AnswerRequest, request: Request = None,
             # `daily_spend`/`_unpriced_query_count` both LIKE-match against
             # a UTC date string here -- write and read agree on the same
             # calendar day, so there's no local-vs-UTC skew at midnight.
-            spent = daily_spend(DEMO_DB, today)
+            priced_spent = daily_spend(DEMO_DB, today)
             # NULL-cost rows (a cost-calculation failure in a prior
             # request) are never invisible spend here -- see
-            # _unpriced_query_count's docstring. Any such gap trips the
-            # breaker even if the summed known cost is still under budget:
-            # we can't prove we're under budget without knowing what those
-            # rows actually cost, so fail closed rather than risk an
-            # under-counted total serving past the real limit.
-            if spent >= budget or _unpriced_query_count(DEMO_DB, today) > 0:
+            # _unpriced_query_count's docstring. Fix round 1: each is
+            # priced at UNPRICED_QUERY_ESTIMATE_USD (a deliberately-high
+            # stand-in) and folded into the total, rather than tripping the
+            # breaker outright on the mere presence of a gap -- one failed
+            # cost calculation is bounded, known-small spend (one query),
+            # not "unknown spend of unknown size", so it doesn't justify
+            # halting the whole demo for the rest of the UTC day.
+            unpriced_count = _unpriced_query_count(DEMO_DB, today)
+            spent = priced_spent + unpriced_count * UNPRICED_QUERY_ESTIMATE_USD
+            if spent >= budget:
                 ip_hash = hash_ip(_client_ip(request), ip_salt)
                 log_event(DEMO_DB, code_id=code_row["id"], kind="denied", ip_hash=ip_hash)
                 return _friendly_html(
