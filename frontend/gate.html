@@ -65,22 +65,36 @@
      length regardless of true geometry, so "one lap" is always dashoffset
      -100/100 -- a clean, seamless loop with no visible reset. Each pulse
      sits inside the same rotating group as the ring/star it traces, so it
-     also drifts with the slow counter-rotation above it. Widths and the
-     flicker floor were both raised this round -- the live deployment read
-     as barely-visible, and the energy is the thing Jon specifically asked
-     for. */
+     also drifts with the slow counter-rotation above it.
+
+     FIX ROUND (2026-07-27): Jon reported the glow "blinking a bunch" on the
+     live deployment. Root cause was `rm-flicker` -- five pulses each cycling
+     opacity .55->1->.55 on their OWN short, near-but-unequal period (3.1s,
+     3.4s, 3.9s, 4.6s, 5.2s). A ~3-5s full swing between "dim" and "full
+     bright" reads as a blink, not a breath, and five such cycles running at
+     close-but-different speeds drift in and out of phase with each other,
+     producing an irregular beat pattern on top of the individual blinking --
+     it never looked calm because it never repeated calmly either.
+     Fix: one shared, much longer period (36s) with a narrow opacity range
+     (never below .58, never above .92 -- nothing snaps fully on or off),
+     staggered by even phase offsets (36s / 5) so the five pulses ripple
+     through the circle one after another instead of firing in an
+     uncoordinated cluster. Travel durations were also lengthened
+     substantially (70-150s, still all comfortably distinct) so a streak's
+     lap around its ring takes long enough that the whole composition reads
+     as "drifting," not "racing." */
   .rm-sigil .rm-pulse { fill: none; stroke: var(--teal-300); filter: url(#rm-glow); }
-  .rm-sigil .rm-pulse-a { stroke-dasharray: 16 84; animation: rm-travel     11s linear infinite, rm-flicker 3.4s ease-in-out infinite; }
-  .rm-sigil .rm-pulse-b { stroke-dasharray: 11 89; animation: rm-travel-rev 16s linear infinite, rm-flicker 4.6s ease-in-out infinite .6s; }
-  .rm-sigil .rm-pulse-c { stroke-dasharray: 22 78; animation: rm-travel     13s linear infinite, rm-flicker 3.9s ease-in-out infinite 1.1s; }
-  .rm-sigil .rm-pulse-d { stroke-dasharray: 13 87; animation: rm-travel-rev  9s linear infinite, rm-flicker 3.1s ease-in-out infinite .3s; }
-  .rm-sigil .rm-pulse-e { stroke-dasharray: 18 82; animation: rm-travel     18s linear infinite, rm-flicker 5.2s ease-in-out infinite 1.7s; }
+  .rm-sigil .rm-pulse-a { stroke-dasharray: 16 84; animation: rm-travel      90s linear infinite, rm-flicker 36s ease-in-out infinite; }
+  .rm-sigil .rm-pulse-b { stroke-dasharray: 11 89; animation: rm-travel-rev 110s linear infinite, rm-flicker 36s ease-in-out infinite -7.2s; }
+  .rm-sigil .rm-pulse-c { stroke-dasharray: 22 78; animation: rm-travel      80s linear infinite, rm-flicker 36s ease-in-out infinite -14.4s; }
+  .rm-sigil .rm-pulse-d { stroke-dasharray: 13 87; animation: rm-travel-rev 100s linear infinite, rm-flicker 36s ease-in-out infinite -21.6s; }
+  .rm-sigil .rm-pulse-e { stroke-dasharray: 18 82; animation: rm-travel     130s linear infinite, rm-flicker 36s ease-in-out infinite -28.8s; }
 
   @keyframes rm-travel     { to { stroke-dashoffset: -100; } }
   @keyframes rm-travel-rev { to { stroke-dashoffset: 100; } }
   @keyframes rm-flicker {
-    0%, 100% { opacity: .55; }
-    50% { opacity: 1; }
+    0%, 100% { opacity: .58; }
+    50% { opacity: .92; }
   }
 
   @media (prefers-reduced-motion: reduce) {
