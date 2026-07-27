@@ -4,103 +4,216 @@
 
 # Rulemancer
 
-Rulemancer answers Magic: The Gathering rules questions and cites the
-Comprehensive Rules text it used. Reference a card and it pulls that card's
-official rulings too. FastAPI backend, chat frontend, runs with one command.
+Rulemancer answers Magic: The Gathering rules questions and shows you the
+official rule text it used.
+
+Magic has a 300-page rulebook called the Comprehensive Rules, and most
+arguments at a game table come down to one sentence buried somewhere in it.
+So the bot works in three steps. It searches the rulebook for the handful of
+rules that bear on your question. It looks up the real text of any card you
+named. Then it hands both of those to Claude and gets back an answer with the
+rule numbers attached, so you can check it. If what it found doesn't actually
+cover the question, it says so instead of guessing.
 
 I built it because rules arguments at my table get settled by whoever sounds
-the most confident, and that person is regularly wrong. I wanted answers that
-come with the actual rule attached. During the build it caught me doing the
-exact thing it was built to fix, which I'll get to below.
+the most confident, and that person is regularly wrong. During the build it
+caught me being that person, which is the Tibalt section below.
 
-## The numbers
+The part I'd point at, though, isn't the bot. It's what happened when I
+started measuring it, including the night the measurements knocked over a
+conclusion I'd already written down as settled.
 
-Everything in this table is measured. [DECISIONS.md](DECISIONS.md) has the
-reasoning behind each call and [LOG.md](LOG.md) is the raw build log,
-failures included.
+## Results
 
-| Metric | Result |
-|---|---|
-| Retrieval recall@5, BM25 baseline | 32% |
-| Retrieval recall@5, vector (voyage-4-large) | 65% |
-| Retrieval recall@5 after the chunk split | 68% (recall@10 87% with rewriting) |
-| Query rewriting (always-on Haiku, temp=0) | ~70% @5 as a 5-draw mean |
-| Answer grading, 31 rules questions, graded against the cited rule text (sonnet-5, pre-switch) | 31/31 correct, no invented rules |
-| Card eval, 19 questions, some multi-card combos (sonnet-5, pre-switch) | quality held while ruling context was cut hard |
-| Load-bearing ruling picked by the rulings retrieval | 12 of 15 |
-| LLM-judge agreement, Haiku vs Sonnet | 94 to 99% |
-| Multi-turn stability fix | bad follow-up draws went from 3 in 6 to 0 in 5 |
-| Generator bakeoff, 54 questions, same prompt/rewrite/judge | opus-5 low-effort 74.1% mean vs sonnet-5 64.8% mean (+9.3pp), cheaper and ~2.5x faster |
+I ran it against all 1,409 questions from [RulesGuru](https://rulesguru.net),
+a Magic rules quiz site written by certified judges. Every answer was graded
+by a second AI model, which is normal for this kind of testing and also the
+weakest link, so I went and measured the grader too. That's further down.
 
-The corpus is 3,151 rules and 735 glossary entries, chunked into 3,617
-chunks. Embedding all of it fits inside Voyage's free tier and a query costs
-a few cents.
+**Roughly 86%, ±2pp sampling and a further ~4pp of instrument variance.**
 
-## Why Magic
+In plain terms: think mid-eighties, not a precise number. Two of those points
+are just sample size, the ordinary wobble you get from asking 1,409 questions
+instead of a million. The other four points are the grader itself being
+imperfect, which is the bigger source of doubt. Quoting a third decimal place
+here would be pretending to a precision I don't have.
 
-I've played for years, so I can write my own eval questions and tell whether
-an answer is right. Grading answers in a domain I don't know would've been
-guesswork.
+RulesGuru tags every question with a difficulty level, and the spread across
+levels tells you more than the single number does:
 
-The rules are also a good stress test. The CR runs about 300 pages, full of
-cross-references and exceptions, and a lot of questions turn on a single
-clause.
+| Level | Correct | Accuracy % | 95% CI |
+|---|---|---|---|
+| Level 0 | 199 / 207 | 96.1 | 92.6 - 98.0 |
+| Level 1 | 510 / 565 | 90.3 | 87.5 - 92.4 |
+| Level 2 | 342 / 406 | 84.2 | 80.4 - 87.5 |
+| Level 3 | 110 / 162 | 67.9 | 60.4 - 74.6 |
+| Corner Case | 49 / 69 | 71.0 | 59.4 - 80.4 |
 
-Nothing in the pipeline is Magic-specific though. Point it at a compliance
-manual or an insurance policy and it's the same problem with different text.
+That last column is the range the true number is very likely to sit in. The
+smaller the group of questions, the wider it gets. Corner Case looks better
+than Level 3 here, but those two ranges overlap almost completely, so I'm not
+claiming that order is real.
 
-This is a sibling project to
-[Cardomancer](https://github.com/jongorecki/cardomancer), my card-sorting
-machine (OpenCV + image hashing + vector embeddings). Cardomancer identifies
-the physical cards, and this answers questions about them.
+It refused to answer 10 of the 1,409. Of the answers it did give, 98.1% cite
+a specific rule number.
 
-## What didn't work
+The full run cost $43.61, about three cents a question.
 
-Most RAG writeups only show the wins, so here's the other half.
+### Why Claude, and why you should believe me
 
-Hybrid retrieval made things worse. BM25 scored 32% recall@5 and vector
-scored 65%, and every fusion of the two landed somewhere in between, because
-the weak retriever dragged the strong one down. Nothing hybrid shipped. I
-kept the code so the result stays reproducible.
+The obvious objection to "I picked Claude and Claude did well" is that I had
+a Claude grading the answers. Fair.
 
-My best rewriting number was a lucky roll. Query rewriting came back at 77%
-recall@5 on the first run, then 68 on the next, then 71. The rewriter is an
-LLM, so the rewritten query is a random draw, and my cache had frozen one
-lucky draw in place where it looked deterministic. With temperature pinned to
-0 and a 5-draw mean the real number is about 70.
+So I ran the same 1,409 questions through OpenAI's `gpt-5-mini` on the exact
+same prompts, and then had four different graders score both sets, including
+gpt-5-mini grading its own work against a competitor's.
 
-The chunking fix hurt the question it was built for. Rule families shared so
-much prepended parent context that siblings embedded nearly on top of each
-other, so I split the text that gets embedded from the text the generator
-sees. Recall went up across the board, and the one question that motivated
-the change dropped from rank 16 to rank 84. It had been matching the shared
-preamble rather than its own rule the whole time. I kept the split since it
-helps everywhere else, and that question is on the multi-hop list now.
+| Grader | Whose side the grader is on | n each | claude-opus-5 (%) | gpt-5-mini (%) | Gap (pp) |
+|---|---|---|---|---|---|
+| gpt-5-mini | its own | 1,409 | 85.9 | 70.1 | +15.8 |
+| Claude panel | Claude's | 72 | 87.3 | 68.1 | +19.2 |
+| deepseek-v3.2 | neither | 150 | 87.3 | 70.0 | +17.3 |
+| gemini-2.5-flash-lite | neither | 150 | 75.3 | 59.3 | +16.0 |
 
-One question failed retrieval and still answered correctly. It had several
-valid rule paths and my gold set only listed one of them, so recall@k scored
-a miss while the generated answer was right and properly cited. I fixed the
-gold.
+The first row is the one that counts. gpt-5-mini, grading itself, still put
+itself about 16 points behind Claude. I wrote down which way each grader was
+expected to lean before running any of it, so that row is the case where the
+result goes against the grader's own interest.
 
-Additionally, the rules retrieval turned out to be dead weight on 4 of my
-first 5 card questions. I built an ablation harness that removes each cited
-rule and re-asks the question to see whether the answer survives. On those 4
-the card's own text and rulings covered everything. The card eval set got
-rebuilt around questions where the retrieved rules actually matter.
+Most of the gap isn't disagreement about rulings. It's refusals. Claude
+declined 0.7% of the questions, gpt-5-mini declined 11.1%, roughly one in
+nine, with the rules and the card text sitting right there in the prompt.
+That count comes off a flag the model sets itself, so no grader is involved
+in it at all.
 
-## The Tibalt example
+The two neutral graders never got an agreement check of their own, so read
+them as a sanity check on the ranking, not as extra proof. The absolute
+scores do move around by grader, gemini-2.5-flash-lite runs about 12 points
+low across the board, and that spread is exactly the instrument wobble in the
+headline number. What doesn't move is which model wins.
 
-I asked whether cascading into
-[Valki, God of Lies](https://scryfall.com/search?q=%21%22Valki%2C+God+of+Lies%22)
-lets you cast the Tibalt side for free. The bot said no, citing cascade rule
-702.85a: you can only cast the spell if the resulting spell's mana value is
-less than the cascading spell's, and Tibalt's is 7.
+## The reversal
 
-I was sure it was wrong. Tibalt cascade was a whole archetype in Modern, and
-the friend I was testing with agreed with me. But Wizards errata'd cascade to
-kill that interaction, the errata is in the current CR, and the bot had
-retrieved it. We were both arguing from memory that was a few years stale,
-against the current text. The bot was right.
+Partway through the build I ran a swap test on the rules search. Take a
+question, throw away the rules the search found for it, hand it some other
+question's rules instead, and see how much the answer suffers. Everything
+else stays identical. Over 120 questions, accuracy dropped 3.3 points, which
+is well inside noise.
+
+So I wrote down the conclusion: the rules search is barely doing anything,
+the card text is carrying the answers.
+
+That was wrong. How it was wrong is worth more than the original result.
+
+Every one of those 120 questions named a specific card. It had to, because
+99.4% of my question set does. And a Magic card's text, plus the official
+rulings attached to it, is already a restatement of the rules that apply to
+that card. So the test was deleting one copy of the information and leaving
+another copy sitting right next to it.
+
+Magic players have a line for this: reading the card explains the card. You
+say it to somebody who asks what a card does when the answer is printed right
+there on it. Turns out you can measure that.
+
+The original test wasn't bad arithmetic. It was fine arithmetic on a set of
+questions where the answer couldn't have come out any other way.
+
+So I wrote 86 new questions with no card names in them at all, pure rulebook
+questions, and ran the same swap test again:
+
+| What the bot was given | Correct | Accuracy % | 95% CI |
+|---|---|---|---|
+| The rules the search actually found | 85 / 86 | 98.84 | 93.70 - 99.79 |
+| Some other question's rules | 13 / 86 | 15.12 | 9.05 - 24.16 |
+
+It falls 83.7 points. Grader wobble everywhere else in this project runs
+about 2 to 4 points, so a hole that size isn't the grader being flaky. 86
+questions isn't many and the bottom row's range is wide, but nothing about
+the direction is in doubt.
+
+What I originally claimed was "the rules don't matter." What the evidence
+actually supports is "the rules don't matter *when there's a card in the
+question*." Different sentence, and it stops being true the second somebody
+asks a question with no card in it.
+
+Overturning my own published conclusion cost about five dollars.
+
+## When it doesn't know, it says so
+
+That swap test doubles as the cleanest look at what the bot does when it has
+nothing useful to work with. Every one of those 86 rows fed it rules that
+belonged to a different question, so it's confidently wrong material, handed
+over as if it were right.
+
+It refused on 90.7% of them and named what was missing. It made something up
+on 3.5%, and when I read those three by hand, one of them looks like the
+grader being wrong rather than the bot inventing anything.
+
+Here's a refusal, word for word:
+
+> I can't answer this from the rules provided. The context here contains no
+> phasing rules at all (nothing from rule 702.25 on phasing, and nothing on
+> whether a permanent phasing in counts as entering the battlefield).
+
+It names the rule it would have needed. And on the arm where the search
+worked normally it refused zero times out of 86, so this isn't a bot that
+just bails a lot.
+
+## Checking the grader
+
+Every accuracy number on this page came out of an AI grader, so the grader is
+a thing to be tested, not a thing to be trusted. A number is only as good as
+whatever measured it.
+
+It can be wrong in two directions, and I checked both.
+
+**Passing a wrong answer.** 4 out of 90 sampled rows, so 4.4%, and the range
+on that is 1.7 to 10.9. Treat it as a ceiling, because the stricter grader I
+used to catch those leans toward calling things different in the first place.
+
+**Failing a right answer.** 0 out of 77, range 0 to 4.7. Those 77 are a
+30-row sample plus every single one of the 53 hard rows the grader passed,
+every Level 2, Level 3 and Corner Case row across three runs. I did the full
+sweep of the hard ones specifically because that's where I expected the
+misses to hide, and they weren't there. One row is arguable and could turn
+that 0 into a 1.
+
+The two errors push opposite ways. Passing wrong answers inflates my number,
+failing right ones deflates it, and at these rates they don't cancel out. The
+lean is that roughly 86% slightly undersells it. That's a lean, not a proof.
+Worst case in both directions is about -11.6 to +10.9 points, and the same
+model family graded answers written by its own family, which is a caveat I
+can't design my way out of.
+
+## What it gets wrong
+
+Level 3 is 67.9%, and it doesn't get gradually worse, it falls off a cliff. A
+separate 311-question sample put the Level 3 failure rate at 42.9%, about 5.8
+times that sample's baseline, so the drop shows up in two different sets.
+
+I read 10 of the 23 failures in that sample myself. What keeps coming up:
+
+- Layers. Layers is the part of the rules that decides what order overlapping
+  effects apply in (CR 613), and it's the biggest single bucket of failures.
+  It's also the hardest part of the rules for people.
+- Confusion about when a permanent loses its abilities, especially on Sagas
+  and merged permanents.
+- Getting the order or timing of triggers wrong.
+- Mixing up what a restriction covers, treating "can't cast" as if it also
+  meant "can't activate."
+- Refusing to answer questions that only need the flavor text.
+- Forgetting that some effects keep applying after the card that made them is
+  gone.
+
+The other 13 failures I only sorted by the grader's one-line reason, not by
+reading the whole answer, so that's a read of the sample rather than a
+complete list. And the by-tag pattern is shakier still: the hard run is 49 of
+54 Layers questions and no other run has a single one, so I can't separate
+"Layers is hard" from "that run was hard." I'm not claiming the first one.
+
+Multi-hop questions also miss. If the answer lives in a rule you can only
+reach by following a cross-reference out of a rule the search found, the
+search usually doesn't get there.
 
 ## How it works
 
@@ -108,7 +221,7 @@ against the current text. The bot was right.
 question ──► Haiku rewriter (temp=0, sees the conversation transcript)
                  │
                  ▼
-         voyage-4-large vector search over 3,617 chunks ── top 15
+         voyage-4-large vector search over 3,619 chunks ── top 15
                  │
 [Card Name] ──► Scryfall enrichment (per-face data, layout, costs)
                  │        └─► per-card rulings retrieval (top 3 over a
@@ -121,32 +234,121 @@ question ──► Haiku rewriter (temp=0, sees the conversation transcript)
          optional debug panel (rewrites, retrieved ids, selected rulings)
 ```
 
-A few calls worth explaining. The full reasoning for each is in
-[DECISIONS.md](DECISIONS.md).
+Walking that top to bottom. A small, cheap model first rewrites your question
+into something that searches better, and it can see the conversation so far,
+so follow-ups like "what if it's blocked?" still work. The rulebook has been
+split into 3,619 pieces, and every piece has been turned into a list of
+numbers that captures its meaning, so the search can match on meaning rather
+than on matching words. Your question gets turned into numbers the same way,
+and the 15 closest pieces come back. If you named a card, its real text and
+official rulings get pulled from [Scryfall](https://scryfall.com). All of
+that goes to Claude, which answers in a fixed shape: the text, the rules it
+cited, and a yes/no flag for whether it could answer at all.
 
-There's no vector database. Brute-force cosine over 3,617 vectors runs in
-under a millisecond in NumPy, so the only real latency is the embedding API
-round-trip.
+The rulebook here is 3,153 rules and 735 glossary entries out of the June 19,
+2026 revision, cut into those 3,619 pieces. Turning all of it into numbers
+fits inside Voyage's free tier.
 
-Every model is pinned. Eval numbers mean nothing if a model can change
-between runs. Generation was pinned to claude-sonnet-5 for most of the build;
-it moved to claude-opus-5 at low effort on July 26, after a controlled 54-
-question head-to-head (same prompt, rewrite, and judge) put opus at a 74.1%
-mean answer accuracy against sonnet's 64.8%, while also running cheaper and
-about 2.5x faster.
+There's no vector database, which is the usual thing to reach for. Comparing
+your question against all 3,619 pieces by brute force takes under a
+millisecond in NumPy. The only real wait is the API call that turns your
+question into numbers.
 
-If the retrieved rules don't cover the question, the `answered` flag comes
-back false and the bot says what's missing instead of filling the gap from
-training data. Across the 31 graded questions it never stated a false rule.
-The two it got wrong were an honest decline and an incomplete answer.
+Every model is pinned to a specific version, because test results mean
+nothing if the model can change underneath a run. The exact settings get
+stamped onto every row of every test, as they actually ran rather than as I
+meant them to run, so any result can be traced back to what produced it.
 
-Each referenced card's rulings get relevance-filtered against the question
-before any of them reach the prompt. Two of the eval cards carry 35 rulings
-between them, and the filter passes 6 through. Answer quality held everywhere
-after the cut.
+If the rules that came back don't cover the question, that `answered` flag
+comes back false and the bot says what's missing instead of filling the gap
+from whatever it half-remembers. The swap test above is the deliberate stress
+test of that path.
 
-I wrote the gold sets and graded every answer myself. An LLM judge pre-scores
-as a regression check, but it doesn't get to decide what's correct.
+Card rulings get filtered for relevance before they reach the prompt. Some
+cards carry dozens of official rulings and almost none of them apply to the
+question you asked.
+
+[DECISIONS.md](DECISIONS.md) has the reasoning behind every call, and
+[LOG.md](LOG.md) is the raw build log with the failures left in.
+
+## What didn't work
+
+Most writeups about this kind of project only show the wins, so here's the
+other half.
+
+Combining two search methods made things worse. The old-fashioned
+keyword search found the right rule in the top 5 on 32% of my 31 test
+questions. The meaning-based search got 65%. Every way I tried to blend the
+two landed somewhere in the middle, because the weak one dragged the strong
+one down. None of it shipped. I kept the code so the result stays
+reproducible.
+
+My best query-rewriting number was a lucky roll. It came back at 77% on the
+first run, then 68, then 71, and the questions that failed weren't even the
+same ones each time. The rewriter is an AI, so the rewritten question is a
+fresh roll of the dice every time, and my cache had frozen one good roll in
+place where it looked like a stable result. With the randomness turned down
+and five runs averaged, the real number is about 70%.
+
+The chunking fix hurt the exact question it was built for. Related rules were
+sharing so much of the same prefix that they all looked nearly identical to
+the search, so I split the text used for searching from the text the model
+reads. Search got better across the board, 68% in the top 5 and 87% in the
+top 10 with rewriting, and the one question that made me do the work in the
+first place fell from 16th place to 84th. It had been matching the shared
+preamble the whole time, not its own rule. I kept the change because it helps
+everywhere else, and that question is on the multi-hop list now.
+
+One question failed the search and still got answered correctly. There were
+several valid ways to get to the answer and my answer key only listed one, so
+the search scored it a miss while the bot's answer was right and properly
+cited. I fixed the key. If your answer key only allows one right route, it
+can't see a question with two.
+
+And the big one: I published a conclusion that the rules search barely
+mattered, then knocked it over myself. That's the reversal section above.
+
+## The Tibalt example
+
+I asked whether cascading into
+[Valki, God of Lies](https://scryfall.com/search?q=Valki+God+of+Lies) lets you
+cast the Tibalt side for free. The bot said no, citing cascade rule 702.85a:
+you can only cast the spell if the resulting spell's mana value is less than
+the cascading spell's, and Tibalt's is 7.
+
+I was sure it was wrong. Tibalt cascade was a whole archetype in Modern, and
+the friend I was testing with agreed with me. But Wizards errata'd cascade to
+kill that interaction, the errata is in the current rulebook, and the bot had
+retrieved it. We were both arguing from memory that was a few years stale,
+against the current text. The bot was right.
+
+## How it was built
+
+Claude Code wrote the code. I'm not going to be cagey about that. It's an AI
+project and that's the whole point of it. What I did was set the standing
+rules, sign off on the plans, decide what got measured, and read the
+failures.
+
+Those rules live in [CLAUDE.md](CLAUDE.md), which is the actual working
+contract, not a description of one. Two of them earn their keep constantly.
+
+**Nobody states a Magic fact from memory, me included.** Claims get checked
+against the rulebook text in the repo or against Scryfall. The Tibalt section
+above is what happened the one time that rule got broken: two people
+confidently remembering an interaction that had been errata'd out from under
+them.
+
+**Every number gets asked what group of things it was counted over.** In one
+evening that caught four of my own figures that were arithmetically fine and
+counted over the wrong group. One of them, "313 cards strip to empty," was
+really 35, because the first count ran over every row in the card file
+including tokens and art prints instead of the rows that actually go into the
+index. The reversal above is that same rule at a much larger size. That
+result wasn't a bad calculation either. It was a good calculation over a set
+of questions that couldn't answer what I was asking.
+
+Every non-obvious call went into [DECISIONS.md](DECISIONS.md) when it was
+made, with what would change my mind written down before the result came in.
 
 ## Run it
 
@@ -158,8 +360,8 @@ cp .env.example .env       # then add your VOYAGE_API_KEY and ANTHROPIC_API_KEY
 ```
 
 Download the Comprehensive Rules TXT from
-https://magic.wizards.com/en/rules into `data/raw/` (create that folder first
--- a fresh clone doesn't include it). The index builder expects
+https://magic.wizards.com/en/rules into `data/raw/` (create that folder first,
+a fresh clone doesn't include it). The index builder expects
 `MagicCompRules 20260619.txt`, so if Wizards has shipped a newer revision,
 update the filename in `evals/build_vector_indexes.py`.
 
@@ -168,43 +370,38 @@ uv run python evals/build_vector_indexes.py   # parse, chunk, embed (one time)
 uv run python run.py                          # serves API + frontend, opens the browser
 ```
 
-The first page load waits a few seconds while the vector store loads. API
+The first page load waits a few seconds while the search index loads. API
 docs are at `/docs`.
 
-Evals: `make eval` for retrieval, `make answers` for answer grading, and
-`make ablate` for gold-by-ablation. The last two cost API calls.
+Tests: `make eval` for the search, `make answers` for answer grading, and
+`make ablate` for the swap test. The last two cost API calls.
 
-## Limitations
+It serves from a single uvicorn process and hasn't been load-tested. That's
+fine for a demo and not sized for real traffic.
 
-Multi-hop questions miss. If the answer lives in a rule you can only reach by
-following a cross-reference from a retrieved rule, retrieval likely won't
-surface it. That's the rank-84 question above.
+## Live demo
 
-Generation has draw variance. The generator sometimes returns a weak or empty
-draw. A targeted retry catches the worst shape of it, and the follow-up
-failure rate went from 3 in 6 to 0 in 5 after that fix (measured on
-sonnet-5), but the variance is still there underneath and hasn't been
-re-measured since the switch to opus.
+There's a hosted version going up, gated behind an access code so the API
+bill stays mine. The link lands here when it deploys. Codes get handed out
+one at a time, so ask me for one.
 
-The API runs a single worker with a lock, because the caches are whole-file
-read and write. That's fine for a demo. It needs per-key caches before any
-real concurrency.
+## Why Magic
 
-The 31/31 and 19-question numbers above predate two changes since: a
-system-prompt revision, and the July 26 swap of the production generator from
-sonnet-5 to opus-5 at low effort. Both reword every answer, so a re-grade
-against the current pipeline is on the list before I treat those two numbers
-as current. The generator bakeoff row is the newer, current evidence for the
-model choice itself.
+I've played for years, so I can write my own test questions and tell whether
+an answer is right. Grading answers in a subject I don't know would've been
+guesswork, and this whole project turns on the grading being worth something.
 
-## How it was built
+The rules are also a good stress test. The rulebook runs about 300 pages,
+full of cross-references and exceptions, and a lot of questions come down to
+a single clause.
 
-I directed Claude Code through the build, with two standing rules: the plan
-gets written and reviewed before the code, and nobody asserts a Magic fact
-from memory, me included. Every non-obvious call went into
-[DECISIONS.md](DECISIONS.md) at the time it was made, and [LOG.md](LOG.md)
-kept the raw notes. The Tibalt section above is what happened the one time
-the memory rule got broken.
+None of the plumbing is Magic-specific though. Point it at a compliance
+manual or an insurance policy and it's the same problem with different text.
+
+This is a sibling project to
+[Cardomancer](https://github.com/jongorecki/cardomancer), my card-sorting
+machine (OpenCV + image hashing + vector embeddings). Cardomancer figures out
+which physical card it's looking at, and this one answers questions about it.
 
 ## Attribution
 
