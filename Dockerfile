@@ -21,9 +21,19 @@ COPY scripts ./scripts
 
 # uv installs from pyproject.toml's [project.dependencies] straight into the
 # image's system Python -- no venv needed inside a container that only ever
-# runs one thing.
+# runs one thing. MUST be editable (-e): main.py derives REPO from
+# Path(__file__).parent x4 to find data/ and scripts/ next to it (same
+# convention the local .venv's editable install uses, per pyproject.toml's
+# [tool.pytest.ini_options] comment above). A real (non-editable) install
+# copies main.py into site-packages/rulesagent/api/main.py, four parents up
+# from which is nowhere near /app -- that broke `import refresh_scryfall_bulk`
+# (scripts/ not on sys.path) AND would have broken VectorStore.load's path
+# the same way, discovered when Task 14's first deploy crash-looped on
+# ModuleNotFoundError. Editable install leaves the package pointing at
+# ./src, so __file__ still resolves under /app and REPO == /app, matching
+# WORKDIR and where scripts/ and the data/ volume actually live.
 RUN pip install --no-cache-dir uv \
-    && uv pip install --system --no-cache .
+    && uv pip install --system --no-cache -e .
 
 ENV PYTHONIOENCODING=utf-8
 ENV PYTHONUNBUFFERED=1
