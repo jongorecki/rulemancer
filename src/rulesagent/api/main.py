@@ -17,6 +17,7 @@ smuggled into L3.
 Run: uv run uvicorn rulesagent.api.main:app --reload
 """
 
+import html as _html
 import json
 import logging
 import os
@@ -42,7 +43,8 @@ from rulesagent.demo_auth import (
     COOKIE_MAX_AGE_S, hash_ip, ip_hash_salt, session_secret, sign_session, verify_session,
 )
 from rulesagent.demo_db import (
-    DEFAULT_DEMO_DB, count_queries, daily_spend, get_code_by_id, get_code_by_value, log_event,
+    DEFAULT_DEMO_DB, code_stats, count_queries, daily_spend, events_for_code, get_code_by_id,
+    get_code_by_value, list_codes, log_event,
 )
 from rulesagent.generate.answer import GEN_EFFORT, PROMPT_VERSION, RulesAgent
 from rulesagent.index.store import VectorStore
@@ -603,6 +605,20 @@ def _unpriced_query_count(db_path: Path, day: str) -> int:
     return row[0]
 
 
+def _todays_spend(db_path: Path, day: str) -> float:
+    """Single source of truth for "how much has today cost so far": priced
+    SUM(cost_usd) plus each NULL-cost row priced at UNPRICED_QUERY_ESTIMATE_USD
+    -- see _unpriced_query_count's docstring for why a bare daily_spend() call
+    alone silently drops unpriced rows. Both the /answer budget breaker
+    (Task 7) and the /admin usage view (Task 11) call THIS function instead
+    of re-deriving the sum themselves, so the number that trips the breaker
+    and the number shown to Jon can never drift apart.
+    """
+    priced = daily_spend(db_path, day)
+    unpriced = _unpriced_query_count(db_path, day)
+    return priced + unpriced * UNPRICED_QUERY_ESTIMATE_USD
+
+
 @app.post(
     "/answer",
     tags=["answers"],
@@ -714,7 +730,6 @@ def answer(req: AnswerRequest, request: Request = None,
             # `daily_spend`/`_unpriced_query_count` both LIKE-match against
             # a UTC date string here -- write and read agree on the same
             # calendar day, so there's no local-vs-UTC skew at midnight.
-            priced_spent = daily_spend(DEMO_DB, today)
             # NULL-cost rows (a cost-calculation failure in a prior
             # request) are never invisible spend here -- see
             # _unpriced_query_count's docstring. Fix round 1: each is
@@ -724,8 +739,9 @@ def answer(req: AnswerRequest, request: Request = None,
             # cost calculation is bounded, known-small spend (one query),
             # not "unknown spend of unknown size", so it doesn't justify
             # halting the whole demo for the rest of the UTC day.
-            unpriced_count = _unpriced_query_count(DEMO_DB, today)
-            spent = priced_spent + unpriced_count * UNPRICED_QUERY_ESTIMATE_USD
+            # _todays_spend is the SAME function /admin uses -- see its
+            # docstring for why that sharing matters.
+            spent = _todays_spend(DEMO_DB, today)
             if spent >= budget:
                 ip_hash = hash_ip(_client_ip(request), ip_salt)
                 log_event(DEMO_DB, code_id=code_row["id"], kind="denied", ip_hash=ip_hash)
@@ -921,6 +937,186 @@ def admin_scryfall_status(authorization: str | None = Header(default=None)) -> A
     with _scryfall_refresh_lock:
         state = dict(_scryfall_refresh_state)
     return AdminStatusResponse(**state)
+
+
+def _fmt_ts(ts: str | None) -> str:
+    """events.ts / codes.created_at are UTC isoformat strings (demo_db._now).
+    Trim to minute precision for the page; keep the raw string as a
+    fallback so a malformed value never raises."""
+    if not ts:
+        return "–"
+    try:
+        return ts.replace("T", " ")[:16] + " UTC"
+    except Exception:
+        return ts
+
+
+@app.get(
+    "/admin", tags=["ops"], summary="Demo codes/usage dashboard",
+    description="Token-protected (Authorization: Bearer <ADMIN_TOKEN>) -- reuses the same "
+    "admin token as the Scryfall refresh endpoints. Per code: unlocks, queries, first/last "
+    "seen, total cost, remaining quota, and every question asked (newest first). Plus "
+    "today's global spend against the daily budget cap.",
+)
+def admin_demo_view(authorization: str | None = Header(default=None)) -> HTMLResponse:
+    # _require_admin_token raises before anything below runs -- an
+    # unauthenticated or wrongly-authenticated request never touches
+    # list_codes/code_stats/events_for_code, so no code, label, question, or
+    # count can leak into the 401/503 response.
+    _require_admin_token(authorization)
+
+    today = datetime.now(timezone.utc).date().isoformat()
+    budget = float(os.environ.get("DAILY_BUDGET_USD", DAILY_BUDGET_USD_DEFAULT))
+    # Same function the /answer breaker calls (_todays_spend, defined above)
+    # -- this number and the one that trips the breaker can never disagree.
+    spend_today = _todays_spend(DEMO_DB, today)
+    pct = min(spend_today / budget, 1.0) if budget > 0 else 0.0
+    over = spend_today >= budget
+
+    codes = list_codes(DEMO_DB)
+
+    summary_rows = []
+    detail_sections = []
+    for code in codes:
+        stats = code_stats(DEMO_DB, code["id"])
+        cap = code["max_queries"] if code["max_queries"] is not None else DEFAULT_MAX_QUERIES
+        remaining = max(cap - stats["queries"], 0)
+        status = "revoked" if code["revoked_at"] else "active"
+        label = _html.escape(code["label"] or "(no label)")
+        code_val = _html.escape(code["code"])
+        # A code that's never been unlocked or queried still has 0/0/None --
+        # code_stats() never raises on that, and first/last seen fall back to
+        # the "–" placeholder from _fmt_ts. The row renders, it doesn't
+        # vanish.
+        summary_rows.append(f"""
+        <tr>
+          <td>{label}</td>
+          <td><code>{code_val}</code></td>
+          <td><span class="status status-{status}">{status}</span></td>
+          <td>{stats["unlocks"]}</td>
+          <td>{stats["queries"]}</td>
+          <td>{remaining}</td>
+          <td>${stats["total_cost"]:.2f}</td>
+          <td>{_fmt_ts(stats["first_seen"])}</td>
+          <td>{_fmt_ts(stats["last_seen"])}</td>
+        </tr>""")
+
+        events = events_for_code(DEMO_DB, code["id"])
+        # events_for_code ORDER BY id DESC -- ids are a single-writer
+        # autoincrement, so id order and chronological (ts) order agree;
+        # newest-first here is a real timestamp ordering, not a string sort.
+        if events:
+            questions_html = "".join(
+                f'<li><span class="q-ts">{_fmt_ts(e["ts"])}</span>'
+                f'<span class="q-cost">${(e["cost_usd"] or 0.0):.3f}</span>'
+                f'<span class="q-text">{_html.escape(e["question"] or "")}</span></li>'
+                for e in events
+            )
+        else:
+            questions_html = '<li class="empty">No questions asked yet.</li>'
+        detail_sections.append(f"""
+        <section class="code-card">
+          <h3>{label} <span class="code-tag"><code>{code_val}</code></span></h3>
+          <ul class="questions">{questions_html}</ul>
+        </section>""")
+
+    if not codes:
+        table_body = (
+            '<tr><td colspan="9" class="empty-row">No codes minted yet. '
+            'Run <code>scripts/codes.py</code> to create one.</td></tr>'
+        )
+        details_html = ""
+    else:
+        table_body = "".join(summary_rows)
+        details_html = "\n".join(detail_sections)
+
+    body = f"""<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rulemancer admin -- demo usage</title>
+<link rel="stylesheet" href="/colors_and_type.css">
+<style>
+  * {{ box-sizing: border-box; }}
+  body {{ margin: 0; padding: var(--space-5); max-width: 1100px; margin-inline: auto; }}
+  h1 {{ font-family: var(--font-wordmark); font-size: var(--fs-2xl); font-weight: var(--fw-semibold);
+        color: var(--fg-primary); margin: 0 0 var(--space-4); }}
+  h3 {{ font-size: var(--fs-lg); font-weight: var(--fw-semibold); color: var(--fg-primary);
+        margin: 0 0 var(--space-3); display: flex; align-items: center; gap: var(--space-2);
+        flex-wrap: wrap; }}
+  .budget {{ background: var(--bg-card); border: 1px solid var(--border-default);
+             border-radius: var(--radius-lg); padding: var(--space-4) var(--space-5);
+             margin-bottom: var(--space-5); }}
+  .budget-line {{ display: flex; justify-content: space-between; align-items: baseline;
+                  gap: var(--space-3); flex-wrap: wrap; color: var(--fg-secondary);
+                  font-size: var(--fs-sm); margin-bottom: var(--space-2); }}
+  .budget-line strong {{ color: var(--fg-primary); font-size: var(--fs-lg); }}
+  .budget-line .cap-over {{ color: var(--status-red); font-weight: var(--fw-semibold); }}
+  .meter {{ height: 8px; border-radius: var(--radius-pill); background: var(--bg-muted);
+            overflow: hidden; }}
+  .meter-fill {{ height: 100%; border-radius: var(--radius-pill);
+                 background: {"var(--status-red)" if over else "var(--sigil)"}; }}
+  h2 {{ font-size: var(--fs-lg); font-weight: var(--fw-semibold); color: var(--fg-primary);
+        margin: var(--space-6) 0 var(--space-3); }}
+  .table-scroll {{ overflow-x: auto; border: 1px solid var(--border-default);
+                   border-radius: var(--radius-lg); background: var(--bg-card); }}
+  table {{ border-collapse: collapse; width: 100%; min-width: 720px; font-size: var(--fs-sm); }}
+  th, td {{ text-align: left; padding: var(--space-3) var(--space-4);
+            border-bottom: 1px solid var(--border-default); white-space: nowrap; }}
+  th {{ color: var(--fg-secondary); font-weight: var(--fw-medium); font-size: var(--fs-xs);
+        text-transform: uppercase; letter-spacing: var(--ls-wide); }}
+  tr:last-child td {{ border-bottom: none; }}
+  .empty-row {{ color: var(--fg-subtle); font-style: italic; white-space: normal; }}
+  .status {{ font-size: var(--fs-xs); padding: 0.15rem 0.6rem; border-radius: var(--radius-pill);
+             font-weight: var(--fw-medium); }}
+  .status-active {{ background: rgba(76,175,124,0.15); color: var(--status-green); }}
+  .status-revoked {{ background: rgba(224,80,80,0.15); color: var(--status-red); }}
+  .code-card {{ background: var(--bg-card); border: 1px solid var(--border-default);
+                border-radius: var(--radius-lg); padding: var(--space-4) var(--space-5);
+                margin-bottom: var(--space-4); }}
+  .code-tag code {{ font-size: var(--fs-xs); font-weight: var(--fw-regular); }}
+  code {{ background: var(--bg-muted); color: var(--fg-primary); padding: 0.1rem 0.4rem;
+          border-radius: var(--radius-sm); font-family: var(--font-mono); }}
+  .questions {{ list-style: none; margin: 0; padding: 0; max-height: 260px; overflow-y: auto; }}
+  .questions li {{ display: flex; align-items: baseline; gap: var(--space-3);
+                   padding: var(--space-2) 0; border-bottom: 1px solid var(--border-default);
+                   flex-wrap: wrap; }}
+  .questions li:last-child {{ border-bottom: none; }}
+  .questions .q-ts {{ color: var(--fg-subtle); font-size: var(--fs-xs); flex-shrink: 0; }}
+  .questions .q-cost {{ color: var(--sigil); font-size: var(--fs-xs); flex-shrink: 0; }}
+  .questions .q-text {{ color: var(--fg-primary); font-size: var(--fs-sm); }}
+  .questions .empty {{ color: var(--fg-subtle); font-style: italic; }}
+  @media (max-width: 600px) {{
+    body {{ padding: var(--space-3); }}
+    h1 {{ font-size: var(--fs-xl); }}
+  }}
+</style>
+</head>
+<body data-surface="dark">
+  <h1>Rulemancer -- demo usage</h1>
+  <div class="budget">
+    <div class="budget-line">
+      <span>Today's spend ({today} UTC)</span>
+      <strong class="{'cap-over' if over else ''}">${spend_today:.2f} / ${budget:.2f}</strong>
+    </div>
+    <div class="meter"><div class="meter-fill" style="width:{pct * 100:.1f}%"></div></div>
+  </div>
+
+  <h2>Codes</h2>
+  <div class="table-scroll">
+    <table>
+      <thead><tr>
+        <th>Label</th><th>Code</th><th>Status</th><th>Unlocks</th><th>Queries</th>
+        <th>Remaining</th><th>Total cost</th><th>First seen</th><th>Last seen</th>
+      </tr></thead>
+      <tbody>{table_body}</tbody>
+    </table>
+  </div>
+
+  <h2>Questions by code</h2>
+  {details_html or '<p class="empty-row">Nothing to show yet.</p>'}
+</body></html>"""
+    return HTMLResponse(content=body)
 
 
 # JSON API routes -- the frontend's own fetch() calls hit these without ever
