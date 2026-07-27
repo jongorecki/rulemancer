@@ -299,11 +299,21 @@ app = FastAPI(
         {"name": "ops", "description": "Health / readiness."},
     ],
 )
+def _cors_allow_origins() -> list[str]:
+    """Wildcard by default (private local demo, unchanged). Locked to one
+    origin once DEMO_ORIGIN is set -- the Fly deployment sets it to its own
+    https URL, so no other site can call /answer cross-origin using a
+    stolen or guessed cookie."""
+    origin = os.environ.get("DEMO_ORIGIN")
+    return [origin] if origin else ["*"]
+
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # private demo; tighten to the frontend origin if it goes public
+    allow_origins=_cors_allow_origins(),
     allow_methods=["*"],
     allow_headers=["*"],
+    allow_credentials=True,  # required for the browser to send the session cookie cross-origin-safe
 )
 
 
