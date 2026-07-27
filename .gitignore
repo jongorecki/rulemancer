@@ -58,3 +58,21 @@ evals/_slice0_logs/
 
 # sqlite migration backups -- 60MB+, regenerable, never commit
 data/*.bak-*
+
+# ONE exception to the evals/answers/ policy above, and only because the policy's
+# own reasoning does not cover it. That reasoning is "reproducing these costs API
+# credits." It does not apply to this file:
+#
+#   evals/answers/_prompts_rulesguru_full_v2raw.json   26.4 MB
+#
+# It is the frozen 1,409-row production-config prompt cache behind the headline
+# accuracy run. Rebuilding it costs $0 in credits, because every input it depends
+# on is already cached on disk: the v2 Haiku rewrites live in data/cache.db
+# (`rewrite` table) and the Voyage query embeddings in the same db (`query_emb`).
+# `python evals/build_rulesguru_full_prompts_v2raw.py` regenerates it byte-for-byte
+# for free. At 26.4 MB it is ~10x the largest tracked artifact (2.68 MB), so the
+# tradeoff runs the other way here.
+#
+# The ANSWERS from that run (evals/answers/headline_full.json, 10.9 MB) ARE
+# committed -- those cost $43.61 and cannot be regenerated without re-spending.
+evals/answers/_prompts_rulesguru_full_v2raw.json

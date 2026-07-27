@@ -764,7 +764,9 @@ ROADMAP: list[dict] = [
         "title": "Semantic search over card oracle text -- MOVED to Tutormancer",
         "one_line": "\"Cards like this one, but cheaper / different colours / strictly better\" -- "
                     "split out to its own repo (D:\\Job_hunt\\tutormancer) on 2026-07-27, because "
-                    "card resolution never fails here (3,597 refs, zero unresolved), so a card "
+                    "card NAME resolution does not fail here (the 9 unresolved refs on the "
+                    "1,409-row corpus are all planeswalker loyalty costs like [+1], never card "
+                    "names), so a card "
                     "index does nothing for rules answering.",
         "status": "cut", "action": "none", "info": 3,
         "info_why": "The channel ablation showed card oracle text carries the system (-31 pts "
