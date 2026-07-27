@@ -414,6 +414,49 @@ def health() -> dict:
     return {"status": "ok", "ready": "agent" in _state}
 
 
+def _record_query_event(code_row: dict, question: str, ans, agent, usage: dict,
+                         latency_ms: int, request: Request, ip_salt: str) -> None:
+    """Write the one `query` event for a gated call that has ALREADY reached
+    and returned from the model -- real money is already spent by the time
+    this runs. Fix round 1 finding 2: a failure in cost calculation, IP
+    hashing, or the insert itself must never (a) silently drop the row --
+    Task 7's daily budget breaker reads this table, and an under-counted
+    table trips the breaker late, which is the expensive direction to fail
+    in -- or (b) turn an otherwise-successful answer into a 500 for the
+    caller. So every step here is independently guarded and falls back to
+    the best value it still has (never a fabricated estimate -- an unknown
+    cost/token figure stays None/0 and is visible as a gap, not papered
+    over), and the final insert always runs with whatever was recovered."""
+    input_tokens, output_tokens, cost, ip_hash = 0, 0, None, None
+    try:
+        input_tokens = usage.get("input_tokens") or 0
+        output_tokens = usage.get("output_tokens") or 0
+    except Exception as e:
+        logger.warning("query event: failed reading token usage: %r", e)
+    try:
+        cost = cost_usd(
+            agent.model, input_tokens=input_tokens, output_tokens=output_tokens,
+            cache_read_tokens=usage.get("cache_read_input_tokens") or 0,
+            cache_write_tokens=usage.get("cache_creation_input_tokens") or 0,
+        )
+    except Exception as e:
+        logger.warning("query event: cost calculation failed: %r", e)
+    try:
+        ip_hash = hash_ip(_client_ip(request), ip_salt)
+    except Exception as e:
+        # Never fall back to a raw IP here -- an unknown hash stays None.
+        logger.warning("query event: ip hashing failed: %r", e)
+    try:
+        log_event(
+            DEMO_DB, code_id=code_row["id"], kind="query", ip_hash=ip_hash,
+            question=question, answered=getattr(ans, "answered", None),
+            input_tokens=input_tokens, output_tokens=output_tokens,
+            cost_usd=cost, latency_ms=latency_ms,
+        )
+    except Exception as e:
+        logger.warning("query event: log_event insert failed: %r", e)
+
+
 @app.post(
     "/answer",
     tags=["answers"],
@@ -479,6 +522,7 @@ def answer(req: AnswerRequest, request: Request = None,
     # another request could overwrite them the moment the lock is released.
     with _lock:
         ans = agent.answer(req.question, history=history)
+        usage_snapshot = dict(getattr(agent, "last_usage", None) or {})
         cards = list(agent.last_cards or [])
         retrieved = list(agent.last_retrieved or [])
         rewritten = agent.last_rewritten
@@ -487,6 +531,18 @@ def answer(req: AnswerRequest, request: Request = None,
         uncited_success = bool(getattr(agent, "last_uncited_success", False))
         fuzzy_fallbacks = list(getattr(agent, "last_fuzzy_fallbacks", []) or [])
     latency_ms = int((time.monotonic() - t0) * 1000)
+
+    if code_row is not None:
+        # Fix round 1 finding 2: the model call above has already cost real
+        # money, so the `query` event must get written NOW, before any of
+        # the enrichment below runs -- citations/cards_out/debug building,
+        # cost calculation, or IP hashing raising must never cost an event
+        # row (Task 7's daily budget breaker reads this table; an
+        # under-counted table trips it late, which is the expensive
+        # failure mode) and must never turn a successful model call into a
+        # 500 for the caller. _record_query_event is fully self-guarding.
+        _record_query_event(code_row, req.question, ans, agent, usage_snapshot,
+                             latency_ms, request, ip_salt)
 
     # Labeled rulings shown to the model, for resolving ruling citations:
     # each card ruling string starts with its "[Name ruling #N]" label.
@@ -540,26 +596,6 @@ def answer(req: AnswerRequest, request: Request = None,
         "prompt_version": PROMPT_VERSION,
         "latency_ms": latency_ms,
     })
-    if code_row is not None:
-        # One event row per query, written here once the model call has
-        # actually completed -- never in a path that raised or returned
-        # early, so a failed/aborted request can't double-log or log a query
-        # event for a call that never reached the model.
-        usage = getattr(agent, "last_usage", None) or {}
-        input_tokens = usage.get("input_tokens") or 0
-        output_tokens = usage.get("output_tokens") or 0
-        cost = cost_usd(
-            agent.model, input_tokens=input_tokens, output_tokens=output_tokens,
-            cache_read_tokens=usage.get("cache_read_input_tokens") or 0,
-            cache_write_tokens=usage.get("cache_creation_input_tokens") or 0,
-        ) or 0.0
-        ip_hash = hash_ip(_client_ip(request), ip_salt)
-        log_event(
-            DEMO_DB, code_id=code_row["id"], kind="query", ip_hash=ip_hash,
-            question=req.question, answered=ans.answered,
-            input_tokens=input_tokens, output_tokens=output_tokens,
-            cost_usd=cost, latency_ms=latency_ms,
-        )
     return AnswerResponse(
         answer=ans.text, tldr=ans.tldr, answered=ans.answered,
         suggested_followups=ans.suggested_followups, request_id=request_id,
