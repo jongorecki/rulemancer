@@ -118,22 +118,24 @@ sweep passes.**
    confirmation, not discovery.
 2. **If any key ever touched a commit:** it gets rotated, and publishing waits.
    Rewriting history is not sufficient on its own once a repo is public.
-3. **Content decision on `docs/` — needs Jon's ruling.** ~900 KB of internal
-   history, and **the 320-commit history is published along with `HEAD`**, so
-   "leave a file out" means either accepting it stays reachable in history or
-   squashing. Three options:
-   - **(a) Publish everything, history included.** 320 commits of real iterative
-     work is itself strong evidence, and the handoff docs' candour about
-     mistakes reads well to an engineer. Costs: the internal process notes name
-     Jon's API balances and read as instructions-to-an-agent.
-   - **(b) Publish everything except `docs/archive/` and the handoff docs at
-     `HEAD`,** accepting they remain in history. Cheap, tidy front door, honest.
-   - **(c) Fresh squashed repo** with only curated files. Cleanest, but throws
-     away the commit history that demonstrates process.
+3. **Content decision on `docs/` — RULED by Jon 2026-07-27: option (b).** The
+   320-commit history publishes along with `HEAD`, so this is about the front
+   door, not about erasure.
+   - **Drop from `HEAD`:** `docs/archive/`, `docs/HANDOFF-*.md`,
+     `docs/OVERNIGHT-STATUS.md`. They remain reachable in history; that is
+     accepted, not an oversight.
+   - **Keep:** `results-*.md`, `DECISIONS.md`, `LOG.md`, `DESIGN.md`, `API.md`,
+     the `spec-*.md` / `plan-*.md` set — they *are* the methodology evidence.
+   - **Keep `CLAUDE.md`.** It is the working contract Jon holds an agent to
+     ("plan before code", "never assert a Magic fact from memory", "ask which
+     population a number was computed over"). It demonstrates how he directs AI
+     better than prose describing it would.
 
-   **Default if unruled: (b).** Keep `results-*.md`, `DECISIONS.md`, `LOG.md`,
-   `DESIGN.md`, `API.md` — they *are* the methodology evidence. Drop
-   `docs/archive/` and the handoff docs from `HEAD`.
+   **Positioning ruling (Jon, same date): AI-assisted development is stated
+   openly, not softened.** "It's an AI project." The README's "How it was built"
+   section stays and gets strengthened — directing agents under standing rules is
+   part of the skill on display, so the README should show the rules and the
+   places they caught something, not bury the method.
 4. **Data files.** `data/raw/` (CR text) and `data/parsed/` (vector pickle) stay
    gitignored. The pickle embeds the full CR text, which is a redistribution
    problem under the Fan Content Policy.
