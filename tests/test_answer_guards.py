@@ -183,3 +183,90 @@ def test_post_call_cost_calc_failure_still_writes_query_event_and_answers(monkey
     # cost_usd is genuinely unknown here -- recorded as a visible gap
     # (None/NULL), never a fabricated number.
     assert events[0]["cost_usd"] is None
+
+
+# --- Task 6 -------------------------------------------------------------
+# Per-code max_queries cap. Checked BEFORE agent.answer() is called, and
+# counted against committed `query` events only -- a request that never
+# reached the model must not consume quota.
+
+
+def test_at_cap_returns_friendly_402_and_does_not_call_agent(monkeypatch, tmp_path):
+    monkeypatch.setenv("COOKIE_SECRET", "test-secret")
+    monkeypatch.setenv("IP_HASH_SALT", "test-salt")
+    db = tmp_path / "demo.db"
+    monkeypatch.setattr(main, "DEMO_DB", db)
+    code_id = create_code(db, "raptor-quill-42", "Test", max_queries=2)
+    from rulesagent.demo_auth import sign_session
+    from rulesagent.demo_db import log_event
+    token = sign_session(code_id, "test-secret")
+    log_event(db, code_id=code_id, kind="query", ip_hash="h", question="q1", cost_usd=0.01)
+    log_event(db, code_id=code_id, kind="query", ip_hash="h", question="q2", cost_usd=0.01)
+
+    calls = []
+    monkeypatch.setattr(main._state["agent"], "answer",
+                         lambda *a, **k: calls.append(1) or pytest.fail("agent must not be called at cap"))
+    req = main.AnswerRequest(question="q3")
+
+    resp = main.answer(req, request=_fake_request(cookie=token))
+
+    assert resp.status_code == 402
+    assert calls == []
+
+
+def test_under_cap_still_works(monkeypatch, tmp_path):
+    monkeypatch.setenv("COOKIE_SECRET", "test-secret")
+    monkeypatch.setenv("IP_HASH_SALT", "test-salt")
+    db = tmp_path / "demo.db"
+    monkeypatch.setattr(main, "DEMO_DB", db)
+    code_id = create_code(db, "raptor-quill-42", "Test", max_queries=2)
+    from rulesagent.demo_auth import sign_session
+    from rulesagent.demo_db import log_event
+    token = sign_session(code_id, "test-secret")
+    log_event(db, code_id=code_id, kind="query", ip_hash="h", question="q1", cost_usd=0.01)
+    req = main.AnswerRequest(question="q2")
+
+    resp = main.answer(req, request=_fake_request(cookie=token))
+
+    assert resp.answered is True
+
+
+def test_null_max_queries_falls_back_to_default_25(monkeypatch, tmp_path):
+    monkeypatch.setenv("COOKIE_SECRET", "test-secret")
+    monkeypatch.setenv("IP_HASH_SALT", "test-salt")
+    db = tmp_path / "demo.db"
+    monkeypatch.setattr(main, "DEMO_DB", db)
+    code_id = create_code(db, "raptor-quill-42", "Test", max_queries=None)
+    from rulesagent.demo_auth import sign_session
+    token = sign_session(code_id, "test-secret")
+    req = main.AnswerRequest(question="q1")
+
+    resp = main.answer(req, request=_fake_request(cookie=token))
+
+    assert resp.answered is True  # 1 query against an unset (None -> 25) cap is fine
+
+
+def test_boundary_25th_query_succeeds_26th_is_refused(monkeypatch, tmp_path):
+    monkeypatch.setenv("COOKIE_SECRET", "test-secret")
+    monkeypatch.setenv("IP_HASH_SALT", "test-salt")
+    db = tmp_path / "demo.db"
+    monkeypatch.setattr(main, "DEMO_DB", db)
+    code_id = create_code(db, "raptor-quill-42", "Test", max_queries=25)
+    from rulesagent.demo_auth import sign_session
+    from rulesagent.demo_db import log_event
+    token = sign_session(code_id, "test-secret")
+    for i in range(24):
+        log_event(db, code_id=code_id, kind="query", ip_hash="h", question=f"q{i}", cost_usd=0.01)
+
+    # 25th query: 24 already logged, this is the cap-th -- must succeed.
+    resp25 = main.answer(main.AnswerRequest(question="q25"), request=_fake_request(cookie=token))
+    assert resp25.answered is True
+
+    log_event(db, code_id=code_id, kind="query", ip_hash="h", question="q25", cost_usd=0.01)
+
+    calls = []
+    monkeypatch.setattr(main._state["agent"], "answer",
+                         lambda *a, **k: calls.append(1) or pytest.fail("agent must not be called past cap"))
+    resp26 = main.answer(main.AnswerRequest(question="q26"), request=_fake_request(cookie=token))
+    assert resp26.status_code == 402
+    assert calls == []

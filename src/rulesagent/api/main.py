@@ -41,7 +41,9 @@ from rulesagent.cache import DEFAULT_DB
 from rulesagent.demo_auth import (
     COOKIE_MAX_AGE_S, hash_ip, ip_hash_salt, session_secret, sign_session, verify_session,
 )
-from rulesagent.demo_db import DEFAULT_DEMO_DB, get_code_by_id, get_code_by_value, log_event
+from rulesagent.demo_db import (
+    DEFAULT_DEMO_DB, count_queries, get_code_by_id, get_code_by_value, log_event,
+)
 from rulesagent.generate.answer import GEN_EFFORT, PROMPT_VERSION, RulesAgent
 from rulesagent.index.store import VectorStore
 from rulesagent.pricing import cost_usd
@@ -52,6 +54,7 @@ REPO = Path(__file__).parent.parent.parent.parent
 VECTOR_MODEL = "voyage-4-large"
 SCRYFALL_AUTOCOMPLETE = "https://api.scryfall.com/cards/autocomplete"
 SCRYFALL_HEADERS = {"User-Agent": "mtg-rules-bot/0.1 (learning project)", "Accept": "application/json"}
+DEFAULT_MAX_QUERIES = 25  # used only when a code's max_queries column is NULL
 
 # scripts/ isn't a package under src/ -- same sys.path-insertion convention
 # tests/test_watch_runs.py already uses for evals/watch_runs.py. The admin
@@ -510,8 +513,21 @@ def answer(req: AnswerRequest, request: Request = None,
                 "This access code has been revoked. Ask Jon for a fresh one.",
                 status_code=403,
             )
-        # Tasks 6-7 (per-code query cap, daily budget breaker) add checks
-        # here, before agent.answer() is ever called.
+        # Task 6: per-code query cap, checked before agent.answer() is ever
+        # called -- a cap enforced after the model call has already spent
+        # the money it was meant to prevent. Counted against committed
+        # `query` events only (count_queries), so a request that never
+        # reached the model (a rejection above) never consumes quota.
+        # Task 7 (daily budget breaker) adds a check here too.
+        cap = code_row["max_queries"] if code_row["max_queries"] is not None else DEFAULT_MAX_QUERIES
+        if count_queries(DEMO_DB, code_row["id"]) >= cap:
+            ip_hash = hash_ip(_client_ip(request), ip_salt)
+            log_event(DEMO_DB, code_id=code_row["id"], kind="denied", ip_hash=ip_hash)
+            return _friendly_html(
+                "This demo code is used up",
+                "You've used all your questions on this code. Ask Jon for another.",
+                status_code=402,
+            )
 
     agent, chunk_map = _state["agent"], _state["chunk_map"]
     # Bound what a thread can cost: last 12 turns, each clipped to 4k chars.
