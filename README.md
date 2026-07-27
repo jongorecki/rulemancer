@@ -106,7 +106,8 @@ the card text is carrying the answers.
 That was wrong. How it was wrong is worth more than the original result.
 
 Every one of those 120 questions named a specific card. It had to, because
-99.4% of my question set does. And a Magic card's text, plus the official
+99.4% of the full 1,409-question RulesGuru set does, and those 120 were drawn
+from it. And a Magic card's text, plus the official
 rulings attached to it, is already a restatement of the rules that apply to
 that card. So the test was deleting one copy of the information and leaving
 another copy sitting right next to it.
@@ -171,12 +172,13 @@ It can be wrong in two directions, and I checked both.
 on that is 1.7 to 10.9. Treat it as a ceiling, because the stricter grader I
 used to catch those leans toward calling things different in the first place.
 
-**Failing a right answer.** 0 out of 77, range 0 to 4.7. Those 77 are a
-30-row sample plus every single one of the 53 hard rows the grader passed,
-every Level 2, Level 3 and Corner Case row across three runs. I did the full
-sweep of the hard ones specifically because that's where I expected the
-misses to hide, and they weren't there. One row is arguable and could turn
-that 0 into a 1.
+**Failing a right answer.** 0 out of 77, range 0 to 4.7. Those 77 come from
+two audits: a 30-row sample, and a complete sweep of all 53 hard rows the
+grader passed, meaning every Level 2, Level 3 and Corner Case row across
+three runs. Six rows are in both audits, so 30 and 53 dedupe to 77 unique
+rows rather than 83. I did the full sweep of the hard ones specifically
+because that's where I expected the misses to be hiding, and they weren't
+there. One row is arguable and could turn that 0 into a 1.
 
 The two errors push opposite ways. Passing wrong answers inflates my number,
 failing right ones deflates it, and at these rates they don't cancel out. The
@@ -311,8 +313,8 @@ mattered, then knocked it over myself. That's the reversal section above.
 ## The Tibalt example
 
 I asked whether cascading into
-[Valki, God of Lies](https://scryfall.com/search?q=Valki+God+of+Lies) lets you
-cast the Tibalt side for free. The bot said no, citing cascade rule 702.85a:
+[Valki, God of Lies](https://scryfall.com/card/khm/114/valki-god-of-lies-tibalt-cosmic-impostor)
+lets you cast the Tibalt side for free. The bot said no, citing cascade rule 702.85a:
 you can only cast the spell if the resulting spell's mana value is less than
 the cascading spell's, and Tibalt's is 7.
 
@@ -340,12 +342,20 @@ them.
 
 **Every number gets asked what group of things it was counted over.** In one
 evening that caught four of my own figures that were arithmetically fine and
-counted over the wrong group. One of them, "313 cards strip to empty," was
-really 35, because the first count ran over every row in the card file
-including tokens and art prints instead of the rows that actually go into the
-index. The reversal above is that same rule at a much larger size. That
-result wasn't a bad calculation either. It was a good calculation over a set
-of questions that couldn't answer what I was asking.
+counted over the wrong group.
+
+Here's one of them, and it's the reason the headline up top carries the error
+bars it does. I had measured how often the grader changes its mind between
+runs and got 0.48%, which would make it about as steady as a ruler. But I'd
+measured that on the easiest set of questions I had, where the bot gets
+nearly all of them right and almost nothing is close enough to argue about.
+Of course the grader agreed with itself. Measured on the sets that motivated the
+question, where scores land in the seventies and eighties, it's 2 to 4 points.
+That's the ~4pp of instrument variance in the headline. The original number
+wasn't a miscalculation, it was a correct calculation over questions that
+couldn't show the problem.
+
+The reversal above is that same mistake at a much larger size.
 
 Every non-obvious call went into [DECISIONS.md](DECISIONS.md) when it was
 made, with what would change my mind written down before the result came in.
