@@ -1,0 +1,41 @@
+# Rulemancer .dockerignore (docs/superpowers/plans/2026-07-27-gated-demo.md
+# Task 13). Docker does NOT read .gitignore -- this file is the only thing
+# standing between the build context and CR text / secrets ending up in an
+# image layer.
+
+.venv/
+.git/
+.github/
+.claude/
+.pytest_cache/
+__pycache__/
+*.pyc
+*.stackdump
+*.log
+
+# Secrets -- never in the image, always via `fly secrets set`.
+.env
+*.env
+
+# CR text, vector pickle, Scryfall snapshot, demo db, cache db -- all live on
+# the Fly volume at runtime (Task 14), never baked into the image.
+data/
+
+# Docs, evals, and other repo bulk irrelevant to the running container.
+docs/
+evals/
+tests/
+*.md
+
+# Planning/review scratch (SDD task docs, code-review diffs) -- not part of
+# the running app; *.md above already covers the .md files in here but the
+# review-*.diff files need their own line.
+.superpowers/
+
+# Loose scratch files (root-anchored, matches .gitignore's own convention --
+# bare _*.py/_*.txt would also shadow legitimate tracked tooling elsewhere,
+# but there is none of that outside the repo root).
+/_*.py
+/_*.txt
+scratch_logs/
+tmp/
