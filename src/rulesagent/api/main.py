@@ -41,9 +41,10 @@ from rulesagent.cache import DEFAULT_DB
 from rulesagent.demo_auth import (
     COOKIE_MAX_AGE_S, hash_ip, ip_hash_salt, session_secret, sign_session, verify_session,
 )
-from rulesagent.demo_db import DEFAULT_DEMO_DB, get_code_by_value, log_event
+from rulesagent.demo_db import DEFAULT_DEMO_DB, get_code_by_id, get_code_by_value, log_event
 from rulesagent.generate.answer import GEN_EFFORT, PROMPT_VERSION, RulesAgent
 from rulesagent.index.store import VectorStore
+from rulesagent.pricing import cost_usd
 
 logger = logging.getLogger(__name__)
 
@@ -139,6 +140,23 @@ def _require_demo_config() -> tuple[str, str]:
             detail="demo gating not configured (COOKIE_SECRET/IP_HASH_SALT)",
         )
     return cookie_secret, ip_salt
+
+
+def _resolve_gated_code(session: str | None) -> dict | None:
+    """The `codes` row for a valid signed cookie -- None if the cookie is
+    missing, malformed, expired, or points at a code that no longer exists.
+    The row is returned even when `revoked_at` is set: /answer needs to tell
+    "no valid session" (401) apart from "valid session, code since revoked"
+    (403), matching /unlock's own 403-for-revoked convention, so the revoked
+    check stays in the caller rather than collapsing both cases into None
+    here."""
+    secret = session_secret()
+    if not secret:
+        return None
+    code_id = verify_session(session, secret)
+    if code_id is None:
+        return None
+    return get_code_by_id(DEMO_DB, code_id)
 
 
 _SCRYFALL_REFRESH_IDLE = {
@@ -398,7 +416,6 @@ def health() -> dict:
 
 @app.post(
     "/answer",
-    response_model=AnswerResponse,
     tags=["answers"],
     summary="Answer a rules question",
     description="Send a natural-language question (optionally with `[Card Name]` "
@@ -406,9 +423,53 @@ def health() -> dict:
     "cover it), citations with resolved rule/glossary text, the card data used "
     "with its relevance-selected rulings, and a debug panel.",
 )
-def answer(req: AnswerRequest) -> AnswerResponse:
+def answer(req: AnswerRequest, request: Request = None,
+           session: str | None = Cookie(default=None, alias=COOKIE_NAME)) -> AnswerResponse:
+    # `response_model=AnswerResponse` is dropped from the decorator above --
+    # the guard path below returns an HTMLResponse directly, and FastAPI only
+    # allows returning a Response subclass from a route when no response_model
+    # is declared on *that* route. The -> AnswerResponse annotation stays for
+    # docs/IDE purposes only. `request` defaults to None (like unlock()'s own
+    # `request: Request = None`) so tests/test_api_debug.py's bare
+    # `main.answer(req)` -- called with gating off, where request is never
+    # touched -- keeps working unchanged.
     if not req.question.strip():
         raise HTTPException(status_code=400, detail="empty question")
+
+    code_row = None
+    if _gate_enabled():
+        _cookie_secret, ip_salt = _require_demo_config()
+        # `session` is FastAPI-injected (a real str or None) when this route
+        # runs through the app, but the test suite calls answer() directly
+        # (tests/test_api_debug.py's convention) without ever passing
+        # `session`, leaving it as the Cookie(...) field-info sentinel --
+        # same reason _index() above reads request.cookies.get(COOKIE_NAME)
+        # rather than trusting a DI-only parameter. Prefer a real injected
+        # string; otherwise fall back to reading the cookie off the request
+        # directly, which works identically in-app and in a direct call.
+        token = session if isinstance(session, str) else (
+            request.cookies.get(COOKIE_NAME) if request is not None else None
+        )
+        code_row = _resolve_gated_code(token)
+        if code_row is None:
+            ip_hash = hash_ip(_client_ip(request), ip_salt)
+            log_event(DEMO_DB, code_id=None, kind="denied", ip_hash=ip_hash)
+            return _friendly_html(
+                "Enter your access code",
+                "This demo needs an access code. Head back to the home page to enter one.",
+                status_code=401,
+            )
+        if code_row["revoked_at"] is not None:
+            ip_hash = hash_ip(_client_ip(request), ip_salt)
+            log_event(DEMO_DB, code_id=code_row["id"], kind="denied", ip_hash=ip_hash)
+            return _friendly_html(
+                "Access code no longer valid",
+                "This access code has been revoked. Ask Jon for a fresh one.",
+                status_code=403,
+            )
+        # Tasks 6-7 (per-code query cap, daily budget breaker) add checks
+        # here, before agent.answer() is ever called.
+
     agent, chunk_map = _state["agent"], _state["chunk_map"]
     # Bound what a thread can cost: last 12 turns, each clipped to 4k chars.
     history = [{"role": t.role, "content": t.content[:4000]} for t in req.history[-12:]]
@@ -479,6 +540,26 @@ def answer(req: AnswerRequest) -> AnswerResponse:
         "prompt_version": PROMPT_VERSION,
         "latency_ms": latency_ms,
     })
+    if code_row is not None:
+        # One event row per query, written here once the model call has
+        # actually completed -- never in a path that raised or returned
+        # early, so a failed/aborted request can't double-log or log a query
+        # event for a call that never reached the model.
+        usage = getattr(agent, "last_usage", None) or {}
+        input_tokens = usage.get("input_tokens") or 0
+        output_tokens = usage.get("output_tokens") or 0
+        cost = cost_usd(
+            agent.model, input_tokens=input_tokens, output_tokens=output_tokens,
+            cache_read_tokens=usage.get("cache_read_input_tokens") or 0,
+            cache_write_tokens=usage.get("cache_creation_input_tokens") or 0,
+        ) or 0.0
+        ip_hash = hash_ip(_client_ip(request), ip_salt)
+        log_event(
+            DEMO_DB, code_id=code_row["id"], kind="query", ip_hash=ip_hash,
+            question=req.question, answered=ans.answered,
+            input_tokens=input_tokens, output_tokens=output_tokens,
+            cost_usd=cost, latency_ms=latency_ms,
+        )
     return AnswerResponse(
         answer=ans.text, tldr=ans.tldr, answered=ans.answered,
         suggested_followups=ans.suggested_followups, request_id=request_id,
