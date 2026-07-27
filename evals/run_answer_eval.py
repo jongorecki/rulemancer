@@ -20,6 +20,10 @@ import sys
 import time
 from pathlib import Path
 
+from anthropic.lib._parse._transform import transform_schema
+from anthropic._models import TypeAdapter
+from anthropic.types.message_create_params import MessageCreateParamsNonStreaming
+from anthropic.types.messages.batch_create_params import Request
 from pydantic import ValidationError
 
 sys.path.insert(0, str(Path(__file__).parent))  # so `from run_eval import ...` resolves
@@ -43,6 +47,9 @@ from rulesagent.generate.answer import (  # noqa: E402
     _degenerate,
     _sum_usage,
     _usage_dict,
+    available_sources_from_context,
+    available_sources_from_prompt_text,
+    citation_source_breakdown,
     cr_rule_citations,
     needs_regrounding,
     prompt_supplied_rule_ids,
@@ -55,6 +62,308 @@ from rulesagent.tools.scryfall import ATTRIBUTION  # noqa: E402
 
 QUESTIONS_PATH = Path(__file__).parent / "questions.jsonl"
 DEFAULT_OUT = PARSED_DIR / "review.json"
+
+# --- Batch API support (Anthropic Message Batches, 50% of sync price) -------
+#
+# ONLY the --prompts-cache (frozen-prompt) path is batchable: each row there
+# is a single independent messages.parse()-equivalent call from an already-
+# assembled (system, user) pair, with no tool loop and no cross-row
+# dependency -- exactly the shape the Batches API wants. The live path
+# (RulesAgent.answer(), no --prompts-cache) has a genuine multi-turn tool
+# loop and is refused outright (see _validate_batch_combination()) rather
+# than silently downgraded to synchronous, which would look like it ran at
+# batch-discount cost while actually paying full price. --reground is
+# refused for the same "silent-mismatch" reason: the re-ask is a SECOND call
+# that depends on the first response, so it can't be folded into one batch
+# request. (A two-phase batch -- submit the initial batch, then a second,
+# smaller batch of only the rows needing regrounding, keyed the same way --
+# would work, but isn't built here: it doubles the moving parts for a flag
+# that's off by default in every existing arm.)
+BATCH_RECORDS_DIR = Path(__file__).parent / "answers" / "_batches"
+
+
+def _validate_batch_combination(batch: bool, prompts_cache_path, reground: bool) -> None:
+    """Refuse the two unsupported --batch combinations loudly, before any
+    submission happens. Called from main() right after arg parsing so a bad
+    combination fails in milliseconds, not after CR parsing / vector index
+    loading / batch submission.
+
+    A bare sys.exit(1) rather than a raised exception because this mirrors
+    every other CLI-validation failure in this file (--qids + --limit
+    together, a --prompts-cache identity mismatch, etc.) -- all print an
+    [ERROR] line and exit 1, none raise a Python exception to the user."""
+    if batch and prompts_cache_path is None:
+        print(
+            "[ERROR] --batch requires --prompts-cache. The live agent.answer() path has "
+            "a genuine tool loop (retrieval, layer resolution, multi-turn) and is not a "
+            "single independent request per question, so it cannot be submitted as a "
+            "batch without restructuring. Freeze a prompts cache first (evals/"
+            "run_openrouter_arm.py --assemble-only) and pass it via --prompts-cache, or "
+            "drop --batch."
+        )
+        sys.exit(1)
+    if batch and reground:
+        print(
+            "[ERROR] --batch cannot be combined with --reground. Regrounding re-asks with "
+            "a SECOND API call that depends on the first response's citations, so it isn't "
+            "a single independent request and can't be folded into one batch item. Drop "
+            "--reground, or run --batch first and reground the flagged rows in a separate, "
+            "smaller synchronous or second-batch pass."
+        )
+        sys.exit(1)
+
+
+def _batch_record_path(out_path: Path) -> Path:
+    """Where a --batch run's durable submission record lives for a given
+    --out. One record per --out, matching the one-output-file-per-run
+    convention _load_resumable() already uses."""
+    return BATCH_RECORDS_DIR / f"{out_path.stem}.batch.json"
+
+
+def _batch_identity(model: str, max_tokens: int, effort: str | None, cache_prompt: bool,
+                    prompts_cache_path, prompts_cache_digest: str | None,
+                    qids: list[str]) -> dict:
+    """The fields that define WHICH experiment a submitted batch answers --
+    the batch-level analogue of _load_resumable()'s row-identity check.
+    Compared verbatim (order-independent on qids only) so a config change
+    between two runs at the same --out is caught rather than silently
+    reusing (or resubmitting over) a batch that answers a different
+    question."""
+    return {
+        "model": model,
+        "max_tokens": max_tokens,
+        "effort": effort,
+        "cache_prompt": cache_prompt,
+        "prompts_cache": str(prompts_cache_path) if prompts_cache_path else None,
+        "prompts_cache_sha256": prompts_cache_digest,
+        "qids": sorted(qids),
+    }
+
+
+def _batch_output_format() -> dict:
+    """The output_config.format body for a batched Answer generation --
+    reproduces BY HAND the exact JSON-schema transform
+    `client.messages.parse(output_format=Answer)` applies internally
+    (anthropic.lib._parse._transform.transform_schema over
+    TypeAdapter(Answer).json_schema()), because the Batches API takes raw
+    MessageCreateParamsNonStreaming, not the .parse() convenience wrapper --
+    there is no batch equivalent of .parse(). Using the identical transform
+    is what makes a --batch request byte-identical (aside from the
+    batch-vs-sync endpoint itself) to what _answer_from_frozen_prompt()
+    sends via .parse() for the same question."""
+    schema = TypeAdapter(Answer).json_schema()
+    return {"type": "json_schema", "schema": transform_schema(schema)}
+
+
+def _batch_request_params(model: str, system: str, user: str, max_tokens: int,
+                          effort: str | None, cache_prompt: bool) -> dict:
+    """Request params for one batched question. Mirrors
+    _answer_from_frozen_prompt()'s single-call request body field-for-field
+    (system via _cacheable_system(), one user message, the same effort_kwargs
+    shape) so a --batch row is a genuine rerun of the same request the
+    synchronous arm would send for this question, just submitted async."""
+    params: dict = {
+        "model": model,
+        "max_tokens": max_tokens,
+        "system": _cacheable_system(system, cache_prompt),
+        "messages": [{"role": "user", "content": user}],
+        "output_config": {"format": _batch_output_format()},
+    }
+    if effort is not None:
+        params["output_config"]["effort"] = effort
+    return params
+
+
+def submit_or_attach_batch(
+    client, out_path: Path, questions: list, prompts_cache: dict, model: str,
+    max_tokens: int, effort: str | None, cache_prompt: bool,
+    prompts_cache_path, prompts_cache_digest: str | None,
+) -> tuple[str, dict[str, str]]:
+    """Submit a Message Batch covering `questions` (each answered from its
+    frozen prompt in `prompts_cache`), or -- if a durable record from a prior
+    invocation already exists for this --out with a MATCHING identity --
+    attach to that existing batch instead of submitting a duplicate.
+
+    Durability (never orphan a submitted batch): the batch id and the
+    custom_id -> question_id mapping are written to disk via
+    atomic_write_json() IMMEDIATELY after client.messages.batches.create()
+    returns, before any polling happens. If the process is killed a moment
+    later, the record is the only thing standing between a killed process
+    and a batch that keeps running server-side with no local trace of it --
+    exactly the "lost work to a process being killed mid-run" failure mode
+    this repo has already hit once.
+
+    Resume-without-resubmitting (a duplicate submission is real money):
+    re-running this function against the same --out reads the existing
+    record first. If its identity (model/max_tokens/effort/cache_prompt/
+    prompts_cache identity/qid set -- see _batch_identity()) matches this
+    invocation's, it returns the recorded batch_id/mapping WITHOUT calling
+    client.messages.batches.create() again. If the identity differs, this
+    hard-errors (sys.exit(1)) rather than silently resubmitting or silently
+    reusing a batch that answers a different question -- the same
+    "mismatch is fatal, not a fallback" discipline _load_resumable() already
+    applies to prompts_cache identity.
+
+    custom_id is the question id verbatim (ids in questions.jsonl are
+    already unique strings), but the mapping is still built and persisted
+    explicitly rather than re-derived from the qid list on every read, so a
+    future custom_id scheme change doesn't have to touch this function's
+    on-disk shape or its caller.
+    """
+    qids = [q.id for q in questions]
+    identity = _batch_identity(
+        model, max_tokens, effort, cache_prompt, prompts_cache_path, prompts_cache_digest, qids,
+    )
+    record_path = _batch_record_path(out_path)
+
+    if record_path.exists():
+        try:
+            record = json.loads(record_path.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError):
+            record = None
+        if record is not None:
+            if record.get("identity") != identity:
+                print(
+                    f"[ERROR] {record_path} already records a batch submitted for a "
+                    f"different config or question set than this invocation -- refusing "
+                    f"to silently resubmit (that's a real duplicate charge) or reuse a "
+                    f"mismatched batch. Point --out somewhere else, or delete "
+                    f"{record_path} if you're certain a fresh batch is wanted."
+                )
+                sys.exit(1)
+            print(
+                f"[batch] attaching to existing batch {record['batch_id']} recorded at "
+                f"{record_path} -- not resubmitting"
+            )
+            return record["batch_id"], record["custom_id_to_qid"]
+
+    requests = []
+    custom_id_to_qid: dict[str, str] = {}
+    for q in questions:
+        if q.id not in prompts_cache:
+            print(
+                f"[ERROR] question id {q.id!r} not found in the prompts cache -- the "
+                f"cache doesn't cover this question set"
+            )
+            sys.exit(1)
+        params = _batch_request_params(
+            model, prompts_cache[q.id]["system"], prompts_cache[q.id]["user"],
+            max_tokens, effort, cache_prompt,
+        )
+        requests.append(Request(custom_id=q.id, params=MessageCreateParamsNonStreaming(**params)))
+        custom_id_to_qid[q.id] = q.id
+
+    batch = client.messages.batches.create(requests=requests)
+    record = {
+        "batch_id": batch.id,
+        "custom_id_to_qid": custom_id_to_qid,
+        "identity": identity,
+        "submitted_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+    }
+    atomic_write_json(record_path, record)
+    print(
+        f"[batch] submitted batch {batch.id} ({len(requests)} requests) -- "
+        f"record saved to {record_path}"
+    )
+    return batch.id, custom_id_to_qid
+
+
+def poll_batch(client, batch_id: str, poll_interval: float = 20.0):
+    """Block until `batch_id` reaches processing_status == 'ended', printing
+    per-poll progress. Safe to interrupt: this function holds no state of its
+    own that matters across a restart -- Ctrl-C or a killed process loses
+    nothing beyond the current sleep, because submit_or_attach_batch()
+    already persisted the batch id to disk before poll_batch() was ever
+    called. Re-running the whole script re-invokes submit_or_attach_batch()
+    (which attaches instead of resubmitting -- see its docstring) and this
+    function resumes polling from wherever the batch actually is
+    server-side, regardless of how much progress happened while nothing was
+    watching."""
+    while True:
+        batch = client.messages.batches.retrieve(batch_id)
+        counts = batch.request_counts
+        print(
+            f"[batch] {batch_id}: status={batch.processing_status} "
+            f"succeeded={counts.succeeded} errored={counts.errored} "
+            f"canceled={counts.canceled} expired={counts.expired} "
+            f"processing={counts.processing}"
+        )
+        if batch.processing_status == "ended":
+            return batch
+        time.sleep(poll_interval)
+
+
+def _answer_from_batch_result(result, prompts_cache: dict, qid: str):
+    """Turn one Message Batch result into the SAME return shape
+    _answer_from_frozen_prompt() produces:
+    (answer, stop_reason, usage, regrounded, cr_citations_before,
+    cr_citations_after) -- so the row-building code in main() cannot tell,
+    and does not need to know, whether a row came from the synchronous path
+    or a batch. `regrounded` is always False here: --batch refuses to
+    combine with --reground (_validate_batch_combination()), so this path
+    never re-asks and there is nothing to fold in.
+
+    Per-request failures are recorded, never dropped: an errored, canceled,
+    or expired result becomes a real row with answered=False and a
+    stop_reason of "batch_errored" / "batch_canceled" / "batch_expired" --
+    reusing the EXISTING stop_reason field rather than inventing a new
+    column, so a --batch row's schema stays identical to a synchronous row
+    even on failure (requirement: identical output rows). The failure
+    detail (when available) lands in the answer text, which is already a
+    free-text field every row has.
+
+    Results arrive in ANY order from client.messages.batches.results() --
+    this function only ever looks at the ONE result handed to it by
+    `custom_id`, keyed by the caller (main()), never by position, so
+    result ordering is a non-issue here."""
+    user = prompts_cache[qid]["user"]
+    outcome = result.result
+    if outcome.type == "succeeded":
+        msg = outcome.message
+        text_block = next((b for b in msg.content if b.type == "text"), None)
+        stop_reason = msg.stop_reason
+        usage_obj = msg.usage
+        usage = {
+            "input_tokens": getattr(usage_obj, "input_tokens", None),
+            "output_tokens": getattr(usage_obj, "output_tokens", None),
+            "cache_read_input_tokens": getattr(usage_obj, "cache_read_input_tokens", 0) or 0,
+            "cache_creation_input_tokens": getattr(usage_obj, "cache_creation_input_tokens", 0) or 0,
+        }
+        parsed = None
+        if text_block is not None:
+            try:
+                parsed = Answer.model_validate_json(text_block.text)
+            except ValidationError:
+                parsed = None
+        if parsed is None:
+            return (
+                Answer(
+                    text="(no structured answer: the batched response did not parse "
+                    f"against the Answer schema, stop_reason={stop_reason})",
+                    tldr="Something went wrong generating this answer -- try again.",
+                    citations=[], answered=False, suggested_followups=[],
+                ),
+                stop_reason, usage, False, None, None,
+            )
+        if "\n\nCard data:\n" in user:
+            parsed.text = f"{parsed.text}\n\n{ATTRIBUTION}"
+        cr_before = len(cr_rule_citations(parsed.citations))
+        return (parsed, stop_reason, usage, False, cr_before, None)
+
+    # errored / canceled / expired -- a real row, never silently dropped.
+    detail = None
+    if outcome.type == "errored":
+        err = getattr(outcome, "error", None)
+        detail = getattr(err, "message", None) or (str(err) if err is not None else None)
+    return (
+        Answer(
+            text=f"(this question's batch request {outcome.type}"
+            f"{f': {detail}' if detail else ''} -- not answered)",
+            tldr="This answer was not generated -- the batch request did not succeed.",
+            citations=[], answered=False, suggested_followups=[],
+        ),
+        f"batch_{outcome.type}", None, False, None, None,
+    )
 
 
 def load_answer_gold(path: Path) -> dict[str, str]:
@@ -426,6 +735,18 @@ def parse_args() -> argparse.Namespace:
         "unless this is explicitly turned on. Recorded per row: reground (this flag), "
         "regrounded (did the re-ask actually fire), cr_citations_before/after.",
     )
+    p.add_argument(
+        "--batch",
+        action="store_true",
+        help="submit questions to the Anthropic Message Batches API (50%% of sync price) "
+        "instead of calling messages.parse() per question. ONLY supported on the "
+        "--prompts-cache path -- refused with an [ERROR] and exit 1 if combined with the "
+        "live agent.answer() path (no --prompts-cache) or with --reground (see "
+        "_validate_batch_combination()). Submission is durable (batch id + custom_id->qid "
+        "mapping written to evals/answers/_batches/<out-stem>.batch.json immediately on "
+        "submit) and resumable: re-running against the same --out with the same config "
+        "attaches to the existing batch instead of resubmitting.",
+    )
     return p.parse_args()
 
 
@@ -453,6 +774,10 @@ def main() -> None:
         args.rewrite = False
     if not args.rewrite:
         args.rewrite_version = "none"
+
+    # Fail fast on an unsupported --batch combination, before any of the
+    # expensive setup below (CR parsing, vector index load) runs.
+    _validate_batch_combination(args.batch, args.prompts_cache, args.reground)
 
     rules, glossary = parse_comprehensive_rules(CR_PATH)
     chunks = chunk_rules(rules, glossary)
@@ -553,6 +878,44 @@ def main() -> None:
     # mismatch -- see _load_resumable()'s docstring.
     resumable = _load_resumable(args.out, args, prompts_cache_digest, system_version)
 
+    # --batch: submit + poll + collect ALL pending questions' results up
+    # front, before the per-question loop below ever runs. Only qids not
+    # already resumed from --out are submitted, so re-running a partially
+    # graded --out after a batch never re-pays for rows already on disk.
+    batch_results_by_qid: dict[str, tuple] = {}
+    if args.batch:
+        pending = [q for q in questions if q.id not in resumable]
+        if pending:
+            batch_id, custom_id_to_qid = submit_or_attach_batch(
+                agent._gen_client, args.out, pending, prompts_cache, args.model,
+                args.max_tokens, args.effort, args.cache_prompt,
+                args.prompts_cache, prompts_cache_digest,
+            )
+            poll_batch(agent._gen_client, batch_id)
+            results_by_custom_id = {
+                r.custom_id: r for r in agent._gen_client.messages.batches.results(batch_id)
+            }
+            for custom_id, qid in custom_id_to_qid.items():
+                result = results_by_custom_id.get(custom_id)
+                if result is None:
+                    print(
+                        f"[WARN] batch {batch_id} returned no result for custom_id="
+                        f"{custom_id!r} (qid={qid}) -- recording an honest error row "
+                        f"rather than silently skipping it"
+                    )
+                    batch_results_by_qid[qid] = (
+                        Answer(
+                            text=f"(no batch result returned for this question, batch={batch_id})",
+                            tldr="This answer was not generated.", citations=[],
+                            answered=False, suggested_followups=[],
+                        ),
+                        "batch_missing_result", None, False, None, None,
+                    )
+                else:
+                    batch_results_by_qid[qid] = _answer_from_batch_result(result, prompts_cache, qid)
+        else:
+            print("[batch] every question already resumed from --out -- nothing to submit")
+
     results = []
     start = time.time()
     hb = Heartbeat(run=args.out.stem, model=args.model, variant=args.condition,
@@ -566,7 +929,18 @@ def main() -> None:
                 results.append(row)
                 print(f"  [{i}/{len(questions)}] {q.id} -> resumed (already in {args.out.name})")
             else:
-                if prompts_cache is not None:
+                if args.batch:
+                    if q.id not in batch_results_by_qid:
+                        print(f"[ERROR] question id {q.id!r} has no batch result -- this "
+                              f"should be unreachable (every non-resumed question is "
+                              f"submitted to the batch above)")
+                        sys.exit(1)
+                    ans, stop_reason, usage, regrounded, cr_before, cr_after = batch_results_by_qid[q.id]
+                    # Same honest gap as the non-batch --prompts-cache path just
+                    # below: no tool loop exists on either frozen-prompt path.
+                    tool_calls = None
+                    tool_rounds = None
+                elif prompts_cache is not None:
                     if q.id not in prompts_cache:
                         print(f"[ERROR] question id {q.id!r} not found in {args.prompts_cache} -- "
                               f"the cache doesn't cover this question set")
@@ -608,6 +982,24 @@ def main() -> None:
                 # rewrite_queries/clarification just above.
                 retrieved_rule_ids = ([r.chunk.source_id for r in agent.last_retrieved]
                                       if agent.last_retrieved is not None else [])
+                # Citation-source classification (docs/results-groundedness-
+                # guard.md, the "which source" monitor). Two ways to get
+                # AvailableSources depending on which generation path just
+                # ran (mirrors the retrieved_rule_ids honest-gap split
+                # above): --prompts-cache bypassed agent.answer() entirely,
+                # so the only thing on hand is the frozen prompt TEXT it was
+                # generated from; the live path already holds the exact
+                # structured objects (agent.last_retrieved / .last_cards),
+                # so no prompt text is parsed at all there.
+                if prompts_cache is not None:
+                    sources = available_sources_from_prompt_text(
+                        prompts_cache[q.id]["user"]
+                    )
+                else:
+                    sources = available_sources_from_context(
+                        agent.last_retrieved or [], agent.last_cards or [],
+                    )
+                citation_breakdown = citation_source_breakdown(ans.citations, sources)
                 # What reached the model outside retrieval this run, via the
                 # system prompt (always) and tool-schema descriptions (when
                 # the run's layers_tool switch is on -- see
@@ -706,6 +1098,42 @@ def main() -> None:
                     "regrounded": regrounded,
                     "cr_citations_before": cr_before,
                     "cr_citations_after": cr_after,
+                    # Batch API provenance, additive only (docs on --batch
+                    # above _validate_batch_combination()): whether THIS row
+                    # was generated through the Message Batches API (50% of
+                    # sync price) rather than a synchronous call. Downstream
+                    # cost tooling should pass batch=row["batch"] to
+                    # rulesagent.pricing.cost_usd() -- omitting it on a batch
+                    # row overstates spend by 2x.
+                    "batch": bool(args.batch),
+                    # Citation-source classifier (docs/results-groundedness-
+                    # guard.md), additive only. "cites_cr_rule" is the bool
+                    # the spec calls out on its own; "citation_sources" is
+                    # the full per-row breakdown -- per-citation labels
+                    # (same order as "citations" above), the four counts,
+                    # and the mutually-exclusive row "category"
+                    # (cr_reliant / rulings_or_cards_only /
+                    # nothing_resolvable -- the three rows of the table in
+                    # the doc that sum to 100%). See
+                    # evals/grounding_sources.py for the per-arm rates this
+                    # feeds, and for how an OLDER row (predating these two
+                    # keys) gets scored retroactively from its own recorded
+                    # "prompts_cache" path instead.
+                    "cites_cr_rule": citation_breakdown["cites_cr_rule"],
+                    "citation_sources": {
+                        "labels": citation_breakdown["labels"],
+                        "cr_rule": citation_breakdown["cr_rule"],
+                        "ruling": citation_breakdown["ruling"],
+                        "card": citation_breakdown["card"],
+                        # Glossary terms (docs/results-groundedness-guard.md
+                        # coordinator amendment): a non-numeric id genuinely
+                        # present in the rules context ("Saga", "City's
+                        # Blessing") -- grounded, not fabrication. Additive;
+                        # rows from before this amendment simply lack the key.
+                        "glossary": citation_breakdown["glossary"],
+                        "unresolved": citation_breakdown["unresolved"],
+                        "category": citation_breakdown["category"],
+                    },
                 }
                 if q.id in answer_gold:
                     # Carried through only for questions that have it (RulesGuru

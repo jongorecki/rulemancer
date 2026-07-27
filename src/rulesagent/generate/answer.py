@@ -12,6 +12,7 @@ reproducible answer evals -- see DECISIONS.md.
 import json
 import logging
 import re
+from typing import NamedTuple
 
 import anthropic
 from dotenv import load_dotenv
@@ -1735,6 +1736,280 @@ def cr_rule_citations(citations: list[str]) -> list[str]:
     in this codebase, and so a caller that hands in an already-normalised id
     behaves identically to one that hasn't."""
     return [c for c in citations if _CR_RULE_ID_RE.match(normalize_source_id(c))]
+
+
+# --- citation-source classifier (docs/results-groundedness-guard.md, the
+# "which source" monitor) -------------------------------------------------
+#
+# cr_rule_citations() / needs_regrounding() above answer one question --
+# "did this row cite ANY CR rule?" This answers a finer one -- "what did
+# EVERY citation on this row actually resolve to?" -- because the CR-
+# reliance rate that separates real retrieval (93.3%) from a placebo
+# (~28%) needs the full per-citation breakdown, not just a boolean.
+#
+# Every citation classifies into exactly one of four buckets:
+#   cr_rule     -- a CR rule number PRESENT in the provided rules context
+#   ruling      -- a "[Card Name ruling #N]" label PRESENT in the Card data
+#   card        -- a card name PRESENT in the Card data block
+#   unresolved  -- resolves to nothing provided at all (the fabrication
+#                  canary -- measured at ~0% everywhere; a non-zero reading
+#                  is a regression, not routine noise)
+#
+# Two sources feed the classifier, because two different callers have two
+# different things on hand:
+#   - available_sources_from_context(): the LIVE path (RulesAgent.answer()
+#     just ran) already holds the structured Retrieved/Card objects that
+#     went into the prompt -- read them directly, no text parsing at all.
+#   - available_sources_from_prompt_text(): the ONLY thing a --prompts-
+#     cache row or a retroactively-scored old arm has is the assembled
+#     prompt string -- parsed from the literal "Rules context:" / "Card
+#     data:" blocks build_prompt() / _format_cards() produce.
+#
+# The text parser is where the real traps live (both hit writing the
+# throwaway version that produced docs/results-groundedness-guard.md):
+#   1. Split/double-faced card names contain "//" (Pain // Suffering,
+#      Westvale Abbey // Ormendahl, Profane Prince) -- never split or
+#      tokenize a name, only ever cut it at a known SUFFIX (" {" mana cost,
+#      " -- " the _face_block attrs separator).
+#   2. Card names contain apostrophes (Urza's Saga, Inventors' Fair) --
+#      never restrict the captured name to a "safe" character class; slice
+#      by position (suffix cut / regex anchor), never by filtering chars.
+# tests/test_grounding_sources.py pins both exact names from the plan.
+#
+# AMENDED (coordinator, spec gap found 2026-07-26): the CR chunker also emits
+# GLOSSARY chunks whose source_id is the term itself, not a rule number --
+# "City's Blessing", "Doctor's Companion", "Attacks and Isn't Blocked" are the
+# three named in normalize_source_id()'s own docstring. Those are legitimate
+# provided context (the system prompt explicitly invites citing them: "Define
+# any key term the question hinges on"), and the original 4-bucket design had
+# nowhere for them to land -- a citation of "Saga" or "Crime" that genuinely
+# appears as "[Saga]" / "[Crime]" in the rules context fell through to
+# "unresolved" purely because it isn't shaped like a rule number, which is
+# indistinguishable from real fabrication in the reported rate.
+#
+# THE GENERAL FIX, not a fifth special case bolted on: `rules_context_ids`
+# below holds EVERY id the rules context actually provided -- CR numbers and
+# glossary terms alike, exactly as `_format_context()` renders them
+# (`[source_id] text`). `classify_citation()` checks CR-shape-and-present
+# first (bucket "cr_rule"), then ruling/card, then falls back to "present in
+# rules_context_ids at all" (bucket "glossary") before finally giving up
+# ("unresolved"). A citation is only ever "unresolved" if it matches NOTHING
+# the prompt provided in any of the four ways -- so a citation shape nobody
+# has thought of yet still gets picked up by whichever bucket it actually
+# belongs to, rather than silently registering as fabrication.
+
+
+class AvailableSources(NamedTuple):
+    """What a citation can legitimately resolve against for one row --
+    everything the model actually had in front of it, already normalised
+    with normalize_source_id() so comparison is exact-match, not fuzzy.
+
+    `rules_context_ids` holds EVERY id present in the rules context block --
+    CR rule numbers ("601.2b") and glossary terms ("Saga", "City's Blessing")
+    alike, exactly as they appear as `[id]` in that block (or as a retrieved
+    chunk's source_id on the live path). classify_citation() splits it by
+    shape (`_CR_RULE_ID_RE`) at classification time rather than this type
+    pre-splitting it, so a citation shape nobody has named yet still resolves
+    against "everything actually provided" instead of falling through."""
+
+    rules_context_ids: frozenset[str]
+    ruling_labels: frozenset[str]
+    card_names: frozenset[str]
+
+
+def available_sources_from_context(
+    retrieved: list[Retrieved], cards: list[Card],
+) -> AvailableSources:
+    """Build AvailableSources from the structured objects RulesAgent.answer()
+    already holds after a live call (`agent.last_retrieved`, `agent.last_cards`
+    -- the latter must already be label_rulings()-labelled, which it is by
+    the time answer() assigns self.last_cards). No prompt text is parsed or
+    even assembled -- this is the exact, no-guessing path. `retrieved` chunks
+    are CR rules AND glossary entries alike (Chunk.kind distinguishes them,
+    but classify_citation() doesn't need that -- it re-derives cr_rule vs
+    glossary from the citation's own shape), so no filtering happens here."""
+    rules_context_ids = frozenset(normalize_source_id(r.chunk.source_id) for r in retrieved)
+    ruling_labels = set()
+    card_names = set()
+    for c in cards:
+        card_names.add(normalize_source_id(c.name))
+        for f in c.faces:
+            if f.name:
+                card_names.add(normalize_source_id(f.name))
+        for r in c.rulings:
+            m = _RULING_LABEL_RE.match(r)
+            if m:
+                ruling_labels.add(normalize_source_id(m.group(0).strip()))
+    return AvailableSources(rules_context_ids, frozenset(ruling_labels), frozenset(card_names))
+
+
+def _strip_cost_and_attrs(raw: str) -> str:
+    """Cut a rendered card/face header down to the bare name by finding the
+    EARLIEST of the two suffixes `_format_cards()`/`_face_block()` can
+    append (" {" the mana cost, " -- " the attrs separator) and slicing
+    there. Never splits on "//" or filters characters, so "Pain //
+    Suffering" and "Urza's Saga" both survive whole -- see the module-level
+    note above this section for why that matters."""
+    cut = len(raw)
+    for sep in (" {", " -- "):
+        idx = raw.find(sep)
+        if idx != -1:
+            cut = min(cut, idx)
+    return raw[:cut].strip()
+
+
+# The two header shapes _format_cards() emits (see its docstring):
+#   top line, every card: "<name>  (<meta_str>)" -- for a multi-face card
+#     <name> is the bare name (e.g. "Pain // Suffering"); for a single-face
+#     card <name> is actually "<name> <cost> -- <attrs>" all on one line,
+#     which is why _strip_cost_and_attrs() still has to run on the capture.
+#   per-face line, multi-face cards only: "Face <n>: <name> ..."
+_CARD_TOP_LINE_RE = re.compile(r"^(.+?)  \(", re.MULTILINE)
+_CARD_FACE_LINE_RE = re.compile(r"^Face \d+: (.+)$", re.MULTILINE)
+_RULING_LABEL_TEXT_RE = re.compile(r"\[.+? ruling #\d+\]")
+# Every id in the rules context, CR rule number OR glossary term alike --
+# _format_context() renders each chunk as "[source_id] text" at the start of
+# its own line, and a source_id never contains "]" (rule numbers and glossary
+# terms both stop well short of that character), so this is exact, not a
+# heuristic. Was previously restricted to the numeric CR shape only, which is
+# why a genuinely-provided glossary citation ("Saga", "Crime") used to read
+# as unresolved -- see the module note above AvailableSources.
+_RULES_CONTEXT_ID_RE = re.compile(r"^\[([^\]]+)\]", re.MULTILINE)
+
+
+def available_card_names(card_data_text: str) -> frozenset[str]:
+    """Card names present in a rendered `_format_cards()` block -- both the
+    top-level name (whole double-faced/split name) and every individual
+    face name, since a citation may name either."""
+    names = set()
+    for m in _CARD_TOP_LINE_RE.finditer(card_data_text):
+        name = _strip_cost_and_attrs(m.group(1))
+        if name:
+            names.add(name)
+    for m in _CARD_FACE_LINE_RE.finditer(card_data_text):
+        name = _strip_cost_and_attrs(m.group(1))
+        if name:
+            names.add(name)
+    return frozenset(normalize_source_id(n) for n in names)
+
+
+def _prompt_section(text: str, start: str, ends: list[str]) -> str:
+    """The substring of `text` after `start` up to whichever of `ends`
+    appears first (or end of string) -- `build_prompt()`'s blocks are
+    concatenated in a fixed order, so this is exact, not a heuristic."""
+    i = text.find(start)
+    if i == -1:
+        return ""
+    i += len(start)
+    j = len(text)
+    for end in ends:
+        k = text.find(end, i)
+        if k != -1:
+            j = min(j, k)
+    return text[i:j]
+
+
+def available_sources_from_prompt_text(user_text: str) -> AvailableSources:
+    """Build AvailableSources by parsing the assembled `user` prompt string
+    build_prompt() produces -- the only thing a --prompts-cache row or a
+    retroactively-scored old answers file has on hand (no structured
+    Retrieved/Card objects survive to disk). Used identically whether the
+    text came from a live --prompts-cache run or from re-loading an old
+    prompts-cache file for retroactive scoring (evals/grounding_sources.py)."""
+    rules_text = _prompt_section(
+        user_text, "Rules context:\n", ["\n\nCard data:\n", "\n\nQuestion:"],
+    )
+    card_text = _prompt_section(user_text, "\n\nCard data:\n", ["\n\nQuestion:"])
+    rules_context_ids = frozenset(
+        normalize_source_id(m.group(1)) for m in _RULES_CONTEXT_ID_RE.finditer(rules_text)
+    )
+    ruling_labels = frozenset(
+        normalize_source_id(m) for m in _RULING_LABEL_TEXT_RE.findall(card_text)
+    )
+    card_names = available_card_names(card_text)
+    return AvailableSources(rules_context_ids, ruling_labels, card_names)
+
+
+def classify_citation(citation: str, sources: AvailableSources) -> str:
+    """One citation -> exactly one of "cr_rule" / "ruling" / "card" /
+    "glossary" / "unresolved", checked in that precedence.
+
+    THE GENERAL RULE (coordinator's fix to the original 4-bucket spec): a
+    citation is "unresolved" only if it matches NOTHING the prompt actually
+    provided. Everything provided gets classified by what it is; "glossary"
+    is the catch-all for "present in `sources.rules_context_ids` but not
+    shaped like a CR rule number" -- a term like "Saga" or "City's Blessing"
+    that genuinely appears as `[Saga]` / `[City's Blessing]` in the rules
+    context. This way a citation shape nobody has thought of yet still
+    resolves against "provided" instead of silently registering as
+    fabrication, which is exactly the gap that made three genuinely-grounded
+    glossary citations ("Saga", "Crime") read as unresolved before this fix.
+
+    A CR-rule-SHAPED citation that isn't actually present in
+    `sources.rules_context_ids` still falls through past the cr_rule check
+    (and, since it won't match a ruling/card/glossary entry either, ends up
+    "unresolved") -- shape alone (cr_rule_citations()'s test) is not
+    presence."""
+    norm = normalize_source_id(citation)
+    if _CR_RULE_ID_RE.match(norm) and norm in sources.rules_context_ids:
+        return "cr_rule"
+    # Ruling citations are checked both bracketed and bare: measured on the
+    # real A/B pilot answers, the model frequently drops the surrounding
+    # "[...]" the prompt's own label carries (writes "Elspeth Conquers Death
+    # ruling #11" for a context labelled "[Elspeth Conquers Death ruling
+    # #11]") -- same substance, no brackets. Treating that as unresolved
+    # would misreport a real fabrication rate over a punctuation mismatch,
+    # exactly the class of false-positive trap the plan warned about for
+    # card names. `sources.ruling_labels` is always stored bracketed (the
+    # form build_prompt() actually renders), so both the citation's bare
+    # form and its re-bracketed form are checked against it.
+    bare = norm[1:-1] if norm.startswith("[") and norm.endswith("]") else norm
+    if bare in sources.ruling_labels or f"[{bare}]" in sources.ruling_labels:
+        return "ruling"
+    if norm in sources.card_names:
+        return "card"
+    if norm in sources.rules_context_ids:
+        return "glossary"
+    return "unresolved"
+
+
+def classify_citations(citations: list[str], sources: AvailableSources) -> list[str]:
+    return [classify_citation(c, sources) for c in citations]
+
+
+def citation_source_breakdown(citations: list[str], sources: AvailableSources) -> dict:
+    """Per-row derived metrics: the per-citation labels, the five counts
+    (cr_rule/ruling/card/glossary/unresolved), the mutually-exclusive row
+    `category` (the three rows of the table in docs/results-groundedness-
+    guard.md that sum to 100% -- "rulings_or_cards_only" now also covers a
+    row grounded ONLY in glossary terms, since glossary joined the same
+    "cited something real, just not a CR rule" bucket as rulings/cards; the
+    name is kept for schema/dashboard back-compat, not because it's
+    literal), and `cites_cr_rule` (the bool the spec calls out separately).
+    `unresolved` is deliberately NOT part of `category` -- a row can be
+    cr_reliant AND carry one unresolved citation, and the unresolved-
+    citation rate is reported as its own (independent) canary, not folded
+    into the 3-way split."""
+    labels = classify_citations(citations, sources)
+    counts = {
+        "cr_rule": labels.count("cr_rule"),
+        "ruling": labels.count("ruling"),
+        "card": labels.count("card"),
+        "glossary": labels.count("glossary"),
+        "unresolved": labels.count("unresolved"),
+    }
+    if counts["cr_rule"] > 0:
+        category = "cr_reliant"
+    elif counts["ruling"] > 0 or counts["card"] > 0 or counts["glossary"] > 0:
+        category = "rulings_or_cards_only"
+    else:
+        category = "nothing_resolvable"
+    return {
+        "labels": labels,
+        **counts,
+        "category": category,
+        "cites_cr_rule": counts["cr_rule"] > 0,
+    }
 
 
 def needs_regrounding(parsed: Answer) -> bool:

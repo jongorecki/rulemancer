@@ -1,4 +1,38 @@
-# Results — retrieval A/B pilot (15 rows, 3 arms)
+# Results — retrieval A/B (pilot, then the full 120-row run)
+
+> ## FINAL RESULT, n=120 paired — retrieval does not measurably help
+>
+> ```
+> A  real retrieved CR rules                     66.7%   (120 rows)
+> B  CR rules retrieved for a DIFFERENT question 63.3%   (120 rows)
+>
+> paired:  both right 68 | A only 12 | B only 8 | both wrong 32
+>          discordant pairs: 20   ->   12-8 split, p ~= 0.5
+> ```
+>
+> Swapping in the rules retrieved for an unrelated question costs **3.4 points**,
+> which sits inside the measured 7-10% run-to-run noise floor. On 20 discordant
+> pairs a 12-8 split is a coin flip. **This is the experiment the entire retrieval
+> roadmap rested on, and it says the retrieved CR rules are close to inert.**
+>
+> The mechanism is visible in the grounding split: arm A cites CR rules on
+> **97.5%** of rows, arm B on **22.5%**. The model plainly notices which rules it
+> was handed — it just doesn't need them, and falls back to the card rulings.
+>
+> **The bound on this claim, stated plainly:** both arms retained the *correct*
+> card oracle text and Scryfall rulings. So this measures the value of the
+> retrieved CR rules **given correct card data**, not the value of retrieval in
+> general. The honest conclusion is narrower than "retrieval is worthless": it is
+> **"the CR-rules layer adds little on top of card data + rulings."** Which
+> channel is actually carrying the answers is the follow-up experiment (arms R /
+> K / Z, `_prompts_ab_placebo_rulings|carddata|all.json`).
+>
+> Everything below this box is the original 15-row pilot, kept because its cost
+> model and its power analysis are what shaped the full run.
+
+---
+
+## The pilot (15 rows, 3 arms)
 
 Ran 2026-07-26 against `docs/spec-retrieval-value-ab.md`, stage 1 of the staged
 budget plan. **Spend: $3.36 generation + ~$0.15 judging, against a $4.55
@@ -131,3 +165,45 @@ retrieval is not where the remaining accuracy lives.
 better purchase than it was this morning, and two of the arms it would be
 compared against have now been shown to differ from the shipped pipeline on axes
 nobody had recorded.
+
+---
+
+## Batch API + prompt caching — measured, not assumed (2026-07-26)
+
+**Batch API works and is worth using.** Validated end to end on a 2-row smoke
+test: submitted, completed in **1 minute 47 seconds**, results collected, and a
+re-run **attached to the existing batch rather than resubmitting** (the property
+that stops a crashed poll from being billed twice). Row schema is identical to
+the synchronous path, `usage` included. Cost halves: $0.123 -> $0.0615.
+
+At our scale latency is not a real cost, so batch should be the default for any
+`--prompts-cache` arm. It cannot be used for the live path (tool loop) or with
+`--reground` (the re-ask depends on the first response); `run_answer_eval.py`
+refuses both combinations loudly rather than falling back to synchronous, which
+would silently produce a run believed to be half price.
+
+**Prompt caching with batch is NET NEGATIVE for this workload. Do not enable it.**
+
+Only the ~1,297-token system prompt is shared across rows -- user prompts share
+16 characters, because the rules block and card data are per-question. Analysis
+said this was worth ~9% with a break-even cache-hit rate of ~21.7% (below that,
+the 1.25x write premium exceeds the 0.1x read saving). Measured on arm R, 120
+rows, batched, `--cache-prompt` on:
+
+```
+rows with a cache hit:   7/120  =  6%      (break-even ~22%)
+actual cost      $3.744
+without caching  $3.631
+caching cost us  +$0.113   (+3.1%)
+```
+
+The cause is documented and specific: a cache entry is readable only after the
+first response begins streaming, so **N parallel requests sharing a prefix all
+pay full price** -- none can read what the others are still writing. That is
+exactly how batch dispatches. On the 2,818-row full corpus run, leaving caching
+off avoids roughly $2.70 of pure waste.
+
+Worth recording as a method note: the estimate said "~9% saving, some risk"; the
+measurement said "6% hit rate, net loss." The empirical check cost $0.11 and was
+folded into an arm being run anyway, rather than being discovered inside a $90
+run.

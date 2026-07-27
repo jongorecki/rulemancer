@@ -56,6 +56,16 @@ PRICING: dict[str, tuple[float, float]] = {
 CACHE_READ_MULT = 0.10
 CACHE_WRITE_MULT = 1.25
 
+# Message Batches API: a 50% discount on ALL token usage for a request run
+# through the batch endpoint instead of a synchronous call -- confirmed via
+# the claude-api skill's Batches API quick reference ("processes Messages API
+# requests asynchronously at 50% of standard prices") and
+# python/claude-api/batches.md ("Key Facts: 50% cost reduction on all token
+# usage"). This module had no batch-rate concept before evals/run_answer_eval.py
+# grew --batch support; applies uniformly to input, output, and both cache
+# tiers, same as the skill describes -- there's no separate batch-cache rate.
+BATCH_DISCOUNT = 0.5
+
 # Dated changes we already know are coming. Each: (effective date, what changes).
 SCHEDULED_CHANGES: list[tuple[date, str]] = [
     (date(2026, 8, 31),
@@ -106,20 +116,30 @@ def rate(model: str, today: date | None = None) -> tuple[float, float] | None:
 
 def cost_usd(model: str, *, input_tokens: int = 0, output_tokens: int = 0,
              cache_read_tokens: int = 0, cache_write_tokens: int = 0,
-             today: date | None = None) -> float | None:
+             batch: bool = False, today: date | None = None) -> float | None:
     """Total USD for one call's token usage, or None if the model is unpriced.
 
     Cache tiers are billed separately because a cached read costs a tenth of a
     fresh input token -- folding them together overstates cost on any arm using
     prompt caching, which is all of ours.
+
+    `batch=True` applies BATCH_DISCOUNT (50% off) to the whole total -- pass it
+    for any row generated through the Message Batches API (evals/
+    run_answer_eval.py --batch stamps a `"batch"` field on each row precisely
+    so callers here know which rate applies). Getting this wrong in either
+    direction misreports spend: omitting it on a batch row overstates cost by
+    2x, and passing it for a synchronous row understates cost by half.
     """
     r = rate(model, today)
     if r is None:
         return None
     pin, pout = r
-    return (
+    total = (
         input_tokens * pin
         + cache_write_tokens * pin * CACHE_WRITE_MULT
         + cache_read_tokens * pin * CACHE_READ_MULT
         + output_tokens * pout
     ) / 1_000_000
+    if batch:
+        total *= BATCH_DISCOUNT
+    return total

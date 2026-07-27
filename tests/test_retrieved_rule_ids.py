@@ -223,6 +223,17 @@ def test_run_answer_eval_schema_additive(tmp_path):
         # cr_rule_citations() counts pre-/post-reground. Additive, always
         # present (never absent), null-able only on cr_citations_after.
         "reground", "regrounded", "cr_citations_before", "cr_citations_after",
+        # Citation-source classifier (docs/results-groundedness-guard.md,
+        # tests/test_grounding_sources.py): "cites_cr_rule" is the per-row
+        # bool; "citation_sources" is the full breakdown (per-citation
+        # labels, the four counts, and the mutually-exclusive category).
+        # Additive, always present.
+        "cites_cr_rule", "citation_sources",
+        # Batch API support (Anthropic Message Batches, --batch flag): whether
+        # this row was generated via the batch endpoint (50% of sync price) --
+        # added concurrently with the citation-source fields above. Additive,
+        # always present.
+        "batch",
     }
     assert pre_existing_keys <= row.keys()
     assert row.keys() - pre_existing_keys == new_keys

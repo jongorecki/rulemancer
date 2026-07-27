@@ -72,6 +72,7 @@ import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
 
+import grounding_sources as gs
 import weighted_score as ws
 
 REPO = Path(__file__).resolve().parents[1]
@@ -3233,6 +3234,11 @@ const RC = D.retrieval_coverage || {arms:[], worklist:[], worklist_n_total:0,
   worklist_n_above_threshold:0, gap_threshold:0.5, skipped:[],
   gold_size_stratification:{strata:[]}, gold_size_stratification_shipped:{strata:[]},
   shipped_arms:[]};
+// GS: citation-source classifier (docs/results-groundedness-guard.md), computed
+// by evals/grounding_sources.py -- NOT the same thing as RC above (RC is
+// whether retrieval hit the gold ids; GS is which kind of source -- CR rule,
+// ruling, card, or nothing -- the model's own citations actually rested on).
+const GS = D.grounding_sources || {arms:[], n_skipped:0};
 // RC is the GRADED coverage backfill (docs/spec-coverage-metric.md), not to be
 // confused with RM.coverage below (that's plan/spec DOC coverage -- how many
 // roadmap docs are accounted for -- an unrelated meaning of the same word).
@@ -3809,6 +3815,69 @@ function goldSizeStratHTML(){
       arms only</strong> (${shipped.map(a=>`<code>${esc(a)}</code>`).join(', ')}) — the set the
       motivating numbers for this section were computed against:</p>
       ${stratTable(ship, `Six shipped-config arms`)}` : ''}`;
+}
+
+/* ======================= GROUNDING SOURCES ===================================
+   docs/results-groundedness-guard.md. RC above asks "did retrieval hit the
+   gold ids"; this asks a different question entirely -- "what did the
+   citations the model actually wrote down rest on". CR-reliance is a
+   RETRIEVAL-QUALITY monitor (93.3% real rules vs ~28% placebo, measured), not
+   an accuracy metric -- an arm can answer correctly from card rulings alone
+   and that is fine, it's just not evidence the rules block did anything.
+   Glossary terms (coordinator amendment: "Saga", "City's Blessing" -- a
+   non-numeric id genuinely present in the rules context) are a GROUNDED
+   source, shown in its own column, never counted toward either canary. The
+   two canary rates (nothing-resolvable, unresolved) are expected to sit at
+   ~0% everywhere; a non-zero reading is a regression worth stopping for, not
+   routine noise, so they're flagged rather than just tabulated. */
+function groundingSourcesHTML(){
+  const arms = GS.arms || [];
+  if(!arms.length) return '';
+  const canaryBadge = (v, label) => {
+    if(v==null) return '<span class="dim">—</span>';
+    const bad = v > 0.01; // >1% -- docs/results-groundedness-guard.md: "if your
+                           // unresolved rate is above ~1%, your parser is wrong"
+    return `<span class="${bad?'badge b-crit':''}" title="${esc(label)}">${pct(v)}</span>`;
+  };
+  const rows = arms.map(a => `<tr>
+    <td>${esc(a.arm)}<br><span class="dim" style="font-size:.7rem">qset ${esc(a.qset)}</span></td>
+    <td>${kindBadge(a.kind)}</td>
+    <td class="num dim">${a.n_scored}/${a.n_answered}${a.n_unknown ? ` <span class="dim" title="scored as unknown -- no citation_sources recorded and no reachable prompts_cache">(+${a.n_unknown} unknown)</span>` : ''}</td>
+    <td class="num"><strong>${pct(a.cr_reliance_rate)}</strong></td>
+    <td class="num">${pct(a.rulings_only_rate)}</td>
+    <td class="num" title="rows citing at least one glossary term genuinely present in the rules context (e.g. &quot;Saga&quot;, &quot;City's Blessing&quot;) -- grounded, not a canary">${pct(a.glossary_rate)}</td>
+    <td class="num">${canaryBadge(a.nothing_resolvable_rate, 'rows with answered=true citing nothing resolvable in the provided context')}</td>
+    <td class="num">${canaryBadge(a.unresolved_citation_rate, 'rows with at least one citation that resolves to nothing provided -- the fabrication canary')}</td>
+  </tr>`).join('');
+  return `<section class="sec" id="grounding"><h2>Grounding sources — which source, not whether one exists</h2>
+    ${tk('grounding')}
+    <p class="lede"><strong>CR-reliance is a retrieval-quality monitor, not an accuracy metric.</strong>
+    Every citation on an answered row classifies as a CR rule number present in the provided rules, a
+    card ruling label present in the Card data, a card name present in the Card data, a glossary term
+    present in the rules context (e.g. "Saga", "City's Blessing" -- non-numeric, but just as genuinely
+    provided as a rule number, and the system prompt explicitly invites citing them), or unresolved
+    (present nowhere provided -- the fabrication canary). CR-reliance swings from ~93% with real
+    retrieved rules to ~28% under a placebo and costs nothing to compute, because it's already in the
+    response the product produces -- see docs/results-groundedness-guard.md. It says nothing about
+    whether the answer was <em>right</em>: a row grounded entirely in card rulings can still be correct.
+    </p>
+    <p class="lede">The rightmost two columns are canaries expected to read
+    <strong>~0% everywhere</strong>; "glossary rate" just left of them is NOT a canary -- it's a
+    grounded-source column, shown separately so a genuinely-provided glossary citation is never
+    mistaken for one. A non-zero "unresolved" rate above ~1% is flagged
+    (<span class="badge b-crit">highlighted</span>) as a likely parser defect or a real regression,
+    not routine variance -- the throwaway version that produced this finding hit exactly that trap on
+    split-card and apostrophe names before the parser was fixed, and a second pass caught glossary
+    terms ("Saga", "Crime") being miscounted as fabrication before this column existed.</p>
+    <div class="scroll"><table aria-label="Citation-source rates per arm">
+      <thead><tr><th>Arm</th><th>Kind</th><th>Scored / answered</th>
+        <th>CR-reliance rate</th><th>Rulings/cards-only rate</th><th>Glossary rate</th>
+        <th>Nothing-resolvable rate</th><th>Unresolved-citation rate</th></tr></thead>
+      <tbody>${rows}</tbody></table></div>
+    ${GS.n_skipped ? `<p class="note" style="margin-top:var(--s3)">${GS.n_skipped} arm(s) skipped --
+      no resolvable answers file, or every row scored unknown (no recorded citation_sources and no
+      reachable prompts_cache to reconstruct from).</p>` : ''}
+    </section>`;
 }
 
 /* ======================= REPRODUCIBILITY ==================================== */
@@ -4516,6 +4585,7 @@ function render(){
        ['#decision','The numbers behind it'],['#h2h','Head to head'],['#frontier','Cost vs accuracy'],
        ['#levels','Per level'],['#matrix','Config matrix'],['#arm-config','Arm config matrix'],
        ['#retrieval-coverage','Retrieval coverage'],
+       ['#grounding','Grounding sources'],
        ['#repro','Reproducibility'],
        ['#tl','Timeline'],['#arms','Every arm']]
       .map(([href,label])=>`<a href="${href}">${label}</a>`).join('')}</nav>`;
@@ -4537,6 +4607,7 @@ function render(){
   html += matrixHTML();
   html += armConfigMatrixHTML();
   html += retrievalCoverageHTML();
+  html += groundingSourcesHTML();
   html += reproHTML();
 
   html += `<section class="sec" id="tl">${timelineHTML()}</section>`;
@@ -4654,6 +4725,46 @@ def load_retrieval_coverage() -> dict:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+def load_grounding_sources(arms: list[dict]) -> dict:
+    """Citation-source rates per arm (docs/results-groundedness-guard.md: CR-
+    reliance rate / rulings-only rate / nothing-resolvable rate / unresolved-
+    citation rate), computed by evals/grounding_sources.py -- the SAME
+    reusable scorer that can retroactively score any answers file on disk.
+    Reuses each arm's own resolved answers path from collect()
+    (`arm["generation"]["file"]`) rather than re-globbing evals/answers/, so
+    an arm reported here is the exact same arm the rest of the page reports
+    on -- same qset, same kind, same join. Arms with no resolved answers
+    file, or whose rows score entirely "unknown" (no citation_sources and no
+    reachable prompts_cache), are skipped and counted, never guessed."""
+    out = []
+    n_skipped = 0
+    for a in arms:
+        rel = (a.get("generation") or {}).get("file")
+        if not rel:
+            n_skipped += 1
+            continue
+        apath = REPO / rel
+        if not apath.exists():
+            n_skipped += 1
+            continue
+        try:
+            raw = json.loads(apath.read_text(encoding="utf-8"))
+        except json.JSONDecodeError:
+            n_skipped += 1
+            continue
+        rows = raw["results"] if isinstance(raw, dict) and "results" in raw else raw
+        if not isinstance(rows, list):
+            n_skipped += 1
+            continue
+        metrics = gs.score_arm(rows)
+        if metrics["n_scored"] == 0:
+            n_skipped += 1
+            continue
+        out.append({"arm": a["arm"], "qset": a["qset"], "kind": a["kind"], **metrics})
+    out.sort(key=lambda r: (r["cr_reliance_rate"] is None, -(r["cr_reliance_rate"] or 0)))
+    return {"arms": out, "n_skipped": n_skipped}
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -4669,6 +4780,7 @@ def main() -> None:
     data["summary"] = build_summary(data)
     data["retrieval_coverage"] = load_retrieval_coverage()
     data["arm_config_matrix"] = build_arm_config_matrix(data["arms"])
+    data["grounding_sources"] = load_grounding_sources(data["arms"])
     for s in data["timeline"]["sets"]:   # working data, not a result
         for st in s["steps"]:
             st.pop("_arms", None)
