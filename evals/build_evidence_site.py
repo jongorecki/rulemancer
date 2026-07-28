@@ -231,6 +231,26 @@ def _finding_section(finding: dict) -> str:
     return "".join(parts)
 
 
+def _try_it(spec: dict) -> str:
+    """The public try-it card: a live URL and the shared access code.
+
+    The code is deliberately publishable. It carries its own query cap, so the
+    worst a scraper can do is exhaust it, and the honest framing (shared pool,
+    may already be gone) is part of the copy rather than a surprise 402.
+    """
+    if not spec:
+        return ""
+    body = "".join(f"\n        <p>{_esc(p)}</p>" for p in spec.get("body", []))
+    return f"""
+      <section class="try-it" aria-labelledby="try-it-h">
+        <h2 id="try-it-h">{_esc(spec['heading'])}</h2>
+        <p class="try-it-line">
+          <a class="try-it-url" href="{_esc(spec['url'])}">{_esc(spec['url'])}</a>
+          <span class="try-it-code">access code <code>{_esc(spec['code'])}</code></span>
+        </p>{body}
+      </section>"""
+
+
 def _contents(findings: list[dict]) -> str:
     items = "".join(
         f"\n          <li><a href=\"#{_esc(f['id'])}\">{_esc(f.get('nav', f['headline']))}</a></li>"
@@ -296,7 +316,7 @@ def render_page(findings: list[dict], arms: dict[str, dict], page: dict | None =
 {_contents(findings)}
   <div id="findings">{sections}
   </div>
-
+{_try_it(page.get("try_it", {}))}
   <footer>
     <h2>How this page is made</h2>{closing_html}{link_html}
   </footer>

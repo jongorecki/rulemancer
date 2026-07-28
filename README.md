@@ -397,8 +397,14 @@ fine for a demo and not sized for real traffic.
 ## Live demo
 
 It's live at **[rulemancer.jongorecki.com](https://rulemancer.jongorecki.com)**,
-gated behind an access code so the API bill stays mine. Codes get handed out
-one at a time, so ask me for one.
+gated behind an access code because every question costs me real money.
+
+**Shared code, if you just want to poke at it: `pine-lark-hickory-97`**
+
+That one's good for 50 questions total across everybody who uses it, so there's
+a decent chance it's already gone by the time you read this. If it is, message
+me and I'll make you your own. Not a growth funnel, just me not wanting to wake
+up to a drained account.
 
 The [results page](https://jongorecki.github.io/rulemancer/) isn't gated and
 doesn't run on the demo's server, so it stays up whether or not the demo is.
