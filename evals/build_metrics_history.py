@@ -882,6 +882,46 @@ ROADMAP: list[dict] = [
                              "raised DriftError."},
         "deps": ["gated-demo"],
     },
+    {
+        "id": "rotating-examples",
+        "title": "Rotate the demo's example questions through ones real people asked",
+        "one_line": "Replace the four fixed example pills with a curated, rotating set drawn "
+                    "from what visitors actually typed, so the demo shows real questions "
+                    "instead of four questions Jon wrote. Jon's idea, 2026-07-28. Design only, "
+                    "not ruled on.",
+        "status": "open", "action": "build", "info": 2,
+        "info_why": "The data already exists: `events.question` is recorded on every query "
+                    "event, so this needs no schema change (11 query events, 9 distinct "
+                    "questions in production as of 2026-07-28). Two constraints decide the "
+                    "design, and both are easy to miss. FIRST, PRIVACY: these are strings "
+                    "strangers typed into a public box. Anything promoted to the landing page "
+                    "is republished user input, so the pipeline has to be curate-then-publish "
+                    "with Jon in the loop, never sample-at-random or auto-rotate. SECOND, "
+                    "CACHING: the four current examples feel instant (85ms, $0.00) only "
+                    "because scripts/warm_examples.py pre-warmed them. An unwarmed example is "
+                    "~12.9s and ~$0.0485, on the single most-clicked control on the page. So "
+                    "rotation means warming a pool first, not shuffling a list.",
+        "tells_us": "Nothing measured yet. The thing worth checking if it ships is whether "
+                    "real questions get clicked more than Jon's four, which the same `query` "
+                    "event stream can answer.",
+        "evidence": [
+            {"kind": "path", "ref": "src/rulesagent/demo_db.py",
+             "note": "events table already carries `question TEXT` per query event"},
+            {"kind": "path", "ref": "scripts/warm_examples.py",
+             "note": "the warm path any rotated example has to go through first; its EXAMPLES "
+                     "list must stay byte-identical to frontend/index.html's or the cache "
+                     "misses and the example goes cold"},
+            {"kind": "path", "ref": "frontend/index.html",
+             "note": "EXAMPLES is a hardcoded const at line 100; rotation replaces this"},
+        ],
+        "cost": {"kind": "api_questions", "why": "~$0.0485 per example warmed, once each. A "
+                                                "pool of 12 rotating examples is a one-time "
+                                                "~$0.58, then free at serve time"},
+        "metric": {"name": "example-click rate", "dir": "up", "basis": "unknown",
+                   "detail": "no baseline recorded yet; the query event stream would supply "
+                             "one before and after"},
+        "deps": ["gated-demo"],
+    },
     # ---------------------------------------------------------------- ready --
     {
         "id": "l0-arm",
