@@ -112,12 +112,21 @@ def test_unknown_claimed_level_is_an_error():
 # ------------------------------------------------------------------ render --
 
 def test_render_includes_every_finding_headline():
+    """Compared in escaped form so the copy is not constrained by the test.
+
+    The plain-string version of this check quietly banned apostrophes from
+    every headline, which is a strange thing for a test to decide about a
+    page written in a conversational voice.
+    """
+    import html as html_mod
+
     from evals.build_evidence_site import render_page
 
     findings = load_findings(FINDINGS)
     html = render_page(findings, load_arms(METRICS))
     for f in findings:
-        assert f["headline"] in html, f"missing headline for {f['id']}"
+        assert html_mod.escape(f["headline"], quote=True) in html, (
+            f"missing headline for {f['id']}")
 
 
 def test_render_includes_every_population_line():
@@ -133,21 +142,6 @@ def test_render_includes_every_population_line():
         # contain apostrophes, which are escaped on the way into the page.
         wanted = html_mod.escape(f["population"], quote=True)[:60]
         assert wanted in html, f"missing population for {f['id']}"
-
-
-def test_headlines_survive_escaping_unchanged():
-    """The plan's headline test compares raw strings, so headlines stay plain.
-
-    A headline containing an apostrophe or an ampersand would render correctly
-    and still fail `test_render_includes_every_finding_headline`, which would
-    look like a render bug rather than a copy choice. Say so here instead.
-    """
-    import html as html_mod
-
-    for f in load_findings(FINDINGS):
-        assert html_mod.escape(f["headline"], quote=True) == f["headline"], (
-            f"headline for {f['id']} contains a character that HTML-escapes; "
-            f"rewrite it without quotes, apostrophes or ampersands")
 
 
 def test_render_escapes_content():

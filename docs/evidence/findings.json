@@ -1,10 +1,10 @@
 {
   "title": "Rulemancer, what was measured",
-  "tagline": "A Magic: The Gathering rules bot that cites the rule it used, and says so when it cannot answer.",
+  "tagline": "A Magic: The Gathering rules bot that cites the rule it used, and tells you when it doesn't know.",
   "intro": [
-    "Magic has a 300-page rulebook, and almost nothing people actually ask about is a single lookup. The real questions are about how two cards interact, which means knowing which rules apply, applying them in the right order, and being willing to say the answer is not in front of you.",
-    "This page is the measurement half of the project. I ran the finished system against 1,409 real questions from RulesGuru, a community question bank with reference rulings written by certified judges, and had a separate model grade every answer against those rulings. Each number below carries the exact set of questions it was computed over, because a percentage with no population attached does not mean anything.",
-    "One of the six findings is a correction. I published a conclusion earlier in this project that turned out to be an artifact of the questions I tested it on. It is here with the rest, because how it got caught is more interesting than the original claim was."
+    "Magic has a 300-page rulebook, and basically nothing anyone actually argues about is a simple lookup. The fights are about how two cards interact, which means knowing which rules apply, applying them in the right order, and being willing to say you don't have the answer. That last part is the one people are worst at. Me included, which is most of why this thing exists.",
+    "This page is the measuring half of the project. I ran the finished bot against 1,409 real questions from RulesGuru, a community quiz site where the rulings are written by certified judges, and had a different AI model grade every answer against them. Every number here says which questions it came from, because a percentage with nothing attached to it is just a number I liked.",
+    "One of the six sections below is me being wrong. I had a conclusion written down as settled, and a five dollar experiment knocked it over. It's here with the rest, because how it got caught is the better story."
   ],
   "findings": [
     {
@@ -13,8 +13,8 @@
       "headline": "Roughly 86% on all 1,409 questions",
       "population": "1,409 questions, the full RulesGuru set, run on the shipped pipeline: claude-opus-5 at low reasoning effort, v2 query rewriting, raw ruling query, three grader votes per answer",
       "body": [
-        "Call it about 2 points of give from sampling, plus roughly another 4 points because the grader is not perfectly consistent when you run it twice. The sampling part comes out as a 95% confidence interval of 83.96% to 87.60%, which is a formal way of saying that if I ran this again on a different batch of questions this size, the result would land inside that window nearly every time. So the fair way to say it is mid eighties, not a figure carried out to two decimal places.",
-        "The average hides the shape, and the shape is the useful part. Easy questions are close to solved. The hardest tier is where the work is left, and it is the last section on this page."
+        "Give or take about 2 points from sampling, plus another 4ish because the grader isn't perfectly consistent when you run it twice. The formal version of the sampling part is a 95% confidence interval of 83.96% to 87.60%, which translates to: run this again on a fresh batch of questions this size and you'd land somewhere in that window nearly every time. So the way to say it out loud is mid eighties. Anything with two decimal places on it is me pretending I know more than I do.",
+        "The average is also the least interesting number on this page. The spread is the real story: the easy stuff is basically solved, and the hard stuff is where I'd still lose the argument at the table."
       ],
       "table": {
         "caption": "Accuracy by difficulty level, 1,409 questions",
@@ -26,7 +26,7 @@
           ["Level 3", "162", "110", "67.9%", "60.4 to 74.6"],
           ["Corner Case", "69", "49", "71.0%", "59.4 to 80.4"]
         ],
-        "note": "Corner Case reads higher than Level 3, but the two ranges overlap heavily, so I am not claiming one is really easier than the other."
+        "note": "Corner Case looks better than Level 3, but the two ranges overlap a lot, so I'm not going to pretend one is actually easier than the other."
       },
       "arm": "headline_full_votes3",
       "claimed_accuracy": 0.8588,
@@ -41,15 +41,15 @@
     },
     {
       "id": "reversal",
-      "nav": "The finding I got wrong",
-      "headline": "Scramble the rules and card-free accuracy falls from 98.84% to 15.12%",
-      "population": "86 questions written to contain no card names at all, run twice: once with the rules the system actually retrieved, once with rules retrieved for a different question",
+      "nav": "The part where I was wrong",
+      "headline": "Swap in the wrong rules and card-free accuracy craters, 98.84% down to 15.12%",
+      "population": "86 questions written to contain no card names at all, run twice: once with the rules the bot actually retrieved, once with rules retrieved for a totally different question",
       "body": [
-        "Retrieval means the system searches the rulebook first and pastes the most relevant rules into the prompt before the model answers. To find out whether those rules were doing any work, I ran the same questions with the rules swapped out for rules belonging to a completely different question. Same volume of text, same format, wrong content. That swap is called a placebo arm, and it is the cheapest way to tell load-bearing from decorative.",
-        "I had run that test before and concluded the rules were close to inert, worth about 3 points. The arithmetic was fine. The population was wrong. 99.4% of the questions in the corpus name specific cards, and a card's own text restates most of the rule it depends on, so the card text was quietly covering for the rules the whole time. Build a set with no cards in it and the same swap costs 83.7 points instead of 3.",
-        "The corrected claim is narrower and more useful than the original: the rules are redundant given card text, not redundant. The experiment that overturned it cost about five dollars."
+        "Two bits of jargon are doing all the work here, so: retrieval means the bot searches the rulebook first and pastes the most relevant rules into the prompt before it answers. A placebo arm means I ran those same questions again with the rules swapped out for rules belonging to some other question entirely. Same amount of text, same shape, completely wrong content. It's the cheapest way to find out whether a piece of your system is doing work or just along for the ride.",
+        "I had already run that test once and decided the rules were basically dead weight, worth about 3 points. The math was fine. The question set wasn't. 99.4% of the questions name specific cards, and a card's own text usually restates the rule it depends on, so the card was quietly doing the rules' homework the entire time. Build a set with no cards in it at all and the same swap costs 83.7 points instead of 3.",
+        "So the fixed claim is smaller and a lot more useful: the rules are redundant when you already have the card text. Not redundant. The experiment that proved me wrong cost about five bucks, which is a great price for not staying wrong in public."
       ],
-      "aside": "The old number was not wrong about its own questions. When a question names cards, the card text really does carry most of the load. Reading the card explains the card.",
+      "aside": "In fairness to past me, the old number wasn't lying about its own questions. When a question names cards, the card text really is carrying the team. Reading the card explains the card.",
       "arm": "rules86_placebo_votes3",
       "claimed_accuracy": 0.1512,
       "claimed_n": 86,
@@ -59,12 +59,12 @@
     },
     {
       "id": "refusal",
-      "nav": "It refuses instead of inventing",
-      "headline": "Under sabotaged retrieval it declined on 90.7% of questions instead of making something up",
+      "nav": "It taps out instead of bluffing",
+      "headline": "With the rules sabotaged it declined 90.7% of the time instead of making things up",
       "population": "the same 86 card-free questions, scrambled-rules run only",
       "body": [
-        "The more interesting half of that collapse is how it failed. On 78 of the 86 questions it said it could not answer and named what was missing from the context it had been given. It gave a confident wrong answer on 3 of them, which is 3.5%. On a manual read, one of those 3 looks like a grading mistake, so the real count may be 2.",
-        "With the correct rules in the prompt it declined zero times out of 86. So the refusals are tracking the evidence in front of it rather than the difficulty of the question, which is the behavior I want out of a rules bot. Being told the phasing rules are missing is useful. A made-up ruling delivered with confidence is worse than no answer."
+        "The more interesting half of that collapse is how it fell over. On 78 of the 86 questions it just said it couldn't answer, and told you what was missing. It confidently made something up on 3 of them, which is 3.5%. I read those 3 by hand and one looks like the grader being wrong, so the real number might be 2.",
+        "With the correct rules in the prompt it declined zero times out of 86. So it's refusing based on what's actually in front of it, not because a question looked scary. That's the behavior I was after. A bot that says it doesn't have the phasing rules is useful. A bot that invents a phasing ruling and delivers it with total confidence is how you lose a game and a friend."
       ],
       "quote": {
         "text": "I can't answer this from the rules provided. The context here contains no phasing rules at all (nothing from rule 702.25 on phasing, and nothing on whether a permanent phasing in counts as entering the battlefield).",
@@ -76,12 +76,12 @@
     },
     {
       "id": "crossmodel",
-      "nav": "Model comparison, done fairly",
-      "headline": "opus-5 beat gpt-5-mini by about 16 points, and the judge came from the losing model family",
+      "nav": "Model comparison, refereed by the loser",
+      "headline": "opus-5 beat gpt-5-mini by about 16 points, and I let the loser pick the referee",
       "population": "1,409 questions, both models, identical prompts read from one frozen prompt cache, then graded four separate ways",
       "body": [
-        "Comparing two models is easy to do badly. If the grader belongs to the same family as one of the contestants, it can flatter its own. So I picked the test most likely to embarrass the answer I expected: grade both models with gpt-5-mini, the family of the model I thought would lose. It still put opus-5 ahead by 15.8 points.",
-        "Four graders across three model families all rank it the same way, and they agree within 3.4 points on the size of the gap. Most of that gap is not contested rulings, it is refusals. gpt-5-mini declined 157 of the 1,409 questions, about 1 in 9, with the rules and the card text sitting right there in the prompt. opus-5 declined 10."
+        "Model comparisons are really easy to rig without meaning to. If the grader comes from the same family as one of the models being graded, it can quietly favor its own. So I ran the version most likely to make me look wrong: grade both models with gpt-5-mini, same family as the model I expected to lose. It still put opus-5 ahead by 15.8 points.",
+        "Then four graders from three different families, all landing within 3.4 points of each other on the size of the gap. And the gap mostly isn't about disagreeing on rulings, it's about bailing. gpt-5-mini declined 157 of the 1,409 questions, roughly 1 in 9, with the rules and the card text sitting right there in the prompt. opus-5 declined 10."
       ],
       "table": {
         "caption": "The same two models under four graders",
@@ -92,40 +92,40 @@
           ["deepseek-v3.2 (neutral)", "87.3% [81.1, 91.7]", "70.0% [62.2, 76.8]", "+17.3", "150"],
           ["gemini-2.5-flash-lite (neutral)", "75.3% [67.9, 81.5]", "59.3% [51.3, 66.9]", "+16.0", "150"]
         ],
-        "note": "The two neutral graders were never checked against human grading, so read them as a consistency check on the ranking, not as extra precision. Notice the absolute levels swing about 12 points between graders while the gap barely moves. That is the argument for reporting a gap rather than a score."
+        "note": "The two neutral graders were never checked against a human, so take them as a sanity check on the ranking rather than extra precision. Look at how the absolute scores swing about 12 points between graders while the gap barely budges. That's the whole reason I report a gap instead of a score."
       },
       "source_doc": "docs/results-crossmodel-fair.md"
     },
     {
       "id": "judge",
-      "nav": "Checking the grader itself",
-      "headline": "The grader was checked in both directions, and it leans toward marking good answers wrong",
-      "population": "90 grader-passed rows sampled across 8 arms for false positives, plus 77 unique rows for false negatives, including a complete census of every hard-level pass in three current arms",
+      "nav": "Grading the grader",
+      "headline": "I graded the grader, and it's likelier to mark good answers wrong than bad answers right",
+      "population": "90 grader-passed rows sampled across 8 arms for false positives, plus 77 unique rows for false negatives, including a complete sweep of every hard-level pass in three current arms",
       "body": [
-        "Every accuracy figure on this page came out of a model grading answers against reference rulings. That makes the grader an instrument, and an instrument nobody has checked is a number nobody can quote. I checked it both ways.",
-        "False positives, meaning it passed an answer that was actually wrong: 4 out of 90, so 4.4%. False negatives, meaning it failed an answer that was actually right: 0 out of 77. That 77 is a 30-row sample plus a complete census of all 53 hard-level passes, and the two sets overlap by 6 rows, which is why it is 77 and not 83.",
-        "The two errors push the headline in opposite directions and they do not cancel out at the point estimates, so 86% is more likely a slight understatement than an overstatement. The worst-case band is wide, roughly 11 points either way, and I would rather publish that than pretend the grader is exact.",
-        "Checking it also caught a number I had been quoting wrong. A grader stability figure of 0.48% had been floating around the project, and it was measured on a run where almost nothing was contestable in the first place. On a run in the normal accuracy range it is closer to 2 to 4%, and that is the 4 points of instrument variance in the headline. Same mistake as the reversal above: a real measurement quoted over the wrong population."
+        "Every number on this page came out of an AI grading answers against reference rulings, which makes the grader a measuring instrument. An instrument nobody has checked is just vibes with decimal places on them. So I checked it in both directions.",
+        "False positives, where it passed an answer that was actually wrong: 4 out of 90, so 4.4%. False negatives, where it failed an answer that was actually right: 0 out of 77. That 77 is a 30-row sample plus a complete sweep of all 53 hard-level passes, and 6 rows show up in both, which is why it's 77 and not 83.",
+        "The two error types push the headline in opposite directions and they don't cancel out, so 86% is more likely a little low than a little high. Worst case the band is wide, about 11 points either way. I'd rather have that on the page than act like the grader is a ruler.",
+        "Checking it also caught me quoting a number wrong. There was a grader stability figure of 0.48% floating around this project, and it came from a run where almost nothing was close enough to argue about. On a normal run it's more like 2 to 4%, and that's the 4 points of grader wobble in the headline. Same trap as the section above: a real measurement, quoted over the wrong questions."
       ],
       "source_doc": "docs/results-judge-false-negatives.md"
     },
     {
       "id": "weakness",
-      "nav": "Where it falls down",
-      "headline": "The hardest tier sits at 67.9%, and the misses cluster",
+      "nav": "Where it falls apart",
+      "headline": "The hardest tier sits at 67.9%, and the misses aren't random",
       "population": "162 level-3 questions inside the 1,409-question run, plus a qualitative read of 10 failures drawn from a separate 311-row slice",
       "body": [
-        "Level 3 is the corpus's hardest tier and it is what I would work on next. 110 of 162 right. That is a third of the hardest questions wrong, and no amount of framing makes it a good number.",
-        "Reading the failures, they are not scattered. They land in a handful of places:"
+        "Level 3 is the hardest tier in the set and it's what I'd work on next. 110 of 162. That's a third of the hard questions wrong, and there's no way to phrase it that sounds good.",
+        "They do at least cluster, which makes them fixable:"
       ],
       "points": [
-        "Layers and timestamps, the ordering rules for how continuous effects stack up. Biggest single bucket.",
-        "State-based actions on Sagas and merged permanents, where a permanent loses its abilities partway through.",
-        "Trigger ordering and timing misses.",
-        "Restriction scope, like treating cannot cast as though it also meant cannot activate.",
-        "Layer stacking after the source of an effect has left the battlefield."
+        "Layers and timestamps, the rules for what order continuous effects apply in. Biggest bucket by a mile, and if you play Magic you already knew it was going to be layers.",
+        "State-based actions on Sagas and merged permanents, where something loses its abilities partway through.",
+        "Trigger ordering and timing.",
+        "Restriction scope, like treating cannot cast as if it also meant cannot activate.",
+        "Layer stacking after the thing creating the effect has already left the battlefield."
       ],
-      "aside": "Those categories come from reading 10 of 23 failures in a smaller slice, so treat them as leads rather than measured rates. The arm they came from is almost entirely layers questions, which means I cannot separate layers are hard from that arm was hard. The one structural weakness I would bet on underneath several of them is multi-hop retrieval: one search finds a rule that points at another rule, and nothing goes back for the second one.",
+      "aside": "Those buckets come from reading 10 of 23 failures in a smaller slice, so they're leads, not measured rates. The batch they came from is almost entirely layers questions, so I genuinely can't tell you whether layers are hard or that batch was hard. If I had to bet on one root cause, it's multi-hop retrieval: the search finds a rule that points at a second rule, and nothing ever goes back for the second one.",
       "arm": "headline_full_votes3",
       "claimed_n": 1409,
       "claimed_levels": {"3": 0.679, "Corner Case": 0.7101},
@@ -133,12 +133,12 @@
     }
   ],
   "closing": [
-    "Every number on this page is generated from the eval data in the repo, not typed into a template. Each finding names the arm that produced it, and the build fails if a claimed figure disagrees with that arm by more than 0.0005. That is deliberate: a public page that slowly drifts away from the data behind it is the exact failure this project spent its time learning to catch.",
-    "The code was written by Claude Code working under a standing set of rules I wrote, and I directed it. It is an AI project, and I would rather say that plainly than have you find it in the commit history.",
-    "If a number here looks wrong, the repo has the verdict files it came from."
+    "Every number here is generated from the eval data in the repo instead of typed in by hand. Each finding names the run it came from, and the build fails if a figure on the page disagrees with that run by more than 0.0005. That's deliberate. A results page quietly drifting away from its own data is the exact failure this project spent months learning to catch.",
+    "The code was written by Claude Code under a set of rules I wrote, and I ran the thing. It's an AI project. I'd rather say that up front than have you go find it in the commit history.",
+    "If a number here looks wrong, the repo has the verdict files it came from. Go dig."
   ],
   "links": {
-    "Source code and full write-up on GitHub": "https://github.com/jongorecki/rulemancer",
-    "Live demo (access codes are handed out individually, ask me for one)": "https://rulemancer.jongorecki.com"
+    "Source code and the full write-up on GitHub": "https://github.com/jongorecki/rulemancer",
+    "Live demo (codes get handed out one at a time, so ask me for one)": "https://rulemancer.jongorecki.com"
   }
 }

@@ -4,34 +4,37 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Rulemancer, what was measured</title>
-<meta name="description" content="A Magic: The Gathering rules bot that cites the rule it used, and says so when it cannot answer.">
+<meta name="description" content="A Magic: The Gathering rules bot that cites the rule it used, and tells you when it doesn&#x27;t know.">
 <link rel="stylesheet" href="assets/tokens.css">
 <link rel="stylesheet" href="assets/evidence.css">
-<link rel="icon" href="assets/rulemancer-favicon.svg">
+<link rel="icon" href="assets/rulemancer-mark.svg">
 </head>
 <body data-surface="dark">
 <a class="skip" href="#findings">Skip to the findings</a>
 <main>
   <header class="hero">
-    <img class="lockup" src="assets/rulemancer-lockup-red.svg" alt="Rulemancer" width="380" height="96">
-    <p class="tagline">A Magic: The Gathering rules bot that cites the rule it used, and says so when it cannot answer.</p>
+    <div class="lockup">
+      <img class="mark" src="assets/rulemancer-mark.svg" alt="" width="56" height="56">
+      <svg class="wordmark" xmlns="http://www.w3.org/2000/svg" viewBox="-0.88 -76.76 534.00 91.41" fill="currentColor" role="img" aria-label="Rulemancer"><path d="M200 326V102Q200 75 202.0 59.0Q204 43 211.5 32.5Q219 22 232.5 15.0Q246 8 270 0H85Q113 12 119.0 33.0Q125 54 125 77V204V457Q125 486 114.0 507.5Q103 529 70 534L76 543Q92 535 106.5 527.0Q121 519 133 512Q130 528 128.0 547.0Q126 566 120.0 582.5Q114 599 102.0 610.0Q90 621 68 621Q54 621 44.0 618.5Q34 616 27.0 609.5Q20 603 14.0 591.5Q8 580 2 561Q1 565 1 573Q1 604 23.0 618.0Q45 632 76.5 636.0Q108 640 143.5 638.0Q179 636 207 636Q203 630 197.0 620.5Q191 611 184 600Q235 620 286.0 632.0Q337 644 390 644Q429 644 465.5 636.0Q502 628 530.0 611.5Q558 595 574.5 570.0Q591 545 591 510Q591 477 575.0 447.0Q559 417 533.5 392.5Q508 368 475.5 350.5Q443 333 411 325Q423 312 437.0 300.5Q451 289 460 275Q478 246 496.0 206.0Q514 166 533.0 129.0Q552 92 573.5 66.5Q595 41 621 41Q648 41 682 73Q688 78 693.0 84.5Q698 91 705 94Q686 50 648.5 25.0Q611 0 563 0Q533 0 511.0 18.5Q489 37 471.5 65.0Q454 93 440.0 127.0Q426 161 414 192Q395 240 378.0 267.0Q361 294 337.5 307.0Q314 320 281.5 323.0Q249 326 200 326ZM200 353Q226 351 253.5 351.0Q281 351 309 347Q325 344 342 344Q399 344 439.5 375.5Q480 407 500 468Q504 480 506.0 490.5Q508 501 508 512Q508 540 494.5 562.0Q481 584 459.5 599.5Q438 615 410.0 623.0Q382 631 354 631Q321 631 289.5 621.5Q258 612 225 597Q206 588 198.5 571.0Q191 554 191 532Q191 488 194.5 443.5Q198 399 200 353Z" transform="translate(0.00 0) scale(0.11765 -0.11765)"/><path d="M276 384Q314 399 351.5 413.5Q389 428 427 444Q422 363 415.0 276.0Q408 189 408 115Q408 42 463 42Q472 42 482.5 45.5Q493 49 503 49H508Q480 26 446.5 9.0Q413 -8 377 -8Q365 -8 358.5 -2.0Q352 4 349.5 13.0Q347 22 346.5 33.5Q346 45 346 56Q346 70 346.5 85.0Q347 100 347 117Q325 96 305.5 75.0Q286 54 265.5 37.5Q245 21 222.0 10.5Q199 0 171 0Q114 0 83.0 34.0Q52 68 52 130Q52 151 54.0 174.0Q56 197 58.0 220.5Q60 244 62.0 266.5Q64 289 64 308Q64 328 61.0 339.5Q58 351 50.5 357.5Q43 364 30.0 367.0Q17 370 -4 375Q0 385 9.5 395.0Q19 405 32.0 412.5Q45 420 59.5 424.5Q74 429 87 429Q113 429 126.5 409.0Q140 389 140 359Q140 336 138.0 310.0Q136 284 134.0 257.0Q132 230 130.0 203.5Q128 177 128 153Q128 136 131.5 119.0Q135 102 144.0 88.5Q153 75 169.0 66.0Q185 57 209 57Q229 57 246.0 65.5Q263 74 280 87Q324 122 339.0 172.0Q354 222 354 276Q354 299 352.0 315.0Q350 331 342.0 343.0Q334 355 318.5 364.5Q303 374 276 384Z" transform="translate(80.47 0) scale(0.11765 -0.11765)"/><path d="M188 63Q172 55 155.0 44.0Q138 33 120.5 23.0Q103 13 86.0 6.0Q69 -1 53 -1Q34 -1 23.5 11.0Q13 23 8.0 43.5Q3 64 2.0 92.0Q1 120 1 153Q-1 244 -1.5 332.5Q-2 421 -10 510Q-15 567 -44.5 594.0Q-74 621 -122 621Q-117 627 -91.5 627.5Q-66 628 -31.0 627.5Q4 627 42.0 625.5Q80 624 110 626Q86 601 78.5 564.0Q71 527 71 485Q71 400 68.0 315.5Q65 231 65 146Q65 128 67.5 111.0Q70 94 75.5 80.5Q81 67 90.5 59.0Q100 51 115 51Q135 51 150.5 58.0Q166 65 183 73Q185 71 185.5 68.5Q186 66 188 63Z" transform="translate(137.06 0) scale(0.11765 -0.11765)"/><path d="M77 189Q89 126 131.5 92.0Q174 58 231 58Q267 58 307.0 72.0Q347 86 386 116Q349 55 300.5 27.5Q252 0 188 0Q150 0 116.0 13.5Q82 27 55.5 52.5Q29 78 13.5 115.5Q-2 153 -2 200Q-2 250 19.0 293.5Q40 337 73.5 369.0Q107 401 149.0 419.5Q191 438 232 438Q252 438 277.5 432.0Q303 426 325.5 413.0Q348 400 363.5 380.5Q379 361 379 333Q379 309 364.0 288.0Q349 267 320 257Q259 237 198.5 221.5Q138 206 77 189Q105 205 143.5 219.0Q182 233 216.5 249.0Q251 265 275.0 284.5Q299 304 299 331Q299 347 291.0 361.5Q283 376 269.5 387.0Q256 398 238.5 404.0Q221 410 202 410Q169 410 144.5 393.5Q120 377 104.5 352.5Q89 328 81.5 298.5Q74 269 74 242Q74 216 77 189Z" transform="translate(156.12 0) scale(0.11765 -0.11765)"/><path d="M135 440V334Q156 351 178.5 368.5Q201 386 224.0 400.5Q247 415 270.5 424.0Q294 433 318 433Q348 433 369.5 411.5Q391 390 412 346Q427 362 443.5 377.5Q460 393 479.0 405.5Q498 418 519.5 426.0Q541 434 566 434Q591 434 613.0 424.0Q635 414 651.5 397.5Q668 381 678.0 358.0Q688 335 688 310Q688 288 682.0 263.5Q676 239 667.5 214.5Q659 190 650.0 165.0Q641 140 636 116Q619 45 619 -25Q619 -95 678 -95Q705 -95 730.0 -83.0Q755 -71 785 -54Q768 -84 738.5 -100.0Q709 -116 677 -116Q651 -116 628.5 -106.5Q606 -97 589.5 -81.0Q573 -65 564.0 -43.0Q555 -21 555 3Q555 23 560.0 44.5Q565 66 572.5 88.5Q580 111 587.0 134.0Q594 157 599 178Q603 198 606.0 219.5Q609 241 609 263Q609 315 585.5 345.5Q562 376 520 376Q498 376 477.5 367.0Q457 358 441.5 342.0Q426 326 417.0 305.5Q408 285 408 263Q408 218 409.5 171.0Q411 124 413 78Q414 50 427.0 31.0Q440 12 471 7H278Q296 17 307.0 31.5Q318 46 323.5 64.0Q329 82 330.5 102.0Q332 122 332 143Q332 168 331.5 191.5Q331 215 331 239Q331 256 332.0 274.0Q333 292 333 309Q333 344 313.0 361.5Q293 379 265 379Q238 379 213.0 367.5Q188 356 169.0 336.5Q150 317 138.5 291.0Q127 265 127 235Q127 201 129.0 167.0Q131 133 133 98Q134 66 147.0 42.0Q160 18 193 5H0Q24 8 36.0 18.5Q48 29 53.5 43.5Q59 58 59.5 75.5Q60 93 60 111Q60 159 59.5 207.0Q59 255 59 303Q59 326 48.5 345.5Q38 365 3 367Q37 386 68.0 403.0Q99 420 135 440Z" transform="translate(203.06 0) scale(0.11765 -0.11765)"/><path d="M44 292Q38 306 30.5 326.0Q23 346 16.0 366.0Q9 386 4.0 402.5Q-1 419 -1 425V427L0 428Q1 428 3 426Q15 412 24.5 406.5Q34 401 46 401Q56 401 77.5 405.0Q99 409 126.5 414.5Q154 420 184.5 424.0Q215 428 244 428Q290 428 316.5 415.0Q343 402 356.5 382.0Q370 362 373.0 337.5Q376 313 376 289Q376 263 376.5 237.0Q377 211 377 185Q377 166 376.0 147.0Q375 128 375 108Q375 79 385.5 67.0Q396 55 415 55Q427 55 440.5 59.0Q454 63 471 73Q448 37 416.0 18.5Q384 0 349 0Q331 0 323.0 7.5Q315 15 311.5 28.0Q308 41 307.5 58.0Q307 75 305 95Q279 74 256.5 56.5Q234 39 212.0 26.0Q190 13 167.0 6.0Q144 -1 116 -1Q63 -1 31.5 25.5Q0 52 0 99Q0 123 10.0 141.5Q20 160 36.5 174.0Q53 188 73.5 199.5Q94 211 114 222Q138 235 171.0 249.5Q204 264 233.5 280.0Q263 296 283.5 313.5Q304 331 304 351Q304 360 294.5 366.0Q285 372 272.5 376.0Q260 380 246.5 381.5Q233 383 225 383Q186 383 149.0 370.0Q112 357 77 340Q66 335 59.5 320.5Q53 306 44 292ZM296 291Q266 275 229.0 258.5Q192 242 159.5 223.0Q127 204 105.5 181.5Q84 159 84 132Q84 112 92.0 95.5Q100 79 113.0 67.0Q126 55 142.0 48.5Q158 42 174 42Q207 42 233.0 56.0Q259 70 277.5 92.5Q296 115 305.5 143.0Q315 171 315 199Q315 244 296 291Z" transform="translate(287.06 0) scale(0.11765 -0.11765)"/><path d="M225 2H33Q57 11 65.5 34.0Q74 57 74 87Q74 139 72.0 191.0Q70 243 67 295Q64 349 2 349Q39 368 72.5 384.5Q106 401 142 420V314Q170 341 192.0 362.5Q214 384 234.0 398.5Q254 413 274.0 420.5Q294 428 320 428Q343 428 366.0 422.5Q389 417 407.0 404.5Q425 392 436.0 372.5Q447 353 447 325Q447 318 447.0 312.5Q447 307 445 301Q438 270 428.5 234.5Q419 199 410.0 162.5Q401 126 394.5 91.0Q388 56 388 25Q388 -19 400.5 -42.0Q413 -65 440 -65Q459 -65 476.5 -54.0Q494 -43 523 -17Q506 -51 482.5 -71.5Q459 -92 427 -92Q404 -92 386.5 -79.5Q369 -67 357.5 -48.5Q346 -30 340.0 -7.5Q334 15 334 36Q334 62 337.0 93.5Q340 125 344.0 158.0Q348 191 351.0 223.0Q354 255 354 282Q354 324 331.0 348.5Q308 373 270 373Q243 373 219.5 361.0Q196 349 179.0 328.5Q162 308 152.0 282.5Q142 257 142 230Q142 167 140.0 127.5Q138 88 143.5 63.5Q149 39 167.0 25.5Q185 12 225 2Z" transform="translate(338.12 0) scale(0.11765 -0.11765)"/><path d="M397 118Q367 55 313.5 28.0Q260 1 195 1Q153 1 117.0 15.0Q81 29 54.5 55.5Q28 82 13.5 120.5Q-1 159 -1 207Q-1 249 13.5 288.5Q28 328 55.5 359.0Q83 390 122.0 408.5Q161 427 210 427Q231 427 252.5 424.0Q274 421 296 421Q319 421 343.5 422.5Q368 424 394 426Q378 378 362.5 333.0Q347 288 330 241H314Q294 292 286.5 322.0Q279 352 270.0 368.0Q261 384 244.0 388.5Q227 393 189 393Q165 393 142.5 385.0Q120 377 102.0 360.5Q84 344 73.0 317.5Q62 291 62 254Q62 212 76.0 174.5Q90 137 115.0 109.0Q140 81 174.0 64.5Q208 48 249 48Q291 48 328.0 65.0Q365 82 397 118Z" transform="translate(394.47 0) scale(0.11765 -0.11765)"/><path d="M77 189Q89 126 131.5 92.0Q174 58 231 58Q267 58 307.0 72.0Q347 86 386 116Q349 55 300.5 27.5Q252 0 188 0Q150 0 116.0 13.5Q82 27 55.5 52.5Q29 78 13.5 115.5Q-2 153 -2 200Q-2 250 19.0 293.5Q40 337 73.5 369.0Q107 401 149.0 419.5Q191 438 232 438Q252 438 277.5 432.0Q303 426 325.5 413.0Q348 400 363.5 380.5Q379 361 379 333Q379 309 364.0 288.0Q349 267 320 257Q259 237 198.5 221.5Q138 206 77 189Q105 205 143.5 219.0Q182 233 216.5 249.0Q251 265 275.0 284.5Q299 304 299 331Q299 347 291.0 361.5Q283 376 269.5 387.0Q256 398 238.5 404.0Q221 410 202 410Q169 410 144.5 393.5Q120 377 104.5 352.5Q89 328 81.5 298.5Q74 269 74 242Q74 216 77 189Z" transform="translate(442.94 0) scale(0.11765 -0.11765)"/><path d="M3 372Q35 390 68.0 408.0Q101 426 137 446Q135 420 134.5 395.5Q134 371 132 344Q150 359 167.0 374.5Q184 390 200.0 402.5Q216 415 232.5 422.5Q249 430 267 430Q285 430 302.0 423.0Q319 416 331.5 404.0Q344 392 351.5 377.0Q359 362 359 346Q359 328 351.5 313.5Q344 299 331.5 284.5Q319 270 303.0 255.5Q287 241 270 225Q278 256 285.0 277.5Q292 299 292 320Q292 346 277.5 361.5Q263 377 240 377Q213 377 194.0 365.5Q175 354 163.0 336.0Q151 318 144.5 295.5Q138 273 135.0 252.0Q132 231 131.5 213.5Q131 196 131 187Q131 145 133.0 113.5Q135 82 144.0 59.5Q153 37 170.5 22.5Q188 8 219 0H-8Q15 7 28.0 20.5Q41 34 47.5 52.0Q54 70 55.5 90.0Q57 110 57 131V244Q57 266 57.0 288.5Q57 311 52.5 329.0Q48 347 36.5 358.5Q25 370 3 372Z" transform="translate(489.88 0) scale(0.11765 -0.11765)"/></svg>
+    </div>
+    <p class="tagline">A Magic: The Gathering rules bot that cites the rule it used, and tells you when it doesn&#x27;t know.</p>
   </header>
 
   <section class="intro">
-        <p>Magic has a 300-page rulebook, and almost nothing people actually ask about is a single lookup. The real questions are about how two cards interact, which means knowing which rules apply, applying them in the right order, and being willing to say the answer is not in front of you.</p>
-        <p>This page is the measurement half of the project. I ran the finished system against 1,409 real questions from RulesGuru, a community question bank with reference rulings written by certified judges, and had a separate model grade every answer against those rulings. Each number below carries the exact set of questions it was computed over, because a percentage with no population attached does not mean anything.</p>
-        <p>One of the six findings is a correction. I published a conclusion earlier in this project that turned out to be an artifact of the questions I tested it on. It is here with the rest, because how it got caught is more interesting than the original claim was.</p>
+        <p>Magic has a 300-page rulebook, and basically nothing anyone actually argues about is a simple lookup. The fights are about how two cards interact, which means knowing which rules apply, applying them in the right order, and being willing to say you don&#x27;t have the answer. That last part is the one people are worst at. Me included, which is most of why this thing exists.</p>
+        <p>This page is the measuring half of the project. I ran the finished bot against 1,409 real questions from RulesGuru, a community quiz site where the rulings are written by certified judges, and had a different AI model grade every answer against them. Every number here says which questions it came from, because a percentage with nothing attached to it is just a number I liked.</p>
+        <p>One of the six sections below is me being wrong. I had a conclusion written down as settled, and a five dollar experiment knocked it over. It&#x27;s here with the rest, because how it got caught is the better story.</p>
   </section>
 
       <nav class="contents" aria-label="Findings">
         <h2 class="contents-h">What's on this page</h2>
         <ol>
           <li><a href="#headline">The headline number</a></li>
-          <li><a href="#reversal">The finding I got wrong</a></li>
-          <li><a href="#refusal">It refuses instead of inventing</a></li>
-          <li><a href="#crossmodel">Model comparison, done fairly</a></li>
-          <li><a href="#judge">Checking the grader itself</a></li>
-          <li><a href="#weakness">Where it falls down</a></li>
+          <li><a href="#reversal">The part where I was wrong</a></li>
+          <li><a href="#refusal">It taps out instead of bluffing</a></li>
+          <li><a href="#crossmodel">Model comparison, refereed by the loser</a></li>
+          <li><a href="#judge">Grading the grader</a></li>
+          <li><a href="#weakness">Where it falls apart</a></li>
         </ol>
       </nav>
   <div id="findings">
@@ -39,8 +42,8 @@
         <h2 id="headline-h">Roughly 86% on all 1,409 questions</h2>
         <p class="population"><span class="population-label">Measured over</span>
            1,409 questions, the full RulesGuru set, run on the shipped pipeline: claude-opus-5 at low reasoning effort, v2 query rewriting, raw ruling query, three grader votes per answer</p>
-        <p>Call it about 2 points of give from sampling, plus roughly another 4 points because the grader is not perfectly consistent when you run it twice. The sampling part comes out as a 95% confidence interval of 83.96% to 87.60%, which is a formal way of saying that if I ran this again on a different batch of questions this size, the result would land inside that window nearly every time. So the fair way to say it is mid eighties, not a figure carried out to two decimal places.</p>
-        <p>The average hides the shape, and the shape is the useful part. Easy questions are close to solved. The hardest tier is where the work is left, and it is the last section on this page.</p>
+        <p>Give or take about 2 points from sampling, plus another 4ish because the grader isn&#x27;t perfectly consistent when you run it twice. The formal version of the sampling part is a 95% confidence interval of 83.96% to 87.60%, which translates to: run this again on a fresh batch of questions this size and you&#x27;d land somewhere in that window nearly every time. So the way to say it out loud is mid eighties. Anything with two decimal places on it is me pretending I know more than I do.</p>
+        <p>The average is also the least interesting number on this page. The spread is the real story: the easy stuff is basically solved, and the hard stuff is where I&#x27;d still lose the argument at the table.</p>
         <div class="table-wrap">
           <table>
             <caption>Accuracy by difficulty level, 1,409 questions</caption>
@@ -48,25 +51,25 @@
             <tbody><tr><th scope="row">Level 0</th><td>207</td><td>199</td><td>96.1%</td><td>92.6 to 98.0</td></tr><tr><th scope="row">Level 1</th><td>565</td><td>510</td><td>90.3%</td><td>87.5 to 92.4</td></tr><tr><th scope="row">Level 2</th><td>406</td><td>342</td><td>84.2%</td><td>80.4 to 87.5</td></tr><tr><th scope="row">Level 3</th><td>162</td><td>110</td><td>67.9%</td><td>60.4 to 74.6</td></tr><tr><th scope="row">Corner Case</th><td>69</td><td>49</td><td>71.0%</td><td>59.4 to 80.4</td></tr></tbody>
           </table>
         </div>
-          <p class="note">Corner Case reads higher than Level 3, but the two ranges overlap heavily, so I am not claiming one is really easier than the other.</p>
+          <p class="note">Corner Case looks better than Level 3, but the two ranges overlap a lot, so I&#x27;m not going to pretend one is actually easier than the other.</p>
         <p class="source">Source: arm <code>headline_full_votes3</code></p>
       </section>
       <section class="finding" id="reversal" aria-labelledby="reversal-h">
-        <h2 id="reversal-h">Scramble the rules and card-free accuracy falls from 98.84% to 15.12%</h2>
+        <h2 id="reversal-h">Swap in the wrong rules and card-free accuracy craters, 98.84% down to 15.12%</h2>
         <p class="population"><span class="population-label">Measured over</span>
-           86 questions written to contain no card names at all, run twice: once with the rules the system actually retrieved, once with rules retrieved for a different question</p>
-        <p>Retrieval means the system searches the rulebook first and pastes the most relevant rules into the prompt before the model answers. To find out whether those rules were doing any work, I ran the same questions with the rules swapped out for rules belonging to a completely different question. Same volume of text, same format, wrong content. That swap is called a placebo arm, and it is the cheapest way to tell load-bearing from decorative.</p>
-        <p>I had run that test before and concluded the rules were close to inert, worth about 3 points. The arithmetic was fine. The population was wrong. 99.4% of the questions in the corpus name specific cards, and a card&#x27;s own text restates most of the rule it depends on, so the card text was quietly covering for the rules the whole time. Build a set with no cards in it and the same swap costs 83.7 points instead of 3.</p>
-        <p>The corrected claim is narrower and more useful than the original: the rules are redundant given card text, not redundant. The experiment that overturned it cost about five dollars.</p>
-        <p class="aside">The old number was not wrong about its own questions. When a question names cards, the card text really does carry most of the load. Reading the card explains the card.</p>
+           86 questions written to contain no card names at all, run twice: once with the rules the bot actually retrieved, once with rules retrieved for a totally different question</p>
+        <p>Two bits of jargon are doing all the work here, so: retrieval means the bot searches the rulebook first and pastes the most relevant rules into the prompt before it answers. A placebo arm means I ran those same questions again with the rules swapped out for rules belonging to some other question entirely. Same amount of text, same shape, completely wrong content. It&#x27;s the cheapest way to find out whether a piece of your system is doing work or just along for the ride.</p>
+        <p>I had already run that test once and decided the rules were basically dead weight, worth about 3 points. The math was fine. The question set wasn&#x27;t. 99.4% of the questions name specific cards, and a card&#x27;s own text usually restates the rule it depends on, so the card was quietly doing the rules&#x27; homework the entire time. Build a set with no cards in it at all and the same swap costs 83.7 points instead of 3.</p>
+        <p>So the fixed claim is smaller and a lot more useful: the rules are redundant when you already have the card text. Not redundant. The experiment that proved me wrong cost about five bucks, which is a great price for not staying wrong in public.</p>
+        <p class="aside">In fairness to past me, the old number wasn&#x27;t lying about its own questions. When a question names cards, the card text really is carrying the team. Reading the card explains the card.</p>
         <p class="source">Source: arms <code>rules86_placebo_votes3</code> and <code>rules86_real_votes3</code></p>
       </section>
       <section class="finding" id="refusal" aria-labelledby="refusal-h">
-        <h2 id="refusal-h">Under sabotaged retrieval it declined on 90.7% of questions instead of making something up</h2>
+        <h2 id="refusal-h">With the rules sabotaged it declined 90.7% of the time instead of making things up</h2>
         <p class="population"><span class="population-label">Measured over</span>
            the same 86 card-free questions, scrambled-rules run only</p>
-        <p>The more interesting half of that collapse is how it failed. On 78 of the 86 questions it said it could not answer and named what was missing from the context it had been given. It gave a confident wrong answer on 3 of them, which is 3.5%. On a manual read, one of those 3 looks like a grading mistake, so the real count may be 2.</p>
-        <p>With the correct rules in the prompt it declined zero times out of 86. So the refusals are tracking the evidence in front of it rather than the difficulty of the question, which is the behavior I want out of a rules bot. Being told the phasing rules are missing is useful. A made-up ruling delivered with confidence is worse than no answer.</p>
+        <p>The more interesting half of that collapse is how it fell over. On 78 of the 86 questions it just said it couldn&#x27;t answer, and told you what was missing. It confidently made something up on 3 of them, which is 3.5%. I read those 3 by hand and one looks like the grader being wrong, so the real number might be 2.</p>
+        <p>With the correct rules in the prompt it declined zero times out of 86. So it&#x27;s refusing based on what&#x27;s actually in front of it, not because a question looked scary. That&#x27;s the behavior I was after. A bot that says it doesn&#x27;t have the phasing rules is useful. A bot that invents a phasing ruling and delivers it with total confidence is how you lose a game and a friend.</p>
         <figure class="quote">
           <blockquote><p>I can&#x27;t answer this from the rules provided. The context here contains no phasing rules at all (nothing from rule 702.25 on phasing, and nothing on whether a permanent phasing in counts as entering the battlefield).</p></blockquote>
           <figcaption>One of the 78 declines, question 001, scrambled-rules run</figcaption>
@@ -74,11 +77,11 @@
         <p class="source">Source: arm <code>rules86_placebo_votes3</code>, <code>docs/results-rules86-placebo.md</code></p>
       </section>
       <section class="finding" id="crossmodel" aria-labelledby="crossmodel-h">
-        <h2 id="crossmodel-h">opus-5 beat gpt-5-mini by about 16 points, and the judge came from the losing model family</h2>
+        <h2 id="crossmodel-h">opus-5 beat gpt-5-mini by about 16 points, and I let the loser pick the referee</h2>
         <p class="population"><span class="population-label">Measured over</span>
            1,409 questions, both models, identical prompts read from one frozen prompt cache, then graded four separate ways</p>
-        <p>Comparing two models is easy to do badly. If the grader belongs to the same family as one of the contestants, it can flatter its own. So I picked the test most likely to embarrass the answer I expected: grade both models with gpt-5-mini, the family of the model I thought would lose. It still put opus-5 ahead by 15.8 points.</p>
-        <p>Four graders across three model families all rank it the same way, and they agree within 3.4 points on the size of the gap. Most of that gap is not contested rulings, it is refusals. gpt-5-mini declined 157 of the 1,409 questions, about 1 in 9, with the rules and the card text sitting right there in the prompt. opus-5 declined 10.</p>
+        <p>Model comparisons are really easy to rig without meaning to. If the grader comes from the same family as one of the models being graded, it can quietly favor its own. So I ran the version most likely to make me look wrong: grade both models with gpt-5-mini, same family as the model I expected to lose. It still put opus-5 ahead by 15.8 points.</p>
+        <p>Then four graders from three different families, all landing within 3.4 points of each other on the size of the gap. And the gap mostly isn&#x27;t about disagreeing on rulings, it&#x27;s about bailing. gpt-5-mini declined 157 of the 1,409 questions, roughly 1 in 9, with the rules and the card text sitting right there in the prompt. opus-5 declined 10.</p>
         <div class="table-wrap">
           <table>
             <caption>The same two models under four graders</caption>
@@ -86,45 +89,45 @@
             <tbody><tr><th scope="row">gpt-5-mini (losing family)</th><td>~86% [83.96, 87.60]</td><td>70.05% [67.61, 72.38]</td><td>+15.8</td><td>1,409</td></tr><tr><th scope="row">Claude panel (winning family)</th><td>87.3% [77.6, 93.2]</td><td>68.1% [56.6, 77.7]</td><td>+19.2</td><td>72</td></tr><tr><th scope="row">deepseek-v3.2 (neutral)</th><td>87.3% [81.1, 91.7]</td><td>70.0% [62.2, 76.8]</td><td>+17.3</td><td>150</td></tr><tr><th scope="row">gemini-2.5-flash-lite (neutral)</th><td>75.3% [67.9, 81.5]</td><td>59.3% [51.3, 66.9]</td><td>+16.0</td><td>150</td></tr></tbody>
           </table>
         </div>
-          <p class="note">The two neutral graders were never checked against human grading, so read them as a consistency check on the ranking, not as extra precision. Notice the absolute levels swing about 12 points between graders while the gap barely moves. That is the argument for reporting a gap rather than a score.</p>
+          <p class="note">The two neutral graders were never checked against a human, so take them as a sanity check on the ranking rather than extra precision. Look at how the absolute scores swing about 12 points between graders while the gap barely budges. That&#x27;s the whole reason I report a gap instead of a score.</p>
         <p class="source">Source: <code>docs/results-crossmodel-fair.md</code></p>
       </section>
       <section class="finding" id="judge" aria-labelledby="judge-h">
-        <h2 id="judge-h">The grader was checked in both directions, and it leans toward marking good answers wrong</h2>
+        <h2 id="judge-h">I graded the grader, and it&#x27;s likelier to mark good answers wrong than bad answers right</h2>
         <p class="population"><span class="population-label">Measured over</span>
-           90 grader-passed rows sampled across 8 arms for false positives, plus 77 unique rows for false negatives, including a complete census of every hard-level pass in three current arms</p>
-        <p>Every accuracy figure on this page came out of a model grading answers against reference rulings. That makes the grader an instrument, and an instrument nobody has checked is a number nobody can quote. I checked it both ways.</p>
-        <p>False positives, meaning it passed an answer that was actually wrong: 4 out of 90, so 4.4%. False negatives, meaning it failed an answer that was actually right: 0 out of 77. That 77 is a 30-row sample plus a complete census of all 53 hard-level passes, and the two sets overlap by 6 rows, which is why it is 77 and not 83.</p>
-        <p>The two errors push the headline in opposite directions and they do not cancel out at the point estimates, so 86% is more likely a slight understatement than an overstatement. The worst-case band is wide, roughly 11 points either way, and I would rather publish that than pretend the grader is exact.</p>
-        <p>Checking it also caught a number I had been quoting wrong. A grader stability figure of 0.48% had been floating around the project, and it was measured on a run where almost nothing was contestable in the first place. On a run in the normal accuracy range it is closer to 2 to 4%, and that is the 4 points of instrument variance in the headline. Same mistake as the reversal above: a real measurement quoted over the wrong population.</p>
+           90 grader-passed rows sampled across 8 arms for false positives, plus 77 unique rows for false negatives, including a complete sweep of every hard-level pass in three current arms</p>
+        <p>Every number on this page came out of an AI grading answers against reference rulings, which makes the grader a measuring instrument. An instrument nobody has checked is just vibes with decimal places on them. So I checked it in both directions.</p>
+        <p>False positives, where it passed an answer that was actually wrong: 4 out of 90, so 4.4%. False negatives, where it failed an answer that was actually right: 0 out of 77. That 77 is a 30-row sample plus a complete sweep of all 53 hard-level passes, and 6 rows show up in both, which is why it&#x27;s 77 and not 83.</p>
+        <p>The two error types push the headline in opposite directions and they don&#x27;t cancel out, so 86% is more likely a little low than a little high. Worst case the band is wide, about 11 points either way. I&#x27;d rather have that on the page than act like the grader is a ruler.</p>
+        <p>Checking it also caught me quoting a number wrong. There was a grader stability figure of 0.48% floating around this project, and it came from a run where almost nothing was close enough to argue about. On a normal run it&#x27;s more like 2 to 4%, and that&#x27;s the 4 points of grader wobble in the headline. Same trap as the section above: a real measurement, quoted over the wrong questions.</p>
         <p class="source">Source: <code>docs/results-judge-false-negatives.md</code></p>
       </section>
       <section class="finding" id="weakness" aria-labelledby="weakness-h">
-        <h2 id="weakness-h">The hardest tier sits at 67.9%, and the misses cluster</h2>
+        <h2 id="weakness-h">The hardest tier sits at 67.9%, and the misses aren&#x27;t random</h2>
         <p class="population"><span class="population-label">Measured over</span>
            162 level-3 questions inside the 1,409-question run, plus a qualitative read of 10 failures drawn from a separate 311-row slice</p>
-        <p>Level 3 is the corpus&#x27;s hardest tier and it is what I would work on next. 110 of 162 right. That is a third of the hardest questions wrong, and no amount of framing makes it a good number.</p>
-        <p>Reading the failures, they are not scattered. They land in a handful of places:</p>
+        <p>Level 3 is the hardest tier in the set and it&#x27;s what I&#x27;d work on next. 110 of 162. That&#x27;s a third of the hard questions wrong, and there&#x27;s no way to phrase it that sounds good.</p>
+        <p>They do at least cluster, which makes them fixable:</p>
         <ul class="points">
-            <li>Layers and timestamps, the ordering rules for how continuous effects stack up. Biggest single bucket.</li>
-            <li>State-based actions on Sagas and merged permanents, where a permanent loses its abilities partway through.</li>
-            <li>Trigger ordering and timing misses.</li>
-            <li>Restriction scope, like treating cannot cast as though it also meant cannot activate.</li>
-            <li>Layer stacking after the source of an effect has left the battlefield.</li>
+            <li>Layers and timestamps, the rules for what order continuous effects apply in. Biggest bucket by a mile, and if you play Magic you already knew it was going to be layers.</li>
+            <li>State-based actions on Sagas and merged permanents, where something loses its abilities partway through.</li>
+            <li>Trigger ordering and timing.</li>
+            <li>Restriction scope, like treating cannot cast as if it also meant cannot activate.</li>
+            <li>Layer stacking after the thing creating the effect has already left the battlefield.</li>
         </ul>
-        <p class="aside">Those categories come from reading 10 of 23 failures in a smaller slice, so treat them as leads rather than measured rates. The arm they came from is almost entirely layers questions, which means I cannot separate layers are hard from that arm was hard. The one structural weakness I would bet on underneath several of them is multi-hop retrieval: one search finds a rule that points at another rule, and nothing goes back for the second one.</p>
+        <p class="aside">Those buckets come from reading 10 of 23 failures in a smaller slice, so they&#x27;re leads, not measured rates. The batch they came from is almost entirely layers questions, so I genuinely can&#x27;t tell you whether layers are hard or that batch was hard. If I had to bet on one root cause, it&#x27;s multi-hop retrieval: the search finds a rule that points at a second rule, and nothing ever goes back for the second one.</p>
         <p class="source">Source: arm <code>headline_full_votes3</code>, <code>docs/results-failure-taxonomy.md</code></p>
       </section>
   </div>
 
   <footer>
     <h2>How this page is made</h2>
-        <p>Every number on this page is generated from the eval data in the repo, not typed into a template. Each finding names the arm that produced it, and the build fails if a claimed figure disagrees with that arm by more than 0.0005. That is deliberate: a public page that slowly drifts away from the data behind it is the exact failure this project spent its time learning to catch.</p>
-        <p>The code was written by Claude Code working under a standing set of rules I wrote, and I directed it. It is an AI project, and I would rather say that plainly than have you find it in the commit history.</p>
-        <p>If a number here looks wrong, the repo has the verdict files it came from.</p>
+        <p>Every number here is generated from the eval data in the repo instead of typed in by hand. Each finding names the run it came from, and the build fails if a figure on the page disagrees with that run by more than 0.0005. That&#x27;s deliberate. A results page quietly drifting away from its own data is the exact failure this project spent months learning to catch.</p>
+        <p>The code was written by Claude Code under a set of rules I wrote, and I ran the thing. It&#x27;s an AI project. I&#x27;d rather say that up front than have you go find it in the commit history.</p>
+        <p>If a number here looks wrong, the repo has the verdict files it came from. Go dig.</p>
         <ul class="links">
-          <li><a href="https://github.com/jongorecki/rulemancer">Source code and full write-up on GitHub</a></li>
-          <li><a href="https://rulemancer.jongorecki.com">Live demo (access codes are handed out individually, ask me for one)</a></li>
+          <li><a href="https://github.com/jongorecki/rulemancer">Source code and the full write-up on GitHub</a></li>
+          <li><a href="https://rulemancer.jongorecki.com">Live demo (codes get handed out one at a time, so ask me for one)</a></li>
         </ul>
   </footer>
 </main>

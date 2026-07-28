@@ -71,15 +71,25 @@ h1, h2, h3 {
   padding-bottom: var(--space-6);
   margin-bottom: var(--space-6);
 }
-/* Both shipped lockups carry their own background field (parchment or garnet).
-   The red one is the right call on this surface; the radius stops it reading as
-   an image someone forgot to cut out. */
+/* The lockup is composed here rather than shipped as one flat image, so the
+   wordmark can take its colour from the page. The mark carries its own plum and
+   teal; the wordmark is currentColor and follows --fg-primary. */
 .lockup {
-  display: block;
-  width: min(380px, 78%);
-  height: auto;
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
   margin: 0 0 var(--space-5);
-  border-radius: var(--radius-md);
+}
+.lockup .mark {
+  width: 56px;
+  height: 56px;
+  flex: none;
+}
+.lockup .wordmark {
+  display: block;
+  width: min(260px, 100%);
+  height: auto;
+  color: var(--fg-primary);
 }
 .tagline {
   margin: 0;

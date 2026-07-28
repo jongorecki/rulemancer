@@ -116,8 +116,32 @@ def verify_finding(finding: dict, arms: dict[str, dict]) -> None:
 
 # ----------------------------------------------------------------- render --
 
+REPO = Path(__file__).resolve().parents[1]
+
+# The brand assets the page uses. These are the PLUM ones under frontend/assets,
+# the same pair the live demo serves. branding/ still holds the older garnet
+# lockups; those are not current and must not be used here.
+MARK_SVG = REPO / "frontend" / "assets" / "rulemancer-mark.svg"
+WORDMARK_SVG = REPO / "frontend" / "assets" / "rulemancer-wordmark.svg"
+
+
 def _esc(text) -> str:
     return html_mod.escape(str(text), quote=True)
+
+
+def _wordmark(path: Path = WORDMARK_SVG) -> str:
+    """The wordmark, inlined rather than linked.
+
+    It is drawn with `fill="currentColor"`, and an <img> cannot inherit colour
+    from the page that embeds it, so linking it would render it black on a dark
+    background. Inlined, it takes `color` from CSS and stays legible in any
+    theme. The markup is a repo asset, not user content, so it goes in raw on
+    purpose; nothing from findings.json is ever inlined this way.
+    """
+    if not path.is_file():
+        return '<img class="wordmark" src="assets/rulemancer-wordmark.svg" alt="Rulemancer">'
+    svg = path.read_text(encoding="utf-8").strip()
+    return svg.replace("<svg ", '<svg class="wordmark" ', 1)
 
 
 def _paras(body) -> str:
@@ -254,13 +278,16 @@ def render_page(findings: list[dict], arms: dict[str, dict], page: dict | None =
 <meta name="description" content="{_esc(tagline)}">
 <link rel="stylesheet" href="assets/tokens.css">
 <link rel="stylesheet" href="assets/evidence.css">
-<link rel="icon" href="assets/rulemancer-favicon.svg">
+<link rel="icon" href="assets/rulemancer-mark.svg">
 </head>
 <body data-surface="dark">
 <a class="skip" href="#findings">Skip to the findings</a>
 <main>
   <header class="hero">
-    <img class="lockup" src="assets/rulemancer-lockup-red.svg" alt="Rulemancer" width="380" height="96">
+    <div class="lockup">
+      <img class="mark" src="assets/rulemancer-mark.svg" alt="" width="56" height="56">
+      {_wordmark()}
+    </div>
     <p class="tagline">{_esc(tagline)}</p>
   </header>
 
@@ -282,7 +309,7 @@ def render_page(findings: list[dict], arms: dict[str, dict], page: dict | None =
 # -------------------------------------------------------------------- main --
 
 def main(out_dir: Path) -> None:
-    repo = Path(__file__).resolve().parents[1]
+    repo = REPO
     page = load_page(repo / "docs" / "evidence" / "findings.json")
     findings = page["findings"]
     arms = load_arms(repo / "evals" / "_metrics_history.json")
@@ -291,8 +318,11 @@ def main(out_dir: Path) -> None:
     assets = out_dir / "assets"
     assets.mkdir(parents=True, exist_ok=True)
     shutil.copy(repo / "design-system" / "tokens.css", assets / "tokens.css")
-    for name in ("rulemancer-lockup-red.svg", "rulemancer-favicon.svg"):
-        shutil.copy(repo / "branding" / name, assets / name)
+    # The mark doubles as the favicon, exactly as the live demo uses it. The
+    # wordmark is inlined by the renderer, so it is not copied.
+    shutil.copy(MARK_SVG, assets / "rulemancer-mark.svg")
+    for stale in ("rulemancer-lockup-red.svg", "rulemancer-favicon.svg"):
+        (assets / stale).unlink(missing_ok=True)
 
     (out_dir / "index.html").write_text(html, encoding="utf-8")
     print(f"wrote {out_dir / 'index.html'} ({len(findings)} findings)")
