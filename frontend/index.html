@@ -415,7 +415,7 @@ function iconRail() {
     `<button data-action="${act}" title="${title}" class="rm-hover" style="width:44px;height:44px;border:none;background:transparent;color:var(--parchment-100);border-radius:9px;cursor:pointer;display:flex;align-items:center;justify-content:center;${style}">${svg}</button>`;
   return `<aside style="width:60px;flex:none;background:${railBg};border-right:1px solid rgba(0,0,0,.22);display:flex;flex-direction:column;align-items:center;padding:14px 0;gap:4px;z-index:20;">
     ${btn("toggle-sidebar","Menu",I.menu)}
-    <div style="width:44px;height:44px;margin:4px 0 8px;display:flex;align-items:center;justify-content:center;">${markImg(36)}</div>
+    <button data-action="new-chat" title="Rulemancer home" aria-label="Rulemancer home" class="rm-hover" style="width:44px;height:44px;margin:4px 0 8px;border:none;background:transparent;border-radius:9px;cursor:pointer;display:flex;align-items:center;justify-content:center;">${markImg(36)}</button>
     ${btn("new-chat","New chat",I.plus)}
     <button data-action="toggle-sidebar" title="History" class="rm-hover" style="width:44px;height:44px;border:none;background:${histBg};color:${histColor};border-radius:9px;cursor:pointer;display:flex;align-items:center;justify-content:center;">${I.hist}</button>
     <div style="flex:1;"></div>
@@ -675,8 +675,10 @@ function paintThinking() { const el = document.getElementById("rm-thinkword"); i
 function chat() {
   const msgs = state.messages.map((m, i) => messageEl(m, i)).join("");
   return `<div class="rm-chat-header" style="height:52px;flex:none;border-bottom:1px solid var(--bg-muted);display:flex;align-items:center;gap:10px;padding:0 22px;background:var(--bg-elevated);min-width:0;">
-      ${markImg(24)}
-      <span style="font-weight:600;font-size:16px;color:var(--fg-primary);letter-spacing:-0.01em;line-height:1;white-space:nowrap;">Rulemancer</span>
+      <button data-action="new-chat" title="Rulemancer home" aria-label="Rulemancer home" class="rm-act" style="display:flex;align-items:center;gap:10px;min-height:44px;margin:0 -8px 0 -8px;padding:0 8px;border:none;background:transparent;border-radius:9px;cursor:pointer;min-width:0;">
+        ${markImg(24)}
+        <span style="font-weight:600;font-size:16px;color:var(--fg-primary);letter-spacing:-0.01em;line-height:1;white-space:nowrap;">Rulemancer</span>
+      </button>
       <span style="font-family:var(--font-mono);font-size:11px;color:var(--teal-700);background:#d9f0ec;padding:3px 8px;border-radius:999px;white-space:nowrap;">Comprehensive Rules · 2026</span>
     </div>
     <div class="rm-scroll" id="rm-scroll" style="flex:1;overflow-y:auto;overflow-x:hidden;padding:26px 24px 8px;">
