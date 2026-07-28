@@ -2145,8 +2145,11 @@ def _admin_page_html(minted: dict | None = None, error: str | None = None) -> st
         <tr>
           <td>
             <form method="post" action="/admin/examples/approve" class="candidate-form">
-              <textarea name="question" class="candidate-textarea" rows="2"
-                        maxlength="{MAX_QUESTION_CHARS}">{q_escaped}</textarea>
+              <div class="ac-wrap">
+                <textarea name="question" class="candidate-textarea" rows="2"
+                          maxlength="{MAX_QUESTION_CHARS}">{q_escaped}</textarea>
+                <div class="ac-menu" role="listbox" aria-label="Card name suggestions"></div>
+              </div>
               <input type="hidden" name="event_id" value="{eid}" />
               <input type="hidden" name="original_question" value="{q_escaped}" />
               <button type="submit" class="btn-approve">Approve</button>
@@ -2335,6 +2338,22 @@ def _admin_page_html(minted: dict | None = None, error: str | None = None) -> st
   .pool-status {{ color: var(--fg-secondary); font-size: var(--fs-sm);
     margin: 0 0 var(--space-3); }}
   .pool-status code {{ font-size: var(--fs-xs); }}
+  /* Card-name picker on the candidate textareas. Same @-trigger and
+     [Card Name] insertion the demo composer uses, so a correction here
+     produces the bracket syntax the answer pipeline actually resolves. */
+  .ac-wrap {{ position: relative; width: 100%; }}
+  /* position: fixed, not absolute. The candidates table sits inside a
+     .table-scroll container, and an absolutely positioned menu is clipped by
+     that container's overflow -- badly for the last row, where almost none of
+     it would be visible. Fixed escapes every ancestor's overflow; the script
+     sets left/top/width from the textarea's rect and hides on scroll. */
+  .ac-menu {{ display: none; position: fixed; z-index: 40;
+    max-height: 15rem; overflow-y: auto;
+    background: var(--bg-card, #201A2A); border: 1px solid var(--border-strong);
+    border-radius: var(--radius-md); box-shadow: var(--shadow-md); }}
+  .ac-item {{ padding: var(--space-2) var(--space-3); font-size: var(--fs-sm);
+    color: var(--fg-secondary); cursor: pointer; }}
+  .ac-item:hover, .ac-on {{ background: var(--bg-muted); color: var(--fg-primary); }}
 </style>
 </head>
 <body data-surface="dark">
@@ -2385,6 +2404,153 @@ def _admin_page_html(minted: dict | None = None, error: str | None = None) -> st
       }}
       input.addEventListener('input', update);
       update();
+    }})();
+  </script>
+
+  <script>
+    // Card-name picker for the candidate textareas.
+    //
+    // WHY IT IS HERE: correcting a visitor's question usually means fixing a
+    // card name, and the answer pipeline only resolves a card when it is
+    // written as [Exact Card Name]. Typing that from memory is how you get an
+    // approved example that quietly never resolves. Type @ plus two letters
+    // and pick from Scryfall instead.
+    //
+    // WHY IT IS NOT THE COMPOSER'S PICKER: frontend/index.html's version is
+    // built around exactly one textarea (a fixed element id and one global
+    // dropdown). This page has one per candidate row, so state is keyed to
+    // whichever textarea is being typed in and the menu is a sibling of it.
+    (function () {{
+      var DEBOUNCE_MS = 160, MIN_CHARS = 2, MAX_ITEMS = 8;
+      var MAXLEN = {MAX_QUESTION_CHARS};
+      var timer = null, reqId = 0, items = [], index = -1, start = -1, active = null;
+
+      function menuFor(ta) {{ return ta.parentNode.querySelector('.ac-menu'); }}
+
+      function hide() {{
+        if (active) {{
+          var m = menuFor(active);
+          if (m) {{ m.style.display = 'none'; m.innerHTML = ''; }}
+        }}
+        items = []; index = -1; start = -1;
+      }}
+
+      function tokenAt(ta) {{
+        var caret = ta.selectionStart;
+        var upto = ta.value.slice(0, caret);
+        var at = upto.lastIndexOf('@');
+        if (at === -1) return null;
+        var frag = upto.slice(at + 1);
+        // Backslashes are doubled because this JS lives inside a Python
+        // f-string. An escape written singly is consumed by Python, and the
+        // newline one turns into a real line break that splits this regex
+        // literal in two -- a JS SyntaxError that kills the whole script
+        // block silently. Do not "simplify" these.
+        if (/[\\[\\]\\n]/.test(frag)) return null;   // token already closed
+        return {{ start: at, query: frag }};
+      }}
+
+      function render(ta) {{
+        var m = menuFor(ta);
+        if (!m) return;
+        if (!items.length) {{ m.style.display = 'none'; m.innerHTML = ''; return; }}
+        m.innerHTML = '';
+        items.forEach(function (name, i) {{
+          var row = document.createElement('div');
+          row.className = 'ac-item' + (i === index ? ' ac-on' : '');
+          // textContent, never innerHTML: these strings come from Scryfall,
+          // which is third-party data on an authenticated page.
+          row.textContent = name;
+          row.setAttribute('role', 'option');
+          row.addEventListener('mousedown', function (e) {{
+            e.preventDefault();                  // keep focus in the textarea
+            pick(ta, i);
+          }});
+          m.appendChild(row);
+        }});
+        // The menu is position: fixed to escape the table's overflow, so its
+        // coordinates come from the textarea's viewport rect. Recomputed on
+        // every render because the textarea autogrows as it is edited.
+        var r = ta.getBoundingClientRect();
+        m.style.left = r.left + 'px';
+        m.style.width = r.width + 'px';
+        m.style.top = (r.bottom + 2) + 'px';
+        m.style.display = 'block';
+      }}
+
+      function pick(ta, i) {{
+        if (i < 0 || i >= items.length || start < 0) return;
+        var caret = ta.selectionStart;
+        var before = ta.value.slice(0, start);
+        var after = ta.value.slice(caret);
+        // Only add the trailing space when the text does not already continue
+        // with one. The composer always appends it because there is usually
+        // nothing after the caret there; here the common case is fixing a card
+        // name in the MIDDLE of a sentence, where that would double the space.
+        var insert = '[' + items[i] + ']' + (/^\\s/.test(after) ? '' : ' ');
+        var next = before + insert + after;
+        // maxlength does not apply to a programmatic value set, and the
+        // server rejects an over-length approve with a 400. Refuse to build
+        // one instead of letting the submit fail later.
+        if (next.length > MAXLEN) {{ hide(); return; }}
+        ta.value = next;
+        var pos = (before + insert).length;
+        ta.selectionStart = ta.selectionEnd = pos;
+        hide();
+        ta.focus();
+      }}
+
+      function isCandidate(el) {{
+        return el && el.classList && el.classList.contains('candidate-textarea');
+      }}
+
+      document.addEventListener('input', function (e) {{
+        var ta = e.target;
+        if (!isCandidate(ta)) return;
+        if (active && active !== ta) hide();
+        active = ta;
+        var tok = tokenAt(ta);
+        if (!tok || tok.query.trim().length < MIN_CHARS) {{ hide(); return; }}
+        start = tok.start;
+        clearTimeout(timer);
+        var id = ++reqId;
+        timer = setTimeout(function () {{
+          fetch('/cards/autocomplete?q=' + encodeURIComponent(tok.query.trim()))
+            .then(function (r) {{ return r.ok ? r.json() : {{ suggestions: [] }}; }})
+            .then(function (d) {{
+              if (id !== reqId) return;          // a newer keystroke won
+              items = (d.suggestions || []).slice(0, MAX_ITEMS);
+              index = items.length ? 0 : -1;
+              render(ta);
+            }})
+            .catch(function () {{ /* offline or Scryfall down: no menu, keep typing */ }});
+        }}, DEBOUNCE_MS);
+      }});
+
+      document.addEventListener('keydown', function (e) {{
+        var ta = e.target;
+        if (!isCandidate(ta) || !items.length) return;
+        if (e.key === 'ArrowDown') {{
+          e.preventDefault(); index = (index + 1) % items.length; render(ta);
+        }} else if (e.key === 'ArrowUp') {{
+          e.preventDefault(); index = (index - 1 + items.length) % items.length; render(ta);
+        }} else if (e.key === 'Enter') {{
+          e.preventDefault(); pick(ta, index);
+        }} else if (e.key === 'Escape') {{
+          e.preventDefault(); hide();
+        }}
+      }});
+
+      document.addEventListener('focusout', function (e) {{
+        // Delayed so a mousedown on a suggestion still lands.
+        if (isCandidate(e.target)) setTimeout(hide, 120);
+      }});
+
+      // A fixed-position menu does not travel with its textarea, so a scroll
+      // would leave it stranded mid-page. Capture phase catches the table's
+      // own scrolling too, not just the window's.
+      window.addEventListener('scroll', function () {{ if (items.length) hide(); }}, true);
+      window.addEventListener('resize', function () {{ if (items.length) hide(); }});
     }})();
   </script>
 
