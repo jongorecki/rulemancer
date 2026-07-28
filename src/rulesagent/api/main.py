@@ -17,6 +17,7 @@ smuggled into L3.
 Run: uv run uvicorn rulesagent.api.main:app --reload
 """
 
+import hashlib
 import hmac
 import html as _html
 import json
@@ -30,6 +31,7 @@ import uuid
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Literal
 
 import httpx
@@ -40,7 +42,7 @@ from fastapi.responses import JSONResponse as _JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from rulesagent.cache import DEFAULT_DB
+from rulesagent.cache import DEFAULT_DB, KVCache
 from rulesagent.demo_auth import (
     COOKIE_MAX_AGE_S, hash_ip, ip_hash_salt, session_secret, sign_session, verify_session,
 )
@@ -737,8 +739,120 @@ def health() -> dict:
     return {"status": "ok", "ready": "agent" in _state}
 
 
+# --- warmed-example cache (docs/.superpowers/sdd/2026-07-27-gated-demo/
+# task-caching-report.md, Change 1) ------------------------------------------
+# The frontend's four clickable example questions (frontend/index.html's
+# EXAMPLES) get clicked more than anything else on the demo, are identical
+# every time, and each currently costs a full opus-5 generation -- the
+# measured $/query is ~$0.0485 and essentially all of it is this call. Serve
+# a pre-warmed answer on a first turn instead of regenerating it.
+#
+# Lives in the same data/cache.db as every other L3 cache (rulesagent.cache
+# .KVCache), a separate table so it never collides with ruling_emb/rewrite
+# keys. Module-level so tests can monkeypatch.setattr(main, "_example_cache",
+# KVCache(..., db_path=tmp_path)) the same way tests/test_ruling_retrieval.py
+# already does for its own module-level _cache.
+_example_cache = KVCache("example_answer_cache")
+
+
+def _normalize_question(question: str) -> str:
+    """Lowercased, whitespace-collapsed question text -- the cache key's
+    notion of "the same question," independent of a visitor retyping an
+    example with different casing or incidental whitespace."""
+    return " ".join(question.strip().lower().split())
+
+
+def _corpus_fingerprint(store) -> str:
+    """Sha256 over the embedding model name plus every chunk's source_id
+    (sorted, so the store's own list order never matters) -- an identity for
+    "this build of the index." Follows the repo's existing config-stamp
+    pattern rather than inventing a new one: evals/progress.py's
+    prompts_cache_sha256() hashes a cache's actual content (sort_keys=True
+    JSON) instead of trusting an author-declared version field that can go
+    stale. Changes whenever the corpus is rebuilt with a different rule set
+    or a different embedding model -- either would change what a fresh
+    answer looks like, so either must invalidate a cached one."""
+    ids = sorted(c.source_id for c in getattr(store, "chunks", []))
+    canonical = json.dumps({"model": getattr(store, "model", None), "ids": ids},
+                            sort_keys=True, ensure_ascii=False)
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
+def _example_cache_key(question: str, agent) -> str | None:
+    """Cache key for the warmed-example lookup, or None to mean "don't even
+    try the cache." None is returned when `agent` is a test double missing
+    `.store` (e.g. tests/test_api_debug.py's _FakeAgent) -- those existing
+    tests must keep behaving exactly as before this feature existed, not
+    crash on a missing attribute or silently cache under an incomplete
+    identity.
+
+    Folds in everything that changes the answer: normalized question text,
+    generator model + effort, system-prompt version, rewrite version, and the
+    corpus/index identity. Miss any one of these and a stale answer could
+    survive a model/prompt/corpus change -- exactly the honesty trap this
+    cache exists to avoid (a demo visitor seeing an answer the CURRENT
+    pipeline would not produce)."""
+    store = getattr(agent, "store", None)
+    if store is None:
+        return None
+    config = {
+        "q": _normalize_question(question),
+        "model": getattr(agent, "model", None),
+        "effort": getattr(agent, "effort", None),
+        "system_version": getattr(agent, "system_version", None),
+        "rewrite_version": getattr(agent, "rewrite_version", None),
+        "corpus_fingerprint": _corpus_fingerprint(store),
+    }
+    canonical = json.dumps(config, sort_keys=True, ensure_ascii=False)
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
+def _lookup_example_cache(question: str, agent) -> dict | None:
+    """The stored payload for `question` under the CURRENT config, or None on
+    a miss (including "couldn't build a key" and "cached JSON was
+    corrupt")."""
+    key = _example_cache_key(question, agent)
+    if key is None:
+        return None
+    raw = _example_cache.get(key)
+    if raw is None:
+        return None
+    try:
+        return json.loads(raw.decode("utf-8"))
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        return None
+
+
+def _store_example_cache(question: str, agent, payload: dict) -> None:
+    """Write `payload` (see _response_to_cache_payload) under the current
+    config's key. Used only by the manual warming script
+    (scripts/warm_examples.py) -- never called from a request path."""
+    key = _example_cache_key(question, agent)
+    if key is None:
+        return
+    _example_cache.put(key, json.dumps(payload, ensure_ascii=False).encode("utf-8"))
+
+
+def _response_to_cache_payload(resp: "AnswerResponse", agent) -> dict:
+    """The storable shape for a live AnswerResponse -- everything the
+    /answer route needs to reconstruct one on a cache hit, minus
+    `request_id` (a fresh id is minted per hit, cached or not)."""
+    return {
+        "answer": resp.answer,
+        "tldr": resp.tldr,
+        "answered": resp.answered,
+        "citations": [c.model_dump(mode="json") for c in resp.citations],
+        "cards": [c.model_dump(mode="json") for c in resp.cards],
+        "suggested_followups": resp.suggested_followups,
+        "debug": resp.debug.model_dump(mode="json"),
+        "model": agent.model,
+        "prompt_version": PROMPT_VERSION,
+    }
+
+
 def _record_query_event(code_row: dict, question: str, ans, agent, usage: dict,
-                         latency_ms: int, request: Request, ip_salt: str) -> None:
+                         latency_ms: int, request: Request, ip_salt: str,
+                         cached: bool = False) -> None:
     """Write the one `query` event for a gated call that has ALREADY reached
     and returned from the model -- real money is already spent by the time
     this runs. Fix round 1 finding 2: a failure in cost calculation, IP
@@ -749,21 +863,32 @@ def _record_query_event(code_row: dict, question: str, ans, agent, usage: dict,
     caller. So every step here is independently guarded and falls back to
     the best value it still has (never a fabricated estimate -- an unknown
     cost/token figure stays None/0 and is visible as a gap, not papered
-    over), and the final insert always runs with whatever was recovered."""
+    over), and the final insert always runs with whatever was recovered.
+
+    `cached=True` (a warmed-example hit -- see the cache section above): no
+    model call was made, so there is no usage to price. cost is set
+    EXPLICITLY to 0.0, never left at the None/NULL default -- NULL means
+    "unpriced" to _unpriced_query_count/_todays_spend below, which price
+    every NULL row at UNPRICED_QUERY_ESTIMATE_USD ($0.15) as a deliberately
+    high stand-in. A free hit recorded as NULL would look like the most
+    expensive query of the day instead of the cheapest."""
     input_tokens, output_tokens, cost, ip_hash = 0, 0, None, None
-    try:
-        input_tokens = usage.get("input_tokens") or 0
-        output_tokens = usage.get("output_tokens") or 0
-    except Exception as e:
-        logger.warning("query event: failed reading token usage: %r", e)
-    try:
-        cost = cost_usd(
-            agent.model, input_tokens=input_tokens, output_tokens=output_tokens,
-            cache_read_tokens=usage.get("cache_read_input_tokens") or 0,
-            cache_write_tokens=usage.get("cache_creation_input_tokens") or 0,
-        )
-    except Exception as e:
-        logger.warning("query event: cost calculation failed: %r", e)
+    if cached:
+        cost = 0.0
+    else:
+        try:
+            input_tokens = usage.get("input_tokens") or 0
+            output_tokens = usage.get("output_tokens") or 0
+        except Exception as e:
+            logger.warning("query event: failed reading token usage: %r", e)
+        try:
+            cost = cost_usd(
+                agent.model, input_tokens=input_tokens, output_tokens=output_tokens,
+                cache_read_tokens=usage.get("cache_read_input_tokens") or 0,
+                cache_write_tokens=usage.get("cache_creation_input_tokens") or 0,
+            )
+        except Exception as e:
+            logger.warning("query event: cost calculation failed: %r", e)
     try:
         ip_hash = hash_ip(_client_ip(request), ip_salt)
     except Exception as e:
@@ -904,6 +1029,13 @@ def answer(req: AnswerRequest, request: Request = None,
     history = [{"role": t.role, "content": t.content[:4000]} for t in req.history[-12:]]
     request_id = uuid.uuid4().hex
     t0 = time.monotonic()
+    # Warmed-example cache lookup (see the section above _record_query_event)
+    # -- ONLY on a first turn (history empty). A follow-up's answer depends
+    # on the transcript, so a cache keyed on question text alone would return
+    # an answer to the wrong question for any history-bearing request. This
+    # is a plain lookup, not inside `_lock`: it touches no shared counters,
+    # only KVCache's own per-op SQLite connection.
+    cached_payload = None if history else _lookup_example_cache(req.question, agent)
     # Hold the lock across the cap check, answer() call, the reads of its
     # last_* attributes, AND the `query` event write -- see the Task 6 note
     # above for why the cap check and event write must be inside this same
@@ -979,6 +1111,44 @@ def answer(req: AnswerRequest, request: Request = None,
                     "or ping Jon directly.",
                     status_code=503,
                 )
+        if cached_payload is not None:
+            # Warmed-example hit: no model call, so this is where the two
+            # code paths diverge. The cap/budget/length guards above already
+            # ran unchanged -- a cached hit still counts toward the code's
+            # query cap, it just costs $0.00 instead of ~$0.0485. See
+            # _record_query_event's `cached=True` docstring for why cost is
+            # explicit 0.0, never left NULL.
+            latency_ms = int((time.monotonic() - t0) * 1000)
+            if code_row is not None:
+                _record_query_event(
+                    code_row, req.question,
+                    SimpleNamespace(answered=cached_payload["answered"]),
+                    agent, {}, latency_ms, request, ip_salt, cached=True,
+                )
+            _log_row("queries", {
+                "request_id": request_id,
+                "ts": datetime.now(timezone.utc).isoformat(),
+                "question": req.question[:4000],
+                "history_len": 0,
+                "cards": [c["name"] for c in cached_payload["cards"]],
+                "answered": cached_payload["answered"],
+                "tldr": cached_payload["tldr"],
+                "text": cached_payload["answer"],
+                "citations": [c["id"] for c in cached_payload["citations"]],
+                "suggested_followups": cached_payload["suggested_followups"],
+                "model": cached_payload.get("model", agent.model),
+                "prompt_version": cached_payload.get("prompt_version", PROMPT_VERSION),
+                "latency_ms": latency_ms,
+            })
+            return AnswerResponse(
+                answer=cached_payload["answer"], tldr=cached_payload["tldr"],
+                answered=cached_payload["answered"],
+                suggested_followups=cached_payload["suggested_followups"],
+                request_id=request_id,
+                citations=[Citation(**c) for c in cached_payload["citations"]],
+                cards=[CardOut(**c) for c in cached_payload["cards"]],
+                debug=Debug(**cached_payload["debug"]),
+            )
         ans = agent.answer(req.question, history=history)
         usage_snapshot = dict(getattr(agent, "last_usage", None) or {})
         cards = list(agent.last_cards or [])
