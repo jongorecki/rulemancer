@@ -554,8 +554,21 @@ function answerTabs(mi, tab) {
   };
   return `<div style="display:flex;margin-bottom:10px;">${tabBtn("simple","Simple")}${tabBtn("full","Full")}</div>`;
 }
-function simpleBody(m) {
-  return `<div style="font-size:16px;line-height:1.6;color:var(--fg-primary);">${esc(m.tldr)}</div>`;
+// Fix 4: a compact, clickable list of cited rule numbers on the "short page"
+// (Simple tab) -- genuinely compact (numbers only, no rule text), each one
+// opening its full text in the SAME side panel the Full tab's cited-rules
+// list already opens (openCite / state.drawer), rather than a second display
+// mechanism.
+function citeCompact(m, mi) {
+  if (!m.citations || !m.citations.length) return "";
+  const chips = m.citations.map((c, ci) =>
+    `<button data-action="open-cite" data-mi="${mi}" data-ci="${ci}" title="Open this rule" class="rm-cite" style="font-family:var(--font-mono);font-size:11.5px;font-weight:500;color:var(--accent-link);background:var(--accent-soft);border:1px solid transparent;padding:3px 8px;border-radius:5px;cursor:pointer;">${esc(c.id)}</button>`
+  ).join("");
+  return `<div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:12px;">
+    <span style="font-size:10px;text-transform:uppercase;letter-spacing:.13em;color:var(--fg-muted);">Cited</span>${chips}</div>`;
+}
+function simpleBody(m, mi) {
+  return `<div style="font-size:16px;line-height:1.6;color:var(--fg-primary);">${esc(m.tldr)}</div>${citeCompact(m, mi)}`;
 }
 function fullBody(m, mi) {
   const paras = m.paras.map(p=>`<p style="margin:0;">${esc(p)}</p>`).join("");
@@ -585,7 +598,7 @@ function messageEl(m, mi) {
   // Pre-upgrade history rows have no tldr -- fall back to Full-only, no tabs.
   const hasTldr = !m.error && !!(m.tldr && m.tldr.trim());
   const tab = hasTldr ? (m.tab || "simple") : "full";
-  const body = (hasTldr && tab === "simple") ? simpleBody(m) : fullBody(m, mi);
+  const body = (hasTldr && tab === "simple") ? simpleBody(m, mi) : fullBody(m, mi);
   // Avatar sits outside the bubble; name/badge sits above it; follow-up
   // pills and the action row sit below it, also outside.
   return `<div style="display:flex;gap:13px;animation:rm-rise .35s var(--ease-out);max-width:100%;">
