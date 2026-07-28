@@ -87,6 +87,10 @@ const MARK = "assets/rulemancer-mark.svg";
 // person as they type/paste, but the server enforces the real limit, since
 // anyone can POST to /answer directly and skip this entirely.
 const MAX_QUESTION_CHARS = 2000;
+// Must match rulesagent.api.main.RULE_LOOKUP_MAX_QUERY_CHARS -- same
+// courtesy-limit-on-the-client / real-limit-on-the-server split as
+// MAX_QUESTION_CHARS above.
+const RULE_LOOKUP_MAX_QUERY_CHARS = 100;
 
 // Waiting ticker walks a Magic turn IN ORDER (docs/plan-turn-phase-ticker.md).
 // "main phasing" appears twice on purpose -- pre- and post-combat main phases.
@@ -134,6 +138,14 @@ const state = {
   thinkingWord: "consulting",
   sidebarExpanded: false,
   drawer: null,
+  lookup: null,
+  // Rule-lookup panel state (book icon). Shares the same slide-in aside as
+  // `drawer` (the cited-rules viewer) -- only one of `drawer` / `lookup` is
+  // ever non-null at a time; opening one closes the other. Shape when open:
+  // { query, loading, error, exact, results, selected }. `selected` holds a
+  // single { id, kind, text } once a keyword result (or a listed subrule) is
+  // picked, so the panel can show its full text the same way an exact
+  // number match does.
   toast: "",
   input: "",
   history: JSON.parse(localStorage.getItem("rm-history") || "[]"),
@@ -308,7 +320,74 @@ function openCite(mi, ci) {
   };
   render();
 }
-function closeDrawer() { state.drawer = null; render(); }
+function closeDrawer() { state.drawer = null; state.lookup = null; render(); }
+// "close-drawer" is the data-action on both the citation drawer's backdrop/X
+// AND the rule-lookup panel's backdrop/X -- they're the same slide-in aside
+// (Jon's ruling: reuse the existing panel, don't build a second one), so one
+// close handler clearing both pieces of state is correct, not a shortcut.
+
+// ---- rule lookup (book icon) ------------------------------------------------
+function openLookup() {
+  state.drawer = null;
+  state.lookup = { query: "", loading: false, error: null, exact: false, results: [], selected: null };
+  render();
+  const input = document.getElementById("rm-lookup-input");
+  if (input) input.focus();
+}
+function closeLookup() { state.lookup = null; render(); }
+
+async function lookupApi(query) {
+  const r = await fetch(API_BASE + "/rules/lookup", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ query }),
+  });
+  if (!r.ok) {
+    let detail = "";
+    try { detail = (await r.json()).detail || ""; } catch { /* body missing or not JSON */ }
+    throw new Error(detail || ("HTTP " + r.status));
+  }
+  return r.json();
+}
+async function runLookup() {
+  const input = document.getElementById("rm-lookup-input");
+  const query = (input ? input.value : state.lookup.query || "").trim();
+  if (!state.lookup || !query) return;
+  state.lookup.query = query;
+  state.lookup.loading = true;
+  state.lookup.error = null;
+  state.lookup.selected = null;
+  render();
+  try {
+    const data = await lookupApi(query);
+    if (!state.lookup) return; // panel closed while the request was in flight
+    state.lookup.loading = false;
+    state.lookup.exact = !!data.exact;
+    state.lookup.results = data.results || [];
+    if (state.lookup.exact && state.lookup.results.length === 1) {
+      state.lookup.selected = state.lookup.results[0];
+    }
+  } catch (e) {
+    if (!state.lookup) return;
+    state.lookup.loading = false;
+    state.lookup.error = e.message || "Lookup failed. Try again.";
+    state.lookup.results = [];
+  }
+  render();
+  const el = document.getElementById("rm-lookup-input");
+  if (el) el.focus();
+}
+function selectLookupResult(i) {
+  if (!state.lookup || !state.lookup.results[i]) return;
+  state.lookup.selected = state.lookup.results[i];
+  render();
+}
+function backToLookupResults() {
+  if (!state.lookup) return;
+  state.lookup.selected = null;
+  render();
+  const el = document.getElementById("rm-lookup-input");
+  if (el) el.focus();
+}
 
 // ---- misc actions ----------------------------------------------------------
 function toggleTheme() {
@@ -420,7 +499,7 @@ function iconRail() {
     <button data-action="toggle-sidebar" title="History" class="rm-hover" style="width:44px;height:44px;border:none;background:${histBg};color:${histColor};border-radius:9px;cursor:pointer;display:flex;align-items:center;justify-content:center;">${I.hist}</button>
     <div style="flex:1;"></div>
     ${btn("toggle-theme","Toggle light / dark", state.darkMode ? I.sun : I.moon)}
-    <button title="Comprehensive Rules" class="rm-hover" style="width:44px;height:44px;border:none;background:transparent;color:var(--parchment-100);border-radius:9px;cursor:pointer;display:flex;align-items:center;justify-content:center;">${I.book}</button>
+    ${btn("open-lookup","Comprehensive Rules",I.book)}
     <button title="Account" style="width:44px;height:44px;margin-top:4px;border:none;border-radius:999px;background:var(--accent);color:var(--parchment-50);font-weight:600;font-size:13px;cursor:pointer;">PJ</button>
   </aside>`;
 }
@@ -691,7 +770,79 @@ function chat() {
     </div>`;
 }
 
+// The Comprehensive Rules attribution line -- required on the lookup panel
+// (README's Attribution section: CR text is © Wizards of the Coast, this
+// project is unofficial Fan Content, and the CR itself is never shipped in
+// the repo). Always visible in the panel, not just after a search.
+function lookupAttribution() {
+  return `<div style="padding:12px 20px 16px;border-top:1px solid var(--border-default);">
+    <p style="margin:0 0 8px;font-size:11.5px;line-height:1.55;color:var(--fg-subtle);">
+      Magic: The Gathering and the Comprehensive Rules are &copy; Wizards of the Coast.
+      Rulemancer is unofficial Fan Content, not affiliated with or endorsed by Wizards.
+    </p>
+    <a href="https://magic.wizards.com/en/rules" target="_blank" rel="noopener"
+       style="font-size:12.5px;color:var(--accent-link);">Read the full rules at magic.wizards.com &#8599;</a>
+  </div>`;
+}
+
+function lookupResultRow(r, i) {
+  const gloss = esc(r.text.replace(/\s+/g, " ").slice(0, 96)) + (r.text.length > 96 ? "…" : "");
+  return `<button data-action="select-lookup-result" data-arg="${i}" class="rm-cite"
+    style="width:100%;text-align:left;display:flex;flex-direction:column;gap:4px;background:var(--bg-card);
+    border:1px solid var(--border-default);border-radius:9px;padding:10px 12px;cursor:pointer;">
+    <span style="font-family:var(--font-mono);font-size:12px;font-weight:600;color:var(--accent);">${esc(r.id)}</span>
+    <span style="font-size:12.5px;color:var(--fg-secondary);line-height:1.4;">${gloss}</span>
+  </button>`;
+}
+
+function lookupPanel() {
+  const l = state.lookup;
+  const headerRow = `<div style="position:sticky;top:0;background:var(--bg-card);border-bottom:1px solid var(--border-default);padding:16px 20px;display:flex;align-items:flex-start;gap:12px;">
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:10px;text-transform:uppercase;letter-spacing:.14em;color:var(--teal-700);font-weight:600;">Comprehensive Rules</div>
+        <div style="font-size:15px;font-weight:600;color:var(--fg-primary);margin-top:5px;">Rule lookup</div>
+      </div>
+      <button data-action="close-drawer" title="Close" style="width:32px;height:32px;flex:none;border:none;background:var(--bg-muted);color:var(--fg-secondary);border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;">${I.x}</button>
+    </div>`;
+  const searchRow = `<div style="padding:16px 20px 8px;display:flex;gap:8px;">
+      <input id="rm-lookup-input" type="text" value="${esc(l.query)}" placeholder="Rule number (e.g. 702.85a) or a keyword"
+        maxlength="${RULE_LOOKUP_MAX_QUERY_CHARS}"
+        style="flex:1;min-width:0;height:40px;background:var(--bg-elevated);border:1px solid var(--border-strong);border-radius:8px;
+        padding:0 11px;font-size:14px;color:var(--fg-primary);outline:none;" />
+      <button data-action="run-lookup" title="Look up" style="flex:none;height:40px;min-width:44px;padding:0 14px;border:none;border-radius:8px;
+        background:var(--accent);color:#fff;font-size:13.5px;font-weight:600;cursor:pointer;">Look up</button>
+    </div>`;
+  let body;
+  if (l.loading) {
+    body = `<div style="padding:8px 20px 4px;font-size:13px;color:var(--fg-subtle);">Looking up…</div>`;
+  } else if (l.error) {
+    body = `<div style="padding:8px 20px 4px;font-size:13px;color:var(--status-red);">${esc(l.error)}</div>`;
+  } else if (l.selected) {
+    const s = l.selected;
+    const back = l.results.length > 1
+      ? `<button data-action="lookup-back" style="margin:0 20px 4px;padding:0;border:none;background:none;color:var(--accent-link);font-size:12.5px;cursor:pointer;">&larr; Back to results</button>`
+      : "";
+    body = `${back}
+      <div style="padding:4px 20px 0;font-family:var(--font-mono);font-size:13px;font-weight:600;color:var(--accent);">${esc(s.id)}</div>
+      <div style="padding:8px 20px 16px;font-size:14px;line-height:1.65;color:var(--fg-secondary);white-space:pre-wrap;">${esc(s.text)}</div>`;
+  } else if (l.results.length) {
+    body = `<div style="padding:4px 20px 4px;font-size:11px;color:var(--fg-subtle);">${l.results.length} match${l.results.length===1?"":"es"}</div>
+      <div style="display:flex;flex-direction:column;gap:8px;padding:6px 20px 16px;">${l.results.map(lookupResultRow).join("")}</div>`;
+  } else if (l.query) {
+    body = `<div style="padding:8px 20px 16px;font-size:13px;color:var(--fg-subtle);">No matching rules found. Try a rule number (e.g. 104.3b) or a different keyword.</div>`;
+  } else {
+    body = `<div style="padding:8px 20px 16px;font-size:13px;color:var(--fg-subtle);">Enter a rule number or a keyword and press Look up.</div>`;
+  }
+  return `<div data-action="close-drawer" style="position:absolute;inset:0;background:var(--bg-overlay);z-index:50;animation:rm-rise .2s var(--ease-out);"></div>
+    <aside class="rm-scroll" style="position:absolute;top:0;right:0;bottom:0;width:440px;max-width:90%;background:var(--bg-card);border-left:1px solid var(--border-default);box-shadow:var(--shadow-lg);z-index:51;overflow-y:auto;overflow-x:hidden;animation:rm-slide .28s var(--ease-out);display:flex;flex-direction:column;">
+      ${headerRow}${searchRow}
+      <div style="flex:1;">${body}</div>
+      ${lookupAttribution()}
+    </aside>`;
+}
+
 function drawerEl() {
+  if (state.lookup) return lookupPanel();
   if (!state.drawer) return "";
   const d = state.drawer;
   const rulings = d.rulings && d.rulings.length
@@ -738,6 +889,12 @@ function render() {
     updateCharCount(ta);
     if (hadFocus) { ta.focus(); ta.selectionStart = ta.selectionEnd = ta.value.length; }
     wireComposer(ta);
+  }
+  const li = document.getElementById("rm-lookup-input");
+  if (li) {
+    li.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") { e.preventDefault(); runLookup(); }
+    });
   }
   const sc = document.getElementById("rm-scroll");
   if (sc) requestAnimationFrame(() => { sc.scrollTop = sc.scrollHeight; });
@@ -849,6 +1006,10 @@ app.addEventListener("click", (e) => {
     case "load-history": loadHistory(+t.dataset.arg); break;
     case "open-cite": openCite(+t.dataset.mi, +t.dataset.ci); break;
     case "close-drawer": closeDrawer(); break;
+    case "open-lookup": openLookup(); break;
+    case "run-lookup": runLookup(); break;
+    case "select-lookup-result": selectLookupResult(+t.dataset.arg); break;
+    case "lookup-back": backToLookupResults(); break;
     case "copy": copyMsg(mi); break;
     case "regen": regen(); break;
     case "thumb-up": voteUp(mi); break;
@@ -862,7 +1023,7 @@ app.addEventListener("click", (e) => {
     case "report": report(); break;
   }
 });
-document.addEventListener("keydown", (e) => { if (e.key === "Escape" && state.drawer) closeDrawer(); });
+document.addEventListener("keydown", (e) => { if (e.key === "Escape" && (state.drawer || state.lookup)) closeDrawer(); });
 
 render();
 </script>

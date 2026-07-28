@@ -23,6 +23,7 @@ import html as _html
 import json
 import logging
 import os
+import re
 import sqlite3
 import sys
 import threading
@@ -126,6 +127,24 @@ MAX_QUESTION_CHARS = 2000
 # reachable /answer endpoint. Enforced server-side (the real guard, checked
 # before any model call); the frontend's `maxlength` is a courtesy only,
 # trivially bypassed by posting to /answer directly.
+
+RULE_LOOKUP_MAX_RESULTS = 8
+# The book icon's lookup panel is deliberately a citation-lookup tool, not a
+# browsable rulebook (see /rules/lookup's docstring) -- keeping the result
+# list to "a handful, not hundreds" is part of that posture, not just UX. It
+# also bounds how much of the corpus one request can pull back.
+
+RULE_LOOKUP_MAX_QUERY_CHARS = 100
+# A rule number or a few search words, never a paste. Generous compared to
+# the longest real rule number (5-6 chars) or glossary term, but still small
+# enough that it can't be used to smuggle a long free-text scan of the whole
+# corpus through what's supposed to be a narrow lookup box.
+
+_RULE_NUMBER_RE = re.compile(r"^\d{1,3}(\.\d{1,4}[a-z]?)?$", re.IGNORECASE)
+# Matches a bare top-level number ("104"), a subrule ("104.3"), or a lettered
+# subrule ("104.3b") -- the three shapes chunk_map's rule keys use (see
+# Chunk.source_id in contracts.py). Anything else falls through to the
+# keyword-search branch below.
 
 UNPRICED_QUERY_ESTIMATE_USD = 0.15
 # Fix round 1: an upper-bound STAND-IN for one query whose cost_usd came
@@ -546,6 +565,25 @@ class Citation(BaseModel):
     id: str
     kind: str            # "rule" | "glossary" | "card"
     text: str | None     # resolved rule/glossary text; None for a card name
+
+
+class RuleLookupRequest(BaseModel):
+    query: str  # a rule number ("702.85a") or a keyword/phrase
+
+
+class RuleLookupResult(BaseModel):
+    id: str       # rule number or glossary term -- same shape as Citation.id
+    kind: str     # "rule" | "glossary"
+    text: str
+
+
+class RuleLookupResponse(BaseModel):
+    results: list[RuleLookupResult]
+    exact: bool  # True: `results` is the single chunk that matched `query`
+    # exactly (a real rule number or glossary term). False: `results` is a
+    # capped keyword-search list (or the capped list of a parent number's
+    # lettered subrules) -- the frontend uses this to decide whether to show
+    # one rule's text directly or a pick-list.
 
 
 class CardFaceOut(BaseModel):
@@ -1342,6 +1380,123 @@ def answer(req: AnswerRequest, request: Request = None,
         "latency_ms": latency_ms,
     })
     return resp
+
+
+@app.post(
+    "/rules/lookup",
+    tags=["answers"],
+    summary="Look up Comprehensive Rules text by rule number or keyword",
+    description="Powers the book icon's side-panel lookup. Exact rule/"
+    "glossary-term lookup, or a bounded keyword search -- never the full "
+    "document. Gated exactly like /answer.",
+)
+def rules_lookup(req: RuleLookupRequest, request: Request = None,
+                  session: str | None = Cookie(default=None, alias=COOKIE_NAME)):
+    """Deliberately narrow, matching Jon's ruling that this stays a rule-
+    LOOKUP tool, not a browsable rulebook: a visitor can resolve one rule
+    number exactly, or search a capped, keyword-matched list -- the same
+    posture as citations the app already shows, not a wholesale republish of
+    the CR (see README's Attribution section on why that distinction
+    matters for an unofficial Fan Content project).
+
+    Gating mirrors /answer's own structure (same `if _gate_enabled():` guard,
+    same _require_demo_config()/_resolve_gated_code() call sequence, same
+    401-missing-cookie / 403-revoked split): gating is OFF unless
+    COOKIE_SECRET is configured (local dev, most of the test suite), and ON
+    in the real gated deployment -- so this is never an open CR-text
+    endpoint sitting next to a locked-down /answer.
+
+    Costs no API credits -- it's a local dict lookup/scan against the
+    already-loaded chunk_map, the same in-memory structure /answer resolves
+    citations against. Deliberately writes NO demo_db event at all (neither
+    "query" nor "denied"): count_queries()/daily_spend() both filter on
+    `kind = 'query'`, so writing that kind here would silently inflate a
+    code's quota usage and the daily budget breaker for a request that never
+    touched the model. A different `kind` would be safe too (neither
+    function reads anything but 'query'), but skipping the write entirely is
+    simpler and there's no telemetry need for it today.
+    """
+    if _gate_enabled():
+        # _require_demo_config()'s salt return value is unused here -- no
+        # event is ever logged for this route (see docstring), so there's no
+        # hash_ip() call needing it. Still called first, matching every
+        # other gated route's convention of failing closed (503) on a
+        # partial COOKIE_SECRET/IP_HASH_SALT config before touching a
+        # session cookie at all.
+        _require_demo_config()
+        # Same real-str-vs-Cookie-sentinel fallback /answer uses -- see its
+        # comment on `session` above for why request.cookies is the fallback
+        # rather than trusting the DI-only parameter in a direct test call.
+        token = session if isinstance(session, str) else (
+            request.cookies.get(COOKIE_NAME) if request is not None else None
+        )
+        code_row = _resolve_gated_code(token)
+        if code_row is None:
+            return _answer_failure_response(
+                request,
+                "Enter your access code",
+                "This demo needs an access code. Head back to the home page to enter one.",
+                status_code=401,
+            )
+        if code_row["revoked_at"] is not None:
+            return _answer_failure_response(
+                request,
+                "Access code no longer valid",
+                "This access code has been revoked. Ask Jon for a fresh one.",
+                status_code=403,
+            )
+
+    query = req.query.strip()
+    if not query:
+        return _answer_failure_response(
+            request, "Nothing to look up", "Type a rule number or keyword.",
+            status_code=400,
+        )
+    if len(query) > RULE_LOOKUP_MAX_QUERY_CHARS:
+        return _answer_failure_response(
+            request, "Search too long",
+            f"Keep the lookup under {RULE_LOOKUP_MAX_QUERY_CHARS} characters.",
+            status_code=400,
+        )
+
+    _require_agent()  # fails closed (503) if the vector store hasn't loaded yet
+    chunk_map = _state["chunk_map"]
+
+    exact_chunk = chunk_map.get(query)
+    if exact_chunk is not None:
+        return RuleLookupResponse(
+            results=[RuleLookupResult(id=exact_chunk.source_id, kind=exact_chunk.kind,
+                                       text=exact_chunk.text)],
+            exact=True,
+        )
+
+    if _RULE_NUMBER_RE.match(query):
+        # A well-formed number/subrule that has no chunk of its own -- e.g.
+        # "702.85" when only its lettered children (702.85a, 702.85b, ...)
+        # are real chunks (no bare "702.85" rule exists). List those
+        # children instead of nothing. Lettered children extend the SAME
+        # number with a trailing letter and nothing else ("702.85a", not
+        # "702.85.1" or "702.850"), so "starts with query, one char longer,
+        # and that extra char is a letter" is the exact child shape --
+        # deliberately narrower than a plain prefix match, which would also
+        # catch an unrelated sibling number like "702.850" if one existed.
+        children = [
+            c for cid, c in chunk_map.items()
+            if c.kind == "rule" and cid.startswith(query)
+            and len(cid) == len(query) + 1 and cid[-1].isalpha()
+        ]
+        results = [RuleLookupResult(id=c.source_id, kind=c.kind, text=c.text)
+                   for c in children[:RULE_LOOKUP_MAX_RESULTS]]
+        return RuleLookupResponse(results=results, exact=False)
+
+    q_lower = query.lower()
+    matches = [
+        c for cid, c in chunk_map.items()
+        if q_lower in cid.lower() or q_lower in c.text.lower()
+    ]
+    results = [RuleLookupResult(id=c.source_id, kind=c.kind, text=c.text)
+               for c in matches[:RULE_LOOKUP_MAX_RESULTS]]
+    return RuleLookupResponse(results=results, exact=False)
 
 
 @app.get("/cards/autocomplete", tags=["cards"], summary="Card name autocomplete")
@@ -2199,7 +2354,7 @@ def admin_revoke_code(
 # setting an explicit Accept header (browsers default fetch to "*/*"), so we
 # can't rely on Accept alone to tell an API call from a page navigation.
 _JSON_API_PATHS = {
-    "/answer", "/unlock", "/feedback", "/cards/autocomplete",
+    "/answer", "/unlock", "/feedback", "/cards/autocomplete", "/rules/lookup",
     "/admin/scryfall/refresh", "/admin/scryfall/status", "/health",
 }
 
