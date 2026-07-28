@@ -1654,13 +1654,17 @@ def _admin_login_page(error: bool = False, status_code: int = 401) -> HTMLRespon
   input[type=password]::placeholder {{ color: var(--fg-subtle); }}
   input[type=password]:focus-visible {{ outline: 2px solid var(--accent); outline-offset: 2px;
           border-color: var(--accent); }}
-  /* plum-500, not --accent (plum-400) -- --fg-on-garnet on plum-400 measures
-     3.60:1, below AA's 4.5:1 for normal text; plum-500 measures 5.16:1.
-     Same brand token family, no new color introduced. */
+  /* plum-600, not --accent (plum-400) or plum-500 -- --fg-on-garnet on
+     plum-400 measures 3.60:1, below AA's 4.5:1 for normal text. plum-500
+     measured 5.1608:1 against this project's own 5.16:1 floor -- a margin
+     under a thousandth, so ANY future token/palette nudge could silently
+     drop it below the bar (mobile UX audit finding 6, 2026-07-28). plum-600
+     measures ~6.98:1, real headroom on the same brand token family, no new
+     color introduced. */
   button {{ width: 100%; padding: 0.75rem 1rem; font-size: var(--fs-base); font-weight: var(--fw-semibold);
-          font-family: var(--font-sans); background: var(--plum-500); color: var(--fg-on-garnet, #fff);
+          font-family: var(--font-sans); background: var(--plum-600); color: var(--fg-on-garnet, #fff);
           border: none; border-radius: var(--radius-md); cursor: pointer; transition: background var(--t-fast); }}
-  button:hover {{ background: var(--plum-600); }}
+  button:hover {{ background: var(--plum-700); }}
   button:focus-visible {{ outline: 2px solid var(--accent); outline-offset: 2px; }}
   /* status-red on bg-card alone is 4.37:1, just under AA; mixing in 20%
      white (still derived from the token) brings it to ~5.7:1. */
@@ -2009,7 +2013,14 @@ def _admin_page_html(minted: dict | None = None, error: str | None = None) -> st
   .questions .q-cost {{ color: var(--sigil); font-size: var(--fs-xs); flex-shrink: 0; }}
   .questions .q-text {{ color: var(--fg-primary); font-size: var(--fs-sm); }}
   .questions .empty {{ color: var(--fg-subtle); font-style: italic; }}
-  .btn-revoke {{ padding: 0.35rem 0.75rem; font-size: var(--fs-xs); font-weight: var(--fw-medium);
+  /* Mobile UX audit fix (finding 4): 28.2px measured height, well under the
+     44pt tap-target floor -- min-height + flex-centering grows the tappable
+     box without changing the button's font size or its padding-driven width,
+     same "grow the hit area, not the glyph" pattern index.html's icon-rail
+     buttons use for finding 2. */
+  .btn-revoke {{ padding: 0.35rem 0.75rem; min-height: 44px; display: inline-flex;
+                 align-items: center; justify-content: center;
+                 font-size: var(--fs-xs); font-weight: var(--fw-medium);
                  font-family: var(--font-sans); background: transparent; color: var(--status-red);
                  border: 1px solid var(--status-red); border-radius: var(--radius-md);
                  cursor: pointer; transition: background var(--t-fast); white-space: nowrap; }}
