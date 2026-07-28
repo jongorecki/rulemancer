@@ -1018,6 +1018,13 @@ and in `main()`, replacing the loop over `EXAMPLES`:
 whose answer is not actually cached is exactly the state that puts a slow paid
 pill on the page.
 
+**Raised by the final review of Tasks 1 and 2 (2026-07-28):** `mark_warmed` sets
+`warmed_at` unconditionally and silently no-ops on an id that does not exist
+(`rowcount == 0`). It is the only gate keeping an unwarmed example off the public
+page, so when this task wires it up, also assert `cur.rowcount == 1` there and
+fail loudly if it is not. A warm run that silently marks nothing, or marks the
+wrong row, currently looks identical to a successful one.
+
 - [ ] **Step 2: Write the cache checker**
 
 ```python
