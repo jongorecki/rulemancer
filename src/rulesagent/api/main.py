@@ -35,7 +35,8 @@ from typing import Literal
 import httpx
 from fastapi import BackgroundTasks, Cookie, FastAPI, Form, Header, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse
+from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
+from fastapi.responses import JSONResponse as _JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
@@ -52,6 +53,34 @@ from rulesagent.index.store import VectorStore
 from rulesagent.pricing import cost_usd
 
 logger = logging.getLogger(__name__)
+
+
+class JSONResponse(_JSONResponse):
+    """`application/json` with an EXPLICIT charset (plan-answer-ui-fixes Fix 2).
+
+    Root-cause note on the em-dash bug this exists to close: every layer
+    upstream of the HTTP response was audited and found clean --
+    `data/parsed/vector_voyage-4-large.pkl` has 93 chunks with a proper
+    U+2014 and zero mojibake, `parser.py` reads the CR with
+    `encoding="utf-8-sig"`, Starlette's stock `JSONResponse.render()` already
+    calls `json.dumps(..., ensure_ascii=False)` and encodes UTF-8, and a scan
+    of 1,335 real production rows in `data/cache.db`'s `queries` table (the
+    literal text every /answer response actually sent) found ZERO rows
+    containing an escaped-unicode or mojibake pattern. No layer this project
+    controls corrupts the character. The one real gap: Starlette only
+    auto-appends `; charset=utf-8` to `text/*` media types (see
+    `starlette.responses.Response.init_headers`) -- `application/json`
+    responses ship with NO charset parameter at all, relying on every
+    downstream reader to know "JSON is always UTF-8" per RFC 8259. That is
+    normally safe, but this app sits behind a proxy (fly.dev) that a plain
+    client doesn't, so an explicit charset costs nothing and removes the one
+    channel that was still ambiguous. Shadows the stdlib import so every
+    existing `JSONResponse(...)` call site in this module (error pages,
+    `/unlock`, `/feedback`, `/answer` via `default_response_class` below)
+    gets it for free, with no per-call-site changes."""
+
+    media_type = "application/json; charset=utf-8"
+
 
 REPO = Path(__file__).parent.parent.parent.parent
 VECTOR_MODEL = "voyage-4-large"
@@ -423,6 +452,7 @@ app = FastAPI(
     version="1.0.0",
     description=API_DESCRIPTION,
     lifespan=lifespan,
+    default_response_class=JSONResponse,  # explicit charset -- see class docstring
     openapi_tags=[
         {"name": "answers", "description": "Ask a rules question, get a cited answer."},
         {"name": "cards", "description": "Scryfall-backed card name autocomplete for the @-picker."},
