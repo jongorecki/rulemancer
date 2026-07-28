@@ -1,0 +1,305 @@
+/* Rulemancer evidence page.
+ *
+ * Colour, spacing and type come from design-system/tokens.css, which is copied
+ * in beside this file by the build so the site is self-contained. The page runs
+ * on the dark token set (body carries data-surface="dark"), which is the
+ * workspace default and matches the brand.
+ *
+ * Contrast, measured against --bg-page #17131F rather than assumed:
+ *   --fg-primary   #F1ECF4  15.70:1
+ *   --fg-secondary #C6BDCD  10.06:1
+ *   --fg-muted     #928899   5.40:1   <- the .population and .source lines
+ *   --accent-link  #B191CE   6.80:1   <- links
+ *   --accent       #9469B4   4.30:1   <- NON-TEXT ONLY (rules, borders)
+ * --fg-subtle sits at 3.22:1 and is deliberately never used for text here.
+ *
+ * No webfonts are shipped. The token stacks fall back to Georgia and the
+ * system sans, which keeps the page one file plus two SVGs.
+ */
+
+html { background: var(--bg-page); }
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-md);
+  line-height: var(--line-height-loose);
+  color: var(--fg-secondary);
+  -webkit-font-smoothing: antialiased;
+}
+
+main {
+  max-width: 74ch;
+  margin: 0 auto;
+  padding: var(--space-10) var(--space-5) var(--space-8);
+}
+
+/* Keyboard users get out of the header without tabbing the whole contents list. */
+.skip {
+  position: absolute;
+  left: -9999px;
+  top: var(--space-2);
+  background: var(--bg-elevated);
+  color: var(--fg-primary);
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-md);
+  text-decoration: none;
+}
+.skip:focus { left: var(--space-4); z-index: var(--z-toast); }
+
+a { color: var(--accent-link); text-underline-offset: 0.18em; }
+a:hover { color: var(--fg-primary); }
+:focus-visible {
+  outline: 2px solid var(--accent-link);
+  outline-offset: 3px;
+  border-radius: var(--radius-sm);
+}
+
+h1, h2, h3 {
+  font-family: var(--font-serif);
+  color: var(--fg-primary);
+  line-height: var(--line-height-tight);
+  font-weight: var(--font-weight-semibold);
+}
+
+/* ------------------------------------------------------------------ hero -- */
+
+.hero {
+  border-bottom: 1px solid var(--border-default);
+  padding-bottom: var(--space-6);
+  margin-bottom: var(--space-6);
+}
+/* Both shipped lockups carry their own background field (parchment or garnet).
+   The red one is the right call on this surface; the radius stops it reading as
+   an image someone forgot to cut out. */
+.lockup {
+  display: block;
+  width: min(380px, 78%);
+  height: auto;
+  margin: 0 0 var(--space-5);
+  border-radius: var(--radius-md);
+}
+.tagline {
+  margin: 0;
+  font-size: var(--font-size-lg);
+  color: var(--fg-secondary);
+  max-width: 46ch;
+}
+
+.intro p {
+  font-size: var(--font-size-lg);
+  color: var(--fg-secondary);
+}
+.intro p:first-child { color: var(--fg-primary); }
+
+/* -------------------------------------------------------------- contents -- */
+
+.contents {
+  margin: var(--space-8) 0;
+  padding: var(--space-5) var(--space-5) var(--space-4);
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+}
+.contents-h {
+  margin: 0 0 var(--space-3);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-xs);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--fg-muted);
+  font-weight: var(--font-weight-semibold);
+}
+.contents ol {
+  margin: 0;
+  padding-left: var(--space-5);
+  display: grid;
+  gap: var(--space-2);
+}
+.contents li { line-height: var(--line-height-normal); }
+
+/* -------------------------------------------------------------- findings -- */
+
+.finding {
+  padding-top: var(--space-8);
+  margin-bottom: var(--space-6);
+  border-top: 1px solid var(--border-default);
+  scroll-margin-top: var(--space-5);
+}
+.finding:first-child { border-top: none; padding-top: var(--space-4); }
+.finding h2 {
+  font-size: var(--font-size-2xl);
+  margin: 0 0 var(--space-4);
+  max-width: 30ch;
+}
+.finding p { max-width: 68ch; }
+
+/* The line that keeps every number attached to the rows it was computed over.
+   The most important element on the page and the easiest to under-style. */
+.population {
+  margin: 0 0 var(--space-5);
+  padding-left: var(--space-4);
+  border-left: 3px solid var(--accent);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-normal);
+  color: var(--fg-muted);
+}
+.population-label {
+  display: block;
+  font-size: var(--font-size-xs);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--sigil);
+  font-weight: var(--font-weight-semibold);
+}
+
+.aside {
+  margin: var(--space-5) 0;
+  padding: var(--space-4) var(--space-5);
+  background: var(--bg-elevated);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-normal);
+  color: var(--fg-secondary);
+}
+
+.points { max-width: 68ch; padding-left: var(--space-5); }
+.points li { margin-bottom: var(--space-2); }
+
+.quote {
+  margin: var(--space-5) 0;
+  padding: var(--space-4) var(--space-5);
+  background: var(--bg-card);
+  border-left: 3px solid var(--sigil);
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+}
+.quote blockquote { margin: 0; }
+.quote p {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-normal);
+  color: var(--fg-primary);
+}
+.quote figcaption {
+  margin-top: var(--space-3);
+  font-size: var(--font-size-xs);
+  color: var(--fg-muted);
+}
+
+.source {
+  margin-top: var(--space-5);
+  font-size: var(--font-size-xs);
+  color: var(--fg-muted);
+}
+code {
+  font-family: var(--font-mono);
+  font-size: 0.92em;
+  background: var(--bg-muted);
+  color: var(--fg-secondary);
+  padding: 0.1em 0.36em;
+  border-radius: var(--radius-sm);
+}
+
+/* ---------------------------------------------------------------- tables -- */
+
+/* Wide tables scroll inside their own box. The page itself never scrolls
+   sideways, on any width. */
+.table-wrap {
+  overflow-x: auto;
+  margin: var(--space-5) 0 var(--space-3);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+}
+table {
+  border-collapse: collapse;
+  width: 100%;
+  min-width: 34rem;
+  font-size: var(--font-size-sm);
+  font-variant-numeric: tabular-nums;
+}
+caption {
+  caption-side: top;
+  text-align: left;
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--font-size-xs);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--fg-muted);
+  border-bottom: 1px solid var(--border-default);
+}
+th, td {
+  text-align: left;
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--border-default);
+  line-height: var(--line-height-normal);
+}
+thead th {
+  font-size: var(--font-size-xs);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--fg-muted);
+  font-weight: var(--font-weight-semibold);
+  white-space: nowrap;
+}
+tbody th { color: var(--fg-primary); font-weight: var(--font-weight-medium); }
+tbody td { color: var(--fg-secondary); }
+tbody tr:last-child th, tbody tr:last-child td { border-bottom: none; }
+
+.note {
+  margin: 0 0 var(--space-5);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-normal);
+  color: var(--fg-muted);
+  max-width: 68ch;
+}
+
+/* ---------------------------------------------------------------- footer -- */
+
+footer {
+  margin-top: var(--space-10);
+  padding-top: var(--space-6);
+  border-top: 1px solid var(--border-default);
+  font-size: var(--font-size-sm);
+  color: var(--fg-muted);
+}
+footer h2 {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-xs);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--fg-muted);
+  margin: 0 0 var(--space-3);
+}
+footer p { max-width: 68ch; line-height: var(--line-height-normal); }
+.links {
+  list-style: none;
+  margin: var(--space-5) 0 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-2);
+}
+.links a { font-size: var(--font-size-md); }
+
+/* -------------------------------------------------------------- narrow -- */
+
+/* Prose stays at a readable measure, but a five-column table crammed into that
+   measure wraps its confidence intervals onto two lines. Where there is room,
+   let the table run right past the text column. It keeps the left grid line, so
+   the page still reads as one column. */
+@media (min-width: 68rem) {
+  .table-wrap { width: calc(100% + 9rem); }
+}
+
+@media (max-width: 40rem) {
+  main { padding: var(--space-6) var(--space-4) var(--space-6); }
+  .finding h2 { font-size: var(--font-size-xl); }
+  .intro p, .tagline { font-size: var(--font-size-md); }
+  .contents, .aside, .quote { padding-left: var(--space-4); padding-right: var(--space-4); }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html { scroll-behavior: smooth; }
+}

@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rulemancer, what was measured</title>
+<meta name="description" content="A Magic: The Gathering rules bot that cites the rule it used, and says so when it cannot answer.">
+<link rel="stylesheet" href="assets/tokens.css">
+<link rel="stylesheet" href="assets/evidence.css">
+<link rel="icon" href="assets/rulemancer-favicon.svg">
+</head>
+<body data-surface="dark">
+<a class="skip" href="#findings">Skip to the findings</a>
+<main>
+  <header class="hero">
+    <img class="lockup" src="assets/rulemancer-lockup-red.svg" alt="Rulemancer" width="380" height="96">
+    <p class="tagline">A Magic: The Gathering rules bot that cites the rule it used, and says so when it cannot answer.</p>
+  </header>
+
+  <section class="intro">
+        <p>Magic has a 200-page rulebook, and almost nothing people actually ask about is a single lookup. The real questions are about how two cards interact, which means knowing which rules apply, applying them in the right order, and being willing to say the answer is not in front of you.</p>
+        <p>This page is the measurement half of the project. I ran the finished system against 1,409 real questions from RulesGuru, a community question bank with reference rulings written by certified judges, and had a separate model grade every answer against those rulings. Each number below carries the exact set of questions it was computed over, because a percentage with no population attached does not mean anything.</p>
+        <p>One of the six findings is a correction. I published a conclusion earlier in this project that turned out to be an artifact of the questions I tested it on. It is here with the rest, because how it got caught is more interesting than the original claim was.</p>
+  </section>
+
+      <nav class="contents" aria-label="Findings">
+        <h2 class="contents-h">What's on this page</h2>
+        <ol>
+          <li><a href="#headline">The headline number</a></li>
+          <li><a href="#reversal">The finding I got wrong</a></li>
+          <li><a href="#refusal">It refuses instead of inventing</a></li>
+          <li><a href="#crossmodel">Model comparison, done fairly</a></li>
+          <li><a href="#judge">Checking the grader itself</a></li>
+          <li><a href="#weakness">Where it falls down</a></li>
+        </ol>
+      </nav>
+  <div id="findings">
+      <section class="finding" id="headline" aria-labelledby="headline-h">
+        <h2 id="headline-h">Roughly 86% on all 1,409 questions</h2>
+        <p class="population"><span class="population-label">Measured over</span>
+           1,409 questions, the full RulesGuru set, run on the shipped pipeline: claude-opus-5 at low reasoning effort, v2 query rewriting, raw ruling query, three grader votes per answer</p>
+        <p>Call it about 2 points of give from sampling, plus roughly another 4 points because the grader is not perfectly consistent when you run it twice. The sampling part comes out as a 95% confidence interval of 83.96% to 87.60%, which is a formal way of saying that if I ran this again on a different batch of questions this size, the result would land inside that window nearly every time. So the fair way to say it is mid eighties, not a figure carried out to two decimal places.</p>
+        <p>The average hides the shape, and the shape is the useful part. Easy questions are close to solved. The hardest tier is where the work is left, and it is the last section on this page.</p>
+        <div class="table-wrap">
+          <table>
+            <caption>Accuracy by difficulty level, 1,409 questions</caption>
+            <thead><tr><th scope="col">Level</th><th scope="col">Questions</th><th scope="col">Correct</th><th scope="col">Accuracy</th><th scope="col">95% range</th></tr></thead>
+            <tbody><tr><th scope="row">Level 0</th><td>207</td><td>199</td><td>96.1%</td><td>92.6 to 98.0</td></tr><tr><th scope="row">Level 1</th><td>565</td><td>510</td><td>90.3%</td><td>87.5 to 92.4</td></tr><tr><th scope="row">Level 2</th><td>406</td><td>342</td><td>84.2%</td><td>80.4 to 87.5</td></tr><tr><th scope="row">Level 3</th><td>162</td><td>110</td><td>67.9%</td><td>60.4 to 74.6</td></tr><tr><th scope="row">Corner Case</th><td>69</td><td>49</td><td>71.0%</td><td>59.4 to 80.4</td></tr></tbody>
+          </table>
+        </div>
+          <p class="note">Corner Case reads higher than Level 3, but the two ranges overlap heavily, so I am not claiming one is really easier than the other.</p>
+        <p class="source">Source: arm <code>headline_full_votes3</code></p>
+      </section>
+      <section class="finding" id="reversal" aria-labelledby="reversal-h">
+        <h2 id="reversal-h">Scramble the rules and card-free accuracy falls from 98.84% to 15.12%</h2>
+        <p class="population"><span class="population-label">Measured over</span>
+           86 questions written to contain no card names at all, run twice: once with the rules the system actually retrieved, once with rules retrieved for a different question</p>
+        <p>Retrieval means the system searches the rulebook first and pastes the most relevant rules into the prompt before the model answers. To find out whether those rules were doing any work, I ran the same questions with the rules swapped out for rules belonging to a completely different question. Same volume of text, same format, wrong content. That swap is called a placebo arm, and it is the cheapest way to tell load-bearing from decorative.</p>
+        <p>I had run that test before and concluded the rules were close to inert, worth about 3 points. The arithmetic was fine. The population was wrong. 99.4% of the questions in the corpus name specific cards, and a card&#x27;s own text restates most of the rule it depends on, so the card text was quietly covering for the rules the whole time. Build a set with no cards in it and the same swap costs 83.7 points instead of 3.</p>
+        <p>The corrected claim is narrower and more useful than the original: the rules are redundant given card text, not redundant. The experiment that overturned it cost about five dollars.</p>
+        <p class="aside">The old number was not wrong about its own questions. When a question names cards, the card text really does carry most of the load. Reading the card explains the card.</p>
+        <p class="source">Source: arms <code>rules86_placebo_votes3</code> and <code>rules86_real_votes3</code></p>
+      </section>
+      <section class="finding" id="refusal" aria-labelledby="refusal-h">
+        <h2 id="refusal-h">Under sabotaged retrieval it declined on 90.7% of questions instead of making something up</h2>
+        <p class="population"><span class="population-label">Measured over</span>
+           the same 86 card-free questions, scrambled-rules run only</p>
+        <p>The more interesting half of that collapse is how it failed. On 78 of the 86 questions it said it could not answer and named what was missing from the context it had been given. It gave a confident wrong answer on 3 of them, which is 3.5%. On a manual read, one of those 3 looks like a grading mistake, so the real count may be 2.</p>
+        <p>With the correct rules in the prompt it declined zero times out of 86. So the refusals are tracking the evidence in front of it rather than the difficulty of the question, which is the behavior I want out of a rules bot. Being told the phasing rules are missing is useful. A made-up ruling delivered with confidence is worse than no answer.</p>
+        <figure class="quote">
+          <blockquote><p>I can&#x27;t answer this from the rules provided. The context here contains no phasing rules at all (nothing from rule 702.25 on phasing, and nothing on whether a permanent phasing in counts as entering the battlefield).</p></blockquote>
+          <figcaption>One of the 78 declines, question 001, scrambled-rules run</figcaption>
+        </figure>
+        <p class="source">Source: arm <code>rules86_placebo_votes3</code>, <code>docs/results-rules86-placebo.md</code></p>
+      </section>
+      <section class="finding" id="crossmodel" aria-labelledby="crossmodel-h">
+        <h2 id="crossmodel-h">opus-5 beat gpt-5-mini by about 16 points, and the judge came from the losing model family</h2>
+        <p class="population"><span class="population-label">Measured over</span>
+           1,409 questions, both models, identical prompts read from one frozen prompt cache, then graded four separate ways</p>
+        <p>Comparing two models is easy to do badly. If the grader belongs to the same family as one of the contestants, it can flatter its own. So I picked the test most likely to embarrass the answer I expected: grade both models with gpt-5-mini, the family of the model I thought would lose. It still put opus-5 ahead by 15.8 points.</p>
+        <p>Four graders across three model families all rank it the same way, and they agree within 3.4 points on the size of the gap. Most of that gap is not contested rulings, it is refusals. gpt-5-mini declined 157 of the 1,409 questions, about 1 in 9, with the rules and the card text sitting right there in the prompt. opus-5 declined 10.</p>
+        <div class="table-wrap">
+          <table>
+            <caption>The same two models under four graders</caption>
+            <thead><tr><th scope="col">Grader</th><th scope="col">opus-5</th><th scope="col">gpt-5-mini</th><th scope="col">Gap</th><th scope="col">Questions</th></tr></thead>
+            <tbody><tr><th scope="row">gpt-5-mini (losing family)</th><td>~86% [83.96, 87.60]</td><td>70.05% [67.61, 72.38]</td><td>+15.8</td><td>1,409</td></tr><tr><th scope="row">Claude panel (winning family)</th><td>87.3% [77.6, 93.2]</td><td>68.1% [56.6, 77.7]</td><td>+19.2</td><td>72</td></tr><tr><th scope="row">deepseek-v3.2 (neutral)</th><td>87.3% [81.1, 91.7]</td><td>70.0% [62.2, 76.8]</td><td>+17.3</td><td>150</td></tr><tr><th scope="row">gemini-2.5-flash-lite (neutral)</th><td>75.3% [67.9, 81.5]</td><td>59.3% [51.3, 66.9]</td><td>+16.0</td><td>150</td></tr></tbody>
+          </table>
+        </div>
+          <p class="note">The two neutral graders were never checked against human grading, so read them as a consistency check on the ranking, not as extra precision. Notice the absolute levels swing about 12 points between graders while the gap barely moves. That is the argument for reporting a gap rather than a score.</p>
+        <p class="source">Source: <code>docs/results-crossmodel-fair.md</code></p>
+      </section>
+      <section class="finding" id="judge" aria-labelledby="judge-h">
+        <h2 id="judge-h">The grader was checked in both directions, and it leans toward marking good answers wrong</h2>
+        <p class="population"><span class="population-label">Measured over</span>
+           90 grader-passed rows sampled across 8 arms for false positives, plus 77 unique rows for false negatives, including a complete census of every hard-level pass in three current arms</p>
+        <p>Every accuracy figure on this page came out of a model grading answers against reference rulings. That makes the grader an instrument, and an instrument nobody has checked is a number nobody can quote. I checked it both ways.</p>
+        <p>False positives, meaning it passed an answer that was actually wrong: 4 out of 90, so 4.4%. False negatives, meaning it failed an answer that was actually right: 0 out of 77. That 77 is a 30-row sample plus a complete census of all 53 hard-level passes, and the two sets overlap by 6 rows, which is why it is 77 and not 83.</p>
+        <p>The two errors push the headline in opposite directions and they do not cancel out at the point estimates, so 86% is more likely a slight understatement than an overstatement. The worst-case band is wide, roughly 11 points either way, and I would rather publish that than pretend the grader is exact.</p>
+        <p>Checking it also caught a number I had been quoting wrong. A grader stability figure of 0.48% had been floating around the project, and it was measured on a run where almost nothing was contestable in the first place. On a run in the normal accuracy range it is closer to 2 to 4%, and that is the 4 points of instrument variance in the headline. Same mistake as the reversal above: a real measurement quoted over the wrong population.</p>
+        <p class="source">Source: <code>docs/results-judge-false-negatives.md</code></p>
+      </section>
+      <section class="finding" id="weakness" aria-labelledby="weakness-h">
+        <h2 id="weakness-h">The hardest tier sits at 67.9%, and the misses cluster</h2>
+        <p class="population"><span class="population-label">Measured over</span>
+           162 level-3 questions inside the 1,409-question run, plus a qualitative read of 10 failures drawn from a separate 311-row slice</p>
+        <p>Level 3 is the corpus&#x27;s hardest tier and it is what I would work on next. 110 of 162 right. That is a third of the hardest questions wrong, and no amount of framing makes it a good number.</p>
+        <p>Reading the failures, they are not scattered. They land in a handful of places:</p>
+        <ul class="points">
+            <li>Layers and timestamps, the ordering rules for how continuous effects stack up. Biggest single bucket.</li>
+            <li>State-based actions on Sagas and merged permanents, where a permanent loses its abilities partway through.</li>
+            <li>Trigger ordering and timing misses.</li>
+            <li>Restriction scope, like treating cannot cast as though it also meant cannot activate.</li>
+            <li>Layer stacking after the source of an effect has left the battlefield.</li>
+        </ul>
+        <p class="aside">Those categories come from reading 10 of 23 failures in a smaller slice, so treat them as leads rather than measured rates. The arm they came from is almost entirely layers questions, which means I cannot separate layers are hard from that arm was hard. The one structural weakness I would bet on underneath several of them is multi-hop retrieval: one search finds a rule that points at another rule, and nothing goes back for the second one.</p>
+        <p class="source">Source: arm <code>headline_full_votes3</code>, <code>docs/results-failure-taxonomy.md</code></p>
+      </section>
+  </div>
+
+  <footer>
+    <h2>How this page is made</h2>
+        <p>Every number on this page is generated from the eval data in the repo, not typed into a template. Each finding names the arm that produced it, and the build fails if a claimed figure disagrees with that arm by more than 0.0005. That is deliberate: a public page that slowly drifts away from the data behind it is the exact failure this project spent its time learning to catch.</p>
+        <p>The code was written by Claude Code working under a standing set of rules I wrote, and I directed it. It is an AI project, and I would rather say that plainly than have you find it in the commit history.</p>
+        <p>If a number here looks wrong, the repo has the verdict files it came from.</p>
+        <ul class="links">
+          <li><a href="https://github.com/jongorecki/rulemancer">Source code and full write-up on GitHub</a></li>
+          <li><a href="https://rulemancer.jongorecki.com">Live demo (access codes are handed out individually, ask me for one)</a></li>
+        </ul>
+  </footer>
+</main>
+</body>
+</html>

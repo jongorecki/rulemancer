@@ -840,6 +840,48 @@ ROADMAP: list[dict] = [
                              "a spend guard"},
         "deps": [],
     },
+    {
+        "id": "evidence-site",
+        "title": "Public evidence site (generated from the arm data, not hand-typed)",
+        "one_line": "A static page for someone who will not read code: six curated findings, "
+                    "each carrying the population it was computed over, generated from "
+                    "_metrics_history.json so a published number cannot drift from the run "
+                    "that produced it.",
+        "status": "partial", "action": "build", "info": 3,
+        "info_why": "The page is the project's public claim surface, so the risk is not that it "
+                    "looks bad, it is that it goes stale silently. That risk is handled in code "
+                    "rather than by discipline: every arm-backed finding declares claimed_n, "
+                    "claimed_accuracy and claimed per-level figures, and the build raises "
+                    "DriftError above a 0.0005 tolerance. A test also diffs the committed "
+                    "site/index.html against a fresh render, so a stale commit fails the suite.",
+        "tells_us": "Six findings ship: the 1,409-question headline with its error bars, the "
+                    "rules reversal, refusal-not-confabulation, the fair cross-model comparison, "
+                    "the two-sided judge audit, and the level-3 weakness. The cross-model "
+                    "full-corpus arm is not registered in the metrics history, so that finding "
+                    "is doc-backed against docs/results-crossmodel-fair.md and the page says so "
+                    "rather than hardcoding the figure.",
+        "evidence": [
+            {"kind": "doc", "ref": "docs/superpowers/plans/2026-07-27-evidence-surface.md",
+             "note": "the plan this shipped from; tasks 1, 2, 5 and 6 (README, hygiene gate, "
+                     "public repo) landed 2026-07-27, tasks 3 and 4 (the generator and the "
+                     "page) on 2026-07-28"},
+            {"kind": "path", "ref": "evals/build_evidence_site.py",
+             "note": "the generator, including the drift guard"},
+            {"kind": "path", "ref": "docs/evidence/findings.json",
+             "note": "the curated narrative and the claimed figures it is checked against"},
+            {"kind": "path", "ref": "site/index.html",
+             "note": "the committed output, served with no build step"},
+        ],
+        "cost": {"kind": "zero", "why": "stdlib-only generator over data that already exists; "
+                                        "hosting is a free static tier"},
+        "metric": {"name": "published figures checked against their arm", "dir": "up",
+                   "basis": "measured", "cite": "tests/test_evidence_site.py",
+                   "detail": "17 tests green. Drift was verified by injecting a wrong "
+                             "accuracy, a wrong n, a wrong per-level figure and a wrong "
+                             "companion-arm figure into the real findings file: all four "
+                             "raised DriftError."},
+        "deps": ["gated-demo"],
+    },
     # ---------------------------------------------------------------- ready --
     {
         "id": "l0-arm",
