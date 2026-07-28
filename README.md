@@ -23,6 +23,11 @@ The part I'd point at, though, isn't the bot. It's what happened when I
 started measuring it, including the night the measurements knocked over a
 conclusion I'd already written down as settled.
 
+If you'd rather read the findings than the code, they're on their own page:
+**[what was measured](https://jongorecki.github.io/rulemancer/)**. Six
+findings, each carrying the set of questions it was computed over, generated
+straight from the eval data in this repo.
+
 ## Results
 
 I ran it against all 1,409 questions from [RulesGuru](https://rulesguru.net),
@@ -391,9 +396,12 @@ fine for a demo and not sized for real traffic.
 
 ## Live demo
 
-There's a hosted version going up, gated behind an access code so the API
-bill stays mine. The link lands here when it deploys. Codes get handed out
+It's live at **[rulemancer.jongorecki.com](https://rulemancer.jongorecki.com)**,
+gated behind an access code so the API bill stays mine. Codes get handed out
 one at a time, so ask me for one.
+
+The [results page](https://jongorecki.github.io/rulemancer/) isn't gated and
+doesn't run on the demo's server, so it stays up whether or not the demo is.
 
 ## Why Magic
 
