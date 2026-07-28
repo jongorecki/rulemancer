@@ -850,6 +850,130 @@ def _response_to_cache_payload(resp: "AnswerResponse", agent) -> dict:
     }
 
 
+def _run_agent(agent, question: str, history: list[dict]) -> tuple:
+    """Call agent.answer() and read back everything /answer's response
+    needs off its last_* recorder attributes -- the one place both the real
+    request path and the warm script's direct-generation path (see
+    generate_example_answer below) call into the model. Returns (ans,
+    usage_snapshot, cards, retrieved, rewritten, selection, unresolved_refs,
+    uncited_success, fuzzy_fallbacks)."""
+    ans = agent.answer(question, history=history)
+    return (
+        ans,
+        dict(getattr(agent, "last_usage", None) or {}),
+        list(agent.last_cards or []),
+        list(agent.last_retrieved or []),
+        agent.last_rewritten,
+        dict(agent.last_ruling_selection or {}),
+        list(agent.last_unresolved_refs or []),
+        bool(getattr(agent, "last_uncited_success", False)),
+        list(getattr(agent, "last_fuzzy_fallbacks", []) or []),
+    )
+
+
+def _build_answer_response(request_id: str, agent, chunk_map: dict, ans, cards,
+                            retrieved, rewritten, selection, unresolved_refs,
+                            uncited_success, fuzzy_fallbacks) -> "AnswerResponse":
+    """Everything downstream of a generated `ans`: resolve citations against
+    chunk_map + per-card rulings, build the card-info panel, build the debug
+    panel, and assemble the response. Pure -- no telemetry writes, no
+    guards. Shared by /answer's real (non-cached) path and
+    generate_example_answer() below -- the warm script's direct-generation
+    entry point -- so the two can never drift into building the response
+    differently. The `queries` table row is the CALLER's job (see
+    answer()): generate_example_answer() deliberately never writes one --
+    warming is an operator action against the cache, not demo traffic, and
+    must stay invisible to every number Jon shows people, not just the
+    gated events/quota (which it already never touches by skipping
+    code_row/DEMO_DB entirely)."""
+    # Labeled rulings shown to the model, for resolving ruling citations:
+    # each card ruling string starts with its "[Name ruling #N]" label.
+    ruling_by_label = {}
+    for c in cards:
+        for r in c.rulings:
+            if r.startswith("[") and "]" in r:
+                ruling_by_label[r[: r.index("]") + 1]] = r
+
+    citations = []
+    for cid in ans.citations:
+        chunk = chunk_map.get(cid)
+        label = cid if cid.startswith("[") else f"[{cid}]"
+        if chunk is not None:
+            citations.append(Citation(id=cid, kind=chunk.kind, text=chunk.text))
+        elif label in ruling_by_label:
+            # A ruling cited by its prompt label -- resolve the full text so
+            # the drawer can show it (L8 cite-by-label).
+            citations.append(Citation(id=cid, kind="ruling",
+                                      text=ruling_by_label[label]))
+        else:
+            citations.append(Citation(id=cid, kind="card", text=None))
+
+    cards_out = [
+        CardOut(
+            name=c.name, oracle_id=c.oracle_id, mana_cost=c.mana_cost,
+            type_line=c.type_line, oracle_text=c.oracle_text, rulings_used=c.rulings,
+            layout=c.layout,
+            power=c.faces[0].power if len(c.faces) == 1 else "",
+            toughness=c.faces[0].toughness if len(c.faces) == 1 else "",
+            loyalty=c.faces[0].loyalty if len(c.faces) == 1 else "",
+            defense=c.faces[0].defense if len(c.faces) == 1 else "",
+            faces=[
+                CardFaceOut(
+                    name=f.name, mana_cost=f.mana_cost, type_line=f.type_line,
+                    oracle_text=f.oracle_text, power=f.power, toughness=f.toughness,
+                    loyalty=f.loyalty, defense=f.defense,
+                )
+                for f in c.faces
+            ],
+        )
+        for c in cards
+    ]
+    debug = Debug(
+        rewrites=rewritten.queries if rewritten else [],
+        retrieved_rules=[r.chunk.source_id for r in retrieved],
+        selected_ruling_ids=selection,
+        unresolved_card_refs=unresolved_refs,
+        uncited_success=uncited_success,
+        fuzzy_fallbacks=fuzzy_fallbacks,
+    )
+    return AnswerResponse(
+        answer=ans.text, tldr=ans.tldr, answered=ans.answered,
+        suggested_followups=ans.suggested_followups, request_id=request_id,
+        citations=citations, cards=cards_out, debug=debug,
+    )
+
+
+def generate_example_answer(question: str, agent, chunk_map: dict) -> "AnswerResponse":
+    """Operator entry point for scripts/warm_examples.py: run the SAME
+    agent/generation call and response-building logic /answer uses
+    (_run_agent + _build_answer_response above), with NO Request object, NO
+    gating/cap/budget/length guards, and NO demo telemetry (`query` event,
+    quota, admin-panel history, or even the general `queries` table row) --
+    warming a cache is an operator action against the cache, not demo
+    traffic, and must be invisible to every guard and every number Jon
+    shows people.
+
+    This is what /answer's crash in production exposed: the script used to
+    call answer(req) directly, which -- once gating is on -- immediately
+    tries to hash a client IP off a Request that does not exist outside an
+    HTTP request. Bypassing the whole route (not just patching the crash)
+    also fixes the quieter problem the crash was standing in front of: even
+    a successful gated call would have consumed a demo code's query quota
+    and written a `query` event, polluting exactly the usage history this
+    function must stay invisible to.
+
+    single-turn only (history=[]) -- warming only ever caches first-turn
+    answers (see _lookup_example_cache's docstring for why a follow-up can
+    never be served from this cache)."""
+    ans, _usage, cards, retrieved, rewritten, selection, unresolved_refs, \
+        uncited_success, fuzzy_fallbacks = _run_agent(agent, question, [])
+    request_id = uuid.uuid4().hex
+    return _build_answer_response(
+        request_id, agent, chunk_map, ans, cards, retrieved, rewritten,
+        selection, unresolved_refs, uncited_success, fuzzy_fallbacks,
+    )
+
+
 def _record_query_event(code_row: dict, question: str, ans, agent, usage: dict,
                          latency_ms: int, request: Request, ip_salt: str,
                          cached: bool = False) -> None:
@@ -1149,15 +1273,9 @@ def answer(req: AnswerRequest, request: Request = None,
                 cards=[CardOut(**c) for c in cached_payload["cards"]],
                 debug=Debug(**cached_payload["debug"]),
             )
-        ans = agent.answer(req.question, history=history)
-        usage_snapshot = dict(getattr(agent, "last_usage", None) or {})
-        cards = list(agent.last_cards or [])
-        retrieved = list(agent.last_retrieved or [])
-        rewritten = agent.last_rewritten
-        selection = dict(agent.last_ruling_selection or {})
-        unresolved_refs = list(agent.last_unresolved_refs or [])
-        uncited_success = bool(getattr(agent, "last_uncited_success", False))
-        fuzzy_fallbacks = list(getattr(agent, "last_fuzzy_fallbacks", []) or [])
+        ans, usage_snapshot, cards, retrieved, rewritten, selection, \
+            unresolved_refs, uncited_success, fuzzy_fallbacks = \
+            _run_agent(agent, req.question, history)
         latency_ms = int((time.monotonic() - t0) * 1000)
         if code_row is not None:
             # Fix round 1 finding 2 (unchanged): the model call above has
@@ -1175,60 +1293,13 @@ def answer(req: AnswerRequest, request: Request = None,
             _record_query_event(code_row, req.question, ans, agent, usage_snapshot,
                                  latency_ms, request, ip_salt)
 
-    # Labeled rulings shown to the model, for resolving ruling citations:
-    # each card ruling string starts with its "[Name ruling #N]" label.
-    ruling_by_label = {}
-    for c in cards:
-        for r in c.rulings:
-            if r.startswith("[") and "]" in r:
-                ruling_by_label[r[: r.index("]") + 1]] = r
-
-    citations = []
-    for cid in ans.citations:
-        chunk = chunk_map.get(cid)
-        label = cid if cid.startswith("[") else f"[{cid}]"
-        if chunk is not None:
-            citations.append(Citation(id=cid, kind=chunk.kind, text=chunk.text))
-        elif label in ruling_by_label:
-            # A ruling cited by its prompt label -- resolve the full text so
-            # the drawer can show it (L8 cite-by-label).
-            citations.append(Citation(id=cid, kind="ruling",
-                                      text=ruling_by_label[label]))
-        else:
-            citations.append(Citation(id=cid, kind="card", text=None))
-
-    cards_out = [
-        CardOut(
-            name=c.name, oracle_id=c.oracle_id, mana_cost=c.mana_cost,
-            type_line=c.type_line, oracle_text=c.oracle_text, rulings_used=c.rulings,
-            layout=c.layout,
-            # Top-level power/toughness/loyalty/defense are a convenience for
-            # the common single-faced case only -- populated when there's
-            # exactly one face, blank otherwise (the two faces of a DFC can
-            # have different stats, so `faces` below is the real source of
-            # truth the frontend must read for anything multi-faced).
-            power=c.faces[0].power if len(c.faces) == 1 else "",
-            toughness=c.faces[0].toughness if len(c.faces) == 1 else "",
-            loyalty=c.faces[0].loyalty if len(c.faces) == 1 else "",
-            defense=c.faces[0].defense if len(c.faces) == 1 else "",
-            faces=[
-                CardFaceOut(
-                    name=f.name, mana_cost=f.mana_cost, type_line=f.type_line,
-                    oracle_text=f.oracle_text, power=f.power, toughness=f.toughness,
-                    loyalty=f.loyalty, defense=f.defense,
-                )
-                for f in c.faces
-            ],
-        )
-        for c in cards
-    ]
-    debug = Debug(
-        rewrites=rewritten.queries if rewritten else [],
-        retrieved_rules=[r.chunk.source_id for r in retrieved],
-        selected_ruling_ids=selection,
-        unresolved_card_refs=unresolved_refs,
-        uncited_success=uncited_success,
-        fuzzy_fallbacks=fuzzy_fallbacks,
+    # citations/cards_out/debug building is shared with
+    # generate_example_answer() (the warm script's entry point) via
+    # _build_answer_response -- see its docstring for why the two paths
+    # must never build the response differently.
+    resp = _build_answer_response(
+        request_id, agent, chunk_map, ans, cards, retrieved, rewritten,
+        selection, unresolved_refs, uncited_success, fuzzy_fallbacks,
     )
     _log_row("queries", {
         "request_id": request_id,
@@ -1245,11 +1316,7 @@ def answer(req: AnswerRequest, request: Request = None,
         "prompt_version": PROMPT_VERSION,
         "latency_ms": latency_ms,
     })
-    return AnswerResponse(
-        answer=ans.text, tldr=ans.tldr, answered=ans.answered,
-        suggested_followups=ans.suggested_followups, request_id=request_id,
-        citations=citations, cards=cards_out, debug=debug,
-    )
+    return resp
 
 
 @app.get("/cards/autocomplete", tags=["cards"], summary="Card name autocomplete")

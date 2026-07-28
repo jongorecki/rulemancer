@@ -67,11 +67,15 @@ def _isolated_example_cache(monkeypatch, tmp_path):
     monkeypatch.delenv("COOKIE_SECRET", raising=False)
 
 
-def _warm(question: str, agent: _FakeAgent, cookie: str | None = None) -> None:
-    """Populate the cache exactly the way scripts/warm_examples.py does:
-    call the real route once and store its response."""
-    req = main.AnswerRequest(question=question)
-    resp = main.answer(req, request=_fake_request(cookie=cookie))
+def _warm(question: str, agent: _FakeAgent) -> None:
+    """Populate the cache exactly the way scripts/warm_examples.py does
+    (fix round, 2026-07-28): call generate_example_answer() directly -- no
+    Request, no HTTP route, no gating -- and store its response. Works
+    identically whether or not COOKIE_SECRET is set, unlike the old warm
+    path (routing through main.answer()), which crashed in production once
+    gating was on because there is no Request to hash a client IP off of
+    outside a real HTTP call."""
+    resp = main.generate_example_answer(question, agent, {})
     payload = main._response_to_cache_payload(resp, agent)
     main._store_example_cache(question, agent, payload)
 
@@ -136,13 +140,91 @@ def test_cached_hit_writes_query_event_with_cost_zero_not_null(monkeypatch, tmp_
 
     agent = main._state["agent"]
     q = "If I copy [Emrakul, the Promised End]'s cast trigger, do I control two turns?"
-    _warm(q, agent, cookie=token)  # this warm call itself counts as query #1
+    _warm(q, agent)  # bypasses code_row entirely -- writes no event of its own
 
     req = main.AnswerRequest(question=q)
     resp = main.answer(req, request=_fake_request(cookie=token))
 
     assert resp.answered is True
-    events = events_for_code(db, code_id)  # newest first
-    assert len(events) == 2  # the warm call's event, then this cache-hit's event
+    events = events_for_code(db, code_id)
+    assert len(events) == 1  # only this cache-hit's event -- warming wrote none
     assert events[0]["cost_usd"] == 0.0
     assert events[0]["cost_usd"] is not None
+
+
+# --- fix round, 2026-07-28: warming crashed in production once gating was
+# on, because the old warm path called main.answer(req) with no Request --
+# fine locally where COOKIE_SECRET is unset (gating off, the branch that
+# needs a Request never runs), fatal in production where it does. The fix
+# is generate_example_answer(): an operator entry point that runs the same
+# agent/generation + response-building logic as /answer, but never touches
+# Request, gating, guards, or telemetry at all.
+
+
+def test_generate_example_answer_works_when_gated_and_no_request(monkeypatch, tmp_path):
+    """The exact crash this fix round exists to close: gating ON (as in
+    production), no Request object anywhere in the call. Must not raise."""
+    monkeypatch.setenv("COOKIE_SECRET", "test-secret")
+    monkeypatch.setenv("IP_HASH_SALT", "test-salt")
+    db = tmp_path / "demo.db"
+    monkeypatch.setattr(main, "DEMO_DB", db)
+    agent = main._state["agent"]
+
+    resp = main.generate_example_answer("Can I respond to a land being played?", agent, {})
+
+    assert resp.answered is True
+    assert resp.answer == "An honest answer."
+
+
+def test_generate_example_answer_writes_no_query_event_and_consumes_no_quota(
+    monkeypatch, tmp_path,
+):
+    """Warming must be invisible to a demo code's quota and to the usage
+    history /admin shows -- it is an operator action against the cache, not
+    demo traffic, even when a real gated code exists."""
+    monkeypatch.setenv("COOKIE_SECRET", "test-secret")
+    monkeypatch.setenv("IP_HASH_SALT", "test-salt")
+    db = tmp_path / "demo.db"
+    monkeypatch.setattr(main, "DEMO_DB", db)
+    code_id = create_code(db, "raptor-quill-42", "Test", max_queries=1)
+    agent = main._state["agent"]
+
+    main.generate_example_answer("How does cascade interact with the stack?", agent, {})
+
+    assert events_for_code(db, code_id) == []
+    from rulesagent.demo_db import count_queries
+    assert count_queries(db, code_id) == 0  # quota untouched
+
+
+def test_store_and_lookup_both_derive_the_key_via_the_shared_function(monkeypatch):
+    """_store_example_cache (what the warm script calls) and
+    _lookup_example_cache (what /answer calls) must both go through
+    _example_cache_key rather than each computing a key some other way --
+    if they ever drifted apart, warming would populate an entry the request
+    path can never read, and every visitor would silently keep paying full
+    price with no error anywhere. Proven by spying on the shared function
+    itself, not by inference from "warm then hit worked" (a coincidental
+    match could also produce that)."""
+    calls = []
+    real_key_fn = main._example_cache_key
+
+    def _spy(question, agent):
+        calls.append(question)
+        return real_key_fn(question, agent)
+
+    monkeypatch.setattr(main, "_example_cache_key", _spy)
+    agent = main._state["agent"]
+    q = "Does trample get through deathtouch?"
+
+    main._store_example_cache(q, agent, {"answer": "x", "tldr": "x", "answered": True,
+                                          "citations": [], "cards": [],
+                                          "suggested_followups": [], "debug": {
+                                              "rewrites": [], "retrieved_rules": [],
+                                              "selected_ruling_ids": {},
+                                              "unresolved_card_refs": [],
+                                              "uncited_success": False,
+                                              "fuzzy_fallbacks": [],
+                                          }})
+    main._lookup_example_cache(q, agent)
+
+    assert calls == [q, q]  # both call sites went through the same function

@@ -4,12 +4,22 @@
 The frontend's four clickable example questions (frontend/index.html's
 EXAMPLES) get clicked more than anything else on the demo, are identical
 every time, and each currently costs a full opus-5 generation -- the measured
-$/query is ~$0.0485 and essentially all of it is this call. This script runs
-each one through the real /answer route once (no gating, no HTTP -- calls
-rulesagent.api.main.answer() in-process the same way tests/test_api_debug.py
-does) and stores the resulting response in the SAME data/cache.db warmed-cache
-table the running server reads, so a demo visitor's first click on an example
-is served instantly and for free.
+$/query is ~$0.0485 and essentially all of it is this call. This script calls
+rulesagent.api.main.generate_example_answer() -- the SAME agent/generation
+call and response-building logic /answer uses, but with NO Request object, NO
+gating/cap/budget/length guards, and NO demo telemetry -- and stores the
+resulting response in the SAME data/cache.db warmed-cache table the running
+server reads, so a demo visitor's first click on an example is served
+instantly and for free.
+
+Deliberately does NOT go through the /answer HTTP route (fix round, 2026-07-
+28): once gating is on in production, answer() immediately tries to hash a
+client IP off a Request object, which does not exist for an in-process call
+-- this script used to build one, crashed on the real Fly deploy, and even a
+successful gated call would have consumed a demo code's query quota and
+written a `query` event, polluting the exact usage history /admin shows Jon.
+generate_example_answer() bypasses the whole route, not just the crash:
+warming a cache is an operator action against the cache, not demo traffic.
 
 SPENDS REAL ANTHROPIC API CREDITS: ~$0.05 x 4 questions = ~$0.20 total.
 Approved ceiling for a single run of this script is $0.40 -- it stops and
@@ -71,8 +81,6 @@ def main() -> int:
     # fields (model/effort/system_version/rewrite_version) match production's
     # defaults.
     agent = RulesAgent(store, effort=GEN_EFFORT)
-    api_main._state["agent"] = agent
-    api_main._state["chunk_map"] = agent.chunk_map
 
     total = 0.0
     warmed = 0
@@ -82,8 +90,7 @@ def main() -> int:
                   f"${APPROVED_CEILING_USD:.2f} approved ceiling, with "
                   f"{len(EXAMPLES) - warmed} question(s) left unwarmed.")
             return 1
-        req = api_main.AnswerRequest(question=q, history=[])
-        resp = api_main.answer(req)
+        resp = api_main.generate_example_answer(q, agent, agent.chunk_map)
         usage = dict(getattr(agent, "last_usage", None) or {})
         cost = cost_usd(
             agent.model,
