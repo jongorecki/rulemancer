@@ -480,6 +480,152 @@ def test_enough_unpriced_rows_to_exceed_budget_do_trip_it(monkeypatch, tmp_path)
     assert calls == []
 
 
+# --- task-length-guard ---------------------------------------------------
+# MAX_QUESTION_CHARS = 2000, derived by doubling the longest real question
+# across the full 1,409-question RulesGuru corpus (1,013 chars) -- see the
+# constant's comment in main.py. Checked inside the same `with _lock:`
+# critical section as the cap/budget checks, before agent.answer() is ever
+# called -- same no-model-call contract every other rejection above proves
+# with a call-count assertion.
+
+
+def _fake_request_with_headers(cookie: str | None = None, headers: dict | None = None) -> Request:
+    raw_headers = [(b"cookie", f"{main.COOKIE_NAME}={cookie}".encode())] if cookie else []
+    if headers:
+        raw_headers += [(k.encode(), v.encode()) for k, v in headers.items()]
+    scope = {"type": "http", "headers": raw_headers, "client": ("203.0.113.9", 12345),
+              "method": "POST", "path": "/answer"}
+    return Request(scope)
+
+
+def test_question_at_exact_limit_succeeds(monkeypatch, tmp_path, _fake_agent):
+    monkeypatch.delenv("COOKIE_SECRET", raising=False)
+    q = "a" * main.MAX_QUESTION_CHARS
+    req = main.AnswerRequest(question=q)
+
+    resp = main.answer(req, request=_fake_request())
+
+    assert resp.answered is True
+    assert _fake_agent.call_count == 1
+
+
+def test_question_one_char_over_limit_is_rejected_no_model_call(monkeypatch, tmp_path, _fake_agent):
+    monkeypatch.delenv("COOKIE_SECRET", raising=False)
+    q = "a" * (main.MAX_QUESTION_CHARS + 1)
+    req = main.AnswerRequest(question=q)
+
+    resp = main.answer(req, request=_fake_request())
+
+    assert resp.status_code == 413
+    assert _fake_agent.call_count == 0
+
+
+def test_leading_trailing_whitespace_does_not_count_toward_limit(monkeypatch, tmp_path, _fake_agent):
+    # A paste that carries surrounding whitespace/newlines must be measured
+    # AFTER stripping -- otherwise a legitimate at-limit question with a
+    # trailing newline from a copy-paste would trip the guard for free.
+    monkeypatch.delenv("COOKIE_SECRET", raising=False)
+    q = "  \n" + ("a" * main.MAX_QUESTION_CHARS) + "\n\n  "
+    req = main.AnswerRequest(question=q)
+
+    resp = main.answer(req, request=_fake_request())
+
+    assert resp.answered is True
+    assert _fake_agent.call_count == 1
+
+
+def test_whitespace_only_question_is_rejected(monkeypatch):
+    # Pre-existing check (top of answer(), before gating) -- verified here,
+    # not duplicated, so the length guard's test coverage doesn't imply this
+    # gap is new.
+    from fastapi import HTTPException
+
+    monkeypatch.delenv("COOKIE_SECRET", raising=False)
+    req = main.AnswerRequest(question="   \n\t  ")
+
+    with pytest.raises(HTTPException) as exc_info:
+        main.answer(req, request=_fake_request())
+
+    assert exc_info.value.status_code == 400
+
+
+def test_multibyte_character_counts_as_one_char_not_bytes(monkeypatch, tmp_path, _fake_agent):
+    # Accented letters, em dashes, CJK -- each is ONE Python str character
+    # even though it's several bytes in UTF-8. An at-limit question made of
+    # multi-byte characters must still succeed, not get penalised for
+    # encoding.
+    monkeypatch.delenv("COOKIE_SECRET", raising=False)
+    q = ("é—中" * (main.MAX_QUESTION_CHARS // 3 + 1))[: main.MAX_QUESTION_CHARS]
+    assert len(q) == main.MAX_QUESTION_CHARS
+    req = main.AnswerRequest(question=q)
+
+    resp = main.answer(req, request=_fake_request())
+
+    assert resp.answered is True
+    assert _fake_agent.call_count == 1
+
+
+def test_length_rejection_is_json_for_fetch_request(monkeypatch, tmp_path, _fake_agent):
+    import json as json_mod
+
+    monkeypatch.delenv("COOKIE_SECRET", raising=False)
+    q = "a" * (main.MAX_QUESTION_CHARS + 1)
+    req = main.AnswerRequest(question=q)
+    fake_req = _fake_request_with_headers(headers={"accept": "application/json"})
+
+    resp = main.answer(req, request=fake_req)
+
+    assert resp.status_code == 413
+    body = json_mod.loads(resp.body)
+    assert "too long" in body["detail"].lower()
+    assert str(main.MAX_QUESTION_CHARS) in body["detail"]
+    assert _fake_agent.call_count == 0
+
+
+def test_length_rejection_is_html_for_browser_post(monkeypatch, tmp_path, _fake_agent):
+    monkeypatch.delenv("COOKIE_SECRET", raising=False)
+    q = "a" * (main.MAX_QUESTION_CHARS + 1)
+    req = main.AnswerRequest(question=q)
+    fake_req = _fake_request_with_headers(headers={"accept": "text/html,application/xhtml+xml"})
+
+    resp = main.answer(req, request=fake_req)
+
+    assert resp.status_code == 413
+    assert b"<html" in resp.body.lower()
+    assert _fake_agent.call_count == 0
+
+
+def test_gated_length_rejection_logs_denied_event_with_truncated_question(monkeypatch, tmp_path, _fake_agent):
+    import sqlite3
+
+    monkeypatch.setenv("COOKIE_SECRET", "test-secret")
+    monkeypatch.setenv("IP_HASH_SALT", "test-salt")
+    db = tmp_path / "demo.db"
+    monkeypatch.setattr(main, "DEMO_DB", db)
+    code_id = create_code(db, "raptor-quill-42", "Test")
+    from rulesagent.demo_auth import sign_session
+    token = sign_session(code_id, "test-secret")
+    q = "a" * (main.MAX_QUESTION_CHARS + 500)
+    req = main.AnswerRequest(question=q)
+
+    resp = main.answer(req, request=_fake_request(cookie=token))
+
+    assert resp.status_code == 413
+    assert _fake_agent.call_count == 0
+
+    conn = sqlite3.connect(db)
+    conn.row_factory = sqlite3.Row
+    rows = [dict(r) for r in conn.execute(
+        "SELECT * FROM events WHERE code_id = ? AND kind = 'denied'", (code_id,)
+    ).fetchall()]
+    conn.close()
+    assert len(rows) == 1
+    # The full oversized question is never stored -- only a short, clearly
+    # truncated stand-in.
+    assert len(rows[0]["question"]) < len(q)
+    assert "truncated" in rows[0]["question"]
+
+
 def test_daily_budget_reads_utc_day_boundary_not_yesterdays_spend(monkeypatch, tmp_path):
     """A row stamped for yesterday (UTC) must not count toward today's
     budget -- otherwise the breaker never resets and the demo stays down

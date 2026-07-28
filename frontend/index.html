@@ -63,6 +63,12 @@ const API_BASE = (window.RULESMANCER_API !== undefined) ? window.RULESMANCER_API
 // Same-origin when the API serves the frontend itself (run.py / the StaticFiles
 // mount, any port); localhost:8000 only as the fallback for a file:// open.
 const MARK = "assets/rulemancer-mark.svg";
+// Must match rulesagent.api.main.MAX_QUESTION_CHARS -- see that constant's
+// comment for the derivation (longest real question of 1,409 measured was
+// 1,013 chars; doubled and rounded). This is a courtesy only: it stops a
+// person as they type/paste, but the server enforces the real limit, since
+// anyone can POST to /answer directly and skip this entirely.
+const MAX_QUESTION_CHARS = 2000;
 
 // Waiting ticker walks a Magic turn IN ORDER (docs/plan-turn-phase-ticker.md).
 // "main phasing" appears twice on purpose -- pre- and post-combat main phases.
@@ -404,14 +410,19 @@ function flyout() {
 
 function composer(placeholder, big) {
   const pad = big ? "14px 16px 10px" : "12px 14px 9px";
+  // Char counter: stays out of the way until the question gets long, then
+  // gets progressively louder (amber, then red) as it nears the server's
+  // hard MAX_QUESTION_CHARS limit -- so someone who hits it understands why
+  // before losing their typing, rather than after a rejected submit.
+  const counter = `<span id="rm-charcount" aria-live="polite" style="font-size:11px;color:var(--fg-subtle);white-space:nowrap;"></span>`;
   const foot = big
-    ? `<div style="display:flex;align-items:center;gap:6px;padding:0 10px;height:34px;border:1px solid var(--border-default);color:var(--fg-secondary);border-radius:8px;font-size:13px;">${I.book} CR 2026</div><div style="flex:1;"></div>`
-    : `<span style="flex:1;min-width:0;font-size:11px;color:var(--fg-subtle);">Type <b style="color:var(--teal-500);">@</b> to reference a card · Rulemancer can misjudge — verify against the CR for events.</span>`;
+    ? `<div style="display:flex;align-items:center;gap:6px;padding:0 10px;height:34px;border:1px solid var(--border-default);color:var(--fg-secondary);border-radius:8px;font-size:13px;">${I.book} CR 2026</div><div style="flex:1;"></div>${counter}`
+    : `<span style="flex:1;min-width:0;font-size:11px;color:var(--fg-subtle);">Type <b style="color:var(--teal-500);">@</b> to reference a card · Rulemancer can misjudge — verify against the CR for events.</span>${counter}`;
   const help = big
     ? `<div style="margin-top:8px;font-size:11px;color:var(--fg-subtle);text-align:left;">Type <b style="color:var(--teal-500);">@</b> to search and insert a card by name.</div>` : "";
   return `<div id="rm-composer-wrap" style="position:relative;width:100%;background:var(--bg-elevated);border:1px solid var(--border-strong);border-radius:16px;box-shadow:var(--shadow-md);padding:${pad};">
       <div id="rm-ac"></div>
-      <textarea id="rm-composer" placeholder="${esc(placeholder)}" rows="${big?2:1}" style="width:100%;border:none;outline:none;resize:none;background:transparent;font-size:${big?16:15}px;line-height:1.5;color:var(--fg-primary);"></textarea>
+      <textarea id="rm-composer" placeholder="${esc(placeholder)}" rows="${big?2:1}" maxlength="${MAX_QUESTION_CHARS}" style="width:100%;border:none;outline:none;resize:none;background:transparent;font-size:${big?16:15}px;line-height:1.5;color:var(--fg-primary);"></textarea>
       <div style="display:flex;align-items:center;gap:8px;margin-top:${big?6:4}px;">${foot}
         <button data-action="send" title="Send" class="rm-send" style="width:36px;height:36px;border:none;border-radius:9px;background:var(--accent);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow-sm);">${I.send}</button>
       </div>${help}
@@ -630,6 +641,7 @@ function render() {
   if (ta) {
     ta.value = state.input || "";
     autoGrow(ta);
+    updateCharCount(ta);
     if (hadFocus) { ta.focus(); ta.selectionStart = ta.selectionEnd = ta.value.length; }
     wireComposer(ta);
   }
@@ -668,9 +680,25 @@ function currentAtToken(ta) {
   return { start: at, query: frag };
 }
 
+function updateCharCount(ta) {
+  const el = document.getElementById("rm-charcount");
+  if (!el) return;
+  const len = ta.value.length;
+  const ratio = len / MAX_QUESTION_CHARS;
+  // Quiet until it's actually relevant (80%+), then count down remaining
+  // chars, then flip to a plain "limit reached" once the textarea's own
+  // maxlength has stopped further typing/pasting.
+  if (ratio < 0.8) { el.textContent = ""; return; }
+  const remaining = MAX_QUESTION_CHARS - len;
+  el.textContent = remaining <= 0 ? "Character limit reached" : `${remaining} characters left`;
+  el.style.color = ratio >= 1 ? "var(--status-red)" : ratio >= 0.95 ? "var(--status-red)" : "var(--status-yellow)";
+  el.style.fontWeight = ratio >= 0.95 ? "600" : "400";
+}
+
 function handleComposerInput(ta) {
   state.input = ta.value;
   autoGrow(ta);
+  updateCharCount(ta);
   const tok = currentAtToken(ta);
   if (!tok || tok.query.trim().length < 2) { hideAC(); return; }
   acStart = tok.start;

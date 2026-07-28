@@ -83,6 +83,19 @@ MAX_QUERIES_CEILING = 500
 # the measured mean, a defensible ceiling for a single demo code; mint a
 # second code if more capacity is genuinely needed.
 
+MAX_QUESTION_CHARS = 2000
+# All three existing spend guards (per-code query cap, daily USD budget
+# breaker, unlock rate limit) bound the NUMBER of queries -- none bounds the
+# SIZE of one, and input tokens scale with what a visitor pastes in. Measured
+# every question across the full 1,409-question RulesGuru corpus
+# (evals/rulesguru_full.jsonl) plus the other question sets: median 172
+# chars, p99 395, longest of all 1,409 was 1,013. Doubled and rounded up
+# (1,013 * 2 = 2,026 -> 2,000), so no genuine rules question can ever hit
+# this -- it only catches someone pasting a wall of text at the publicly
+# reachable /answer endpoint. Enforced server-side (the real guard, checked
+# before any model call); the frontend's `maxlength` is a courtesy only,
+# trivially bypassed by posting to /answer directly.
+
 UNPRICED_QUERY_ESTIMATE_USD = 0.15
 # Fix round 1: an upper-bound STAND-IN for one query whose cost_usd came
 # back NULL (a cost-calculation failure -- see _record_query_event), NOT a
@@ -840,6 +853,26 @@ def answer(req: AnswerRequest, request: Request = None,
     # pre-existing reason the last_* reads must stay inside it too: another
     # request could overwrite them the moment the lock is released.
     with _lock:
+        # Input-length guard: the three checks below (cap, budget, and this
+        # one) all sit inside the same critical section and all run before
+        # agent.answer() -- the cap/budget guards bound how many queries a
+        # code can spend, this one bounds how much a SINGLE query can cost by
+        # rejecting an oversized question before it ever reaches the model.
+        # Applies whether or not the demo is gated (code_row may be None):
+        # an ungated deployment's /answer is just as publicly reachable and
+        # just as billable per character sent. See MAX_QUESTION_CHARS'
+        # comment for the 2,000-char derivation.
+        if len(req.question.strip()) > MAX_QUESTION_CHARS:
+            if code_row is not None:
+                ip_hash = hash_ip(_client_ip(request), ip_salt)
+                # Never store the full oversized text -- the point of this
+                # guard is to avoid handling it. 200 chars is enough to spot
+                # the pattern (paste vs. typo) in the admin panel.
+                log_event(
+                    DEMO_DB, code_id=code_row["id"], kind="denied", ip_hash=ip_hash,
+                    question=req.question.strip()[:200] + " …[truncated, over length limit]",
+                )
+            return _question_too_long_response(request)
         if code_row is not None:
             cap = code_row["max_queries"] if code_row["max_queries"] is not None else DEFAULT_MAX_QUERIES
             if count_queries(DEMO_DB, code_row["id"]) >= cap:
@@ -1840,6 +1873,24 @@ def _wants_json_error(request: Request | None) -> bool:
         return False
     path = request.url.path if getattr(request, "url", None) is not None else ""
     return path in _JSON_API_PATHS
+
+
+def _question_too_long_response(request: Request | None) -> HTMLResponse | JSONResponse:
+    """The refusal for a question over MAX_QUESTION_CHARS -- content-
+    negotiated the same way every other JSON API response on this route is
+    (`_wants_json_error`, the general-purpose negotiator this module already
+    uses for /answer's own catch-all 500s; "/answer" is in _JSON_API_PATHS,
+    so the frontend's fetch() caller -- which never sets an explicit Accept
+    header -- still gets JSON back here, same as it does today for any other
+    /answer failure). A plain browser POST (Accept: text/html) gets the
+    styled page instead, same convention as _unlock_failure_response."""
+    message = (
+        f"That question is too long ({MAX_QUESTION_CHARS} characters max). "
+        "Trim it down and try again."
+    )
+    if _wants_json_error(request):
+        return JSONResponse({"detail": message}, status_code=413)
+    return _friendly_html("Question too long", message, status_code=413)
 
 
 async def _unhandled_exception_handler(
