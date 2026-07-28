@@ -905,6 +905,9 @@ ROADMAP: list[dict] = [
                     "real questions get clicked more than Jon's four, which the same `query` "
                     "event stream can answer.",
         "evidence": [
+            {"kind": "doc", "ref": "docs/superpowers/plans/2026-07-28-rotating-examples.md",
+             "note": "the four-task implementation plan, written 2026-07-28 and design-only "
+                     "until Jon rules; Task 4 spends credits and needs its own go-ahead"},
             {"kind": "path", "ref": "src/rulesagent/demo_db.py",
              "note": "events table already carries `question TEXT` per query event"},
             {"kind": "path", "ref": "scripts/warm_examples.py",
