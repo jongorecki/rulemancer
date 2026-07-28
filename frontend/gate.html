@@ -101,6 +101,57 @@
     .rm-sigil, .rm-sigil * { animation: none !important; }
   }
 
+  /* FIX ROUND (2026-07-27, rendering cost): Jon reported the sigil "still
+     flashing a bunch" on mobile against the LIVE deployment, after the
+     timing fix above (one shared 36s ease, staggered offsets) already
+     shipped and made desktop smooth. That rules out timing as the cause on
+     phones -- a slow, calm animation still repaints every frame, and the
+     sigil is a max(1100px, 100vmin) SVG whose strokes run through a double
+     feGaussianBlur (#rm-glow below). Re-rasterizing a filtered region that
+     large every frame is expensive; phone GPUs drop or repaint it
+     inconsistently, which reads as flashing even though nothing is
+     "blinking" in the CSS sense. Slowing the animation further can't fix
+     this -- the cost is per-frame work, not cycle length.
+
+     Fix: stop animating entirely on touch/narrow viewports and serve a
+     static sigil instead. Query is (max-width: 900px) AND (hover: none)
+     AND (pointer: coarse) -- 900px covers phones and tablets in portrait
+     (matching the "phones and tablets get static, desktops keep motion"
+     goal), and hover:none/pointer:coarse restrict it to touch input so a
+     desktop user who narrows their browser window (mouse, hover-capable)
+     keeps the animation -- narrowing a desktop window was never the
+     problem, touch-device repaint cost is. OR'd with the existing
+     prefers-reduced-motion query above (that block already kills the
+     animation; this block additionally swaps the expensive glow filter for
+     a cheaper one so even the single static paint is cheap).
+
+     The static frame is NOT just "whatever's left when animation:none
+     fires" -- that would freeze each pulse at stroke-dashoffset:0, opacity
+     1, i.e. five small default-length dashes bunched at each ring's path
+     start (all near the top), which reads as a stopped animation, not a
+     finished sigil. Instead every pulse gets an explicit static
+     stroke-dasharray (a longer, deliberate glowing arc instead of a short
+     tick) and a distinct stroke-dashoffset so the five arcs land at
+     different points around the circle -- an intentional, asymmetric
+     arrangement of teal energy, echoing the staggered phase offsets the
+     live animation uses, rather than five marks stacked at one spot. */
+  @media (max-width: 900px) and (hover: none) and (pointer: coarse),
+         (prefers-reduced-motion: reduce) {
+    .rm-sigil, .rm-sigil * { animation: none !important; }
+    .rm-sigil .rm-pulse {
+      /* Cheaper one-time paint: stdDeviation halved (7/2.2 -> 3.5/1.1) on
+         the static-only filter below, so the sigil still glows but never
+         asks a phone to rasterize the full-strength blur, not even once. */
+      filter: url(#rm-glow-static);
+      opacity: .84;
+    }
+    .rm-sigil .rm-pulse-a { stroke-dasharray: 42 58; stroke-dashoffset: -6; }
+    .rm-sigil .rm-pulse-b { stroke-dasharray: 34 66; stroke-dashoffset: -34; }
+    .rm-sigil .rm-pulse-c { stroke-dasharray: 46 54; stroke-dashoffset: -58; }
+    .rm-sigil .rm-pulse-d { stroke-dasharray: 30 70; stroke-dashoffset: -80; }
+    .rm-sigil .rm-pulse-e { stroke-dasharray: 38 62; stroke-dashoffset: -20; }
+  }
+
   .rm-gate-card {
     position: relative; z-index: 1;
     max-width: 420px; width: 100%; background: var(--bg-card);
@@ -172,6 +223,21 @@
     <filter id="rm-glow" x="-80%" y="-80%" width="260%" height="260%">
       <feGaussianBlur in="SourceGraphic" stdDeviation="7" result="blur-wide" />
       <feGaussianBlur in="SourceGraphic" stdDeviation="2.2" result="blur-tight" />
+      <feMerge>
+        <feMergeNode in="blur-wide" />
+        <feMergeNode in="blur-tight" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+    <!-- Cheaper static-only counterpart to #rm-glow, used on touch/narrow
+         viewports (see the media query below) where the sigil doesn't
+         animate. Same two-pass wide+tight glow, stdDeviation halved
+         (7->3.5, 2.2->1.1) -- still reads as a soft glow around the teal
+         arcs, just half the pixels to rasterize for what is now a single
+         paint instead of a per-frame one. -->
+    <filter id="rm-glow-static" x="-80%" y="-80%" width="260%" height="260%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="3.5" result="blur-wide" />
+      <feGaussianBlur in="SourceGraphic" stdDeviation="1.1" result="blur-tight" />
       <feMerge>
         <feMergeNode in="blur-wide" />
         <feMergeNode in="blur-tight" />
