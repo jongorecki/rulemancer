@@ -277,21 +277,41 @@ def approve_example(db_path: Path, question: str, *,
 
     Idempotent on the normalized form: approving the same question twice
     returns the existing row rather than creating a second one that would
-    share its cache key.
+    share its cache key. Re-approving a RETIRED row un-retires it and
+    refreshes the stored text to whatever was just submitted -- otherwise
+    retire is a one-way door and a re-approve of that exact text is a
+    silent no-op that leaves the example in neither the pool nor the
+    candidate queue.
     """
     norm = normalize_question(question)
+    text = question.strip()
     conn = _connect(db_path)
     try:
         existing = conn.execute(
             "SELECT id FROM examples WHERE norm = ?", (norm,)).fetchone()
         if existing is not None:
+            conn.execute(
+                "UPDATE examples SET question = ?, retired_at = NULL WHERE id = ?",
+                (text, existing["id"]))
+            conn.commit()
             return int(existing["id"])
-        cur = conn.execute(
-            "INSERT INTO examples (question, norm, source_event_id, approved_at) "
-            "VALUES (?, ?, ?, ?)",
-            (question.strip(), norm, source_event_id, _now()))
-        conn.commit()
-        return int(cur.lastrowid)
+        try:
+            cur = conn.execute(
+                "INSERT INTO examples (question, norm, source_event_id, approved_at) "
+                "VALUES (?, ?, ?, ?)",
+                (text, norm, source_event_id, _now()))
+            conn.commit()
+            return int(cur.lastrowid)
+        except sqlite3.IntegrityError:
+            # Two overlapping requests (a double-clicked Approve button --
+            # sync handlers run in FastAPI's threadpool) both SELECT-missed
+            # above and both tried to INSERT; the loser hits the UNIQUE
+            # constraint on norm. Re-select rather than let it escape as a
+            # 500 -- the row the winner just created is exactly what this
+            # caller wanted anyway.
+            row = conn.execute(
+                "SELECT id FROM examples WHERE norm = ?", (norm,)).fetchone()
+            return int(row["id"])
     finally:
         conn.close()
 

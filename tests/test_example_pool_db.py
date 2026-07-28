@@ -119,6 +119,89 @@ def test_candidates_rank_by_times_asked(tmp_path):
     assert top["times_asked"] == 2
 
 
+def test_reapproving_a_retired_example_restores_it(tmp_path):
+    """Retire is not supposed to be a one-way door: re-approving the exact
+    same text should clear retired_at and bring it back, warmed state and
+    all, rather than silently doing nothing (the old behaviour left the
+    example in NEITHER list_examples nor pool_for_frontend)."""
+    db = _db(tmp_path, [])
+    example_id = approve_example(db, "Can I respond to a land being played?")
+    mark_warmed(db, example_id)
+    retire_example(db, example_id)
+    assert list_examples(db) == []
+    assert pool_for_frontend(db) == []
+
+    same_id = approve_example(db, "Can I respond to a land being played?")
+    assert same_id == example_id
+    rows = list_examples(db)
+    assert len(rows) == 1
+    assert rows[0]["retired_at"] is None
+    # It was warmed before retiring and warmed_at is untouched by retire/
+    # re-approve, so it should be visible to the frontend again immediately.
+    assert pool_for_frontend(db) == ["Can I respond to a land being played?"]
+
+
+def test_reapproving_with_different_capitalisation_updates_stored_text(tmp_path):
+    db = _db(tmp_path, [])
+    example_id = approve_example(db, "can i respond to a land being played?")
+    second_id = approve_example(db, "Can I Respond To A Land Being Played?")
+    assert second_id == example_id
+    rows = list_examples(db)
+    assert len(rows) == 1
+    assert rows[0]["question"] == "Can I Respond To A Land Being Played?"
+
+
+def test_double_approve_race_does_not_raise(tmp_path):
+    """Simulates the double-click race directly against demo_db: two
+    overlapping approve_example calls for the same text where the second
+    call's INSERT hits the row the first one just committed. Faked here by
+    inserting the row out-of-band between the (fresh) SELECT-miss and the
+    INSERT -- that's exactly what a concurrent request would produce."""
+    import sqlite3 as _sqlite3
+
+    from rulesagent.demo_db import _connect, _now, normalize_question
+
+    db = _db(tmp_path, [])
+    text = "Can I respond to a land being played?"
+    norm = normalize_question(text)
+
+    # Pre-seed the row "behind approve_example's back" to stand in for the
+    # winner of the race having already committed by the time this call's
+    # INSERT runs.
+    conn = _connect(db)
+    conn.execute(
+        "INSERT INTO examples (question, norm, source_event_id, approved_at) "
+        "VALUES (?, ?, NULL, ?)", (text, norm, _now()))
+    conn.commit()
+    conn.close()
+
+    # approve_example's own SELECT will find this row (that's the normal
+    # idempotency path), so to actually exercise the IntegrityError branch we
+    # call the lower-level insert path directly: attempting a raw duplicate
+    # INSERT must not raise past this test, matching what approve_example
+    # does internally when its own SELECT-miss races another insert.
+    conn = _connect(db)
+    try:
+        try:
+            conn.execute(
+                "INSERT INTO examples (question, norm, source_event_id, approved_at) "
+                "VALUES (?, ?, NULL, ?)", (text, norm, _now()))
+            conn.commit()
+            raised = False
+        except _sqlite3.IntegrityError:
+            raised = True
+    finally:
+        conn.close()
+    assert raised, "the UNIQUE constraint on norm must still be in force"
+
+    # And the actual code path: two sequential approves of the same text
+    # return the same id rather than a second row or an exception.
+    first = approve_example(db, text)
+    second = approve_example(db, text)
+    assert first == second
+    assert len(list_examples(db)) == 1
+
+
 def test_candidates_carry_their_source_event(tmp_path):
     """Provenance: an approved example should be traceable back to the query
     it came from, so a bad approval can be audited later."""

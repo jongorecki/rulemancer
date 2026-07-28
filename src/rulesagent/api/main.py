@@ -2148,6 +2148,7 @@ def _admin_page_html(minted: dict | None = None, error: str | None = None) -> st
               <textarea name="question" class="candidate-textarea" rows="2"
                         maxlength="{MAX_QUESTION_CHARS}">{q_escaped}</textarea>
               <input type="hidden" name="event_id" value="{eid}" />
+              <input type="hidden" name="original_question" value="{q_escaped}" />
               <button type="submit" class="btn-approve">Approve</button>
             </form>
           </td>
@@ -2494,6 +2495,7 @@ def admin_revoke_code(
 def admin_approve_example(
     question: str = Form(...),
     event_id: str = Form(default=""),
+    original_question: str = Form(default=""),
     authorization: str | None = Header(default=None),
     admin_session: str | None = Cookie(default=None, alias=ADMIN_COOKIE_NAME),
 ) -> HTMLResponse:
@@ -2520,6 +2522,23 @@ def admin_approve_example(
         source = None
 
     approve_example(DEMO_DB, text, source_event_id=source)
+
+    # If Jon edited the textarea before submitting, the visitor's ORIGINAL
+    # text is a different norm than what just got approved -- candidate_
+    # questions only excludes norms in `examples` or `example_rejects`, so
+    # the unedited original would otherwise sit in the candidate table
+    # forever, indistinguishable from unhandled work, until someone clicks
+    # its Approve button and publishes it verbatim (personal details and
+    # all). Rejecting the original's norm here is what actually drains it.
+    # original_question mirrors event_id's Form(default="") pattern: when this
+    # handler is called directly (as the test suite does, bypassing FastAPI's
+    # request parsing) rather than through a real POST, an omitted keyword
+    # arrives as the Form(...) sentinel itself, not the default string -- so
+    # guard on isinstance rather than assume `.strip()` is always safe here.
+    original = original_question.strip() if isinstance(original_question, str) else ""
+    if original and _normalize_question(original) != _normalize_question(text):
+        reject_candidate(DEMO_DB, original)
+
     return HTMLResponse(content=_admin_page_html())
 
 

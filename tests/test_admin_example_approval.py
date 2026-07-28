@@ -9,7 +9,8 @@ from __future__ import annotations
 
 from rulesagent.api import main as api_main
 from rulesagent.demo_db import (
-    approve_example, list_examples, log_event, mark_warmed, pool_for_frontend,
+    approve_example, candidate_questions, list_examples, log_event, mark_warmed,
+    pool_for_frontend,
 )
 
 
@@ -146,6 +147,59 @@ def test_candidate_and_pool_questions_are_escaped(tmp_path, monkeypatch):
     assert candidate_escaped in html
     assert pool_payload not in html
     assert pool_escaped in html
+
+
+def test_approving_an_edited_question_drops_the_original_from_candidates(
+        tmp_path, monkeypatch):
+    """Reproduces the finding: Jon edits a candidate down before approving
+    (stripping a name/phone number, say). If the original's norm never gets
+    recorded anywhere, it sits in candidate_questions forever -- visually
+    identical to unhandled work -- until someone clicks ITS Approve button
+    and publishes the visitor's original text verbatim."""
+    db = tmp_path / "demo.db"
+    monkeypatch.setattr(api_main, "DEMO_DB", db)
+    monkeypatch.setattr(api_main, "_admin_authed", lambda *a, **k: True)
+    original = "my buddy Dave (555-0134) wants to know, can I respond to a land being played?"
+    log_event(db, code_id=None, kind="query", ip_hash=None,
+               question=original, answered=True)
+
+    response = api_main.admin_approve_example(
+        question="Can I respond to a land being played?",
+        event_id="1",
+        original_question=original,
+        authorization="Bearer x",
+        admin_session=None,
+    )
+    assert response.status_code == 200
+
+    remaining = candidate_questions(db)
+    assert original not in [c["question"] for c in remaining]
+    rows = list_examples(db)
+    assert len(rows) == 1
+    assert rows[0]["question"] == "Can I respond to a land being played?"
+
+
+def test_approving_unedited_text_does_not_reject_it(tmp_path, monkeypatch):
+    """original_question equals the submitted text when Jon approves as-is --
+    that must NOT get recorded as a reject, or the just-approved example
+    would show up in example_rejects for no reason."""
+    db = tmp_path / "demo.db"
+    monkeypatch.setattr(api_main, "DEMO_DB", db)
+    monkeypatch.setattr(api_main, "_admin_authed", lambda *a, **k: True)
+    text = "Can I respond to a land being played?"
+    api_main.admin_approve_example(
+        question=text, event_id="1", original_question=text,
+        authorization="Bearer x", admin_session=None,
+    )
+    assert list_examples(db)[0]["question"] == text
+    # Re-approving the very same text (idempotency path) must still succeed
+    # and must not be short-circuited by the new reject-the-original logic.
+    response = api_main.admin_approve_example(
+        question=text, event_id="1", original_question=text,
+        authorization="Bearer x", admin_session=None,
+    )
+    assert response.status_code == 200
+    assert len(list_examples(db)) == 1
 
 
 def test_admin_page_shows_candidates_and_the_pool(tmp_path, monkeypatch):
