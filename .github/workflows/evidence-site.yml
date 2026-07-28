@@ -1,0 +1,72 @@
+# Publish the evidence page to GitHub Pages.
+#
+# WHY A WORKFLOW AND NOT A PAGES BRANCH SETTING: Pages can only serve from a
+# branch root or /docs. The page lives in /site, which is deliberate (docs/ is
+# working documentation, not a web root), so an artifact upload is the way to
+# serve it without moving the file.
+#
+# The rebuild step is a gate, not a build step. site/index.html is committed so
+# the host needs no build, and that means a commit can carry a page that no
+# longer matches findings.json. Regenerating here and failing on any diff makes
+# that impossible to publish. The generator is stdlib-only, so this needs no
+# dependency install and no API access.
+name: Evidence site
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - "site/**"
+      - "docs/evidence/findings.json"
+      - "evals/build_evidence_site.py"
+      - "evals/_metrics_history.json"
+      - ".github/workflows/evidence-site.yml"
+  workflow_dispatch:
+
+# Read the repo, mint the Pages deployment token. Nothing else.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One deploy at a time. Never cancel one in progress: a half-replaced site is
+# worse than a slightly stale one.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Rebuild the page and fail if the commit was stale
+        run: |
+          python evals/build_evidence_site.py
+          git diff --exit-code -- site/ || {
+            echo "::error::site/ is out of date with findings.json. Run"
+            echo "::error::  .venv/Scripts/python.exe evals/build_evidence_site.py"
+            echo "::error::and commit the result."
+            exit 1
+          }
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
