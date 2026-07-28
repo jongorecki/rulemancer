@@ -285,6 +285,27 @@ def _friendly_html(title: str, message: str, status_code: int = 200) -> HTMLResp
     return HTMLResponse(content=html, status_code=status_code)
 
 
+def _answer_failure_response(
+    request: Request | None, title: str, message: str, status_code: int
+) -> HTMLResponse | JSONResponse:
+    """Shared failure rendering for /answer's guard rejections (401 no code,
+    402 code-at-cap, 403 revoked, 503 daily budget) -- mirrors the
+    _unlock_failure_response split below, using the same _wants_json_error
+    negotiator /answer's other JSON failures (413, 500) already use.
+
+    Mobile UX audit fix-round finding 1: before this, these four rejections
+    always returned the friendly HTML card regardless of caller, while 413
+    and 500 on the same route already content-negotiated to JSON for a
+    fetch() caller. index.html's askApi() does `await r.json()` on any
+    non-OK /answer response, so it got a JSON parse error for exactly the
+    guards this project worked hardest to phrase well (cap/revoked/budget),
+    and silently fell through to a generic fallback. Same status code and
+    same message either way -- only the body format changes."""
+    if _wants_json_error(request):
+        return JSONResponse({"detail": message}, status_code=status_code)
+    return _friendly_html(title, message, status_code=status_code)
+
+
 def _unlock_wants_json(request: Request | None) -> bool:
     """Content negotiation for /unlock ONLY -- a narrower, opt-in-to-JSON
     version of _wants_json_error's path-based fallback (defined later in
@@ -1115,7 +1136,8 @@ def answer(req: AnswerRequest, request: Request = None,
         if code_row is None:
             ip_hash = hash_ip(_client_ip(request), ip_salt)
             log_event(DEMO_DB, code_id=None, kind="denied", ip_hash=ip_hash)
-            return _friendly_html(
+            return _answer_failure_response(
+                request,
                 "Enter your access code",
                 "This demo needs an access code. Head back to the home page to enter one.",
                 status_code=401,
@@ -1123,7 +1145,8 @@ def answer(req: AnswerRequest, request: Request = None,
         if code_row["revoked_at"] is not None:
             ip_hash = hash_ip(_client_ip(request), ip_salt)
             log_event(DEMO_DB, code_id=code_row["id"], kind="denied", ip_hash=ip_hash)
-            return _friendly_html(
+            return _answer_failure_response(
+                request,
                 "Access code no longer valid",
                 "This access code has been revoked. Ask Jon for a fresh one.",
                 status_code=403,
@@ -1192,7 +1215,8 @@ def answer(req: AnswerRequest, request: Request = None,
             if count_queries(DEMO_DB, code_row["id"]) >= cap:
                 ip_hash = hash_ip(_client_ip(request), ip_salt)
                 log_event(DEMO_DB, code_id=code_row["id"], kind="denied", ip_hash=ip_hash)
-                return _friendly_html(
+                return _answer_failure_response(
+                    request,
                     "This demo code is used up",
                     "You've used all your questions on this code. Ask Jon for another.",
                     status_code=402,
@@ -1229,7 +1253,8 @@ def answer(req: AnswerRequest, request: Request = None,
             if spent >= budget:
                 ip_hash = hash_ip(_client_ip(request), ip_salt)
                 log_event(DEMO_DB, code_id=code_row["id"], kind="denied", ip_hash=ip_hash)
-                return _friendly_html(
+                return _answer_failure_response(
+                    request,
                     "The demo is resting for today",
                     "This demo hit its daily budget. It'll be back tomorrow -- "
                     "or ping Jon directly.",

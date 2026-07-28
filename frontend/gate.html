@@ -399,7 +399,15 @@
         return;
       }
       input.setAttribute("aria-invalid", "true");
-      msg.textContent = "That code didn't work. Check it and try again.";
+      // Mobile UX audit fix (finding 1): the server's specific detail (bad
+      // code vs. revoked vs. rate-limited -- each with its own remedy) is
+      // read from the JSON body instead of collapsing every non-OK /unlock
+      // response into one generic string that told a rate-limited visitor
+      // to "try again" when the actual fix is to wait. Falls back to the
+      // old generic sentence only if the body is missing or unparseable.
+      let detail = "";
+      try { detail = (await resp.json()).detail || ""; } catch { /* body missing or not JSON */ }
+      msg.textContent = detail || "That code didn't work. Check it and try again.";
     } catch (err) {
       msg.textContent = "Something went wrong. Try again in a moment.";
     } finally {

@@ -132,7 +132,21 @@ async function askApi(question, history) {
     method: "POST", headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ question, history: history || [] }),
   });
-  if (!r.ok) throw new Error("HTTP " + r.status);
+  if (!r.ok) {
+    // Mobile UX audit fix (finding 1): the server writes a specific, friendly
+    // `detail` for every guard (code-at-cap, revoked, daily-budget, question-
+    // too-long) -- read it instead of discarding the body and showing a bare
+    // status code. `.friendly` carries that sentence through to the catch
+    // block below; when the body is missing/unparseable (network drop, an
+    // HTML page from an intermediary) `.friendly` stays unset and the catch
+    // block falls back to its own generic, still-readable message -- never a
+    // raw status code or the exception text itself.
+    let detail = "";
+    try { detail = (await r.json()).detail || ""; } catch { /* body missing or not JSON */ }
+    const err = new Error(detail || ("HTTP " + r.status));
+    if (detail) err.friendly = detail;
+    throw err;
+  }
   return r.json();
 }
 async function autocompleteApi(q) {
@@ -199,9 +213,15 @@ async function runQuestion(text) {
       tab: "simple",
     });
   } catch (e) {
+    // e.friendly is the server's own detail sentence (set in askApi above)
+    // when the response body parsed -- show that verbatim. Otherwise this is
+    // a real connectivity failure (network drop, server down, an HTML error
+    // page from an intermediary): a calm, readable fallback, never the raw
+    // status code or exception text, and never a dev-facing command/URL.
+    const text = e.friendly || "Something went wrong reaching Rulemancer. Check your connection and try again in a moment.";
     state.messages.push({
       id: ++uid, role: "assistant", answered: false, error: true,
-      paras: ["I couldn't reach the rules engine (" + esc(e.message) + "). Make sure the API is running (uv run python run.py) and reachable at " + esc(API_BASE || location.origin) + "."],
+      paras: [text],
       citations: [], cards: [], feedback: null,
     });
   }

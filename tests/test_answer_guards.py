@@ -57,7 +57,28 @@ def test_gate_disabled_answer_works_without_cookie(monkeypatch):
     assert resp.answered is True
 
 
-def test_gate_enabled_no_cookie_returns_friendly_401(monkeypatch, tmp_path):
+def test_gate_enabled_no_cookie_browser_navigation_returns_friendly_401_html(monkeypatch, tmp_path):
+    monkeypatch.setenv("COOKIE_SECRET", "test-secret")
+    monkeypatch.setenv("IP_HASH_SALT", "test-salt")
+    monkeypatch.setattr(main, "DEMO_DB", tmp_path / "demo.db")
+    req = main.AnswerRequest(question="Does trample get through deathtouch?")
+    fake_req = _fake_request_with_headers(headers={"accept": "text/html,application/xhtml+xml"})
+
+    resp = main.answer(req, request=fake_req)
+
+    assert resp.status_code == 401
+    assert b"<html" in resp.body.lower()
+
+
+def test_gate_enabled_no_cookie_fetch_caller_returns_json_401(monkeypatch, tmp_path):
+    # Mobile UX audit fix (finding 1): index.html's askApi() never sets an
+    # explicit Accept header (a bare fetch() default is "*/*"), same as
+    # _fake_request() below -- this is exactly the caller shape that must
+    # get a JSON body with `detail` so the client can read and show it,
+    # matching the same content negotiation /answer's 413/500 already used
+    # before this fix and now share with the 401/402/403/503 guards.
+    import json as json_mod
+
     monkeypatch.setenv("COOKIE_SECRET", "test-secret")
     monkeypatch.setenv("IP_HASH_SALT", "test-salt")
     monkeypatch.setattr(main, "DEMO_DB", tmp_path / "demo.db")
@@ -66,7 +87,8 @@ def test_gate_enabled_no_cookie_returns_friendly_401(monkeypatch, tmp_path):
     resp = main.answer(req, request=_fake_request(cookie=None))
 
     assert resp.status_code == 401
-    assert b"<html" in resp.body.lower()
+    body = json_mod.loads(resp.body)
+    assert "access code" in body["detail"].lower()
 
 
 def test_gate_enabled_valid_cookie_answers_and_logs_query_event(monkeypatch, tmp_path):
