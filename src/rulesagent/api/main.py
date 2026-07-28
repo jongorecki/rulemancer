@@ -2402,7 +2402,7 @@ def _admin_page_html(minted: dict | None = None, error: str | None = None) -> st
   <h2>Questions by code</h2>
   {details_html or '<p class="empty-row">Nothing to show yet.</p>'}
 
-  <h2>Candidate questions</h2>
+  <h2 id="candidates">Candidate questions</h2>
   <div class="table-scroll">
     <table>
       <thead><tr><th>Question</th><th>Asked</th><th>Answered</th><th>Actions</th></tr></thead>
@@ -2410,7 +2410,7 @@ def _admin_page_html(minted: dict | None = None, error: str | None = None) -> st
     </table>
   </div>
 
-  <h2>Approved examples</h2>
+  <h2 id="approved">Approved examples</h2>
   {unwarmed_html}
   <div class="table-scroll">
     <table>
@@ -2484,6 +2484,26 @@ def admin_revoke_code(
     return HTMLResponse(content=_admin_page_html())
 
 
+def _back_to(anchor: str) -> RedirectResponse:
+    """Post/Redirect/Get back to the section the admin was working in.
+
+    Returning a re-rendered page from a form POST is a new document, so the
+    browser lands at the top -- which on this page means scrolling past the
+    codes table and the per-code question log after every single approve or
+    reject. Redirecting to an anchor puts them back at the list they are
+    working through.
+
+    The 303 also fixes a bug nobody had hit yet: with a rendered POST
+    response, a refresh re-submits the form, so refreshing after an approve
+    would silently approve again. After a redirect, refresh re-runs the GET.
+
+    Kept for the example handlers only. admin_mint_code deliberately renders
+    instead, because it has to show the freshly minted code exactly once, and
+    a redirect would throw it away.
+    """
+    return RedirectResponse(url=f"/admin#{anchor}", status_code=303)
+
+
 @app.post(
     "/admin/examples/approve", tags=["ops"],
     summary="Approve a visitor's question as a rotating demo example",
@@ -2539,7 +2559,7 @@ def admin_approve_example(
     if original and _normalize_question(original) != _normalize_question(text):
         reject_candidate(DEMO_DB, original)
 
-    return HTMLResponse(content=_admin_page_html())
+    return _back_to("candidates")
 
 
 @app.post(
@@ -2555,7 +2575,7 @@ def admin_reject_candidate(
     if not _admin_authed(authorization, admin_session):
         return _admin_login_page()
     reject_candidate(DEMO_DB, question)
-    return HTMLResponse(content=_admin_page_html())
+    return _back_to("candidates")
 
 
 @app.post(
@@ -2575,7 +2595,7 @@ def admin_retire_example(
     except ValueError:
         return HTMLResponse(
             content=_admin_page_html(error="bad example id"), status_code=400)
-    return HTMLResponse(content=_admin_page_html())
+    return _back_to("approved")
 
 
 # JSON API routes -- the frontend's own fetch() calls hit these without ever

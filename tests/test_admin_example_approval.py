@@ -67,7 +67,11 @@ def test_authenticated_retire_removes_it_from_the_pool(tmp_path, monkeypatch):
 
     response = api_main.admin_retire_example(
         example_id=str(example_id), authorization="Bearer x", admin_session=None)
-    assert response.status_code == 200
+    # 303 back to the approved list, not a re-rendered page: a rendered POST
+    # response lands the browser at the top of a long admin page after every
+    # single action, and makes a refresh re-submit the form.
+    assert response.status_code == 303
+    assert response.headers["location"] == "/admin#approved"
 
     rows = list_examples(db, include_retired=True)
     assert len(rows) == 1
@@ -170,7 +174,8 @@ def test_approving_an_edited_question_drops_the_original_from_candidates(
         authorization="Bearer x",
         admin_session=None,
     )
-    assert response.status_code == 200
+    assert response.status_code == 303
+    assert response.headers["location"] == "/admin#candidates"
 
     remaining = candidate_questions(db)
     assert original not in [c["question"] for c in remaining]
@@ -198,7 +203,8 @@ def test_approving_unedited_text_does_not_reject_it(tmp_path, monkeypatch):
         question=text, event_id="1", original_question=text,
         authorization="Bearer x", admin_session=None,
     )
-    assert response.status_code == 200
+    assert response.status_code == 303
+    assert response.headers["location"] == "/admin#candidates"
     assert len(list_examples(db)) == 1
 
 
