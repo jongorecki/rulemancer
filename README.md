@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="branding/rulemancer-lockup-light.png" alt="Rulemancer" width="620">
+  <img src="branding/rulemancer-lockup-plum.svg" alt="Rulemancer" width="620">
 </p>
 
 # Rulemancer

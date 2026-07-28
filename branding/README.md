@@ -31,17 +31,28 @@ Wordmark/linework on the red field: parchment `#F2EFEF`.
 
 ## Assets
 
+> **The garnet assets were removed on 2026-07-28.** The brand moved to plum
+> (`#653C86`), and the old red lockups, icons and favicons were the only copies
+> of the previous colourway still sitting in this folder. Keeping them around
+> was an active hazard: they are the first thing a search for "lockup" turns up,
+> and the evidence site shipped with a garnet lockup for exactly that reason.
+> They remain in git history if a previous colourway is ever needed again.
+
 | File | Use |
 |---|---|
-| `rulemancer-icon.svg` | Primary mark (detailed line tome). Self-contained vector, scales to any size. |
-| `rulemancer-lockup-light.svg` / `.png` / `@2x.png` | Horizontal lockup on parchment. Wordmark + tagline are outlined paths — no font needed. |
-| `rulemancer-lockup-red.svg` / `.png` / `@2x.png` | Inverted lockup on the garnet red field (cream wordmark). |
-| `rulemancer-icon-512-light.png` / `-red.png` | Square app icon, detailed mark, parchment or garnet background. |
-| `rulemancer-favicon.svg` | **Bold** simplified mark (solid garnet tome). Use at small sizes where the fine linework collapses. |
-| `favicon-512/180/32/16.png` | Favicon / touch-icon sizes rendered from `rulemancer-favicon.svg` (transparent). |
+| `rulemancer-lockup-plum.svg` | Horizontal lockup on parchment, current colourway. Wordmark + tagline are outlined paths, so no font is needed. Used by the repo README. |
+| `../frontend/assets/rulemancer-mark.svg` | The mark, plum. What the live app serves, and what the evidence site uses as its icon and favicon. |
+| `../frontend/assets/rulemancer-wordmark.svg` | Wordmark alone, drawn with `fill="currentColor"` so it takes the colour of whatever embeds it. Inline it rather than linking it; an `<img>` cannot inherit `currentColor`. |
 
-**Rule of thumb:** use the detailed `rulemancer-icon.svg` at ~64px and larger; use
-the bold `rulemancer-favicon.*` at 48px and below (browser tabs, small app icons).
+**No PNG or favicon variants currently exist in plum.** Rasterising needs
+`cairosvg` (see `src/build_svg.py`), which is not installed here. Nothing in the
+repo references a PNG logo any more, so this is a gap rather than a breakage: the
+README and both sites are SVG-only.
+
+**Plum values**, for regenerating anything from `src/`: ink `#653C86`, tagline
+`#7C4E9E`, tome face `#E4D8EE`, tome edge `#CDB6DE`, parchment `#F2EFEF` and teal
+`#309B8C` unchanged. The tagline is plum-500 rather than plum-400 so it holds
+5.34:1 on parchment, above the 4.5:1 AA line; plum-400 would land at 3.72:1.
 
 ## Fonts
 
