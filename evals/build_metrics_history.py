@@ -771,6 +771,43 @@ INFO_RANK = {
 
 ROADMAP: list[dict] = [
     {
+        "id": "opus-quality-next",
+        "title": "Where opus-5 accuracy can still move, after the prompt levers closed",
+        "one_line": "Prompt engineering was tested on the cheap model and the transferable "
+                    "conclusion is that there is nothing to port to opus. This ranks the "
+                    "remaining accuracy levers by evidence rather than by ease of trying.",
+        "status": "design-only", "action": "explore", "info": 3,
+        "info_why": "Rule 0: design only until Jon rules. Its value is mostly NEGATIVE "
+                    "evidence, which is cheaper to record than to rediscover: two "
+                    "plausible-sounding prompt changes were measured and rejected.",
+        "tells_us": "Anti-refusal instruction: do NOT ship it. It bought gpt-5-mini +5.0 "
+                    "points only because that model declines on 11.1% of rows; opus declines "
+                    "on 0.7%, so its entire addressable upside is 0.7 points, well inside the "
+                    "2-4 point judge instability. It also attacks the refusal reflex that "
+                    "rules86-placebo showed is load-bearing (90.7% declines, 3.5% "
+                    "confabulation under corrupted retrieval). Procedural scaffolding: also "
+                    "rejected, flat to 4 points worse on gpt-5-mini while declines rose, and "
+                    "opus already cites a CR rule on 98.1% of answers unprompted.",
+        "evidence": [
+            {"kind": "doc", "ref": "docs/plan-opus-quality-next.md",
+             "note": "the plan itself, with the rejected levers and a failed prediction "
+                     "recorded because it was testable"},
+            {"kind": "doc", "ref": "docs/results-rules86-placebo.md",
+             "note": "why the refusal reflex is worth protecting rather than instructing away"},
+            {"kind": "doc", "ref": "docs/results-judge-stability.md",
+             "note": "the 2-4 point instability that makes a 0.7 point upside unmeasurable"},
+        ],
+        "cost": {"kind": "spent", "why": "the prompt-lever bake-off ran on gpt-5-mini rather "
+                                        "than opus precisely because the cheap model is where "
+                                        "an instruction with real headroom could be measured"},
+        "metric": {"name": "addressable upside from prompt levers", "dir": "up",
+                   "basis": "measured", "cite": "docs/plan-opus-quality-next.md",
+                   "detail": "opus declines on 0.7% of rows (10/1409) against gpt-5-mini's "
+                             "11.1% (157/1409), so the prompt lever that moved the cheap model "
+                             "+5.0 points has almost nothing to act on here"},
+        "deps": [],
+    },
+    {
         "id": "gated-demo",
         "title": "Gated public demo on Fly.io (per-person access codes + spend guards)",
         "one_line": "Put Rulemancer in front of hiring managers behind per-person access codes, "
