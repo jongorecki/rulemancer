@@ -7,22 +7,48 @@ when there is enough demo traffic to draw from. Rule 0 applies: nothing here is
 built until Jon rules on it. **Task 4 spends API credits and needs a separate
 explicit go-ahead with a ceiling, even after the plan is approved.**
 
-**Goal:** Replace the demo's four hardcoded example questions with a curated pool
-of real questions visitors asked, rotating a few at a time, without ever losing
-the property that makes the examples feel good: pre-warmed, so a click is 85ms
-and $0.00 instead of ~12.9s and ~$0.0485.
+**Revised the same day**, after Jon asked for approval to happen in `/admin`
+rather than in a terminal. That is not a UI preference, it moves the pool from a
+committed file into production state. See "Why the pool lives in the database"
+below before changing it back.
 
-**Architecture:** Three moving parts, deliberately separated by who is trusted.
-A **read-only extraction script** turns production `events.question` rows into a
-ranked candidate list for Jon to read. **Jon curates** and pastes chosen strings
-into a single pool that lives in exactly one place. A **warm step** fills the
-answer cache for every pool entry and flips its `warmed` flag, and the frontend
-only ever shows entries whose flag is true. Nothing auto-publishes: a stranger's
-typed text cannot reach the page without passing through a human.
+**Goal:** Replace the demo's four hardcoded example questions with a pool of
+real questions Jon approves from `/admin`, rotating a few per page load, without
+losing the property that makes examples feel good: pre-warmed, so a click is
+85ms and $0.00 instead of ~12.9s and ~$0.0485.
 
-**Tech Stack:** Python 3.12 stdlib (`sqlite3`, `json`, `re`), pytest, Playwright
-(already a dev dependency, driven from `file://` with no server), vanilla JS in
-`frontend/index.html`, `flyctl ssh console` for anything touching production.
+**Architecture:** `/admin` already lists every question every visitor has asked.
+This adds an **approve** control beside them. Approving writes the question to a
+new `examples` table on the Fly volume, in an editable form, so Jon can fix a
+typo or strip something personal before it is ever public. The app **injects the
+approved, warmed pool into `index.html` at serve time**, so the page needs no
+extra request and the client code stays a plain array. Warming stays a
+deliberate command-line run, not a button.
+
+**Tech Stack:** Python 3.12 stdlib (`sqlite3`, `json`, `re`), FastAPI with
+server-rendered HTML forms (the pattern `/admin` already uses), pytest,
+Playwright driven from `file://`, `flyctl ssh console` for production.
+
+## Why the pool lives in the database
+
+The obvious design is a JSON block in `frontend/index.html`, committed to git.
+That is what the first draft of this plan did, and approving from `/admin` rules
+it out: the admin page runs in a Fly container and cannot commit to a repo.
+
+So the pool is production state, and that has costs worth accepting knowingly:
+
+- **It is not versioned.** Lose the volume, lose the curation. Task 4 adds an
+  export command precisely so a backup can be committed on purpose.
+- **It is not reviewable in a PR.** The compensating control is that approving
+  requires a human click in an authenticated page, and the approve form shows
+  the full text and lets it be edited first.
+- **Local and production diverge.** A dev machine's `data/demo.db` will have an
+  empty pool. The page must render correctly with zero approved examples, which
+  Task 3 tests explicitly.
+
+What it buys: curation happens where the data already is, from a phone if
+necessary, and "a human approved this string" becomes a row in a table rather
+than a convention someone might skip when they are in a hurry.
 
 ## Global Constraints
 
@@ -33,37 +59,32 @@ Every task's requirements implicitly include this section.
   SQLite text with `encoding="utf-8"`; the Windows cp1252 default fails here.
 - **Jon runs the app on port 8000. Never bind or kill it.** Use 8947 for render
   checks and stop it when done.
-- **Never run the full pytest suite while an eval arm is running.** Run only the
-  files covering the change.
-- **Verify UI by rendering.** Serve it, open it, look at it. Reading markup is
-  not verification.
-- **Production reads `/app/data/demo.db` on the Fly volume; `scripts/codes.py`
-  and friends write the LOCAL `data/demo.db` by default.** Anything that must
-  see real traffic runs inside the container via
-  `flyctl ssh console --app rulemancer -C "..."`. This has bitten this project
-  twice (the code CLI and the cache warm).
-- **Set any Fly secret whose value starts with `/` from PowerShell, not Git
-  Bash**, which rewrites POSIX paths into `C:/Program Files/Git/...`.
+- **Never run the full pytest suite while an eval arm is running.**
+- **Verify UI by rendering.** Serve it, open it, look at it.
+- **Production reads `/app/data/demo.db` on the Fly volume; local scripts write
+  `data/demo.db`.** Anything that must see real data runs inside the container
+  via `flyctl ssh console --app rulemancer -C "..."`. This has already bitten
+  this project twice.
+- **Auth ordering in every admin handler: check auth before touching the
+  database or the form values**, matching `admin_mint_code` at `main.py:2300`.
+  An unauthenticated POST must change nothing.
 - **Spending API credits needs Jon's explicit approval per run, with a
   ceiling.** The standing delegation grant does not cover spend.
 - **Commit per task** on master with the `Co-Authored-By: Claude Opus 5
   <noreply@anthropic.com>` trailer.
-- **Privacy rule for this feature specifically:** `events.question` holds text
-  typed by strangers into a public box. It may be personal, malformed, or
-  hostile. It is **review material, never publishable output**. No step in this
-  plan may write a candidate string into the pool automatically, and no script
-  here may print candidate text into a file that gets committed.
-- **Voice, if any user-facing copy is added:** contractions, plain words, no em
-  dashes, no corporate filler. Jon's register is a millennial who likes Magic
-  and memes but is not chronically online.
+- **Privacy rule, load-bearing for this feature:** `events.question` is text
+  strangers typed into a public box. It may be personal, malformed, or hostile.
+  Nothing may reach the pool without a human approving that exact string. No
+  automatic promotion, no "approve top 10" bulk action, no heuristic that
+  decides a question is safe.
+- **Voice for any user-facing copy:** contractions, plain words, no em dashes,
+  no corporate filler.
 
 ## Prerequisite
 
-**Do not start until the pool has something to draw from.** As of 2026-07-28
-production holds 11 `query` events and 9 distinct questions, which is not enough
-to curate 12 good examples from. Task 1 is still safe to build early (it only
-reads), but Tasks 2 to 4 are pointless until roughly 60+ distinct questions
-exist. Check with:
+**Tasks 1 and 2 are safe to build now.** Tasks 3 and 4 are pointless until there
+are enough approved questions to rotate, which needs traffic. As of 2026-07-28
+production holds 11 `query` events and 9 distinct questions. Check with:
 
 ```bash
 flyctl ssh console --app rulemancer -C "python -c \"import sqlite3;c=sqlite3.connect('/app/data/demo.db');print(c.execute(\\\"select count(distinct question) from events where kind='query' and question<>''\\\").fetchone()[0])\""
@@ -73,58 +94,69 @@ flyctl ssh console --app rulemancer -C "python -c \"import sqlite3;c=sqlite3.con
 
 | File | Responsibility |
 |---|---|
-| `scripts/example_candidates.py` (create) | Read-only. Turns production `events` rows into a ranked, deduplicated candidate list printed for human review. Never writes anything. |
-| `tests/test_example_candidates.py` (create) | Guards the extraction and ranking against a temp SQLite fixture. No production access. |
-| `frontend/index.html` (modify) | Holds the pool as a strict-JSON `<script type="application/json" id="example-pool">` block, replacing the `EXAMPLES` const at line 100. Renders a rotating subset from it. |
-| `scripts/warm_examples.py` (modify) | Reads the pool out of `index.html` instead of carrying its own copy. Warms only entries not already cached. |
-| `scripts/check_example_cache.py` (create) | Reports, per pool entry, whether the CURRENT config has a cache hit. Run in the container after any pipeline change. |
-| `tests/test_example_pool.py` (create) | Guards the single-source-of-truth property and the pool's shape. |
-| `tests/test_example_rotation.py` (create) | Playwright test: only warmed entries render, the count is right, and the selection is stable within a page load. |
-| `evals/build_metrics_history.py` (modify) | Flip the `rotating-examples` roadmap row from `open` to `shipped` with real evidence. |
+| `src/rulesagent/demo_db.py` (modify) | The `examples` and `example_rejects` tables plus their access functions. Follows the existing `codes`/`events` pattern: schema constants at the top, one function per operation, no ORM. |
+| `tests/test_example_pool_db.py` (create) | Guards the schema and every access function against a temp database. |
+| `src/rulesagent/api/main.py` (modify) | Three admin POST handlers, the candidate and pool sections of `_admin_page_html`, and serve-time pool injection in the `/` route. |
+| `tests/test_admin_example_approval.py` (create) | Guards the admin handlers, especially that an unauthenticated POST approves nothing. |
+| `frontend/index.html` (modify) | An empty pool island the server fills, and rotation over it. Replaces the `EXAMPLES` const at line 100. |
+| `tests/test_example_rotation.py` (create) | Playwright: renders only what is in the island, right count, stable within a load, and correct when the pool is empty. |
+| `scripts/warm_examples.py` (modify) | Reads unwarmed rows from the database instead of a hardcoded list; skips anything already cached. |
+| `scripts/check_example_cache.py` (create) | Reports whether each pool row is really in the answer cache under the current config. |
+| `scripts/export_examples.py` (create) | Dumps the approved pool to JSON so it can be committed as a backup of unversioned production state. |
+| `evals/build_metrics_history.py` (modify) | Flip the `rotating-examples` roadmap row to shipped. |
 
 ---
 
-### Task 1: Candidate extraction from real traffic
+### Task 1: The examples table
 
-Read-only, no production writes, no spend. Safe to build before there is enough
-traffic to use it.
+No UI, no spend. Pure data layer, testable on a temp database.
 
 **Files:**
-- Create: `scripts/example_candidates.py`
-- Test: `tests/test_example_candidates.py`
+- Modify: `src/rulesagent/demo_db.py`
+- Test: `tests/test_example_pool_db.py`
 
 **Interfaces:**
-- Consumes: nothing from earlier tasks. Reads the `events` table defined in
-  `src/rulesagent/demo_db.py` (`id, code_id, ts, kind, ip_hash, question,
-  answered, input_tokens, output_tokens, cost_usd, latency_ms`).
-- Produces: `load_questions(db_path: Path) -> list[dict]` and
-  `rank_candidates(rows: list[dict], *, min_len: int = 20, max_len: int = 200)
-  -> list[dict]`. Each returned dict has keys `question`, `times_asked`,
-  `answered_rate`, `first_ts`, `last_ts`. Task 2 does not import these; a human
-  is the interface between them, on purpose.
+- Consumes: the existing `events` table (`id, code_id, ts, kind, ip_hash,
+  question, answered, input_tokens, output_tokens, cost_usd, latency_ms`).
+- Produces, all in `rulesagent.demo_db`:
+  - `normalize_question(text: str) -> str`
+  - `approve_example(db_path: Path, question: str, *, source_event_id: int | None = None) -> int`
+  - `reject_candidate(db_path: Path, question: str) -> None`
+  - `list_examples(db_path: Path, *, include_retired: bool = False) -> list[dict]`
+  - `retire_example(db_path: Path, example_id: int) -> None`
+  - `mark_warmed(db_path: Path, example_id: int) -> None`
+  - `pool_for_frontend(db_path: Path) -> list[str]`
+  - `candidate_questions(db_path: Path, *, limit: int = 60) -> list[dict]`
 
 - [ ] **Step 1: Write the failing test**
 
 ```python
-"""Candidate extraction reads real traffic, so it gets tested on fake traffic.
+"""The approved-example pool is production state, so its rules live in tests.
 
-WHY read-only and why a human in the middle: `events.question` is text typed by
-strangers into a public box. Ranking it is fine; publishing it automatically is
-not. These tests pin the filtering rules that decide what a human even gets
-shown, and pin that the module has no write path at all.
+WHY a table and not a committed file: approval happens in /admin, which runs in
+a Fly container and cannot commit to git. That makes the pool unversioned, so
+the invariants that a code review would otherwise catch have to be enforced
+here instead.
 """
 from __future__ import annotations
 
 import sqlite3
 from pathlib import Path
 
-import pytest
+from rulesagent.demo_db import (
+    approve_example,
+    candidate_questions,
+    list_examples,
+    mark_warmed,
+    normalize_question,
+    pool_for_frontend,
+    reject_candidate,
+    retire_example,
+)
 
-from scripts.example_candidates import load_questions, rank_candidates
 
-
-def _db(tmp_path: Path, rows: list[tuple]) -> Path:
-    """rows are (kind, question, answered) triples."""
+def _db(tmp_path: Path, questions: list[str]) -> Path:
+    """A demo database with `questions` recorded as query events."""
     path = tmp_path / "demo.db"
     conn = sqlite3.connect(path)
     conn.execute(
@@ -133,464 +165,547 @@ def _db(tmp_path: Path, rows: list[tuple]) -> Path:
         "question TEXT, answered INTEGER, input_tokens INTEGER, "
         "output_tokens INTEGER, cost_usd REAL, latency_ms INTEGER)"
     )
-    for i, (kind, question, answered) in enumerate(rows):
+    for i, q in enumerate(questions):
         conn.execute(
             "INSERT INTO events (code_id, ts, kind, ip_hash, question, answered) "
-            "VALUES (1, ?, ?, 'h', ?, ?)",
-            (f"2026-07-28T00:00:{i:02d}+00:00", kind, question, answered),
+            "VALUES (1, ?, 'query', 'h', ?, 1)",
+            (f"2026-07-28T00:00:{i:02d}+00:00", q),
         )
     conn.commit()
     conn.close()
     return path
 
 
-def test_only_query_events_count(tmp_path):
-    db = _db(tmp_path, [
-        ("query", "Can I respond to a land being played?", 1),
-        ("unlock", "", None),
-        ("denied", "", None),
-    ])
-    rows = load_questions(db)
+def test_normalize_matches_the_answer_cache_folding():
+    """Must fold exactly what the API's _normalize_question folds: case and
+    whitespace, nothing else. A different folding here means the pool and the
+    cache disagree about what "the same question" is."""
+    assert normalize_question("  How  Does CASCADE work? ") == "how does cascade work?"
+
+
+def test_approve_then_appears_in_the_list_unwarmed(tmp_path):
+    db = _db(tmp_path, [])
+    example_id = approve_example(db, "Can I respond to a land being played?")
+    rows = list_examples(db)
     assert len(rows) == 1
+    assert rows[0]["id"] == example_id
     assert rows[0]["question"] == "Can I respond to a land being played?"
+    assert rows[0]["warmed_at"] is None
 
 
-def test_repeats_collapse_and_count(tmp_path):
-    """The same question asked twice is one candidate asked twice, and casing
-    or stray whitespace must not split it into two."""
-    db = _db(tmp_path, [
-        ("query", "How does cascade interact with the stack?", 1),
-        ("query", "  how does CASCADE interact with the stack?  ", 1),
-    ])
-    rows = load_questions(db)
-    assert len(rows) == 1
-    assert rows[0]["times_asked"] == 2
+def test_unwarmed_examples_are_not_served_to_the_frontend(tmp_path):
+    """The whole point of the flag. An unwarmed pill is a ~12.9s, ~$0.0485
+    click on the most-used control on the page."""
+    db = _db(tmp_path, [])
+    approve_example(db, "Can I respond to a land being played?")
+    assert pool_for_frontend(db) == []
 
 
-def test_answered_rate_is_reported(tmp_path):
-    db = _db(tmp_path, [
-        ("query", "Does deathtouch trample assign one damage per blocker?", 1),
-        ("query", "Does deathtouch trample assign one damage per blocker?", 0),
-    ])
-    assert rank_candidates(load_questions(db))[0]["answered_rate"] == 0.5
+def test_warmed_examples_are_served(tmp_path):
+    db = _db(tmp_path, [])
+    example_id = approve_example(db, "Can I respond to a land being played?")
+    mark_warmed(db, example_id)
+    assert pool_for_frontend(db) == ["Can I respond to a land being played?"]
 
 
-def test_ranking_filters_junk_by_length(tmp_path):
-    db = _db(tmp_path, [
-        ("query", "hi", 1),
-        ("query", "x" * 900, 1),
-        ("query", "Can I respond to a land being played?", 1),
-    ])
-    kept = [r["question"] for r in rank_candidates(load_questions(db))]
-    assert kept == ["Can I respond to a land being played?"]
+def test_retired_examples_are_not_served(tmp_path):
+    db = _db(tmp_path, [])
+    example_id = approve_example(db, "Can I respond to a land being played?")
+    mark_warmed(db, example_id)
+    retire_example(db, example_id)
+    assert pool_for_frontend(db) == []
+    assert len(list_examples(db, include_retired=True)) == 1
 
 
-def test_ranking_orders_by_times_asked(tmp_path):
-    db = _db(tmp_path, [
-        ("query", "Can I respond to a land being played?", 1),
-        ("query", "How does cascade interact with the stack?", 1),
-        ("query", "How does cascade interact with the stack?", 1),
-    ])
-    assert rank_candidates(load_questions(db))[0]["times_asked"] == 2
+def test_approving_the_same_question_twice_is_one_row(tmp_path):
+    """Case and spacing must not create a second row: both would share one
+    cache key, so the duplicate is dead weight in the rotation."""
+    db = _db(tmp_path, [])
+    first = approve_example(db, "Can I respond to a land being played?")
+    second = approve_example(db, "  can i RESPOND to a land being played?  ")
+    assert first == second
+    assert len(list_examples(db)) == 1
 
 
-def test_module_has_no_write_path():
-    """A read-only tool stays read-only. If someone adds an INSERT here later,
-    this fails and they have to justify it in review rather than in passing."""
-    source = (Path(__file__).resolve().parents[1]
-              / "scripts" / "example_candidates.py").read_text(encoding="utf-8")
-    upper = source.upper()
-    for statement in ("INSERT ", "UPDATE ", "DELETE ", "DROP "):
-        assert statement not in upper, (
-            f"SQL {statement.strip()} appears in a script that must only read")
-    for call in ("write_text(", ".commit()", "open("):
-        assert call not in source, (
-            f"{call} appears in a script that must not write anything")
+def test_candidates_exclude_already_approved(tmp_path):
+    db = _db(tmp_path, ["Can I respond to a land being played?",
+                        "How does cascade interact with the stack?"])
+    approve_example(db, "Can I respond to a land being played?")
+    assert [c["question"] for c in candidate_questions(db)] == [
+        "How does cascade interact with the stack?"]
+
+
+def test_candidates_exclude_rejected(tmp_path):
+    """A question Jon has said no to must not keep reappearing at the top of
+    the list, or the queue becomes unusable."""
+    db = _db(tmp_path, ["what is the airspeed velocity of an unladen swallow"])
+    reject_candidate(db, "what is the airspeed velocity of an unladen swallow")
+    assert candidate_questions(db) == []
+
+
+def test_candidates_rank_by_times_asked(tmp_path):
+    db = _db(tmp_path, ["Can I respond to a land being played?",
+                        "How does cascade interact with the stack?",
+                        "how does CASCADE interact with the stack?"])
+    top = candidate_questions(db)[0]
+    assert top["question"].lower().startswith("how does cascade")
+    assert top["times_asked"] == 2
+
+
+def test_candidates_carry_their_source_event(tmp_path):
+    """Provenance: an approved example should be traceable back to the query
+    it came from, so a bad approval can be audited later."""
+    db = _db(tmp_path, ["Can I respond to a land being played?"])
+    assert isinstance(candidate_questions(db)[0]["event_id"], int)
 ```
 
 - [ ] **Step 2: Run the test to verify it fails**
 
-Run: `.venv/Scripts/python.exe -m pytest tests/test_example_candidates.py -v`
-Expected: FAIL at import, `ModuleNotFoundError: No module named 'scripts.example_candidates'`.
+Run: `.venv/Scripts/python.exe -m pytest tests/test_example_pool_db.py -v`
+Expected: FAIL at import, `ImportError: cannot import name 'approve_example'`.
 
-If the import fails because `scripts/` has no `__init__.py`, add an empty one
-and note it in the commit; the repo's other script tests import by path, so
-follow whichever convention `tests/test_demo_db.py` already uses rather than
-inventing a third.
+- [ ] **Step 3: Add the schema**
 
-- [ ] **Step 3: Write the script**
+In `src/rulesagent/demo_db.py`, beside `_CODES_SCHEMA` and `_EVENTS_SCHEMA`:
 
 ```python
-"""Rank real demo questions as candidates for the rotating example pool.
+_EXAMPLES_SCHEMA = (
+    "CREATE TABLE IF NOT EXISTS examples ("
+    "id INTEGER PRIMARY KEY AUTOINCREMENT, "
+    "question TEXT NOT NULL, "
+    "norm TEXT NOT NULL UNIQUE, "        # case/whitespace-folded, dedupe key
+    "source_event_id INTEGER, "          # provenance; NULL if hand-written
+    "approved_at TEXT NOT NULL, "
+    "warmed_at TEXT, "                   # NULL until the answer cache has it
+    "retired_at TEXT)"                   # soft delete; history is evidence
+)
+_EXAMPLE_REJECTS_SCHEMA = (
+    "CREATE TABLE IF NOT EXISTS example_rejects ("
+    "norm TEXT PRIMARY KEY, "
+    "rejected_at TEXT NOT NULL)"
+)
+```
 
-READ-ONLY BY DESIGN. This reads `events.question`, which is text strangers
-typed into a public box. It ranks and prints; a human picks. Nothing here
-writes to the pool, to the database, or to any committed file, because
-auto-publishing user input onto a portfolio page is the failure mode this
-feature has to avoid.
+Register both wherever `_CODES_SCHEMA` and `_EVENTS_SCHEMA` are executed, so an
+existing production database gains the tables on next open. `CREATE TABLE IF NOT
+EXISTS` makes this safe to deploy against the live volume with no migration
+step.
 
-Run it against PRODUCTION, which is not the local database:
+- [ ] **Step 4: Add the access functions**
 
-    flyctl ssh console --app rulemancer -C "python scripts/example_candidates.py"
+```python
+def normalize_question(text: str) -> str:
+    """Case and whitespace folding, and nothing else.
 
-Locally it reads data/demo.db, which is fine for testing the output format and
-useless for real candidates.
-"""
-from __future__ import annotations
-
-import argparse
-import sqlite3
-import sys
-from pathlib import Path
-
-DEFAULT_DB = Path("/app/data/demo.db")
-MIN_LEN = 20     # shorter than this is "hi" and "test", not a rules question
-MAX_LEN = 200    # longer than this reads badly on a pill button
+    Must stay identical to the API's _normalize_question, which builds the
+    answer-cache key. If these two ever disagree about what "the same
+    question" means, an approved example can be warmed under one key and
+    looked up under another: a permanent silent cache miss, which shows up as
+    a slow paid click rather than as an error.
+    """
+    return " ".join(text.strip().lower().split())
 
 
-def _normalize(question: str) -> str:
-    """Same folding the answer cache uses (`_normalize_question` in the API):
-    case and whitespace only. Two visitors typing the same question with
-    different capitalisation are one candidate, not two."""
-    return " ".join(question.strip().lower().split())
+def approve_example(db_path: Path, question: str, *,
+                    source_event_id: int | None = None) -> int:
+    """Approve `question` as an example. Returns its row id.
+
+    Idempotent on the normalized form: approving the same question twice
+    returns the existing row rather than creating a second one that would
+    share its cache key.
+    """
+    norm = normalize_question(question)
+    with _connect(db_path) as conn:
+        existing = conn.execute(
+            "SELECT id FROM examples WHERE norm = ?", (norm,)).fetchone()
+        if existing is not None:
+            return int(existing["id"])
+        cur = conn.execute(
+            "INSERT INTO examples (question, norm, source_event_id, approved_at) "
+            "VALUES (?, ?, ?, ?)",
+            (question.strip(), norm, source_event_id, _now()))
+        return int(cur.lastrowid)
 
 
-def load_questions(db_path: Path) -> list[dict]:
-    """Every distinct question ever asked, with how often and how it went."""
-    conn = sqlite3.connect(db_path)
-    conn.row_factory = sqlite3.Row
-    try:
+def reject_candidate(db_path: Path, question: str) -> None:
+    """Remember a no, so the candidate list stops offering it."""
+    with _connect(db_path) as conn:
+        conn.execute(
+            "INSERT OR IGNORE INTO example_rejects (norm, rejected_at) VALUES (?, ?)",
+            (normalize_question(question), _now()))
+
+
+def mark_warmed(db_path: Path, example_id: int) -> None:
+    with _connect(db_path) as conn:
+        conn.execute("UPDATE examples SET warmed_at = ? WHERE id = ?",
+                     (_now(), example_id))
+
+
+def retire_example(db_path: Path, example_id: int) -> None:
+    """Soft delete. The row stays so 'this was public once' stays answerable."""
+    with _connect(db_path) as conn:
+        conn.execute("UPDATE examples SET retired_at = ? WHERE id = ?",
+                     (_now(), example_id))
+
+
+def list_examples(db_path: Path, *, include_retired: bool = False) -> list[dict]:
+    sql = "SELECT * FROM examples"
+    if not include_retired:
+        sql += " WHERE retired_at IS NULL"
+    sql += " ORDER BY approved_at DESC"
+    with _connect(db_path) as conn:
+        return [dict(r) for r in conn.execute(sql).fetchall()]
+
+
+def pool_for_frontend(db_path: Path) -> list[str]:
+    """Exactly the questions safe to show: approved, warmed, not retired.
+
+    Anything else is either a paid slow click or a question Jon pulled.
+    """
+    with _connect(db_path) as conn:
         rows = conn.execute(
-            "SELECT question, answered, ts FROM events "
+            "SELECT question FROM examples "
+            "WHERE warmed_at IS NOT NULL AND retired_at IS NULL "
+            "ORDER BY id").fetchall()
+    return [r["question"] for r in rows]
+
+
+def candidate_questions(db_path: Path, *, limit: int = 60) -> list[dict]:
+    """Questions visitors asked that are neither approved nor rejected yet,
+    most-asked first. Each carries `question`, `times_asked`, `answered_rate`
+    and `event_id` (the most recent event it came from, for provenance).
+
+    No content filtering happens here on purpose. Length or keyword rules
+    would be a machine deciding what is safe to publish, and the entire point
+    of this feature is that a person decides that.
+    """
+    with _connect(db_path) as conn:
+        rows = conn.execute(
+            "SELECT id, question, answered FROM events "
             "WHERE kind = 'query' AND question IS NOT NULL AND question <> '' "
-            "ORDER BY id"
-        ).fetchall()
-    finally:
-        conn.close()
+            "ORDER BY id").fetchall()
+        taken = {r["norm"] for r in conn.execute("SELECT norm FROM examples")}
+        taken |= {r["norm"] for r in conn.execute("SELECT norm FROM example_rejects")}
 
     grouped: dict[str, dict] = {}
     for row in rows:
-        key = _normalize(row["question"])
-        entry = grouped.setdefault(key, {
-            "question": row["question"].strip(),  # first spelling seen wins
-            "times_asked": 0,
-            "_answered": 0,
-            "first_ts": row["ts"],
-            "last_ts": row["ts"],
+        norm = normalize_question(row["question"])
+        if norm in taken:
+            continue
+        entry = grouped.setdefault(norm, {
+            "question": row["question"].strip(),
+            "times_asked": 0, "_answered": 0, "event_id": row["id"],
         })
         entry["times_asked"] += 1
         entry["_answered"] += 1 if row["answered"] else 0
-        entry["last_ts"] = row["ts"]
+        entry["event_id"] = row["id"]
 
     out = []
     for entry in grouped.values():
         entry["answered_rate"] = entry["_answered"] / entry["times_asked"]
         entry.pop("_answered")
         out.append(entry)
-    return out
-
-
-def rank_candidates(rows: list[dict], *, min_len: int = MIN_LEN,
-                    max_len: int = MAX_LEN) -> list[dict]:
-    """Filter obvious junk, then most-asked first.
-
-    Length is the only automatic filter on purpose. Anything cleverer (topic
-    detection, profanity, personal data) would be a machine deciding what is
-    safe to publish, and the whole point is that a human decides that.
-    """
-    kept = [r for r in rows if min_len <= len(r["question"]) <= max_len]
-    return sorted(kept, key=lambda r: (-r["times_asked"], r["question"]))
-
-
-def main() -> int:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--db", type=Path, default=DEFAULT_DB)
-    parser.add_argument("--limit", type=int, default=40)
-    args = parser.parse_args()
-
-    if not args.db.exists():
-        print(f"no database at {args.db}. Inside the container this is "
-              f"/app/data/demo.db; locally it is data/demo.db.", file=sys.stderr)
-        return 1
-
-    ranked = rank_candidates(load_questions(args.db))
-    print(f"{len(ranked)} candidate(s) after filtering. Read them yourself "
-          f"before any of these go on a public page.\n")
-    for i, row in enumerate(ranked[:args.limit], start=1):
-        print(f"{i:3d}. asked {row['times_asked']}x  "
-              f"answered {row['answered_rate']:.0%}  {row['question']}")
-    return 0
-
-
-if __name__ == "__main__":
-    sys.exit(main())
+    out.sort(key=lambda e: (-e["times_asked"], e["question"]))
+    return out[:limit]
 ```
 
-- [ ] **Step 4: Run the tests to verify they pass**
+Check `_connect`'s existing usage before writing these: if it is not already a
+context manager that commits, follow whatever `create_code` does rather than
+introducing a second transaction style.
 
-Run: `.venv/Scripts/python.exe -m pytest tests/test_example_candidates.py -v`
-Expected: PASS, all six.
+- [ ] **Step 5: Run the tests to verify they pass**
 
-- [ ] **Step 5: Run it against production, read the output, change nothing**
-
-```bash
-flyctl ssh console --app rulemancer -C "python scripts/example_candidates.py"
-```
-
-Expect a short list at first. This step is a smoke test of the SQL against the
-real schema, not the curation pass. **Do not paste anything from this output
-into a file yet.**
+Run: `.venv/Scripts/python.exe -m pytest tests/test_example_pool_db.py tests/test_demo_db.py -v`
+Expected: PASS. `test_demo_db.py` is included because the new schema constants
+run against the same database it exercises.
 
 - [ ] **Step 6: Commit**
 
 ```bash
-git add scripts/example_candidates.py tests/test_example_candidates.py
-git commit -m "demo: rank real questions as example candidates, read only
+git add src/rulesagent/demo_db.py tests/test_example_pool_db.py
+git commit -m "demo: examples table for admin-approved rotating questions
 
-Reads events.question, folds case and whitespace the same way the answer
-cache does, filters by length only, and prints for human review. No write
-path, and a test fails if one is ever added: auto-publishing strings that
-strangers typed into a public box is the thing this feature must not do.
+Approval happens in /admin, which runs in a container and cannot commit to
+git, so the pool is production state rather than a committed file. Rows
+carry provenance (source event), a normalized dedupe key that matches the
+answer cache's folding exactly, and separate warmed/retired timestamps so
+an approved-but-unwarmed question is invisible rather than slow.
+
+CREATE TABLE IF NOT EXISTS, so the live volume gains the tables on next
+open with no migration step.
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 ```
 
 ---
 
-### Task 2: One pool, one source of truth
-
-Today the four examples exist twice: `frontend/index.html:100` and
-`scripts/warm_examples.py:60`. The warm script's own comment says they must stay
-byte-identical, which is a comment doing a test's job. A pool of a dozen entries
-makes that duplication untenable, so it goes away first.
+### Task 2: Approve, edit and reject from /admin
 
 **Files:**
-- Modify: `frontend/index.html` (replace the `EXAMPLES` const at line 100)
-- Modify: `scripts/warm_examples.py` (replace its `EXAMPLES` list at line 60)
-- Test: `tests/test_example_pool.py`
+- Modify: `src/rulesagent/api/main.py` (`_admin_page_html` plus three handlers)
+- Test: `tests/test_admin_example_approval.py`
 
 **Interfaces:**
-- Consumes: nothing from Task 1.
-- Produces: `load_pool(index_html: Path) -> list[dict]` in
-  `scripts/warm_examples.py`. Each entry is `{"q": str, "warmed": bool}`.
-  Task 3 reads the same block from JS; Task 4 calls `load_pool`.
+- Consumes: every function from Task 1.
+- Produces: `POST /admin/examples/approve` (form: `question`, `event_id`),
+  `POST /admin/examples/reject` (form: `question`),
+  `POST /admin/examples/retire` (form: `example_id`). All three re-render the
+  admin page, matching `admin_mint_code`'s pattern exactly.
 
 - [ ] **Step 1: Write the failing test**
 
 ```python
-"""The pool lives in one place, and both readers agree on what it says.
+"""Approval is the human-in-the-loop control, so its auth is tested first.
 
-WHY: before this, the four examples were duplicated between index.html and
-warm_examples.py, with a comment asking future editors to keep them
-byte-identical. The cache key is built from the question text, so a drifted
-copy does not error -- it silently misses the cache, and the demo's most
-clicked control quietly becomes a ~12.9s, ~$0.0485 call that looks fine in
-review.
+WHY this file exists separately from test_admin_demo_view.py: these handlers
+WRITE. An unauthenticated POST that mints nothing is a nuisance; an
+unauthenticated POST that publishes a stranger's text onto the public demo is
+the failure this whole feature is shaped to prevent.
 """
 from __future__ import annotations
 
-import json
-import re
-from pathlib import Path
-
-REPO = Path(__file__).resolve().parents[1]
-INDEX_HTML = REPO / "frontend" / "index.html"
-WARM = REPO / "scripts" / "warm_examples.py"
-
-POOL_RE = re.compile(
-    r'<script type="application/json" id="example-pool">(.*?)</script>',
-    re.DOTALL)
+from rulesagent.api import main as api_main
+from rulesagent.demo_db import approve_example, list_examples, pool_for_frontend
 
 
-def test_pool_block_exists_and_is_strict_json():
-    match = POOL_RE.search(INDEX_HTML.read_text(encoding="utf-8"))
-    assert match, "no <script id=\"example-pool\"> block in frontend/index.html"
-    pool = json.loads(match.group(1))
-    assert isinstance(pool, list) and pool, "the pool must be a non-empty array"
+def test_unauthenticated_approve_publishes_nothing(tmp_path, monkeypatch):
+    db = tmp_path / "demo.db"
+    monkeypatch.setattr(api_main, "DEMO_DB", db)
+    response = api_main.admin_approve_example(
+        question="Can I respond to a land being played?",
+        event_id="1",
+        authorization=None,
+        admin_session=None,
+    )
+    assert response.status_code == 401
+    assert list_examples(db) == []
 
 
-def test_every_entry_has_a_question_and_a_warmed_flag():
-    pool = json.loads(POOL_RE.search(
-        INDEX_HTML.read_text(encoding="utf-8")).group(1))
-    for entry in pool:
-        assert isinstance(entry.get("q"), str) and entry["q"].strip(), entry
-        assert isinstance(entry.get("warmed"), bool), (
-            f"{entry.get('q')!r} has no boolean 'warmed' flag; the frontend "
-            f"uses it to decide what is safe to show")
+def test_unauthenticated_reject_records_nothing(tmp_path, monkeypatch):
+    db = tmp_path / "demo.db"
+    monkeypatch.setattr(api_main, "DEMO_DB", db)
+    response = api_main.admin_reject_candidate(
+        question="anything", authorization=None, admin_session=None)
+    assert response.status_code == 401
 
 
-def test_no_duplicate_questions_after_normalising():
-    """Two entries differing only in case or spacing share one cache key, so
-    one of them is dead weight in the rotation."""
-    pool = json.loads(POOL_RE.search(
-        INDEX_HTML.read_text(encoding="utf-8")).group(1))
-    keys = [" ".join(e["q"].strip().lower().split()) for e in pool]
-    assert len(keys) == len(set(keys)), "duplicate questions in the pool"
+def test_authenticated_approve_stores_the_edited_text(tmp_path, monkeypatch):
+    """The form is a textarea, not a hidden field: Jon can fix a typo or strip
+    something personal before the string is ever public. What gets stored is
+    what he submitted, not what the visitor typed."""
+    db = tmp_path / "demo.db"
+    monkeypatch.setattr(api_main, "DEMO_DB", db)
+    monkeypatch.setattr(api_main, "_admin_authed", lambda *a, **k: True)
+    api_main.admin_approve_example(
+        question="Can I respond to a land being played?",
+        event_id="7",
+        authorization="Bearer x",
+        admin_session=None,
+    )
+    rows = list_examples(db)
+    assert len(rows) == 1
+    assert rows[0]["question"] == "Can I respond to a land being played?"
+    assert rows[0]["source_event_id"] == 7
 
 
-def test_warm_script_reads_the_pool_instead_of_carrying_a_copy():
-    source = WARM.read_text(encoding="utf-8")
-    assert "def load_pool(" in source, "warm_examples.py must read the pool"
-    assert "EXAMPLES = [" not in source, (
-        "warm_examples.py still carries its own copy of the questions")
+def test_approved_but_unwarmed_is_not_public(tmp_path, monkeypatch):
+    db = tmp_path / "demo.db"
+    monkeypatch.setattr(api_main, "DEMO_DB", db)
+    monkeypatch.setattr(api_main, "_admin_authed", lambda *a, **k: True)
+    api_main.admin_approve_example(
+        question="Can I respond to a land being played?", event_id="1",
+        authorization="Bearer x", admin_session=None)
+    assert pool_for_frontend(db) == []
 
 
-def test_warm_script_and_frontend_see_the_same_pool():
-    import sys
-    sys.path.insert(0, str(REPO / "scripts"))
-    from warm_examples import load_pool
+def test_empty_question_is_rejected_with_a_message(tmp_path, monkeypatch):
+    db = tmp_path / "demo.db"
+    monkeypatch.setattr(api_main, "DEMO_DB", db)
+    monkeypatch.setattr(api_main, "_admin_authed", lambda *a, **k: True)
+    response = api_main.admin_approve_example(
+        question="   ", event_id="1", authorization="Bearer x", admin_session=None)
+    assert response.status_code == 400
+    assert list_examples(db) == []
 
-    from_script = [e["q"] for e in load_pool(INDEX_HTML)]
-    from_html = [e["q"] for e in json.loads(POOL_RE.search(
-        INDEX_HTML.read_text(encoding="utf-8")).group(1))]
-    assert from_script == from_html
+
+def test_admin_page_shows_candidates_and_the_pool(tmp_path, monkeypatch):
+    db = tmp_path / "demo.db"
+    monkeypatch.setattr(api_main, "DEMO_DB", db)
+    approve_example(db, "How does cascade interact with the stack?")
+    html = api_main._admin_page_html()
+    assert "How does cascade interact with the stack?" in html
+    assert "not warmed yet" in html, (
+        "the pool section must say which approved examples are still invisible")
 ```
 
 - [ ] **Step 2: Run the test to verify it fails**
 
-Run: `.venv/Scripts/python.exe -m pytest tests/test_example_pool.py -v`
-Expected: FAIL. `test_pool_block_exists_and_is_strict_json` fails because there
-is no pool block yet, and `test_warm_script_reads_the_pool_instead_of_carrying_a_copy`
-fails on the surviving `EXAMPLES = [` list.
+Run: `.venv/Scripts/python.exe -m pytest tests/test_admin_example_approval.py -v`
+Expected: FAIL, `AttributeError: module has no attribute 'admin_approve_example'`.
 
-- [ ] **Step 3: Put the pool in `frontend/index.html`**
+- [ ] **Step 3: Write the handlers**
 
-Replace the `const EXAMPLES = [...]` block at line 100 with a JSON island in
-`<head>`, and a const that reads it. A JSON island rather than a fetch: the
-pills are above the fold, and fetching them would pop them in after first paint
-for no benefit on a same-origin file this small.
-
-```html
-<!-- The example pool. SINGLE SOURCE OF TRUTH: scripts/warm_examples.py parses
-     this exact block, so there is no second copy to drift. Strict JSON, not a
-     JS literal, so Python can json.loads it without evaluating JavaScript.
-     `warmed` is set by scripts/warm_examples.py after a question is actually
-     in the answer cache; the frontend shows only warmed entries, so a visitor
-     never clicks a pill that costs money and takes ~13 seconds. -->
-<script type="application/json" id="example-pool">
-[
-  {"q": "If my creature has trample and deathtouch, how much damage can trample over the blocker?", "warmed": true},
-  {"q": "Can I respond to a land being played?", "warmed": true},
-  {"q": "How does cascade interact with the stack?", "warmed": true},
-  {"q": "If I copy [Emrakul, the Promised End]'s cast trigger, do I control two turns?", "warmed": true}
-]
-</script>
-```
-
-Then, where `const EXAMPLES` used to be:
-
-```javascript
-// Read from the JSON island in <head>. Only warmed questions are eligible:
-// an unwarmed one is a cache miss, which is ~12.9s and ~$0.0485 on the most
-// clicked control on the page.
-const EXAMPLE_POOL = JSON.parse(
-  document.getElementById("example-pool").textContent)
-  .filter(e => e.warmed)
-  .map(e => e.q);
-const EXAMPLES = EXAMPLE_POOL;   // Task 3 replaces this with the rotation
-```
-
-The four questions above are the current ones, copied exactly. They are already
-warmed in production, so this task changes no behaviour at all: same four
-strings, same cache keys, same page. That is deliberate, so any breakage here is
-attributable to the refactor and not to new content.
-
-- [ ] **Step 4: Make `scripts/warm_examples.py` read the pool**
-
-Delete its `EXAMPLES` list. Add:
+Place them next to `admin_mint_code` (`main.py:2300`) and copy its shape: auth
+first, validate second, write third, re-render always.
 
 ```python
-import json
-import re
+@app.post(
+    "/admin/examples/approve", tags=["ops"],
+    summary="Approve a visitor's question as a rotating demo example",
+    description="Admin-gated (Bearer or admin session cookie, same as GET /admin). Stores "
+    "the SUBMITTED text, which may be an edited version of what the visitor typed. Approved "
+    "examples are invisible on the demo until warmed -- see scripts/warm_examples.py.",
+    include_in_schema=False,
+)
+def admin_approve_example(
+    question: str = Form(...),
+    event_id: str = Form(default=""),
+    authorization: str | None = Header(default=None),
+    admin_session: str | None = Cookie(default=None, alias=ADMIN_COOKIE_NAME),
+) -> HTMLResponse:
+    # Auth before anything else, matching admin_mint_code: an unauthenticated
+    # POST must publish nothing. This is the single most important line in
+    # the feature -- it is what makes "a human approved this" true.
+    if not _admin_authed(authorization, admin_session):
+        return _admin_login_page()
 
-INDEX_HTML = REPO / "frontend" / "index.html"
+    text = question.strip()
+    if not text:
+        return HTMLResponse(
+            content=_admin_page_html(error="an example cannot be empty"),
+            status_code=400)
+    if len(text) > MAX_QUESTION_CHARS:
+        return HTMLResponse(
+            content=_admin_page_html(
+                error=f"an example must be under {MAX_QUESTION_CHARS} characters"),
+            status_code=400)
 
-_POOL_RE = re.compile(
-    r'<script type="application/json" id="example-pool">(.*?)</script>',
-    re.DOTALL)
+    try:
+        source = int(event_id) if event_id.strip() else None
+    except ValueError:
+        source = None
+
+    approve_example(DEMO_DB, text, source_event_id=source)
+    return HTMLResponse(content=_admin_page_html())
 
 
-def load_pool(index_html: Path = INDEX_HTML) -> list[dict]:
-    """The example pool, parsed out of frontend/index.html.
+@app.post(
+    "/admin/examples/reject", tags=["ops"],
+    summary="Dismiss a question so it stops appearing as a candidate",
+    include_in_schema=False,
+)
+def admin_reject_candidate(
+    question: str = Form(...),
+    authorization: str | None = Header(default=None),
+    admin_session: str | None = Cookie(default=None, alias=ADMIN_COOKIE_NAME),
+) -> HTMLResponse:
+    if not _admin_authed(authorization, admin_session):
+        return _admin_login_page()
+    reject_candidate(DEMO_DB, question)
+    return HTMLResponse(content=_admin_page_html())
 
-    The pool lives in the HTML because that is where the browser needs it, and
-    this script follows it rather than keeping a second copy. It used to keep a
-    copy, guarded only by a comment asking editors to keep them byte-identical;
-    a drifted copy is a silent permanent cache miss, never a loud error.
-    """
-    match = _POOL_RE.search(index_html.read_text(encoding="utf-8"))
-    if match is None:
-        raise SystemExit(
-            f"no <script id=\"example-pool\"> block in {index_html}. "
-            f"The pool is the single source of truth and this script cannot "
-            f"guess it.")
-    return json.loads(match.group(1))
+
+@app.post(
+    "/admin/examples/retire", tags=["ops"],
+    summary="Pull an approved example off the demo",
+    include_in_schema=False,
+)
+def admin_retire_example(
+    example_id: str = Form(...),
+    authorization: str | None = Header(default=None),
+    admin_session: str | None = Cookie(default=None, alias=ADMIN_COOKIE_NAME),
+) -> HTMLResponse:
+    if not _admin_authed(authorization, admin_session):
+        return _admin_login_page()
+    try:
+        retire_example(DEMO_DB, int(example_id))
+    except ValueError:
+        return HTMLResponse(
+            content=_admin_page_html(error="bad example id"), status_code=400)
+    return HTMLResponse(content=_admin_page_html())
 ```
 
-and change `main()`'s loop header from `for q in EXAMPLES:` to:
+- [ ] **Step 4: Add the two sections to `_admin_page_html`**
 
-```python
-    pool = load_pool()
-    questions = [entry["q"] for entry in pool]
-    ...
-    for q in questions:
+Follow the existing table markup in that function rather than inventing new
+styling. Two sections:
+
+**Candidates.** For each row from `candidate_questions(DEMO_DB)`: the question
+in a `<textarea name="question">` (editable before approval, which is the point),
+its `times_asked` and `answered_rate`, a hidden `event_id`, an **Approve**
+submit, and a separate small form posting the same text to `/admin/examples/reject`.
+
+**Pool.** For each row from `list_examples(DEMO_DB)`: the question, when it was
+approved, and either a warmed timestamp or the literal text `not warmed yet`
+(the test asserts that string), plus a **Retire** submit. Above the table, a one
+line count of how many are approved but unwarmed, with the exact command to fix
+it:
+
+```
+3 approved and not warmed yet. They stay hidden until you run:
+flyctl ssh console --app rulemancer -C "python scripts/warm_examples.py"
 ```
 
-Update the two `len(EXAMPLES)` references in the cost banner and the stop
-message to `len(questions)`.
+Every question rendered into this page must go through the same escaping the
+page already uses for labels and questions (`_html.escape`, `main.py:284`).
+These strings are attacker-controlled by definition.
 
 - [ ] **Step 5: Run the tests to verify they pass**
 
-Run: `.venv/Scripts/python.exe -m pytest tests/test_example_pool.py tests/test_frontend_error_detail_surfacing.py -v`
-Expected: PASS. The second file is included because it drives `index.html` in a
-real browser and will catch a JSON island that breaks page JS.
+Run: `.venv/Scripts/python.exe -m pytest tests/test_admin_example_approval.py tests/test_admin_demo_view.py tests/test_demo_auth.py -v`
+Expected: PASS. The last two are included because this task edits the shared
+admin page template and the auth path they both cover.
 
-- [ ] **Step 6: Render-check the demo locally**
+- [ ] **Step 6: Render-check the admin page**
 
-```bash
-.venv/Scripts/python.exe -m http.server 8947 --directory frontend
-```
-
-Open `http://127.0.0.1:8947/`, confirm the four example pills still render and
-still read correctly. Stop the server. Never port 8000.
+Run the app locally on 8947 with `ADMIN_TOKEN` and `COOKIE_SECRET` set from
+PowerShell, seed two fake query events into the local `data/demo.db`, and load
+`/admin`. Confirm the candidate textarea is editable, Approve moves the row into
+the pool section, the unwarmed count is right, and Reject makes a candidate stay
+gone after a refresh. Stop the server.
 
 - [ ] **Step 7: Commit**
 
 ```bash
-git add frontend/index.html scripts/warm_examples.py tests/test_example_pool.py
-git commit -m "demo: one example pool, read by both the page and the warm script
+git add src/rulesagent/api/main.py tests/test_admin_example_approval.py
+git commit -m "admin: approve, edit and reject demo example candidates
 
-The four examples lived in two files kept in sync by a comment. The cache
-key is built from the question text, so a drifted copy does not error, it
-silently misses and turns the most clicked control on the page into a
-~12.9s, ~\$0.0485 call. Now there is one JSON island and both readers parse
-it. Same four questions, byte for byte: this refactor changes nothing a
-visitor sees.
+/admin already lists every question every visitor asked; this adds the
+controls next to them. The candidate field is a textarea, not a hidden
+input, so a typo or something personal can be fixed before the string is
+ever public.
+
+Auth is checked before the form values in all three handlers, matching
+admin_mint_code. An unauthenticated POST that mints nothing is a nuisance;
+one that publishes a stranger's text on the demo is the failure this
+feature exists to prevent.
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 ```
 
 ---
 
-### Task 3: Rotate a subset per page load
+### Task 3: Serve the pool and rotate it
 
 **Files:**
-- Modify: `frontend/index.html` (the `EXAMPLES` const from Task 2)
+- Modify: `src/rulesagent/api/main.py` (the `/` route at `main.py:2434`)
+- Modify: `frontend/index.html` (the `EXAMPLES` const at line 100)
 - Test: `tests/test_example_rotation.py`
 
 **Interfaces:**
-- Consumes: `EXAMPLE_POOL` and the `#example-pool` JSON island from Task 2.
-- Produces: `pickExamples(pool, n)` in page JS, and the rendered pills. Task 4
-  does not consume these.
+- Consumes: `pool_for_frontend(db_path) -> list[str]` from Task 1.
+- Produces: an `#example-pool` JSON island in the served HTML, and
+  `pickExamples(pool, n)` in page JS.
 
-- [ ] **Step 1: Write the failing test**
+- [ ] **Step 1: Write the failing tests**
 
 ```python
-"""Rotation shows a different handful each load, and never an unwarmed one.
+"""Rotation shows a handful per load, only from the served pool.
 
-Driven in a real headless browser from file://, the same way
-tests/test_frontend_error_detail_surfacing.py drives this page: no server, no
-port 8000 or 8947, no API spend.
+Driven in a real headless browser from file://, like
+tests/test_frontend_error_detail_surfacing.py: no server, no port 8000 or
+8947, no API spend. The island is written into the file fixture directly,
+which is exactly what the server does at serve time.
 """
 from __future__ import annotations
 
@@ -604,21 +719,23 @@ from playwright.sync_api import sync_playwright
 REPO = Path(__file__).resolve().parents[1]
 INDEX_HTML = REPO / "frontend" / "index.html"
 POOL_RE = re.compile(
-    r'<script type="application/json" id="example-pool">(.*?)</script>',
+    r'(<script type="application/json" id="example-pool">)(.*?)(</script>)',
     re.DOTALL)
-
 EXAMPLES_SHOWN = 4
 
 
-def _pool() -> list[dict]:
-    return json.loads(POOL_RE.search(
-        INDEX_HTML.read_text(encoding="utf-8")).group(1))
+def _page_with_pool(tmp_path: Path, pool: list[str]) -> Path:
+    """index.html with the island filled, the way the server fills it."""
+    html = INDEX_HTML.read_text(encoding="utf-8")
+    filled = POOL_RE.sub(
+        lambda m: m.group(1) + json.dumps(pool) + m.group(3), html)
+    out = tmp_path / "index.html"
+    out.write_text(filled, encoding="utf-8")
+    return out
 
 
 def _pills(page) -> list[str]:
-    """The pill labels, minus the decorative sigil the button renders inside a
-    span. Read the rendered text rather than data-arg so this checks what a
-    visitor actually sees."""
+    """Rendered pill labels, minus the decorative sigil span."""
     return [el.inner_text().replace("✦", "").strip()
             for el in page.query_selector_all('[data-action="example"]')]
 
@@ -631,29 +748,48 @@ def browser():
         b.close()
 
 
-def test_shows_exactly_four_pills(browser):
-    page = browser.new_page()
-    page.goto(INDEX_HTML.resolve().as_uri())
-    assert len(_pills(page)) == EXAMPLES_SHOWN
-    page.close()
+def test_index_ships_an_empty_island():
+    """The committed file must not carry questions: the pool is production
+    state now, and a stale committed copy would be a second source of truth."""
+    match = POOL_RE.search(INDEX_HTML.read_text(encoding="utf-8"))
+    assert match, "no #example-pool island in frontend/index.html"
+    assert json.loads(match.group(2)) == []
 
 
-def test_every_rendered_pill_is_a_warmed_pool_entry(browser):
-    """The whole point. An unwarmed pill is a slow, paid click."""
-    warmed = {e["q"] for e in _pool() if e["warmed"]}
+def test_renders_only_served_questions(browser, tmp_path):
+    pool = [f"Question number {i} about the stack?" for i in range(10)]
     page = browser.new_page()
-    page.goto(INDEX_HTML.resolve().as_uri())
+    page.goto(_page_with_pool(tmp_path, pool).as_uri())
     shown = _pills(page)
-    assert set(shown) <= warmed, (
-        f"pills not present as warmed pool entries: {set(shown) - warmed}")
+    assert len(shown) == EXAMPLES_SHOWN
+    assert set(shown) <= set(pool)
     page.close()
 
 
-def test_selection_is_stable_within_one_page_load(browser):
-    """Re-rendering the composer must not reshuffle the pills under someone
-    who is reading them."""
+def test_empty_pool_renders_no_pills_and_does_not_break(browser, tmp_path):
+    """A dev machine has an empty pool. The page must be fine, not broken."""
     page = browser.new_page()
-    page.goto(INDEX_HTML.resolve().as_uri())
+    errors = []
+    page.on("pageerror", lambda e: errors.append(str(e)))
+    page.goto(_page_with_pool(tmp_path, []).as_uri())
+    assert _pills(page) == []
+    assert errors == [], f"JS errors with an empty pool: {errors}"
+    page.close()
+
+
+def test_small_pool_shows_all_of_it(browser, tmp_path):
+    page = browser.new_page()
+    page.goto(_page_with_pool(tmp_path, ["Only one question?"]).as_uri())
+    assert _pills(page) == ["Only one question?"]
+    page.close()
+
+
+def test_selection_is_stable_within_one_load(browser, tmp_path):
+    """Re-rendering must not reshuffle pills under someone reading them."""
+    pool = [f"Question number {i} about the stack?" for i in range(10)]
+    path = _page_with_pool(tmp_path, pool)
+    page = browser.new_page()
+    page.goto(path.as_uri())
     first = _pills(page)
     page.evaluate("window.dispatchEvent(new Event('resize'))")
     page.wait_for_timeout(100)
@@ -661,47 +797,48 @@ def test_selection_is_stable_within_one_page_load(browser):
     page.close()
 
 
-def test_rotation_varies_across_loads(browser):
-    """Skipped until the pool is bigger than what one load shows -- with a
-    pool of four and four shown, there is nothing to rotate, and asserting
-    variety would be asserting a coin flip."""
-    pool = [e for e in _pool() if e["warmed"]]
-    if len(pool) <= EXAMPLES_SHOWN:
-        pytest.skip(f"pool has {len(pool)} warmed entries, needs more than "
-                    f"{EXAMPLES_SHOWN} to rotate")
+def test_rotation_varies_across_loads(browser, tmp_path):
+    pool = [f"Question number {i} about the stack?" for i in range(10)]
+    path = _page_with_pool(tmp_path, pool)
     seen = set()
     for _ in range(12):
         page = browser.new_page()
-        page.goto(INDEX_HTML.resolve().as_uri())
+        page.goto(path.as_uri())
         seen.add(tuple(_pills(page)))
         page.close()
     assert len(seen) > 1, "twelve loads produced the same four pills every time"
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [ ] **Step 2: Run to verify they fail**
 
 Run: `.venv/Scripts/python.exe -m pytest tests/test_example_rotation.py -v`
-Expected: the first three pass already (four entries, all warmed, static), and
-`test_rotation_varies_across_loads` SKIPS. That is the correct starting state:
-the rotation tests are real but have nothing to bite on until the pool grows.
-Confirm the skip reason names the pool size.
+Expected: FAIL, no `#example-pool` island exists yet.
 
-- [ ] **Step 3: Implement the rotation**
+- [ ] **Step 3: Add the island and the rotation to `frontend/index.html`**
 
-Replace Task 2's placeholder const:
+In `<head>`, before the main script:
+
+```html
+<!-- Filled by the server at serve time from the approved, warmed pool
+     (rulesagent.demo_db.pool_for_frontend). Ships EMPTY on purpose: the pool
+     is production state on the Fly volume, and a committed copy would be a
+     second source of truth that goes stale. An empty island is a valid page
+     with no example pills, which is what a dev machine correctly shows. -->
+<script type="application/json" id="example-pool">[]</script>
+```
+
+Replacing `const EXAMPLES = [...]` at line 100:
 
 ```javascript
-// Show a handful from the pool, chosen fresh per page load. Chosen ONCE at
-// module scope, not per render: the composer re-renders on resize and on new
-// chats, and reshuffling the pills while someone is reading them is the kind
-// of motion that makes a page feel broken rather than alive.
+// Show a handful, chosen fresh per page load. Chosen ONCE at module scope,
+// not per render: the composer re-renders on resize and on new chats, and
+// reshuffling pills while someone is reading them makes a page feel broken
+// rather than alive.
 const EXAMPLES_SHOWN = 4;
 
 function pickExamples(pool, n) {
-  const eligible = pool.filter(e => e.warmed).map(e => e.q);
-  // Fisher-Yates on a copy. Not seeded: variety across loads is the feature,
-  // and nothing here needs to be reproducible.
-  const shuffled = eligible.slice();
+  // Fisher-Yates on a copy. Not seeded: variety across loads is the feature.
+  const shuffled = pool.slice();
   for (let i = shuffled.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
@@ -714,104 +851,184 @@ const EXAMPLE_POOL = JSON.parse(
 const EXAMPLES = pickExamples(EXAMPLE_POOL, EXAMPLES_SHOWN);
 ```
 
-Nothing else changes: the render code at `frontend/index.html:551` already maps
-over `EXAMPLES`, and `case "example": send(t.dataset.arg)` already sends the
-pill's own text.
+The render code at `main.py`-served `index.html:551` already maps over
+`EXAMPLES`, and `case "example": send(t.dataset.arg)` already sends the pill's
+own text, so nothing else changes.
 
-- [ ] **Step 4: Run the tests to verify they pass**
+- [ ] **Step 4: Fill the island at serve time**
 
-Run: `.venv/Scripts/python.exe -m pytest tests/test_example_rotation.py tests/test_example_pool.py -v`
-Expected: PASS, with `test_rotation_varies_across_loads` still skipping until
-the pool grows past four.
+The `/` route currently returns a `FileResponse` (`main.py:2451`). It has to
+become an `HTMLResponse` so the island can be filled. Keep the gate check and
+the `Cache-Control: no-cache` header exactly as they are.
 
-- [ ] **Step 5: Render-check**
+```python
+_POOL_ISLAND_RE = re.compile(
+    r'(<script type="application/json" id="example-pool">)(.*?)(</script>)',
+    re.DOTALL)
 
-Serve `frontend/` on 8947, load it five times, and confirm the pills render,
-wrap correctly at 390px, and that clicking one still sends that question. Stop
-the server.
 
-- [ ] **Step 6: Commit**
+def _index_html_with_pool() -> str:
+    """index.html with the approved, warmed pool injected.
+
+    Injected server-side rather than fetched by the client so the pills are
+    present in first paint. A fetch would pop them in after load, on content
+    that sits above the fold.
+
+    Read per request rather than cached: this file is already served with
+    no-cache, the pool changes whenever Jon approves something in /admin, and
+    a stale in-process cache would mean approving a question appears to do
+    nothing until the machine restarts.
+    """
+    html = (_frontend_dir / "index.html").read_text(encoding="utf-8")
+    pool = json.dumps(pool_for_frontend(DEMO_DB))
+    return _POOL_ISLAND_RE.sub(lambda m: m.group(1) + pool + m.group(3), html)
+```
+
+and in the `/` handler, replace both `FileResponse(_frontend_dir / "index.html", ...)`
+returns with:
+
+```python
+        return HTMLResponse(content=_index_html_with_pool(),
+                            headers={"Cache-Control": "no-cache"})
+```
+
+Leave `gate.html`'s `FileResponse` alone: the gate has no pool and no reason to
+be re-read and rewritten on every locked-out request.
+
+- [ ] **Step 5: Add a serve-time test**
+
+```python
+def test_served_index_contains_the_warmed_pool(tmp_path, monkeypatch):
+    """The injection is what makes any of this reach a visitor."""
+    from rulesagent.api import main as api_main
+    from rulesagent.demo_db import approve_example, mark_warmed
+
+    db = tmp_path / "demo.db"
+    monkeypatch.setattr(api_main, "DEMO_DB", db)
+    example_id = approve_example(db, "Can I respond to a land being played?")
+    mark_warmed(db, example_id)
+
+    html = api_main._index_html_with_pool()
+    assert "Can I respond to a land being played?" in html
+    assert '<script type="application/json" id="example-pool">[]' not in html
+```
+
+Put it in `tests/test_example_rotation.py` and run the file again.
+
+- [ ] **Step 6: Run everything this touched**
+
+Run: `.venv/Scripts/python.exe -m pytest tests/test_example_rotation.py tests/test_frontend_error_detail_surfacing.py tests/test_demo_auth.py -v`
+Expected: PASS. The auth file matters because the `/` route's gate branch was
+edited.
+
+- [ ] **Step 7: Render-check with a real pool**
+
+Seed three approved-and-warmed rows into the local `data/demo.db`, run the app
+on 8947, load it five times, confirm the pills change between loads and wrap
+correctly at 390px. Then set the pool empty and confirm the page still looks
+deliberate rather than broken. Stop the server.
+
+- [ ] **Step 8: Commit**
 
 ```bash
-git add frontend/index.html tests/test_example_rotation.py
-git commit -m "demo: rotate example pills from the warmed pool
+git add src/rulesagent/api/main.py frontend/index.html tests/test_example_rotation.py
+git commit -m "demo: serve the approved pool into the page and rotate it
 
-Picks four warmed questions per page load, once at module scope so a
-resize does not reshuffle them mid-read. Only warmed entries are eligible,
-so a visitor can never click a pill that costs money and takes ~13s.
+The island ships empty and the server fills it per request from the
+approved, warmed rows. Server-side rather than a client fetch so the pills
+are in first paint; re-read per request so approving something in /admin
+takes effect immediately instead of at the next restart.
 
-The variety test skips while the pool is four deep. It is written now so
-it starts working the moment real questions land in the pool.
+The / route becomes an HTMLResponse to do this. gate.html stays a
+FileResponse: no pool, no reason to rewrite it on every locked request.
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 ```
 
 ---
 
-### Task 4: Curate, warm, verify, ship
+### Task 4: Warm, verify, back up, ship
 
 **This task spends real API credits and needs Jon's explicit go-ahead with a
-ceiling, quoted before the run.** At the measured $0.0485 mean, warming N new
-questions costs about `N * 0.0485`; a pool of 12 means 8 new ones, roughly
-$0.39. `warm_examples.py` already has a stop-and-report ceiling
-(`APPROVED_CEILING_USD`), which must be raised deliberately for the run and
-quoted in the commit, not edited quietly.
+ceiling, quoted before the run.** Warming N approved questions costs about
+`N * $0.0485`. `warm_examples.py`'s `APPROVED_CEILING_USD` must be raised
+deliberately for the run and the number quoted in the commit, never edited
+quietly.
+
+**Why warming is not a button in `/admin`:** every other spend path in this
+project requires an explicit per-run go-ahead with a ceiling, and a button in a
+browser erodes exactly that. `/admin` instead shows the unwarmed count and the
+exact command, so the UI reports the need and a human still authorises the
+spend.
 
 **Files:**
-- Modify: `frontend/index.html` (the pool contents only)
-- Modify: `scripts/warm_examples.py` (skip already-warmed entries, raise the ceiling)
+- Modify: `scripts/warm_examples.py`
 - Create: `scripts/check_example_cache.py`
-- Modify: `evals/build_metrics_history.py` (roadmap row `rotating-examples`)
+- Create: `scripts/export_examples.py`
+- Modify: `evals/build_metrics_history.py`
 
 **Interfaces:**
-- Consumes: `load_pool(index_html: Path) -> list[dict]` from Task 2;
-  `rank_candidates` output from Task 1, via Jon reading it.
-- Produces: nothing later tasks consume. This is the last task.
+- Consumes: `list_examples`, `mark_warmed`, `pool_for_frontend` from Task 1.
+- Produces: nothing later tasks consume.
 
-- [ ] **Step 1: Get candidates and have Jon curate them**
+- [ ] **Step 1: Point the warm script at the database**
 
-```bash
-flyctl ssh console --app rulemancer -C "python scripts/example_candidates.py --limit 60"
-```
-
-Jon picks the ones that go in. Selection criteria, for the conversation rather
-than for a filter: it should read like something a person would actually ask, be
-answerable from the rules rather than from a judge's discretion, and show off a
-different corner of the game from the ones already in the pool. **Do not pick
-for him and do not paste candidate text into any file before he has read it.**
-
-- [ ] **Step 2: Add the chosen questions to the pool with `"warmed": false`**
-
-Append to the JSON island in `frontend/index.html`. `false` is not a formality:
-Task 3's filter means an unwarmed entry is simply never shown, so the page stays
-correct in the window between adding a question and warming it.
-
-- [ ] **Step 3: Make the warm script skip what is already cached**
-
-Re-warming a warmed question costs a full generation for nothing. Add, inside
-`main()`'s loop:
+Delete its `EXAMPLES` list. Warm every approved, unretired row with no
+`warmed_at`, skip anything already in the cache, and record success:
 
 ```python
+import os  # noqa: E402  (add beside the existing imports)
+
+from rulesagent.demo_db import list_examples, mark_warmed  # noqa: E402
+
+# Same env var the app reads, so a container run hits /app/data/demo.db and a
+# local run hits data/demo.db. Getting this wrong warms a database nobody
+# serves from, which is a real mistake this project has already made once.
+DEMO_DB = Path(os.environ.get("DEMO_DB_PATH", REPO / "data" / "demo.db"))
+
+
+def pending(db_path: Path = DEMO_DB) -> list[dict]:
+    """Approved, not retired, not yet warmed."""
+    return [r for r in list_examples(db_path) if r["warmed_at"] is None]
+```
+
+and in `main()`, replacing the loop over `EXAMPLES`:
+
+```python
+    rows = pending()
+    print(f"{len(rows)} approved example(s) awaiting warm. "
+          f"Estimated ~${0.0485 * len(rows):.2f} at the measured mean. "
+          f"Approved ceiling for this run: ${APPROVED_CEILING_USD:.2f}.")
+
+    for row in rows:
+        q = row["question"]
+        if total >= APPROVED_CEILING_USD:
+            print(f"\nSTOPPING at ${total:.4f}, ceiling ${APPROVED_CEILING_USD:.2f}.")
+            return 1
         if api_main._lookup_example_cache(q, agent) is not None:
+            # Already cached under the CURRENT key -- a real hit, not a guess.
+            mark_warmed(DEMO_DB, row["id"])
             print(f"[skip] already cached: {q[:60]}")
             continue
+        ...                      # existing generate + store block, unchanged
+        mark_warmed(DEMO_DB, row["id"])
 ```
 
-`_lookup_example_cache` returns the stored payload under the CURRENT config, so
-a skip means a real hit under the exact key a visitor's click will build, not a
-guess.
+`mark_warmed` goes **after** the cache store, never before: a row flagged warmed
+whose answer is not actually cached is exactly the state that puts a slow paid
+pill on the page.
 
-- [ ] **Step 4: Write the cache checker**
+- [ ] **Step 2: Write the cache checker**
 
 ```python
-"""Report which pool questions are actually in the answer cache right now.
+"""Report which approved examples are really in the answer cache right now.
 
-WHY THIS EXISTS SEPARATELY from the `warmed` flag in the pool: the flag is a
-claim committed to a file, and the cache key folds in the generator model,
-effort, system-prompt version, rewrite version and corpus fingerprint. Change
-any of those and every warmed answer silently stops matching -- the flag still
-says true, and every pill quietly becomes a paid ~13s call. This is how you
-find out, and it costs nothing to run.
+WHY SEPARATE from the warmed_at column: that column is a claim, and the cache
+key folds in generator model, effort, system-prompt version, rewrite version
+and corpus fingerprint. Change any one of those and every warmed answer
+silently stops matching, while warmed_at still reads like a date. Then every
+pill quietly becomes a paid ~13s call and nothing errors. This is how you find
+out, and it costs nothing to run.
 
     flyctl ssh console --app rulemancer -C "python scripts/check_example_cache.py"
 """
@@ -825,9 +1042,10 @@ sys.path.insert(0, str(REPO / "src"))
 sys.path.insert(0, str(REPO / "scripts"))
 
 from rulesagent.api import main as api_main  # noqa: E402
+from rulesagent.demo_db import list_examples  # noqa: E402
 from rulesagent.generate.answer import GEN_EFFORT, RulesAgent  # noqa: E402
 from rulesagent.index.store import VectorStore  # noqa: E402
-from warm_examples import VECTOR_MODEL, load_pool  # noqa: E402
+from warm_examples import DEMO_DB, VECTOR_MODEL  # noqa: E402
 
 
 def main() -> int:
@@ -835,20 +1053,21 @@ def main() -> int:
     agent = RulesAgent(store, effort=GEN_EFFORT)
 
     stale = 0
-    for entry in load_pool():
-        hit = api_main._lookup_example_cache(entry["q"], agent) is not None
-        if entry["warmed"] and not hit:
+    for row in list_examples(DEMO_DB):
+        hit = api_main._lookup_example_cache(row["question"], agent) is not None
+        flagged = row["warmed_at"] is not None
+        if flagged and not hit:
             stale += 1
-            print(f"STALE  flag says warmed, cache misses: {entry['q'][:70]}")
-        elif hit and not entry["warmed"]:
-            print(f"ready  cached but flagged unwarmed: {entry['q'][:70]}")
+            print(f"STALE  flagged warmed, cache misses: {row['question'][:70]}")
+        elif hit and not flagged:
+            print(f"ready  cached but not flagged: {row['question'][:70]}")
         else:
-            print(f"{'ok    ' if hit else 'cold  '} {entry['q'][:70]}")
+            print(f"{'ok    ' if hit else 'cold  '} {row['question'][:70]}")
 
     if stale:
-        print(f"\n{stale} entry(s) claim to be warmed and are not. Re-run "
-              f"scripts/warm_examples.py, or flip their flag to false.",
-              file=sys.stderr)
+        print(f"\n{stale} example(s) claim to be warmed and are not. They are "
+              f"live on the demo as slow, paid clicks. Re-run "
+              f"scripts/warm_examples.py.", file=sys.stderr)
         return 1
     return 0
 
@@ -857,62 +1076,107 @@ if __name__ == "__main__":
     sys.exit(main())
 ```
 
-- [ ] **Step 5: Get the go-ahead, then warm in the container**
+- [ ] **Step 3: Write the export, so unversioned state has a backup**
 
-Quote the exact number first: count the unwarmed entries, multiply by $0.0485,
-and state the ceiling being set. Then, with Jon's yes:
+```python
+"""Dump the approved example pool to JSON so it can be committed.
+
+The pool lives on the Fly volume because /admin cannot commit to git. That
+makes it the one piece of curated content in this project with no version
+history. This is the seatbelt:
+
+    flyctl ssh console --app rulemancer -C "python scripts/export_examples.py" > docs/evidence/example-pool-backup.json
+"""
+from __future__ import annotations
+
+import json
+import sys
+from pathlib import Path
+
+REPO = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(REPO / "src"))
+sys.path.insert(0, str(REPO / "scripts"))
+
+from rulesagent.demo_db import list_examples  # noqa: E402
+from warm_examples import DEMO_DB  # noqa: E402
+
+rows = [
+    {"question": r["question"], "approved_at": r["approved_at"],
+     "warmed": r["warmed_at"] is not None}
+    for r in list_examples(DEMO_DB)
+]
+print(json.dumps(rows, indent=2, ensure_ascii=False))
+```
+
+- [ ] **Step 4: Approve a real batch in `/admin`**
+
+Open `https://rulemancer.jongorecki.com/admin`, read the candidates, edit
+anything that needs it, approve the good ones. Aim for at least 10 so the
+rotation has something to rotate. **Jon does this. Do not approve on his
+behalf.**
+
+- [ ] **Step 5: Quote the cost, get the go-ahead, then warm in the container**
+
+State the exact number first: unwarmed count times $0.0485, and the ceiling
+being set. Then, with Jon's yes:
 
 ```bash
 flyctl ssh console --app rulemancer -C "python scripts/warm_examples.py"
 ```
 
 **Inside the container, not locally.** The running app reads the cache on the
-Fly volume; a local run warms a database nobody serves from. This exact mistake
-has already happened once on this project.
+volume; a local run warms a database nobody serves from. This exact mistake has
+already happened once on this project.
 
-- [ ] **Step 6: Flip the flags and verify against production**
-
-Set `"warmed": true` for each question the run reported warming, then:
+- [ ] **Step 6: Verify against production, in a browser**
 
 ```bash
 flyctl ssh console --app rulemancer -C "python scripts/check_example_cache.py"
 ```
 
-Expected: every pool entry prints `ok`, exit 0. Then load
-`https://rulemancer.jongorecki.com` in a browser, unlock, and click a rotated
-example. It must return in well under a second. **curl is not enough here:** the
-thing being verified is what a visitor experiences, and this project has already
-shipped a bug that every test and every curl check passed straight through.
+Expected: every row `ok`, exit 0. Then open `https://rulemancer.jongorecki.com`,
+unlock, reload a few times to see the rotation, and click a rotated pill. It
+must come back in well under a second. **curl is not enough:** what is being
+verified is what a visitor experiences, and this project has already shipped a
+bug that every test and every curl check passed straight through.
 
-- [ ] **Step 7: Update the roadmap row**
+- [ ] **Step 7: Back up the pool**
 
-In `evals/build_metrics_history.py`, change the `rotating-examples` row's
-`status` from `"open"` to `"shipped"`, replace `tells_us` with the real
-before/after click data if any exists, and add evidence entries for
-`scripts/example_candidates.py`, `scripts/check_example_cache.py` and this plan
-doc. Keep `metric.basis` honest: it stays `"unknown"` unless click-rate was
-actually measured, in which case it becomes `"measured"` with a `cite`.
+```bash
+flyctl ssh console --app rulemancer -C "python scripts/export_examples.py" > docs/evidence/example-pool-backup.json
+```
+
+- [ ] **Step 8: Update the roadmap row**
+
+In `evals/build_metrics_history.py`, set the `rotating-examples` row's `status`
+to `"shipped"`, add evidence entries for the new scripts and the admin
+handlers, and keep `metric.basis` at `"unknown"` unless click-rate was actually
+measured.
 
 Run: `.venv/Scripts/python.exe -m pytest tests/test_roadmap_inventory.py -q`
 Expected: PASS.
 
-- [ ] **Step 8: Commit**
+- [ ] **Step 9: Commit**
 
 ```bash
-git add frontend/index.html scripts/warm_examples.py scripts/check_example_cache.py evals/build_metrics_history.py
-git commit -m "demo: fill the example pool with real questions and warm them
+git add scripts/ evals/build_metrics_history.py docs/evidence/example-pool-backup.json
+git commit -m "demo: warm approved examples from the database, plus checker and backup
 
-Questions picked by Jon from ranked demo traffic, warmed inside the
-container so the cache lands on the Fly volume rather than a local file
-nobody serves from. The warm script now skips entries already cached, so
-re-running it is free instead of a full regeneration each time.
+warm_examples.py now reads approved rows instead of a hardcoded list, skips
+anything already cached, and sets warmed_at only AFTER the answer is stored:
+a row flagged warmed whose answer is not cached is precisely the state that
+puts a slow paid pill on the page.
 
-check_example_cache.py exists because the pool's `warmed` flag is a claim
-in a file while the real cache key folds in model, effort, prompt version
-and corpus fingerprint. Any pipeline change silently invalidates every
-warmed answer while the flag still reads true.
+check_example_cache.py exists because warmed_at is a claim while the real
+cache key folds in model, effort, prompt version and corpus fingerprint. Any
+pipeline change invalidates every warmed answer while the column still reads
+like a date.
 
-Spend for this run: \$X.XX against a \$Y.YY approved ceiling.
+export_examples.py backs up the pool, which is the only curated content here
+with no version history, because /admin cannot commit to git.
+
+Spend for this run: \$X.XX (fill from the run output) against a \$Y.YY
+approved ceiling.
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 ```
@@ -921,18 +1185,17 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 
 ## What this plan deliberately does not do
 
-- **No automatic selection.** Nothing promotes a question to the pool without
-  Jon reading it. Ranking is automated; publishing is not. That is the whole
-  privacy posture, and a "just take the top 12 by count" shortcut would discard
-  it while looking like an optimisation.
-- **No per-visitor personalisation.** The rotation is random per load, not
-  based on anything about the visitor. There is no profile to build and no
-  reason to build one.
-- **No new telemetry.** Measuring whether rotated examples get clicked more can
-  be done off the existing `query` event stream. A click-tracking endpoint
-  would be new surface area on a publicly reachable app for a question nobody
-  has asked yet.
-- **No pool in a separate file.** It would be one more thing to keep in sync
-  with the page, which is the exact problem Task 2 exists to delete.
-- **No auto-warm on deploy.** Warming spends money, and money spends on Jon's
-  say-so, not on a push.
+- **No bulk approve.** "Approve top 10" would delete the only control that
+  makes publishing strangers' text safe, while looking like a convenience.
+- **No automatic content filtering.** No length rule, no keyword list, no model
+  judging whether a question is appropriate. A machine deciding what is safe to
+  publish is the thing being avoided, not a feature that was skipped.
+- **No warm button in `/admin`.** Spending is a per-run decision with a
+  ceiling. The page reports the need and shows the command.
+- **No per-visitor personalisation.** Rotation is random per load. There is no
+  profile to build.
+- **No new telemetry.** Whether rotated examples get clicked more is answerable
+  from the existing `query` event stream. A click-tracking endpoint would be new
+  public surface for a question nobody has asked yet.
+- **No hard delete.** Retire is a timestamp. "Was this ever public?" stays
+  answerable.
