@@ -48,8 +48,10 @@ from rulesagent.demo_auth import (
     COOKIE_MAX_AGE_S, hash_ip, ip_hash_salt, session_secret, sign_session, verify_session,
 )
 from rulesagent.demo_db import (
-    DEFAULT_DEMO_DB, code_stats, count_queries, create_code, daily_spend, events_for_code,
-    generate_code, get_code_by_id, get_code_by_value, list_codes, log_event, revoke_code,
+    DEFAULT_DEMO_DB, approve_example, candidate_questions, code_stats, count_queries,
+    create_code, daily_spend, events_for_code, generate_code, get_code_by_id,
+    get_code_by_value, list_codes, list_examples, log_event, reject_candidate,
+    retire_example, revoke_code,
 )
 from rulesagent.demo_db import normalize_question as demo_db_normalize_question
 from rulesagent.generate.answer import GEN_EFFORT, PROMPT_VERSION, RulesAgent
@@ -2118,6 +2120,89 @@ def _admin_page_html(minted: dict | None = None, error: str | None = None) -> st
     if error:
         error_html = f'<p class="form-error" role="alert">{_html.escape(error)}</p>'
 
+    # Candidate questions (Task 2, rotating examples): every distinct
+    # question visitors asked that isn't already approved or rejected,
+    # most-asked first (candidate_questions' own ordering). The textarea is
+    # editable on purpose -- Jon can fix a typo or strip something personal
+    # before the text is ever public -- so what gets POSTed to
+    # /admin/examples/approve is whatever is in the box at submit time, not
+    # necessarily the visitor's exact words. Every question here is
+    # attacker-controlled (a stranger typed it into a public box), so it
+    # goes through the same _html.escape as every other question/label on
+    # this page before it lands in HTML.
+    candidates = candidate_questions(DEMO_DB)
+    if not candidates:
+        candidates_body = (
+            '<tr><td colspan="4" class="empty-row">No new candidates -- '
+            'every question asked has already been approved or rejected.</td></tr>'
+        )
+    else:
+        candidate_rows_html = []
+        for c in candidates:
+            q_escaped = _html.escape(c["question"])
+            eid = c["event_id"]
+            candidate_rows_html.append(f"""
+        <tr>
+          <td>
+            <form method="post" action="/admin/examples/approve" class="candidate-form">
+              <textarea name="question" class="candidate-textarea" rows="2"
+                        maxlength="{MAX_QUESTION_CHARS}">{q_escaped}</textarea>
+              <input type="hidden" name="event_id" value="{eid}" />
+              <button type="submit" class="btn-approve">Approve</button>
+            </form>
+          </td>
+          <td>{c["times_asked"]}</td>
+          <td>{c["answered_rate"] * 100:.0f}%</td>
+          <td>
+            <form method="post" action="/admin/examples/reject" class="reject-form">
+              <input type="hidden" name="question" value="{q_escaped}" />
+              <button type="submit" class="btn-reject">Reject</button>
+            </form>
+          </td>
+        </tr>""")
+        candidates_body = "".join(candidate_rows_html)
+
+    # Approved pool (Task 2): every non-retired approved example, newest
+    # first (list_examples' own ordering). "not warmed yet" is the literal
+    # string the frontend/backfill story depends on -- an approved example
+    # stays invisible on the demo until scripts/warm_examples.py runs, so
+    # the page has to say so plainly rather than implying approval alone is
+    # enough.
+    examples = list_examples(DEMO_DB)
+    unwarmed_count = sum(1 for e in examples if not e["warmed_at"])
+    if unwarmed_count:
+        unwarmed_html = (
+            f'<p class="pool-status">{unwarmed_count} approved and not warmed yet. '
+            f'They stay hidden until you run:<br/>'
+            f'<code>flyctl ssh console --app rulemancer -C '
+            f'&quot;python scripts/warm_examples.py&quot;</code></p>'
+        )
+    else:
+        unwarmed_html = ""
+
+    if not examples:
+        pool_body = (
+            '<tr><td colspan="4" class="empty-row">No examples approved yet.</td></tr>'
+        )
+    else:
+        pool_rows_html = []
+        for e in examples:
+            q_escaped = _html.escape(e["question"])
+            warmed = _fmt_ts(e["warmed_at"]) if e["warmed_at"] else "not warmed yet"
+            pool_rows_html.append(f"""
+        <tr>
+          <td>{q_escaped}</td>
+          <td>{_fmt_ts(e["approved_at"])}</td>
+          <td>{warmed}</td>
+          <td>
+            <form method="post" action="/admin/examples/retire" class="retire-form">
+              <input type="hidden" name="example_id" value="{e["id"]}" />
+              <button type="submit" class="btn-retire">Retire</button>
+            </form>
+          </td>
+        </tr>""")
+        pool_body = "".join(pool_rows_html)
+
     body = f"""<!doctype html>
 <html lang="en">
 <head>
@@ -2224,6 +2309,31 @@ def _admin_page_html(minted: dict | None = None, error: str | None = None) -> st
     h1 {{ font-size: var(--fs-xl); }}
     .mint-form {{ flex-direction: column; align-items: stretch; }}
   }}
+  .candidate-form, .reject-form, .retire-form {{ margin: 0; display: flex;
+    flex-direction: column; gap: var(--space-2); align-items: flex-start; }}
+  .candidate-textarea {{ width: 100%; min-width: 260px; resize: vertical;
+    font-family: var(--font-sans); font-size: var(--fs-sm); color: var(--fg-primary);
+    background: var(--bg-elevated); border: 1px solid var(--border-default);
+    border-radius: var(--radius-md); padding: var(--space-2) var(--space-3); }}
+  .candidate-textarea:focus-visible {{ outline: 2px solid var(--accent);
+    outline-offset: 2px; border-color: var(--accent); }}
+  .btn-approve {{ padding: 0.35rem 0.75rem; min-height: 44px; display: inline-flex;
+    align-items: center; justify-content: center; font-size: var(--fs-xs);
+    font-weight: var(--fw-medium); font-family: var(--font-sans); cursor: pointer;
+    background: var(--sigil); color: var(--fg-on-garnet, #fff); border: none;
+    border-radius: var(--radius-md); transition: background var(--t-fast); }}
+  .btn-approve:focus-visible {{ outline: 2px solid var(--accent); outline-offset: 2px; }}
+  .btn-reject, .btn-retire {{ padding: 0.35rem 0.75rem; min-height: 44px;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: var(--fs-xs); font-weight: var(--fw-medium); font-family: var(--font-sans);
+    background: transparent; color: var(--status-red); border: 1px solid var(--status-red);
+    border-radius: var(--radius-md); cursor: pointer; transition: background var(--t-fast); }}
+  .btn-reject:hover, .btn-retire:hover {{ background: rgba(224,80,80,0.12); }}
+  .btn-reject:focus-visible, .btn-retire:focus-visible {{ outline: 2px solid var(--accent);
+    outline-offset: 2px; }}
+  .pool-status {{ color: var(--fg-secondary); font-size: var(--fs-sm);
+    margin: 0 0 var(--space-3); }}
+  .pool-status code {{ font-size: var(--fs-xs); }}
 </style>
 </head>
 <body data-surface="dark">
@@ -2290,6 +2400,23 @@ def _admin_page_html(minted: dict | None = None, error: str | None = None) -> st
 
   <h2>Questions by code</h2>
   {details_html or '<p class="empty-row">Nothing to show yet.</p>'}
+
+  <h2>Candidate questions</h2>
+  <div class="table-scroll">
+    <table>
+      <thead><tr><th>Question</th><th>Asked</th><th>Answered</th><th>Actions</th></tr></thead>
+      <tbody>{candidates_body}</tbody>
+    </table>
+  </div>
+
+  <h2>Approved examples</h2>
+  {unwarmed_html}
+  <div class="table-scroll">
+    <table>
+      <thead><tr><th>Question</th><th>Approved</th><th>Warmed</th><th>Actions</th></tr></thead>
+      <tbody>{pool_body}</tbody>
+    </table>
+  </div>
 </body></html>"""
     return body
 
@@ -2353,6 +2480,82 @@ def admin_revoke_code(
         return HTMLResponse(content=_admin_page_html(error="Invalid code."), status_code=400)
 
     revoke_code(DEMO_DB, cid)
+    return HTMLResponse(content=_admin_page_html())
+
+
+@app.post(
+    "/admin/examples/approve", tags=["ops"],
+    summary="Approve a visitor's question as a rotating demo example",
+    description="Admin-gated (Bearer or admin session cookie, same as GET /admin). Stores "
+    "the SUBMITTED text, which may be an edited version of what the visitor typed. Approved "
+    "examples are invisible on the demo until warmed -- see scripts/warm_examples.py.",
+    include_in_schema=False,
+)
+def admin_approve_example(
+    question: str = Form(...),
+    event_id: str = Form(default=""),
+    authorization: str | None = Header(default=None),
+    admin_session: str | None = Cookie(default=None, alias=ADMIN_COOKIE_NAME),
+) -> HTMLResponse:
+    # Auth before anything else, matching admin_mint_code: an unauthenticated
+    # POST must publish nothing. This is the single most important line in
+    # the feature -- it is what makes "a human approved this" true.
+    if not _admin_authed(authorization, admin_session):
+        return _admin_login_page()
+
+    text = question.strip()
+    if not text:
+        return HTMLResponse(
+            content=_admin_page_html(error="an example cannot be empty"),
+            status_code=400)
+    if len(text) > MAX_QUESTION_CHARS:
+        return HTMLResponse(
+            content=_admin_page_html(
+                error=f"an example must be under {MAX_QUESTION_CHARS} characters"),
+            status_code=400)
+
+    try:
+        source = int(event_id) if event_id.strip() else None
+    except ValueError:
+        source = None
+
+    approve_example(DEMO_DB, text, source_event_id=source)
+    return HTMLResponse(content=_admin_page_html())
+
+
+@app.post(
+    "/admin/examples/reject", tags=["ops"],
+    summary="Dismiss a question so it stops appearing as a candidate",
+    include_in_schema=False,
+)
+def admin_reject_candidate(
+    question: str = Form(...),
+    authorization: str | None = Header(default=None),
+    admin_session: str | None = Cookie(default=None, alias=ADMIN_COOKIE_NAME),
+) -> HTMLResponse:
+    if not _admin_authed(authorization, admin_session):
+        return _admin_login_page()
+    reject_candidate(DEMO_DB, question)
+    return HTMLResponse(content=_admin_page_html())
+
+
+@app.post(
+    "/admin/examples/retire", tags=["ops"],
+    summary="Pull an approved example off the demo",
+    include_in_schema=False,
+)
+def admin_retire_example(
+    example_id: str = Form(...),
+    authorization: str | None = Header(default=None),
+    admin_session: str | None = Cookie(default=None, alias=ADMIN_COOKIE_NAME),
+) -> HTMLResponse:
+    if not _admin_authed(authorization, admin_session):
+        return _admin_login_page()
+    try:
+        retire_example(DEMO_DB, int(example_id))
+    except ValueError:
+        return HTMLResponse(
+            content=_admin_page_html(error="bad example id"), status_code=400)
     return HTMLResponse(content=_admin_page_html())
 
 
