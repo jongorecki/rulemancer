@@ -2444,7 +2444,17 @@ class RulesAgent:
                             tool_results.append({
                                 "type": "tool_result",
                                 "tool_use_id": block.id,
-                                "content": json.dumps(result),
+                                # ensure_ascii=False: tool_result content is
+                                # read by the model as literal text, not
+                                # decoded JSON. Left at the ensure_ascii=True
+                                # default, every non-ASCII char (an em dash,
+                                # a curly quote) gets escaped to a
+                                # backslash-u sequence, and the model copies
+                                # those six literal characters straight into
+                                # the user-visible answer instead of the
+                                # real glyph. Bug seen live: "—"
+                                # rendered verbatim on the demo.
+                                "content": json.dumps(result, ensure_ascii=False),
                             })
                     attempt_msgs = attempt_msgs + [{"role": "user", "content": tool_results}]
                     continue

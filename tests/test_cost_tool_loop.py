@@ -414,6 +414,73 @@ def test_final_round_forces_tool_choice_none_and_recovers_a_real_answer():
 # noticing the regression.
 
 
+# --- ensure_ascii=False regression (em-dash-as-literal-backslash-u bug) -----
+#
+# Root cause: json.dumps(result) at the tool_result construction site
+# defaulted to ensure_ascii=True, which escapes every non-ASCII character
+# to a \uXXXX sequence. That string is handed back to the model as
+# tool_result CONTENT -- read as literal text, not decoded -- so the model
+# saw the six characters "\", "u", "2", "0", "1", "4" and copied them
+# straight into its answer instead of an em dash. Seen live on the demo.
+#
+# This test proves the fix at the level that actually matters: the exact
+# string placed in tool_results[...]["content"] (and therefore in the
+# outgoing message list) contains the real glyphs, not escape sequences,
+# for an em dash, a curly quote, and an accented character. No model call
+# is made or needed -- this is deterministic string content assembled by
+# the loop itself.
+
+
+def test_tool_result_content_preserves_non_ascii_characters_not_escapes(monkeypatch):
+    non_ascii_result = {
+        "ok": True,
+        "results": [{
+            "note": (
+                "A player may cast a spell — an instant, say — "
+                'during their turn. Some call this "convoke" ’cause '
+                "it’s cute. Café rules apply."
+            ),
+        }],
+    }
+    tool_block = _FakeToolUseBlock("toolu_ascii", "calculate_cost", {
+        "base_cost": {"generic": 1, "colored": {}, "x_coefficient": 0}, "modifiers": [],
+    })
+    client = _ScriptedToolClient([
+        _FakeResponse("tool_use", [tool_block], None),
+        _FakeResponse("end_turn", [], _REAL_ANSWER),
+    ])
+    monkeypatch.setitem(ans._TOOL_DISPATCH, "calculate_cost", lambda input_: non_ascii_result)
+
+    agent = ans.RulesAgent(_EmptyStore(), client=client, rewrite=False)
+    result = agent.answer(TRIGGER_QUESTION)
+
+    assert result is _REAL_ANSWER
+
+    # The message sent back to the model on round 2 (index [2] is the
+    # tool_result user turn, same shape asserted in the converges-after-
+    # one-tool-call test above).
+    tool_result_msg = client.calls[1]["messages"][2]["content"][0]
+    assert tool_result_msg["tool_use_id"] == "toolu_ascii"
+    content = tool_result_msg["content"]
+
+    # The real characters are present...
+    assert "—" in content  # em dash
+    assert "’" in content  # curly apostrophe
+    assert "é" in content  # e-acute (Cafe)
+
+    # ...and the escaped six-character sequences are NOT -- this is the
+    # exact failure mode: ensure_ascii=True turns "—" (1 real char)
+    # into the literal text "—" (6 ASCII chars: backslash, u, 2, 0,
+    # 1, 4), which is what the user saw rendered verbatim on the demo.
+    assert "\\u2014" not in content
+    assert "\\u2019" not in content
+    assert "\\u00e9" not in content
+
+    # Round-trips to the identical original result -- proves nothing else
+    # about the payload changed, only the escaping.
+    assert json.loads(content) == non_ascii_result
+
+
 def test_tool_round_cap_is_four_with_three_tool_capable_rounds_then_forced_answer():
     assert ans.TOOL_ROUND_CAP == 4
 
