@@ -525,6 +525,23 @@ class Citation(BaseModel):
     text: str | None     # resolved rule/glossary text; None for a card name
 
 
+class CardFaceOut(BaseModel):
+    """One printed face, for the card-info panel (plan-answer-ui-fixes Fix 3).
+
+    Mirrors contracts.CardFace, which the pipeline already fetches from
+    Scryfall per face -- this is purely a frontend-facing re-export of data
+    that was already in memory, not a new fetch."""
+
+    name: str
+    mana_cost: str
+    type_line: str
+    oracle_text: str
+    power: str
+    toughness: str
+    loyalty: str
+    defense: str
+
+
 class CardOut(BaseModel):
     name: str
     oracle_id: str       # frontend fetches the card image from Scryfall with this / name
@@ -532,6 +549,17 @@ class CardOut(BaseModel):
     type_line: str
     oracle_text: str
     rulings_used: list[str]   # only the mini-RAG-selected rulings actually shown to the model
+    layout: str = ""      # Scryfall layout ("normal", "modal_dfc", "transform", ...) --
+    # the frontend uses this to decide how to present multiple faces (e.g. a
+    # modal DFC's two faces are alternatives; a transform card's back is what
+    # the front becomes). See contracts.Card.layout for the full rationale.
+    power: str = ""        # top-level convenience for a single-faced card;
+    toughness: str = ""    # blank when the card has more than one face --
+    loyalty: str = ""      # read per-face from `faces` instead, since a
+    defense: str = ""      # double-faced card's two faces can differ.
+    faces: list[CardFaceOut] = []   # one entry per printed face (always >=1);
+    # the source of truth for multi-faced cards. Single-faced cards also get
+    # exactly one entry here, so the frontend can iterate `faces` uniformly.
 
 
 class Debug(BaseModel):
@@ -1003,6 +1031,24 @@ def answer(req: AnswerRequest, request: Request = None,
         CardOut(
             name=c.name, oracle_id=c.oracle_id, mana_cost=c.mana_cost,
             type_line=c.type_line, oracle_text=c.oracle_text, rulings_used=c.rulings,
+            layout=c.layout,
+            # Top-level power/toughness/loyalty/defense are a convenience for
+            # the common single-faced case only -- populated when there's
+            # exactly one face, blank otherwise (the two faces of a DFC can
+            # have different stats, so `faces` below is the real source of
+            # truth the frontend must read for anything multi-faced).
+            power=c.faces[0].power if len(c.faces) == 1 else "",
+            toughness=c.faces[0].toughness if len(c.faces) == 1 else "",
+            loyalty=c.faces[0].loyalty if len(c.faces) == 1 else "",
+            defense=c.faces[0].defense if len(c.faces) == 1 else "",
+            faces=[
+                CardFaceOut(
+                    name=f.name, mana_cost=f.mana_cost, type_line=f.type_line,
+                    oracle_text=f.oracle_text, power=f.power, toughness=f.toughness,
+                    loyalty=f.loyalty, defense=f.defense,
+                )
+                for f in c.faces
+            ],
         )
         for c in cards
     ]

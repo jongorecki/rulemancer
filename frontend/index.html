@@ -270,16 +270,6 @@ function openCite(mi, ci) {
   };
   render();
 }
-function openCard(mi, ki) {
-  const card = state.messages[mi].cards[ki];
-  state.drawer = {
-    kicker: "Card · Scryfall", code: card.name, text: card.oracle_text,
-    meta: [card.mana_cost, card.type_line].filter(Boolean).join("  ·  "),
-    rulings: card.rulings_used || [],
-    scryfall: "https://scryfall.com/search?q=oracleid%3A" + encodeURIComponent(card.oracle_id),
-  };
-  render();
-}
 function closeDrawer() { state.drawer = null; render(); }
 
 // ---- misc actions ----------------------------------------------------------
@@ -479,12 +469,50 @@ function citeCard(m, mi) {
       <div style="display:flex;flex-direction:column;gap:12px;">${rows}</div></div>`;
   }
   if (m.cards && m.cards.length) {
-    const chips = m.cards.map((c, ki) =>
-      `<button data-action="open-card" data-mi="${mi}" data-ki="${ki}" class="rm-cite" style="display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:var(--accent-link);background:var(--accent-soft);border:1px solid transparent;padding:4px 10px;border-radius:999px;cursor:pointer;">${esc(c.name)}${c.rulings_used&&c.rulings_used.length?` <span style="font-size:10px;color:var(--teal-700);">${c.rulings_used.length} ruling${c.rulings_used.length>1?"s":""}</span>`:""}</button>`).join("");
-    out += `<div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:7px;align-items:center;">
-      <span style="font-size:10px;text-transform:uppercase;letter-spacing:.13em;color:var(--fg-muted);">Cards</span>${chips}</div>`;
+    out += `<div style="margin-top:10px;display:flex;flex-direction:column;gap:10px;">
+      <span style="font-size:10px;text-transform:uppercase;letter-spacing:.13em;color:var(--fg-muted);">Cards</span>
+      ${m.cards.map(c => cardInfoPanel(c)).join("")}</div>`;
   }
   return out;
+}
+
+// Fix 3 (card info panel): surfaces what the pipeline already fetched from
+// Scryfall -- name, mana cost, type line, oracle text, power/toughness or
+// loyalty, and the rulings actually shown to the model -- directly under the
+// answer instead of behind a click. Iterates `faces` (always >=1 entry, one
+// per printed face) so a modal DFC / transform / split card shows every
+// face's own cost/type/text/stats rather than just the front.
+function cardFaceRow(f, isBack) {
+  const stats = [
+    (f.power || f.toughness) ? `${f.power || "0"}/${f.toughness || "0"}` : "",
+    f.loyalty ? `Loyalty ${f.loyalty}` : "",
+    f.defense ? `Defense ${f.defense}` : "",
+  ].filter(Boolean).join("  ·  ");
+  return `<div style="${isBack ? "margin-top:10px;padding-top:10px;border-top:1px dashed var(--border-default);" : ""}">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;">
+      <span style="font-weight:600;font-size:13.5px;color:var(--fg-primary);">${esc(f.name)}</span>
+      ${f.mana_cost ? `<span style="font-family:var(--font-mono);font-size:12px;color:var(--fg-muted);white-space:nowrap;">${esc(f.mana_cost)}</span>` : ""}
+    </div>
+    <div style="font-size:12px;color:var(--fg-muted);margin-top:2px;">${esc(f.type_line)}${stats ? "  ·  " + esc(stats) : ""}</div>
+    ${f.oracle_text ? `<div style="font-size:13px;color:var(--fg-secondary);line-height:1.55;margin-top:6px;white-space:pre-wrap;">${esc(f.oracle_text)}</div>` : ""}
+  </div>`;
+}
+function cardInfoPanel(c) {
+  const faces = (c.faces && c.faces.length) ? c.faces
+    : [{ name: c.name, mana_cost: c.mana_cost, type_line: c.type_line, oracle_text: c.oracle_text,
+         power: c.power, toughness: c.toughness, loyalty: c.loyalty, defense: c.defense }];
+  const facesHtml = faces.map((f, i) => cardFaceRow(f, i > 0)).join("");
+  const rulings = c.rulings_used && c.rulings_used.length
+    ? `<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border-default);">
+        <div style="font-size:10px;text-transform:uppercase;letter-spacing:.13em;color:var(--teal-700);font-weight:600;margin-bottom:6px;">Rulings used</div>
+        ${c.rulings_used.map(r => `<div style="display:flex;gap:8px;font-size:12.5px;color:var(--fg-secondary);line-height:1.5;margin-bottom:6px;"><span style="color:var(--teal-500);flex:none;">✦</span><span>${esc(r)}</span></div>`).join("")}
+      </div>` : "";
+  const scry = c.oracle_id
+    ? `<a href="https://scryfall.com/search?q=oracleid%3A${encodeURIComponent(c.oracle_id)}" target="_blank" rel="noopener" style="font-size:11.5px;color:var(--accent-link);white-space:nowrap;flex:none;">Scryfall ↗</a>` : "";
+  return `<div style="background:var(--bg-card);border:1px solid var(--border-default);border-radius:10px;padding:12px 14px;">
+    <div style="display:flex;justify-content:flex-end;">${scry}</div>
+    ${facesHtml}${rulings}
+  </div>`;
 }
 
 function feedbackBlock(m, mi) {
@@ -761,7 +789,6 @@ app.addEventListener("click", (e) => {
     case "followup": send(t.dataset.arg); break;
     case "load-history": loadHistory(+t.dataset.arg); break;
     case "open-cite": openCite(+t.dataset.mi, +t.dataset.ci); break;
-    case "open-card": openCard(+t.dataset.mi, +t.dataset.ki); break;
     case "close-drawer": closeDrawer(); break;
     case "copy": copyMsg(mi); break;
     case "regen": regen(); break;
