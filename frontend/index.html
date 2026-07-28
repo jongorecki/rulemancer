@@ -458,18 +458,25 @@ function welcome() {
   </div>`;
 }
 
+// Fix 1 (mobile cited-rules layout): rule number/title sits on its OWN line
+// above the rule text at every width, rather than beside it. A narrow
+// viewport used to squeeze the text column down to almost nothing once the
+// number chip ate its share of a row; stacking removes the squeeze entirely
+// and reads just as well on desktop, so one layout serves both instead of a
+// media-query variant (Jon: "if a single stacked treatment works at both
+// sizes, prefer that for simplicity").
 function citeCard(m, mi) {
   let out = "";
   if (m.citations && m.citations.length) {
     const rows = m.citations.map((c, ci) => {
       const gloss = c.text ? esc(c.text.replace(/\s+/g, " ").slice(0, 96)) + (c.text.length > 96 ? "…" : "") : "";
-      return `<div style="display:flex;gap:10px;align-items:baseline;">
-        <button data-action="open-cite" data-mi="${mi}" data-ci="${ci}" title="Open this rule" class="rm-cite" style="font-family:var(--font-mono);font-size:12px;font-weight:500;color:var(--accent-link);background:var(--accent-soft);border:1px solid transparent;padding:3px 8px;border-radius:5px;white-space:nowrap;cursor:pointer;display:inline-flex;align-items:center;gap:5px;flex:none;">${esc(c.id)}${I.chevR}</button>
+      return `<div style="display:flex;flex-direction:column;gap:4px;">
+        <button data-action="open-cite" data-mi="${mi}" data-ci="${ci}" title="Open this rule" class="rm-cite" style="align-self:flex-start;font-family:var(--font-mono);font-size:12px;font-weight:500;color:var(--accent-link);background:var(--accent-soft);border:1px solid transparent;padding:3px 8px;border-radius:5px;white-space:nowrap;cursor:pointer;display:inline-flex;align-items:center;gap:5px;flex:none;">${esc(c.id)}${I.chevR}</button>
         <span style="font-size:13px;color:var(--fg-secondary);line-height:1.45;">${gloss}</span></div>`;
     }).join("");
     out += `<div style="margin-top:14px;background:var(--bg-card);border:1px solid var(--border-default);border-left:3px solid var(--teal-500);border-radius:10px;padding:12px 14px;">
       <div style="font-size:10px;text-transform:uppercase;letter-spacing:.13em;color:var(--teal-700);font-weight:600;margin-bottom:8px;">Cited rules</div>
-      <div style="display:flex;flex-direction:column;gap:7px;">${rows}</div></div>`;
+      <div style="display:flex;flex-direction:column;gap:12px;">${rows}</div></div>`;
   }
   if (m.cards && m.cards.length) {
     const chips = m.cards.map((c, ki) =>
