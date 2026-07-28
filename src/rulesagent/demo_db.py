@@ -47,6 +47,26 @@ _EVENTS_SCHEMA = (
     "cost_usd REAL, "
     "latency_ms INTEGER)"
 )
+# Slice: admin-approved rotating example pool
+# (.superpowers/sdd/2026-07-28-rotating-examples/task-1-brief.md). Approval
+# happens in /admin, which runs in a Fly container and cannot commit to git,
+# so the pool is production state rather than a versioned file -- these two
+# tables carry the invariants a code review would otherwise enforce.
+_EXAMPLES_SCHEMA = (
+    "CREATE TABLE IF NOT EXISTS examples ("
+    "id INTEGER PRIMARY KEY AUTOINCREMENT, "
+    "question TEXT NOT NULL, "
+    "norm TEXT NOT NULL UNIQUE, "  # case/whitespace-folded, dedupe key
+    "source_event_id INTEGER, "  # provenance; NULL if hand-written
+    "approved_at TEXT NOT NULL, "
+    "warmed_at TEXT, "  # NULL until the answer cache has it
+    "retired_at TEXT)"  # soft delete; history is evidence
+)
+_EXAMPLE_REJECTS_SCHEMA = (
+    "CREATE TABLE IF NOT EXISTS example_rejects ("
+    "norm TEXT PRIMARY KEY, "
+    "rejected_at TEXT NOT NULL)"
+)
 
 
 def _connect(db_path: Path) -> sqlite3.Connection:
@@ -56,6 +76,8 @@ def _connect(db_path: Path) -> sqlite3.Connection:
     conn.execute(f"PRAGMA busy_timeout={_BUSY_TIMEOUT_MS}")
     conn.execute(_CODES_SCHEMA)
     conn.execute(_EVENTS_SCHEMA)
+    conn.execute(_EXAMPLES_SCHEMA)
+    conn.execute(_EXAMPLE_REJECTS_SCHEMA)
     conn.row_factory = sqlite3.Row
     return conn
 
@@ -228,3 +250,151 @@ def daily_spend(db_path: Path, day: str) -> float:
     finally:
         conn.close()
     return row["total"]
+
+
+# Admin-approved rotating example pool (task-1-brief.md). Same
+# per-op-connection pattern as the codes/events functions above: `_connect`
+# opens a fresh connection, writes call `conn.commit()` explicitly, and
+# `finally: conn.close()` always runs.
+
+def normalize_question(text: str) -> str:
+    """Case and whitespace folding, and nothing else.
+
+    Must stay identical to the API's `_normalize_question`, which builds the
+    answer-cache key -- so identical, in fact, that `main._normalize_question`
+    is just a thin wrapper around this function rather than a second copy of
+    the same three lines. If these two ever disagreed about what "the same
+    question" means, an approved example could be warmed under one key and
+    looked up under another: a permanent silent cache miss, which shows up as
+    a slow paid click rather than as an error.
+    """
+    return " ".join(text.strip().lower().split())
+
+
+def approve_example(db_path: Path, question: str, *,
+                     source_event_id: int | None = None) -> int:
+    """Approve `question` as an example. Returns its row id.
+
+    Idempotent on the normalized form: approving the same question twice
+    returns the existing row rather than creating a second one that would
+    share its cache key.
+    """
+    norm = normalize_question(question)
+    conn = _connect(db_path)
+    try:
+        existing = conn.execute(
+            "SELECT id FROM examples WHERE norm = ?", (norm,)).fetchone()
+        if existing is not None:
+            return int(existing["id"])
+        cur = conn.execute(
+            "INSERT INTO examples (question, norm, source_event_id, approved_at) "
+            "VALUES (?, ?, ?, ?)",
+            (question.strip(), norm, source_event_id, _now()))
+        conn.commit()
+        return int(cur.lastrowid)
+    finally:
+        conn.close()
+
+
+def reject_candidate(db_path: Path, question: str) -> None:
+    """Remember a no, so the candidate list stops offering it."""
+    conn = _connect(db_path)
+    try:
+        conn.execute(
+            "INSERT OR IGNORE INTO example_rejects (norm, rejected_at) VALUES (?, ?)",
+            (normalize_question(question), _now()))
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def mark_warmed(db_path: Path, example_id: int) -> None:
+    conn = _connect(db_path)
+    try:
+        conn.execute("UPDATE examples SET warmed_at = ? WHERE id = ?",
+                     (_now(), example_id))
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def retire_example(db_path: Path, example_id: int) -> None:
+    """Soft delete. The row stays so 'this was public once' stays answerable."""
+    conn = _connect(db_path)
+    try:
+        conn.execute("UPDATE examples SET retired_at = ? WHERE id = ?",
+                     (_now(), example_id))
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def list_examples(db_path: Path, *, include_retired: bool = False) -> list[dict]:
+    sql = "SELECT * FROM examples"
+    if not include_retired:
+        sql += " WHERE retired_at IS NULL"
+    sql += " ORDER BY approved_at DESC"
+    conn = _connect(db_path)
+    try:
+        rows = conn.execute(sql).fetchall()
+    finally:
+        conn.close()
+    return [dict(r) for r in rows]
+
+
+def pool_for_frontend(db_path: Path) -> list[str]:
+    """Exactly the questions safe to show: approved, warmed, not retired.
+
+    Anything else is either a paid slow click or a question Jon pulled.
+    """
+    conn = _connect(db_path)
+    try:
+        rows = conn.execute(
+            "SELECT question FROM examples "
+            "WHERE warmed_at IS NOT NULL AND retired_at IS NULL "
+            "ORDER BY id").fetchall()
+    finally:
+        conn.close()
+    return [r["question"] for r in rows]
+
+
+def candidate_questions(db_path: Path, *, limit: int = 60) -> list[dict]:
+    """Questions visitors asked that are neither approved nor rejected yet,
+    most-asked first. Each carries `question`, `times_asked`, `answered_rate`
+    and `event_id` (the most recent event it came from, for provenance).
+
+    No content filtering happens here on purpose. Length or keyword rules
+    would be a machine deciding what is safe to publish, and the entire point
+    of this feature is that a person decides that.
+    """
+    conn = _connect(db_path)
+    try:
+        rows = conn.execute(
+            "SELECT id, question, answered FROM events "
+            "WHERE kind = 'query' AND question IS NOT NULL AND question <> '' "
+            "ORDER BY id").fetchall()
+        taken = {r["norm"] for r in conn.execute("SELECT norm FROM examples")}
+        taken |= {r["norm"] for r in conn.execute("SELECT norm FROM example_rejects")}
+    finally:
+        conn.close()
+
+    grouped: dict[str, dict] = {}
+    for row in rows:
+        norm = normalize_question(row["question"])
+        if norm in taken:
+            continue
+        entry = grouped.setdefault(norm, {
+            "question": row["question"].strip(),
+            "times_asked": 0, "_answered": 0, "event_id": row["id"],
+        })
+        entry["times_asked"] += 1
+        entry["_answered"] += 1 if row["answered"] else 0
+        entry["event_id"] = row["id"]
+
+    out = []
+    for entry in grouped.values():
+        entry["answered_rate"] = entry["_answered"] / entry["times_asked"]
+        entry.pop("_answered")
+        out.append(entry)
+    out.sort(key=lambda e: (-e["times_asked"], e["question"]))
+    return out[:limit]

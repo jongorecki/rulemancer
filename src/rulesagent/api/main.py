@@ -51,6 +51,7 @@ from rulesagent.demo_db import (
     DEFAULT_DEMO_DB, code_stats, count_queries, create_code, daily_spend, events_for_code,
     generate_code, get_code_by_id, get_code_by_value, list_codes, log_event, revoke_code,
 )
+from rulesagent.demo_db import normalize_question as demo_db_normalize_question
 from rulesagent.generate.answer import GEN_EFFORT, PROMPT_VERSION, RulesAgent
 from rulesagent.index.store import VectorStore
 from rulesagent.pricing import cost_usd
@@ -817,8 +818,13 @@ _example_cache = KVCache("example_answer_cache")
 def _normalize_question(question: str) -> str:
     """Lowercased, whitespace-collapsed question text -- the cache key's
     notion of "the same question," independent of a visitor retyping an
-    example with different casing or incidental whitespace."""
-    return " ".join(question.strip().lower().split())
+    example with different casing or incidental whitespace.
+
+    Delegates to rulesagent.demo_db.normalize_question so the admin-approved
+    example pool and this answer cache can never drift into two different
+    ideas of "the same question" -- see that function's docstring for what a
+    drift would cost."""
+    return demo_db_normalize_question(question)
 
 
 def _corpus_fingerprint(store) -> str:
