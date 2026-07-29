@@ -24,7 +24,7 @@ started measuring it, including the night the measurements knocked over a
 conclusion I'd already written down as settled.
 
 If you'd rather read the findings than the code, they're on their own page:
-**[what was measured](https://jongorecki.github.io/rulemancer/)**. Six
+**[what was measured](https://jongorecki.com/rulemancer/)**. Six
 findings, each carrying the set of questions it was computed over, generated
 straight from the eval data in this repo.
 
@@ -406,7 +406,7 @@ a decent chance it's already gone by the time you read this. If it is, message
 me and I'll make you your own. Not a growth funnel, just me not wanting to wake
 up to a drained account.
 
-The [results page](https://jongorecki.github.io/rulemancer/) isn't gated and
+The [results page](https://jongorecki.com/rulemancer/) isn't gated and
 doesn't run on the demo's server, so it stays up whether or not the demo is.
 
 ## Why Magic
